@@ -1,0 +1,125 @@
+# ===========================
+# 全局忽略规则
+# ===========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 编译输出
+dist/
+build/
+out/
+
+# 依赖包（前后端分开管理）
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 环境变量和密钥（⚠️ 绝对不要提交！）
+.env
+.env.local
+.env.*.local
+key.env
+*.key
+*.pem
+secrets.json
+
+# 数据库文件（如果你用 SQLite）
+*.db
+*.sqlite
+*.sqlite3
+
+# 上传的文件（如果允许用户上传）
+uploads/
+media/
+
+# ===========================
+# 前端专属 (frontend/)
+# ===========================
+
+# Vite / Vue 构建输出
+frontend/dist/
+frontend/.vite/
+
+# 前端开发服务器缓存
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.*.local
+
+# 前端测试覆盖率
+frontend/coverage/
+
+# 前端 IDE 配置（如果单独在 frontend 里有 .vscode）
+frontend/.vscode/settings.json
+
+# ===========================
+# 后端专属 (backend/)
+# ===========================
+
+# Python 虚拟环境
+backend/venv/
+backend/.venv/
+backend/env/
+backend/.env/
+
+# Flask/Django 静态文件收集
+backend/staticfiles/
+
+# Jupyter Notebook 检查点
+backend/*.ipynb_checkpoints
+
+# pytest 缓存
+backend/.pytest_cache/
+backend/htmlcov/
+
+# mypy 缓存
+backend/.mypy_cache/
+
+# ===========================
+# 特殊说明：你项目中已有的文件
+# ===========================
+
+# 你 backend 里的 bge-large-zh-v1.5 是模型文件？如果是大文件，建议加入 Git LFS 或忽略
+# 如果不需要版本控制，取消下面这行的注释：
+backend/bge-large-zh-v1.5/
+
+# 你 backend 里的 0.26.0 是什么？如果是二进制文件或临时文件，建议忽略
+# backend/0.26.0
+
+# 你 frontend 里的 vite-project 已删除，但为防止误建，加一行保险
+frontend/vite-project/
+
+# ===========================
+# 推荐：添加 README 提醒他人不要提交敏感信息
+# ===========================
+
+# 在 .gitignore 末尾可以加一行注释提醒团队成员：
+# ⚠️ 请勿提交任何包含密码、API Key、数据库凭证的文件！

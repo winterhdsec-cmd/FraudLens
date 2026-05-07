@@ -1,2884 +1,5028 @@
 <template>
   <div class="police-system-layout">
-    
-    
+    <div class="particle-bg">
+      <div v-for="i in 60" :key="i" class="particle" :style="getParticleStyle(i)"></div>
+    </div>
+    <div class="grid-overlay"></div>
+    <div class="scan-line"></div>
 
-    <!-- 左侧导航栏 -->
-<aside class="sidebar">
-  <div class="logo-area">
-    <div class="logo-icon">🛡️</div>
-    <h2>反诈团伙画像</h2>
-    <span class="sub-title">AI INTELLIGENT ANALYSIS</span>
-  </div>
-  <el-menu
-    :default-active="activeMenu"
-    class="side-menu"
-    background-color="#0f172a"
-    text-color="#94a3b8"
-    active-text-color="#3b82f6"
-    @select="handleMenuSelect"
-  >
-    <el-menu-item index="input">
-      <i class="el-icon-edit-outline"></i>
-      <span>数据录入中心</span>
-    </el-menu-item>
-    
-    <el-menu-item index="overview">
-      <i class="el-icon-s-home"></i>
-      <span>案件总览</span>
-    </el-menu-item>
-    
-    <!-- 【新增】案件详情 - 放在案件总览下面 -->
-    <el-menu-item index="case-detail">
-      <i class="el-icon-document"></i>
-      <span>案件详情查看</span>
-    </el-menu-item>
-    
-    <el-menu-item index="groups">
-      <i class="el-icon-s-group"></i>
-      <span>团伙画像总览</span>
-    </el-menu-item>
-    
-    <el-menu-item index="details">
-      <i class="el-icon-s-data"></i>
-      <span>团伙深度分析</span>
-    </el-menu-item>
-    
-    <el-menu-item index="network">
-      <i class="el-icon-connection"></i>
-      <span>案件关联网络</span>
-    </el-menu-item>
-    
-    <!-- 【新增】报告生成 - 放在最下面 -->
-    <el-menu-item index="report">
-      <i class="el-icon-printer"></i>
-      <span>报告生成导出</span>
-    </el-menu-item>
-  </el-menu>
-  
-  <div class="system-status">
-    <el-tag :type="isMockMode ? 'warning' : 'success'" size="small" effect="dark">
-      {{ isMockMode ? '系统运行中' : '系统运行中' }}
-    </el-tag>
-    <div class="version-info">v2.0 Pro | Qwen-Max</div>
-  </div>
-</aside>
-
-    <!-- 右侧主内容区 -->
-    <main class="main-content" v-loading="loading" element-loading-text="AI 正在深度研判中..." element-loading-spinner="el-icon-loading">
-      
-      <!-- 1. 数据录入中心 -->
-      <div v-if="activeMenu === 'input'" class="content-view fade-in">
-        <el-card class="input-card-full">
-          <template #header>
-            <div class="card-header-flex">
-              <div>
-                <h3 class="page-title">📊 多源数据采集与录入</h3>
-                <p class="page-subtitle">支持聊天记录粘贴、图片上传、API 数据流接入（预留）</p>
-              </div>
-              <el-button type="primary" @click="loadDemo" icon="Document" plain>📋 加载测试案情</el-button>
-            </div>
-          </template>
-
-          <div class="input-workspace">
-            <div class="input-panel">
-              <div class="panel-header">
-                <span class="label">📝 文本/对话内容</span>
-                <el-tooltip content="建议粘贴多条不同受害者的报警记录，以便系统提取共性特征进行团伙聚类">
-                  <i class="el-icon-question"></i>
-                </el-tooltip>
-              </div>
-              <el-input 
-                v-model="inputText" 
-                type="textarea" 
-                :rows="15" 
-                placeholder="请在此处粘贴聊天记录、报警录音转写文本或涉案信息..." 
-                class="chat-input-large"
-              >
-                <template #prefix>
-                  <span style="color: #909399; font-size: 12px; line-height: 32px;">示例：<br/>嫌疑人：您好，这里是【京东官方】...<br/>受害人：我没开过这个服务啊！<br/>...</span>
-                </template>
-              </el-input>
-              <div class="input-stats">
-                <span>📄 当前行数：<strong>{{ messageCount }}</strong> 条</span>
-                <span v-if="inputText.length > 0">📊 字符数：<strong>{{ inputText.length }}</strong></span>
-              </div>
-            </div>
-
-            <div class="tools-panel">
-              <!-- 图片上传 -->
-              <div class="tool-card image-upload-card">
-                <h4>🖼️ 图片证据上传</h4>
-                <el-upload
-                  :before-upload="handleBeforeUpload"
-                  :show-file-list="false"
-                  accept="image/*"
-                  class="upload-area-large"
-                  drag
-                >
-                  <i class="el-icon-upload"></i>
-                  <div class="el-upload__text">将图片拖到此处，或 <em>点击上传</em></div>
-                  <div class="el-upload__tip">支持 PNG/JPG, 最大 10MB (自动提取文字并追加到文本框)</div>
-                </el-upload>
-              </div>
-
-              <!-- 外部数据接入模块 -->
-              <div class="tool-card external-data-panel">
-                <h4><i class="el-icon-connection"></i> 外部数据接入</h4>
-                <p class="current-mode">
-                  <span style="color: #67C23A; font-weight: bold;">✅</span> 
-                  当前模式：<strong>模拟数据生成</strong>（用于演示与算法验证）
-                </p>
-                <div class="future-integrations">
-                  <span class="integration-tag">🏛️ 国家反诈中心 APP</span>
-                  <span class="integration-tag">🚨 110 接处警系统</span>
-                  <span class="integration-tag">🏦 银行风控系统</span>
-                </div>
-                <p class="note">
-                  * 真实场景需通过公安网闸及安全认证后部署
-                </p>
-              </div>
-
-              <!-- 开始研判按钮 -->
-              <div class="action-area">
-                <el-button 
-                  class="analyze-btn-pro"
-                  size="large" 
-                  @click="analyze" 
-                  :loading="loading" 
-                  icon="Search" 
-                  style="width: 100%"
-                  :disabled="!inputText.trim()"
-                >
-                  <i class="el-icon-search" style="margin-right: 8px;"></i>
-                  {{ loading ? 'AI 正在深度研判...' : '🚀 开始智能研判' }}
-                </el-button>
-                
-                <div v-if="loading && isMockMode" class="progress-container">
-                  <el-progress :percentage="mockProgress" :stroke-width="6" :show-text="false"></el-progress>
-                  <p class="progress-text">{{ mockStatusText }}</p>
-                </div>
-
-                <p class="action-hint">点击后系统将自动分案、聚类团伙并生成画像</p>
-              </div>
-            </div>
-          </div>
-        </el-card>
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon-wrapper">
+          <div class="logo-ring"></div>
+          <div class="logo-icon">🛡️</div>
+        </div>
+        <h2>反诈情报分析</h2>
+        <span class="sub-title">AI INTELLIGENT SYSTEM</span>
+        <div class="logo-badge">
+          <span class="badge-dot"></span>
+          <span>智能研判平台</span>
+        </div>
       </div>
 
-      <!-- 2. 案件总览 -->
-      <div v-if="activeMenu === 'overview'" class="content-view fade-in" v-show="hasData">
-        <div class="report-header">
-          <div class="report-title-section">
-            <h2>📋 AI 反诈团伙画像系统 - 诈骗案件分析报告</h2>
-            <p class="report-subtitle">基于多源数据聚类分析，自动识别犯罪团伙并生成深度画像</p>
-          </div>
-          <div class="report-meta">
-            <div class="meta-item">
-              <span class="meta-label">生成时间</span>
-              <span class="meta-value">{{ currentTime }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">分析案件数</span>
-              <span class="meta-value highlight">{{ totalCases }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">发现犯罪团伙</span>
-              <span class="meta-value highlight-red">{{ results.length }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">高风险团伙</span>
-              <span class="meta-value highlight-red">{{ results.filter(r => r.risk_level === 'HIGH').length }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="stats-cards">
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-icon">📁</div>
-            <div class="stat-label">总案件数</div>
-            <div class="stat-value">{{ totalCases }}</div>
-          </el-card>
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-icon">👥</div>
-            <div class="stat-label">犯罪团伙数</div>
-            <div class="stat-value">{{ results.length }}</div>
-          </el-card>
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-label">系统置信度</div>
-            <div class="stat-value">91%</div>
-          </el-card>
-        </div>
-
-        <h3 class="section-title">📂 原始案件列表 (按受害人)</h3>
-        <div class="case-grid">
-          <el-card v-for="(gang, gIndex) in results" :key="gIndex" class="gang-summary-card" shadow="hover">
-            <template #header>
-              <div class="gang-header">
-                <span class="gang-name">{{ gang.gang_name }}</span>
-                <el-tag :type="gang.risk_type" size="small" effect="dark">{{ gang.risk_label }}</el-tag>
+      <el-menu :default-active="activeMenu" class="side-menu" @select="handleMenuSelect">
+        <div class="menu-group">
+          <div class="menu-group-title">数据采集</div>
+          <el-menu-item index="input">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📝</span>
+                <span class="menu-text">文本录入</span>
               </div>
             </template>
-            <div v-for="(caseItem, cIndex) in gang.related_cases" :key="cIndex" class="case-item">
-              <div class="case-id">案件 #{{ caseItem.case_id }}</div>
-              <div class="case-detail">
-                <span>👤 受害人：{{ caseItem.victim }}</span>
-                <span class="case-amount">💰 涉案金额：{{ caseItem.amount }}</span>
+          </el-menu-item>
+          <el-menu-item index="upload">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📷</span>
+                <span class="menu-text">图片上传</span>
               </div>
-              <div class="case-snippet">关键片段：{{ caseItem.snippet }}</div>
-            </div>
-          </el-card>
-        </div>
-        <div style="text-align: center; margin-top: 20px;">
-          <el-button type="primary" @click="activeMenu = 'groups'" size="large">查看团伙画像总览</el-button>
-        </div>
-      </div>
-      
-      <div v-if="activeMenu === 'overview' && !hasData" class="empty-state">
-        <el-empty description="暂无数据，请先在「数据录入中心」进行分析">
-          <el-button type="primary" @click="activeMenu = 'input'">去录入数据</el-button>
-        </el-empty>
-      </div>
-      <!-- 3. 案件详情查看 -->
-<div v-if="activeMenu === 'case-detail'" class="content-view fade-in" v-show="hasData">
-  <div class="page-header-section">
-  <div class="header-content">
-    <h2 class="page-main-title">
-      <span class="title-icon">📋</span>
-      案件详情查看
-    </h2>
-    <p class="page-desc">从团伙下钻到单个案件，查看案件完整信息与证据链</p>
-  </div>
-  <div class="header-actions">
-    <el-button @click="activeMenu = 'overview'" icon="ArrowLeft">返回总览</el-button>
-    <el-button type="primary" @click="exportCaseReport" icon="Download">导出报告</el-button>
-  </div>
-</div>
-  
-
-  <!-- 案件选择器 -->
-  <el-card class="case-selector-card">
-    <template #header>
-      <div class="card-title-colored">
-        <span class="title-icon">🔍</span>
-        <h4>选择案件</h4>
-        <div class="title-gradient-bar selector-bar"></div>
-      </div>
-    </template>
-    <div class="case-selector-content">
-      <el-select 
-        v-model="selectedCaseId" 
-        placeholder="请选择要查看的案件" 
-        size="large"
-        style="width: 450px;"
-        @change="loadCaseDetail"
-      >
-        <el-option
-          v-for="caseItem in allCases"
-          :key="caseItem.case_id"
-          :label="`${caseItem.case_id} - ${caseItem.victim} - ${caseItem.amount}`"
-          :value="caseItem.case_id"
-        >
-          <span style="float: left">{{ caseItem.case_id }}</span>
-          <span style="float: right; color: #8492a6; font-size: 13px">{{ caseItem.victim }}</span>
-        </el-option>
-      </el-select>
-      <el-tag v-if="selectedCaseGang" type="info" effect="dark" style="margin-left: 20px;">
-        🔗 所属团伙：{{ selectedCaseGang.gang_name }}
-      </el-tag>
-    </div>
-  </el-card>
-
-  <!-- 案件详细信息 -->
-  <div v-if="currentCaseDetail" class="case-detail-container">
-    <!-- 案件基本信息 -->
-    <el-card class="detail-card">
-      <template #header>
-        <div class="card-title-colored case-info-title">
-          <span class="title-icon">📁</span>
-          <h4>案件基本信息</h4>
-          <div class="title-gradient-bar info-bar"></div>
-        </div>
-      </template>
-      <el-descriptions :column="2" border class="colorful-descriptions">
-        <el-descriptions-item label="🆔 案件编号">
-          <span class="colored-value id">{{ currentCaseDetail.case_id }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="⏰ 录入时间">
-          <span class="colored-value time">{{ currentCaseDetail.input_time || '2024-03-23' }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="👤 受害人">
-          <span class="colored-value members">{{ currentCaseDetail.victim }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="💰 涉案金额">
-          <span class="colored-value money">{{ currentCaseDetail.amount }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="🎯 诈骗类型">
-          <el-tag :type="currentCaseDetail.fraud_type === '冒充客服' ? 'danger' : 'warning'" size="small" effect="dark">
-            {{ currentCaseDetail.fraud_type || '冒充客服诈骗' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="⚠️ 风险等级">
-          <el-tag :type="currentCaseDetail.risk_level === 'HIGH' ? 'danger' : 'warning'" size="small" effect="dark">
-            {{ currentCaseDetail.risk_level || '高风险' }}
-          </el-tag>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
-
-    <!-- 案件关键片段 -->
-    <el-card class="detail-card">
-      <template #header>
-        <div class="card-title-colored snippet-title">
-          <span class="title-icon">💬</span>
-          <h4>关键对话片段</h4>
-          <div class="title-gradient-bar snippet-bar"></div>
-        </div>
-      </template>
-      <div class="snippet-content">
-        <div class="message-bubble suspect">
-          <div class="bubble-header">
-            <span class="avatar">👤</span>
-            <span class="name">嫌疑人</span>
-          </div>
-          <div class="bubble-text">{{ currentCaseDetail.snippet }}</div>
-        </div>
-        <div class="message-bubble victim">
-          <div class="bubble-header">
-            <span class="avatar">👤</span>
-            <span class="name">受害人</span>
-          </div>
-          <div class="bubble-text">我没开过这个服务啊！你们是不是搞错了？</div>
-        </div>
-        <div class="message-bubble suspect">
-          <div class="bubble-header">
-            <span class="avatar">👤</span>
-            <span class="name">嫌疑人</span>
-          </div>
-          <div class="bubble-text">系统显示您确实开通了，现在需要您配合取消，否则每月会自动扣费 800 元...</div>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 关联团伙信息 -->
-    <el-card class="detail-card">
-      <template #header>
-        <div class="card-title-colored gang-link-title">
-          <span class="title-icon">👥</span>
-          <h4>关联犯罪团伙</h4>
-          <div class="title-gradient-bar gang-bar"></div>
-        </div>
-      </template>
-      <div class="gang-link-content" v-if="selectedCaseGang">
-        <div class="gang-link-card" @click="viewGangDetail">
-          <div class="gang-link-header">
-            <span class="gang-link-name">{{ selectedCaseGang.gang_name }}</span>
-            <el-tag :type="selectedCaseGang.risk_type" size="small" effect="dark">
-              {{ selectedCaseGang.risk_label }}
-            </el-tag>
-          </div>
-          <div class="gang-link-metrics">
-            <div class="metric-item">
-              <span class="metric-label">涉案总额</span>
-              <span class="metric-value money">{{ selectedCaseGang.total_amount_involved }}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">关联案件</span>
-              <span class="metric-value">{{ selectedCaseGang.total_cases }} 起</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">置信度</span>
-              <span class="metric-value">{{ selectedCaseGang.confidence }}%</span>
-            </div>
-          </div>
-          <div class="gang-link-action">
-            <el-button type="primary" size="small" icon="ArrowRight">查看团伙详情</el-button>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 证据链 -->
-    <el-card class="detail-card">
-      <template #header>
-        <div class="card-title-colored evidence-title">
-          <span class="title-icon">🔗</span>
-          <h4>证据链信息</h4>
-          <div class="title-gradient-bar evidence-bar"></div>
-        </div>
-      </template>
-      <div class="evidence-list">
-        <div class="evidence-item">
-          <div class="evidence-icon">📞</div>
-          <div class="evidence-info">
-            <div class="evidence-title">通话记录</div>
-            <div class="evidence-desc">来电号码：+86-170****5678 | 通话时长：12 分 35 秒</div>
-          </div>
-          <el-tag size="small" type="success" effect="dark">已提取</el-tag>
-        </div>
-        <div class="evidence-item">
-          <div class="evidence-icon">💬</div>
-          <div class="evidence-info">
-            <div class="evidence-title">聊天记录</div>
-            <div class="evidence-desc">腾讯会议截图 3 张 | 文字记录 1 份</div>
-          </div>
-          <el-tag size="small" type="success" effect="dark">已提取</el-tag>
-        </div>
-        <div class="evidence-item">
-          <div class="evidence-icon">🏦</div>
-          <div class="evidence-info">
-            <div class="evidence-title">转账记录</div>
-            <div class="evidence-desc">收款账户：6222****5678 | 转账金额：{{ currentCaseDetail.amount }}</div>
-          </div>
-          <el-tag size="small" type="warning" effect="dark">待核实</el-tag>
-        </div>
-        <div class="evidence-item">
-          <div class="evidence-icon">🌐</div>
-          <div class="evidence-info">
-            <div class="evidence-title">IP 地址追踪</div>
-            <div class="evidence-desc">登录 IP：183.214.***.*** | 归属地：湖南省长沙市</div>
-          </div>
-          <el-tag size="small" type="info" effect="dark">分析中</el-tag>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 操作按钮 -->
-    <div class="case-actions">
-      <el-button type="primary" @click="activeMenu = 'overview'" icon="ArrowLeft">返回案件总览</el-button>
-      <el-button type="success" @click="exportCaseReport" icon="Download">导出本案报告</el-button>
-      <el-button type="info" @click="viewGangDetail" icon="Share">查看关联团伙</el-button>
-    </div>
-  </div>
-
-  <!-- 未选择案件时的提示 -->
-  <div v-else class="empty-state">
-    <el-empty description="请在上方选择一个案件查看详情">
-      <el-button type="primary" @click="activeMenu = 'overview'">返回案件总览</el-button>
-    </el-empty>
-  </div>
-</div>
-
-      <!-- 4. 团伙画像总览 -->
-      <div v-if="activeMenu === 'groups'" class="content-view fade-in" v-show="hasData">
-        <div class="page-header-section">
-          <h2 class="page-main-title">🎯 犯罪团伙画像总览</h2>
-          <p class="page-desc">基于多案聚类分析，自动识别独立犯罪团伙，生成团伙级画像</p>
-        </div>
-
-        <div class="summary-stats">
-          <div class="stat-box red">
-            <div class="stat-icon-large">⚠️</div>
-            <div class="num">1</div>
-            <div class="label">高风险团伙</div>
-          </div>
-          <div class="stat-box orange">
-            <div class="stat-icon-large">👥</div>
-            <div class="num">18-25</div>
-            <div class="label">预估涉案人员</div>
-          </div>
-          <div class="stat-box blue">
-            <div class="stat-icon-large">💰</div>
-            <div class="num">17.0</div>
-            <div class="label">涉案总金额 (万元)</div>
-          </div>
-          <div class="stat-box green">
-            <div class="stat-icon-large">📊</div>
-            <div class="num">5</div>
-            <div class="label">串并案件数</div>
-          </div>
-        </div>
-
-        <h3 class="section-title">🔍 识别出的犯罪团伙</h3>
-        <div class="gang-cards-container">
-          <div 
-            v-for="(gang, index) in results" 
-            :key="index" 
-            class="gang-card" 
-            :class="{ 'active': selectedGroupIndex === index }"
-            @click="selectGang(index)"
-          >
-            <div class="card-top">
-              <div class="badge">犯罪团伙</div>
-              <el-tag :type="gang.risk_type" size="small" effect="dark">{{ gang.risk_label }} (置信度 {{ gang.confidence }}%)</el-tag>
-            </div>
-            <h3 class="gang-title">{{ gang.gang_name }}</h3>
-            <div class="gang-id">ID: {{ gang.gang_id }}</div>
-            
-            <div class="gang-metrics">
-              <div class="metric">
-                <div class="m-label">关联案件</div>
-                <div class="m-value">{{ gang.total_cases }} 起</div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="api">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">🔌</span>
+                <span class="menu-text">API接入</span>
+                
               </div>
-              <div class="metric">
-                <div class="m-label">涉案金额</div>
-                <div class="m-value money">{{ gang.total_amount_involved }}</div>
+            </template>
+          </el-menu-item>
+        </div>
+
+        <div class="menu-group">
+          <div class="menu-group-title">研判分析</div>
+          <el-menu-item index="overview">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📊</span>
+                <span class="menu-text">案件总览</span>
               </div>
-              <div class="metric">
-                <div class="m-label">成员规模</div>
-                <div class="m-value">{{ gang.member_count_estimate }}</div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="case-detail">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">🔍</span>
+                <span class="menu-text">案件详情</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="groups">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">👥</span>
+                <span class="menu-text">团伙画像</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="details">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📈</span>
+                <span class="menu-text">深度分析</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="network">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">🕸️</span>
+                <span class="menu-text">关联网络</span>
+              </div>
+            </template>
+          </el-menu-item>
+        </div>
+
+        <div class="menu-group">
+          <div class="menu-group-title">输出报告</div>
+          <el-menu-item index="report">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📄</span>
+                <span class="menu-text">报告生成</span>
+              </div>
+            </template>
+          </el-menu-item>
+        </div>
+      </el-menu>
+
+      <div class="system-status">
+        <div class="status-row">
+          <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span>系统运行正常</span>
+          </div>
+          <div class="version">v2.0</div>
+        </div>
+        <div class="status-details">
+          <div class="status-item">
+            <span class="status-label">AI引擎</span>
+            <span class="status-value online">在线</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">数据库</span>
+            <span class="status-value online">已连接</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content" v-loading="loading" element-loading-text="AI 正在进行深度研判分析...">
+      <div class="content-wrapper" :class="{ 'fade-in': true }">
+
+        <div v-if="activeMenu === 'input'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📝</span>
+                涉案文本录入
+              </h2>
+              <p class="section-desc">支持聊天记录、报警文本、涉案信息等多种文本格式录入</p>
+            </div>
+            <div class="header-right">
+              <div class="quick-stats">
+                <div class="quick-stat">
+                  <span class="qs-value">{{ inputText.length }}</span>
+                  <span class="qs-label">字符</span>
+                </div>
+                <div class="quick-stat">
+                  <span class="qs-value">{{ textLineCount }}</span>
+                  <span class="qs-label">行</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-container">
+            <div class="input-main tech-card">
+              <div class="input-toolbar">
+                <div class="toolbar-left">
+                  <span class="toolbar-icon">📝</span>
+                  <span class="toolbar-title">文本输入区</span>
+                </div>
+                <div class="toolbar-right">
+                  <el-button size="small" @click="clearInput">
+                    <span>🗑️</span> 清空
+                  </el-button>
+                  <el-button size="small" type="primary" @click="loadDemo">
+                    <span>📋</span> 加载测试案情
+                  </el-button>
+                </div>
+              </div>
+              <div class="input-area">
+                <el-input
+                  v-model="inputText"
+                  type="textarea"
+                  :rows="16"
+                  placeholder="请粘贴聊天记录、报警文本或涉案信息...&#10;&#10;支持格式：&#10;• 聊天记录截图转文字&#10;• 报警笔录&#10;• 涉案资金流水描述&#10;• 诈骗话术文本"
+                  class="dark-textarea"
+                ></el-input>
+              </div>
+              <div class="input-footer">
+                <div class="format-tips">
+                  <span class="tip-icon">💡</span>
+                  <span>建议包含：涉案时间、金额、联系方式、作案手法等关键信息</span>
+                </div>
               </div>
             </div>
 
-            <div class="tags-row">
-              <el-tag v-for="(tag, tIdx) in gang.fingerprint" :key="tIdx" size="small" effect="plain">{{ tag }}</el-tag>
-            </div>
-
-            <div class="card-action">
-              <span class="link-text" @click.stop="selectGang(index)">深度画像分析 &gt;</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-if="activeMenu === 'groups' && !hasData" class="empty-state">
-        <el-empty description="暂无数据" />
-      </div>
-
-      <!-- 5. 团伙深度分析 -->
-<div v-if="activeMenu === 'details'" class="content-view fade-in" v-show="hasData && selectedGroupIndex !== null">
-  <div class="page-header-section">
-  <div class="header-content">
-    <h2 class="page-main-title">
-      <span class="title-icon"></span>
-      {{ currentGangData.gang_name }}
-    </h2>
-    <p class="page-desc">AI 智能分析的犯罪团伙深度画像与能力评估</p>
-  </div>
-  <div class="header-actions">
-    <el-tag :type="currentGangData.risk_type" size="large" effect="dark">
-      {{ currentGangData.risk_label }}
-    </el-tag>
-    <el-button @click="selectGroup((selectedGroupIndex - 1 + results.length) % results.length)" icon="ArrowLeft">上一个</el-button>
-    <el-button @click="selectGroup((selectedGroupIndex + 1) % results.length)" icon="ArrowRight">下一个</el-button>
-  </div>
-</div>
-
-<!-- 报告生成导出页面头部 -->
-<div class="page-header-section">
-  <div class="header-content">
-    <h2 class="page-main-title">
-      <span class="title-icon">📄</span>
-      报告生成导出
-    </h2>
-    <p class="page-desc">选择团伙或案件，生成专业分析报告，支持 PDF/Word 格式导出</p>
-  </div>
-  <div class="header-actions">
-    <el-button @click="resetReportConfig" icon="Refresh">重置配置</el-button>
-  </div>
-</div>
-
-  <!-- 基本信息卡片 - 增加色彩 -->
-  <el-card class="info-card colorful-card">
-    <template #header>
-      <div class="card-title-colored">
-        <span class="title-icon">📋</span>
-        <h4>团伙基本信息</h4>
-        <div class="title-gradient-bar"></div>
-      </div>
-    </template>
-    <el-descriptions :column="3" border class="colorful-descriptions">
-      <el-descriptions-item label="🆔 团伙 ID">
-        <span class="colored-value id">{{ currentGangData.gang_id }}</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="⚠️ 风险等级">
-        <el-tag :type="currentGangData.risk_type" size="small" effect="dark">{{ currentGangData.risk_level }}</el-tag>
-      </el-descriptions-item>
-      <el-descriptions-item label="✅ 置信度">
-        <span class="colored-value confidence">{{ currentGangData.confidence }}%</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="👥 成员规模">
-        <span class="colored-value members">{{ currentGangData.member_count_estimate }}</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="🕐 活跃时段">
-        <span class="colored-value time">{{ currentGangData.active_time }}</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="💻 技术等级">
-        <span class="colored-value tech">{{ currentGangData.tech_level }}</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="📜 作案剧本">
-        <span class="colored-value script">{{ currentGangData.script_type }}</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="💰 涉案总额">
-        <span class="colored-value money">{{ currentGangData.total_amount_involved }}</span>
-      </el-descriptions-item>
-    </el-descriptions>
-  </el-card>
-
-  <!-- 图表区域 - 增加色彩 -->
-  <div class="charts-row">
-    <el-card class="chart-card colorful-chart-card">
-      <template #header>
-        <div class="card-title-colored radar-title">
-          <span class="title-icon">📊</span>
-          <h4>团伙能力雷达</h4>
-          <div class="title-gradient-bar radar-bar"></div>
-        </div>
-      </template>
-      <div ref="radarChartRef" class="echart-container"></div>
-    </el-card>
-    <el-card class="chart-card colorful-chart-card">
-      <template #header>
-        <div class="card-title-colored fingerprint-title">
-          <span class="title-icon">🔍</span>
-          <h4>团伙特征指纹</h4>
-          <div class="title-gradient-bar fingerprint-bar"></div>
-        </div>
-      </template>
-      <div ref="wordCloudRef" class="echart-container"></div>
-    </el-card>
-  </div>
-
-  <!-- 作案流程 - 彩色步骤 -->
-  <el-card class="flow-card colorful-card">
-    <template #header>
-      <div class="card-title-colored flow-title">
-        <span class="title-icon">🔄</span>
-        <h4>团伙作案流程指纹</h4>
-        <div class="title-gradient-bar flow-bar"></div>
-      </div>
-    </template>
-    <div class="flow-steps">
-      <div v-for="(step, idx) in currentGangData.steps" :key="idx" class="step-item">
-        <div class="step-num" :class="'step-color-' + (idx % 5 + 1)">{{ idx + 1 }}</div>
-        <div class="step-text">{{ step }}</div>
-        <div class="step-connector" v-if="idx < currentGangData.steps.length - 1">➜</div>
-      </div>
-    </div>
-    <p class="flow-note">* 该团伙标准化作案路径 (基于多案件行为序列挖掘)</p>
-  </el-card>
-
-  <!-- 案件表格 - 彩色增强 -->
-  <el-card class="cases-card colorful-card">
-    <template #header>
-      <div class="card-title-colored cases-title">
-        <span class="title-icon">📂</span>
-        <h4>该团伙关联案件 ({{ currentGangData.total_cases }} 起)</h4>
-        <div class="title-gradient-bar cases-bar"></div>
-      </div>
-    </template>
-    <el-table :data="currentGangData.related_cases" style="width: 100%" class="colorful-table">
-      <el-table-column prop="case_id" label="案件 ID" width="140">
-        <template #default="scope">
-          <span class="case-id-colored">{{ scope.row.case_id }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="victim" label="受害人" width="120">
-        <template #default="scope">
-          <span class="victim-tag">👤 {{ scope.row.victim }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="amount" label="涉案金额" width="140">
-        <template #default="scope">
-          <span class="amount-colored">{{ scope.row.amount }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="snippet" label="关键片段">
-        <template #default="scope">
-          <span class="snippet-text">{{ scope.row.snippet }}</span>
-        </template>
-      </el-table-column>
-    </el-table>
-  </el-card>
-</div>
-      <!-- 6. 案件关联网络 -->
-      <div v-if="activeMenu === 'network'" class="content-view fade-in" v-show="hasData">
-        <div class="page-header-section">
-          <h2 class="page-main-title">🕸️ 团伙 - 案件关联关系图</h2>
-          <p class="page-desc">可视化展示犯罪团伙与关联案件之间的复杂关系网络</p>
-        </div>
-        
-        <div class="network-legend">
-          <span class="legend-item"><span class="dot red"></span> 犯罪团伙</span>
-          <span class="legend-item"><span class="dot blue"></span> 关联案件</span>
-          <span class="legend-item"><span class="line-sample thick"></span> 连线粗细 = 涉案金额</span>
-          <span class="legend-item"><span class="line-sample color"></span> 连线颜色 = 风险等级</span>
-        </div>
-        
-        <div ref="networkChartRef" class="network-container"></div>
-        
-        <div class="network-tips">
-          <div class="tip-item">🖱️ 拖拽节点可调整布局</div>
-          <div class="tip-item">🔍 滚轮缩放查看细节</div>
-          <div class="tip-item">👆 点击节点查看详情</div>
-          <div class="tip-item">✨ 悬停高亮关联关系</div>
-        </div>
-      </div>
-      <div v-if="activeMenu === 'network' && !hasData" class="empty-state">
-        <el-empty description="暂无数据" />
-      </div>
-     <!-- 7. 报告生成导出 (升级版) -->
-<div v-if="activeMenu === 'report'" class="content-view fade-in" v-show="hasData">
-  <div class="page-header-section">
-    <div class="header-content">
-      <h2 class="page-main-title">
-        <span class="title-icon">📄</span>
-        报告生成导出
-      </h2>
-      <p class="page-desc">选择团伙或案件，生成专业分析报告，支持 PDF/Word 格式导出</p>
-    </div>
-    <div class="header-actions">
-      <el-button @click="resetReportConfig" icon="Refresh">重置配置</el-button>
-    </div>
-  </div>
-
-  <!-- 报告配置 -->
-  <el-card class="report-config-card">
-    <template #header>
-      <div class="card-title-colored">
-        <span class="title-icon">⚙️</span>
-        <h4>报告配置</h4>
-        <div class="title-gradient-bar config-bar"></div>
-      </div>
-    </template>
-    <div class="report-config-content">
-      <div class="config-row">
-        <span class="config-label">报告类型：</span>
-        <el-radio-group v-model="reportType" size="large">
-          <el-radio label="gang">👥 团伙分析报告</el-radio>
-          <el-radio label="case">📋 案件分析报告</el-radio>
-        </el-radio-group>
-      </div>
-      
-      <div class="config-row" v-if="reportType === 'gang'">
-        <span class="config-label">选择团伙：</span>
-        <el-select v-model="selectedReportGangId" placeholder="请选择犯罪团伙" size="large" style="width: 450px;">
-          <el-option
-            v-for="gang in results"
-            :key="gang.gang_id"
-            :label="gang.gang_name"
-            :value="gang.gang_id"
-          >
-            <span style="float: left">{{ gang.gang_name }}</span>
-            <el-tag :type="gang.risk_type" size="small" style="float: right; margin-right: 10px;">
-              {{ gang.risk_label }}
-            </el-tag>
-          </el-option>
-        </el-select>
-      </div>
-
-      <div class="config-row" v-if="reportType === 'case'">
-        <span class="config-label">选择案件：</span>
-        <el-select v-model="selectedReportCaseId" placeholder="请选择案件" size="large" style="width: 450px;">
-          <el-option
-            v-for="caseItem in allCases"
-            :key="caseItem.case_id"
-            :label="`${caseItem.case_id} - ${caseItem.victim}`"
-            :value="caseItem.case_id"
-          />
-        </el-select>
-      </div>
-
-      <div class="config-row">
-        <span class="config-label">导出格式：</span>
-        <el-radio-group v-model="exportFormat" size="large">
-          <el-radio label="pdf">📕 PDF 文档</el-radio>
-          <el-radio label="word">📘 Word 文档</el-radio>
-        </el-radio-group>
-      </div>
-    </div>
-
-    <div class="report-actions">
-      <el-button type="primary" size="large" @click="previewReport" icon="Document">
-        📋 预览报告
-      </el-button>
-      <el-button type="success" size="large" @click="exportReport" icon="Download" :loading="exporting">
-        {{ exporting ? '生成中...' : '📥 导出报告' }}
-      </el-button>
-      <el-button type="info" size="large" @click="printReport" icon="Printer">
-        🖨️ 打印报告
-      </el-button>
-    </div>
-  </el-card>
-
-  <!-- 报告预览 (全新升级结构) -->
-  <div v-if="showPreview" class="report-preview-card">
-    <el-card class="preview-card">
-      <template #header>
-        <div class="preview-header">
-          <h4>📄 报告预览</h4>
-          <div class="preview-actions">
-            <el-button size="small" @click="showPreview = false">关闭预览</el-button>
-            <el-button type="primary" size="small" @click="exportReport">确认导出</el-button>
-          </div>
-        </div>
-      </template>
-      
-      <div class="preview-content" ref="reportPreviewRef">
-        <!-- 1. 报告封面 -->
-        <div class="report-cover">
-          <div class="cover-logo">🛡️</div>
-          <h1 class="cover-title">AI 反诈团伙画像系统</h1>
-          <h2 class="cover-subtitle">诈骗案件深度研判报告</h2>
-          
-          <div class="cover-info-box">
-            <div class="info-item">
-              <span class="info-label">报告编号</span>
-              <span class="info-value">{{ reportNumber }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">生成时间</span>
-              <span class="info-value">{{ currentTime }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">报告类型</span>
-              <span class="info-value">{{ reportTypeText }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">研判等级</span>
-              <el-tag :type="getRiskLevelType()" size="small" effect="dark">
-                {{ getRiskLevelText() }}
-              </el-tag>
-            </div>
-          </div>
-          
-          <div class="cover-seal">
-            <div class="seal-text">公安专用</div>
-            <div class="seal-subtext">机密·内部资料</div>
-          </div>
-          
-          <div class="cover-footer">
-            <p>本报告基于 AI 智能分析生成，仅供公安机关办案参考</p>
-            <p>生成单位：XXX 公安局反诈中心 | 技术支持：AI 反诈团伙画像系统 v2.0</p>
-          </div>
-        </div>
-
-        <!-- 2. 报告正文 -->
-        <div class="report-body">
-          <!-- 第一章：基本信息 -->
-          <div class="section">
-            <h3 class="section-title">
-              <span class="section-number">一、</span>
-              基本信息概览
-            </h3>
-            <el-table :data="reportBasicData" border style="width: 100%" class="report-table">
-              <el-table-column prop="label" label="项目" width="200"></el-table-column>
-              <el-table-column prop="value" label="内容"></el-table-column>
-            </el-table>
-          </div>
-
-          <!-- 第二章：团伙特征深度分析 (仅团伙报告显示) -->
-          <div class="section" v-if="reportType === 'gang'">
-            <h3 class="section-title">
-              <span class="section-number">二、</span>
-              团伙特征深度分析
-            </h3>
-            <div class="analysis-grid">
-              <div class="analysis-card">
-                <h4 class="card-title">🎯 作案手法分析</h4>
-                <ul class="analysis-list">
-                  <li v-for="(step, index) in currentGangSteps" :key="index">
-                    <span class="step-number">{{ index + 1 }}</span>
-                    <span class="step-text">{{ step }}</span>
-                  </li>
-                </ul>
-              </div>
-              
-              <div class="analysis-card">
-                <h4 class="card-title">🔍 技术对抗能力</h4>
-                <div class="tech-analysis">
-                  <div class="tech-item">
-                    <span class="tech-label">设备水平</span>
-                    <el-progress :percentage="85" :color="'#ef4444'"></el-progress>
+            <div class="input-sidebar">
+              <div class="sidebar-card tech-card">
+                <div class="card-header">
+                  <span class="card-icon">📊</span>
+                  <span class="card-title">文本分析预览</span>
+                </div>
+                <div class="card-content">
+                  <div class="preview-item" v-if="inputText.length > 0">
+                    <span class="preview-label">识别关键词</span>
+                    <div class="preview-tags">
+                      <el-tag v-for="kw in extractedKeywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
+                    </div>
                   </div>
-                  <div class="tech-item">
-                    <span class="tech-label">反侦察能力</span>
-                    <el-progress :percentage="78" :color="'#f59e0b'"></el-progress>
+                  <div class="preview-empty" v-else>
+                    <span class="empty-icon">📝</span>
+                    <span class="empty-text">输入文本后自动分析</span>
                   </div>
-                  <div class="tech-item">
-                    <span class="tech-label">组织严密性</span>
-                    <el-progress :percentage="92" :color="'#10b981'"></el-progress>
+                </div>
+              </div>
+
+              <div class="sidebar-card tech-card">
+                <div class="card-header">
+                  <span class="card-icon">🎯</span>
+                  <span class="card-title">录入要点</span>
+                </div>
+                <div class="card-content">
+                  <div class="checklist">
+                    <div class="check-item" :class="{ active: hasTime }">
+                      <span class="check-icon">{{ hasTime ? '✅' : '⬜' }}</span>
+                      <span>涉案时间</span>
+                    </div>
+                    <div class="check-item" :class="{ active: hasAmount }">
+                      <span class="check-icon">{{ hasAmount ? '✅' : '⬜' }}</span>
+                      <span>涉案金额</span>
+                    </div>
+                    <div class="check-item" :class="{ active: hasPhone }">
+                      <span class="check-icon">{{ hasPhone ? '✅' : '⬜' }}</span>
+                      <span>联系方式</span>
+                    </div>
+                    <div class="check-item" :class="{ active: hasMethod }">
+                      <span class="check-icon">{{ hasMethod ? '✅' : '⬜' }}</span>
+                      <span>作案手法</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 第三章：关联案件串并分析 -->
-          <div class="section">
-            <h3 class="section-title">
-              <span class="section-number">{{ reportType === 'gang' ? '三、' : '二、' }}</span>
-              关联案件串并分析
-            </h3>
-            <el-table :data="reportCasesData" border style="width: 100%" class="report-table">
-              <el-table-column prop="case_id" label="案件 ID" width="150"></el-table-column>
-              <el-table-column prop="victim" label="受害人" width="120"></el-table-column>
-              <el-table-column prop="amount" label="涉案金额" width="120">
-                <template #default="{ row }">
-                  <span class="money-highlight">{{ row.amount }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="snippet" label="关键片段" min-width="200"></el-table-column>
-              <el-table-column label="风险标识" width="100">
-                <template #default="{ row }">
-                  <el-tag :type="row.risk_level === 'HIGH' ? 'danger' : 'warning'" size="small">
-                    {{ row.risk_level }}
+          <div class="action-bar">
+            <el-button
+              class="analyze-btn"
+              type="primary"
+              size="large"
+              :loading="loading"
+              :disabled="!inputText.trim()"
+              @click="startAnalysis"
+            >
+              <span class="btn-icon">🚀</span>
+              <span>{{ loading ? 'AI 正在深度研判...' : '开始智能研判' }}</span>
+            </el-button>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'upload'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📷</span>
+                图片证据上传
+              </h2>
+              <p class="section-desc">支持聊天截图、转账凭证、诈骗页面截图等图片证据上传</p>
+            </div>
+            <div class="header-right">
+              <div class="quick-stats">
+                <div class="quick-stat">
+                  <span class="qs-value">{{ uploadedImages.length }}</span>
+                  <span class="qs-label">已上传</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="upload-container">
+            <div class="upload-main tech-card">
+              <div class="upload-toolbar">
+                <div class="toolbar-left">
+                  <span class="toolbar-icon">📷</span>
+                  <span class="toolbar-title">图片上传区</span>
+                </div>
+              </div>
+              <el-upload
+                :before-upload="handleBeforeUpload"
+                :show-file-list="false"
+                accept="image/*"
+                class="upload-area"
+                drag
+                multiple
+              >
+                <div class="upload-content">
+                  <div class="upload-icon-wrapper">
+                    <i class="el-icon-upload upload-icon"></i>
+                  </div>
+                  <div class="upload-text">将图片拖到此处，或<span class="highlight">点击上传</span></div>
+                  <div class="upload-hint">支持 PNG/JPG/JPEG/GIF，单文件最大 10MB</div>
+                  <div class="upload-formats">
+                    <span class="format-tag">聊天截图</span>
+                    <span class="format-tag">转账凭证</span>
+                    <span class="format-tag">诈骗页面</span>
+                    <span class="format-tag">通话记录</span>
+                  </div>
+                </div>
+              </el-upload>
+            </div>
+
+            <div class="upload-preview" v-if="uploadedImages.length">
+              <div class="preview-header">
+                <span class="preview-title">已上传证据 ({{ uploadedImages.length }})</span>
+                <el-button size="small" @click="clearImages">清空全部</el-button>
+              </div>
+              <div class="preview-grid">
+                <div v-for="(img, idx) in uploadedImages" :key="idx" class="preview-item">
+                  <img :src="img.url" alt="预览" />
+                  <div class="preview-overlay">
+                    <span class="preview-name">{{ img.name }}</span>
+                    <el-button size="small" type="danger" @click="removeImage(idx)">删除</el-button>
+                  </div>
+                  <div class="preview-badge">证据 {{ idx + 1 }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-tips tech-card" v-if="!uploadedImages.length">
+              <div class="tip-header">
+                <span class="tip-icon">💡</span>
+                <span class="tip-title">上传提示</span>
+              </div>
+              <div class="tip-content">
+                <div class="tip-item">
+                  <span class="tip-num">1</span>
+                  <span class="tip-text">上传聊天记录截图，系统将自动识别关键信息</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-num">2</span>
+                  <span class="tip-text">转账凭证可帮助追踪资金流向</span>
+                </div>
+                <div class="tip-item">
+                  <span class="tip-num">3</span>
+                  <span class="tip-text">诈骗页面截图有助于分析作案手法</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <el-button
+              class="analyze-btn"
+              type="primary"
+              size="large"
+              :loading="loading"
+              :disabled="!uploadedImages.length"
+              @click="startImageAnalysis"
+            >
+              <span class="btn-icon">🔍</span>
+              <span>{{ loading ? 'AI 正在识别图片...' : '开始图片识别' }}</span>
+            </el-button>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'api'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">🔌</span>
+                多源数据API接入
+              </h2>
+              <p class="section-desc">对接银行风控、110报警平台、反诈平台等外部数据源</p>
+            </div>
+            <div class="header-right">
+              <div class="connection-status">
+                <span class="status-indicator">
+                  <span class="status-dot active"></span>
+                  <span>{{ connectedSources }} 个数据源已连接</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="api-sources-grid">
+            <div class="api-source-card tech-card" :class="{ active: apiSources.bank.connected }">
+              <div class="source-header">
+                <div class="source-icon bank">🏦</div>
+                <div class="source-info">
+                  <div class="source-name">银行风控系统</div>
+                  <div class="source-status">
+                    <span class="status-dot" :class="{ active: apiSources.bank.connected }"></span>
+                    <span>{{ apiSources.bank.connected ? '已连接' : '未连接' }}</span>
+                  </div>
+                </div>
+                <el-switch v-model="apiSources.bank.connected" @change="toggleApiSource('bank')" />
+              </div>
+              <div class="source-content">
+                <div class="source-desc">接入银行风控数据，获取涉案账户交易流水、异常交易预警等信息</div>
+                <div class="source-features">
+                  <div class="feature-item">
+                    <span class="feature-icon">💰</span>
+                    <span>账户交易流水</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">⚠️</span>
+                    <span>异常交易预警</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <span>账户冻结状态</span>
+                  </div>
+                </div>
+                <div class="source-stats" v-if="apiSources.bank.connected">
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.bank.records }}</span>
+                    <span class="stat-label">数据记录</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.bank.lastSync }}</span>
+                    <span class="stat-label">最后同步</span>
+                  </div>
+                </div>
+              </div>
+              <div class="source-actions" v-if="apiSources.bank.connected">
+                <el-button size="small" @click="syncApiData('bank')">
+                  <span>🔄</span> 同步数据
+                </el-button>
+                <el-button size="small" type="primary" @click="fetchBankData">
+                  <span>📥</span> 获取数据
+                </el-button>
+              </div>
+            </div>
+
+            <div class="api-source-card tech-card" :class="{ active: apiSources.police.connected }">
+              <div class="source-header">
+                <div class="source-icon police">🚔</div>
+                <div class="source-info">
+                  <div class="source-name">110报警平台</div>
+                  <div class="source-status">
+                    <span class="status-dot" :class="{ active: apiSources.police.connected }"></span>
+                    <span>{{ apiSources.police.connected ? '已连接' : '未连接' }}</span>
+                  </div>
+                </div>
+                <el-switch v-model="apiSources.police.connected" @change="toggleApiSource('police')" />
+              </div>
+              <div class="source-content">
+                <div class="source-desc">接入110报警平台，实时获取诈骗类警情信息，支持案件串并分析</div>
+                <div class="source-features">
+                  <div class="feature-item">
+                    <span class="feature-icon">📞</span>
+                    <span>警情实时推送</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">📋</span>
+                    <span>案件基本信息</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">🔗</span>
+                    <span>串并案分析</span>
+                  </div>
+                </div>
+                <div class="source-stats" v-if="apiSources.police.connected">
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.police.records }}</span>
+                    <span class="stat-label">警情记录</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.police.lastSync }}</span>
+                    <span class="stat-label">最后同步</span>
+                  </div>
+                </div>
+              </div>
+              <div class="source-actions" v-if="apiSources.police.connected">
+                <el-button size="small" @click="syncApiData('police')">
+                  <span>🔄</span> 同步数据
+                </el-button>
+                <el-button size="small" type="primary" @click="fetchPoliceData">
+                  <span>📥</span> 获取数据
+                </el-button>
+              </div>
+            </div>
+
+            <div class="api-source-card tech-card" :class="{ active: apiSources.antiFraud.connected }">
+              <div class="source-header">
+                <div class="source-icon antiFraud">🛡️</div>
+                <div class="source-info">
+                  <div class="source-name">反诈平台接入</div>
+                  <div class="source-status">
+                    <span class="status-dot" :class="{ active: apiSources.antiFraud.connected }"></span>
+                    <span>{{ apiSources.antiFraud.connected ? '已连接' : '未连接' }}</span>
+                  </div>
+                </div>
+                <el-switch v-model="apiSources.antiFraud.connected" @change="toggleApiSource('antiFraud')" />
+              </div>
+              <div class="source-content">
+                <div class="source-desc">接入国家反诈中心平台，获取诈骗号码库、涉案账户库等核心数据</div>
+                <div class="source-features">
+                  <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <span>诈骗号码库</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">💳</span>
+                    <span>涉案账户库</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">🌐</span>
+                    <span>诈骗网址库</span>
+                  </div>
+                </div>
+                <div class="source-stats" v-if="apiSources.antiFraud.connected">
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.antiFraud.records }}</span>
+                    <span class="stat-label">黑名单记录</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ apiSources.antiFraud.lastSync }}</span>
+                    <span class="stat-label">最后同步</span>
+                  </div>
+                </div>
+              </div>
+              <div class="source-actions" v-if="apiSources.antiFraud.connected">
+                <el-button size="small" @click="syncApiData('antiFraud')">
+                  <span>🔄</span> 同步数据
+                </el-button>
+                <el-button size="small" type="primary" @click="fetchAntiFraudData">
+                  <span>📥</span> 获取数据
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="api-data-preview tech-card" v-if="apiDataPreview.length">
+            <div class="preview-header">
+              <span class="preview-icon">📊</span>
+              <span class="preview-title">接入数据预览</span>
+              <el-button size="small" @click="importApiData" type="primary">
+                <span>📥</span> 导入系统
+              </el-button>
+            </div>
+            <div class="preview-table">
+              <el-table :data="apiDataPreview" style="width: 100%">
+                <el-table-column prop="source" label="数据来源" width="120" />
+                <el-table-column prop="type" label="数据类型" width="120" />
+                <el-table-column prop="content" label="内容摘要" />
+                <el-table-column prop="time" label="时间" width="180" />
+                <el-table-column prop="status" label="状态" width="100">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.status === '已验证' ? 'success' : 'warning'" size="small">
+                      {{ scope.row.status }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <el-button
+              class="analyze-btn"
+              type="primary"
+              size="large"
+              :loading="loading"
+              :disabled="!hasApiData"
+              @click="startApiAnalysis"
+            >
+              <span class="btn-icon">🚀</span>
+              <span>{{ loading ? 'AI 正在分析接入数据...' : '开始数据分析' }}</span>
+            </el-button>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'overview'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📊</span>
+                案件总览
+              </h2>
+              <p class="section-desc">展示所有录入的案件及团伙信息概览，支持快速筛选和定位</p>
+            </div>
+            <div class="header-right">
+              <div class="view-toggle">
+                <el-button-group>
+                  <el-button size="small" :type="viewMode === 'card' ? 'primary' : ''" @click="viewMode = 'card'">
+                    <span>📇</span> 卡片
+                  </el-button>
+                  <el-button size="small" :type="viewMode === 'table' ? 'primary' : ''" @click="viewMode = 'table'">
+                    <span>📋</span> 列表
+                  </el-button>
+                </el-button-group>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-overview">
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper danger">
+                <span class="stat-icon">👥</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ gangs.length }}</div>
+                <div class="stat-label">涉案团伙</div>
+                <div class="stat-trend up">
+                  <span>↑ 2</span>
+                  <span>本周新增</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper warning">
+                <span class="stat-icon">📋</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ cases.length }}</div>
+                <div class="stat-label">关联案件</div>
+                <div class="stat-trend up">
+                  <span>↑ 5</span>
+                  <span>本周新增</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper success">
+                <span class="stat-icon">💰</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ totalAmountFormatted }}</div>
+                <div class="stat-label">涉案金额</div>
+                <div class="stat-trend">
+                  <span>{{ cases.length }}</span>
+                  <span>案件累计</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper info">
+                <span class="stat-icon">🎯</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ successRate }}%</div>
+                <div class="stat-label">研判准确率</div>
+                <div class="stat-trend up">
+                  <span>↑ 3%</span>
+                  <span>较上月</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="overview-charts">
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">案件类型分布</span>
+              </div>
+              <div class="chart-content" ref="pieChartRef"></div>
+            </div>
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">涉案金额趋势</span>
+              </div>
+              <div class="chart-content" ref="lineChartRef"></div>
+            </div>
+          </div>
+
+          <div class="gangs-section" v-if="gangs.length">
+            <div class="section-sub-header">
+              <h3 class="sub-title">
+                <span class="sub-icon">👥</span>
+                团伙列表
+              </h3>
+              <div class="filter-bar">
+                <el-input
+                  v-model="gangSearchKeyword"
+                  placeholder="搜索团伙名称..."
+                  size="small"
+                  class="search-input"
+                  clearable
+                >
+                  <template #prefix>
+                    <span>🔍</span>
+                  </template>
+                </el-input>
+                <el-select v-model="riskFilter" placeholder="风险等级" size="small" clearable>
+                  <el-option label="S级" value="S" />
+                  <el-option label="A级" value="A" />
+                  <el-option label="B级" value="B" />
+                </el-select>
+              </div>
+            </div>
+
+            <div class="gangs-grid" v-if="viewMode === 'card'">
+              <div
+                v-for="gang in filteredGangs"
+                :key="gang.id"
+                class="gang-card tech-card"
+                :class="{ 'selected': selectedGang?.id === gang.id }"
+                @click="selectGang(gang)"
+              >
+                <div class="gang-card-header">
+                  <div class="gang-icon-wrapper" :class="'risk-' + gang.riskLevel.toLowerCase()">
+                    <span class="gang-icon">{{ gang.icon }}</span>
+                  </div>
+                  <div class="gang-info">
+                    <div class="gang-name">{{ gang.name }}</div>
+                    <div class="gang-meta">
+                      <el-tag :type="getRiskType(gang.riskLevel)" size="small" effect="dark">
+                        {{ gang.riskLevel }}级风险
+                      </el-tag>
+                      <span class="gang-id">ID: {{ gang.id }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="gang-card-body">
+                  <div class="gang-stats">
+                    <div class="gang-stat">
+                      <span class="stat-icon">💰</span>
+                      <div class="stat-content">
+                        <span class="stat-value">{{ gang.amount }}</span>
+                        <span class="stat-label">涉案金额</span>
+                      </div>
+                    </div>
+                    <div class="gang-stat">
+                      <span class="stat-icon">📋</span>
+                      <div class="stat-content">
+                        <span class="stat-value">{{ gang.cases }}起</span>
+                        <span class="stat-label">关联案件</span>
+                      </div>
+                    </div>
+                    <div class="gang-stat">
+                      <span class="stat-icon">👥</span>
+                      <div class="stat-content">
+                        <span class="stat-value">{{ gang.members?.length || 0 }}人</span>
+                        <span class="stat-label">团伙成员</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="gang-tags">
+                    <el-tag v-for="tag in gang.tags?.slice(0, 3)" :key="tag" size="small" type="info">
+                      {{ tag }}
+                    </el-tag>
+                    <el-tag v-if="gang.tags?.length > 3" size="small" type="info">
+                      +{{ gang.tags.length - 3 }}
+                    </el-tag>
+                  </div>
+                </div>
+                <div class="gang-card-footer">
+                  <span class="update-time">更新于 {{ gang.updateTime || '刚刚' }}</span>
+                  <el-button size="small" type="primary" @click.stop="viewGangDetail(gang)">
+                    查看详情 →
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <div class="gangs-table" v-else>
+              <el-table :data="filteredGangs" style="width: 100%" @row-click="selectGang">
+                <el-table-column prop="id" label="团伙ID" width="100" />
+                <el-table-column prop="name" label="团伙名称" />
+                <el-table-column prop="riskLevel" label="风险等级" width="100">
+                  <template #default="scope">
+                    <el-tag :type="getRiskType(scope.row.riskLevel)" effect="dark">
+                      {{ scope.row.riskLevel }}级
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="amount" label="涉案金额" width="120" />
+                <el-table-column prop="cases" label="案件数" width="80" />
+                <el-table-column label="操作" width="120">
+                  <template #default="scope">
+                    <el-button size="small" type="primary" @click="viewGangDetail(scope.row)">
+                      详情
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <div class="cases-section" v-if="cases.length">
+            <div class="section-sub-header">
+              <h3 class="sub-title">
+                <span class="sub-icon">📋</span>
+                案件列表
+              </h3>
+            </div>
+            <div class="cases-table tech-card">
+              <el-table :data="cases" style="width: 100%" @row-click="viewCaseDetail" :highlight-current-row="true">
+                <el-table-column prop="id" label="案件编号" width="100" />
+                <el-table-column prop="title" label="案件名称" />
+                <el-table-column prop="type" label="案件类型" width="100">
+                  <template #default="scope">
+                    <el-tag type="info" size="small">{{ scope.row.type }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="region" label="案发地区" width="120" />
+                <el-table-column prop="amount" label="涉案金额" width="120" />
+                <el-table-column prop="status" label="案件状态" width="100">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.status === '已立案' ? 'warning' : scope.row.status === '侦办中' ? 'primary' : 'success'" size="small">
+                      {{ scope.row.status }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="date" label="立案时间" width="120" />
+                <el-table-column label="操作" width="120">
+                  <template #default="scope">
+                    <el-button size="small" type="primary" @click="viewCaseDetail(scope.row)">
+                      查看详情
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">📊</div>
+              <h3 class="empty-title">暂无案件数据</h3>
+              <p class="empty-desc">请先通过数据录入功能添加案情信息，系统将自动进行智能研判</p>
+              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+                <span>📝</span> 前往录入
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'case-detail'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">🔍</span>
+                案件详情
+              </h2>
+              <p class="section-desc">查看选中案件的详细信息、受害人和证据材料</p>
+            </div>
+          </div>
+
+          <div v-if="selectedCase" class="case-detail-content">
+            <div class="detail-main">
+              <div class="case-header-card tech-card">
+                <div class="case-header-top">
+                  <div class="case-icon-wrapper">
+                    <span class="case-icon">🔍</span>
+                  </div>
+                  <div class="case-header-info">
+                    <h3 class="case-title">{{ selectedCase.title }}</h3>
+                    <div class="case-meta">
+                      <el-tag type="warning" effect="dark" size="large">
+                        {{ selectedCase.status }}
+                      </el-tag>
+                      <span class="meta-item">
+                        <span class="meta-icon">📋</span>
+                        案件编号：{{ selectedCase.id }}
+                      </span>
+                      <span class="meta-item">
+                        <span class="meta-icon">📅</span>
+                        立案时间：{{ selectedCase.date || '2024-03-20' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="case-header-actions">
+                    <el-button type="primary" @click="activeMenu = 'report'">
+                      <span>📄</span> 生成报告
+                    </el-button>
+                  </div>
+                </div>
+                <div class="case-header-stats">
+                  <div class="header-stat">
+                    <span class="header-stat-value">{{ selectedCase.amount }}</span>
+                    <span class="header-stat-label">涉案金额</span>
+                  </div>
+                  <div class="header-stat">
+                    <span class="header-stat-value">{{ selectedCase.victims || 1 }}人</span>
+                    <span class="header-stat-label">受害人数</span>
+                  </div>
+                  <div class="header-stat">
+                    <span class="header-stat-value">{{ selectedCase.region || '广东省' }}</span>
+                    <span class="header-stat-label">案发地区</span>
+                  </div>
+                  <div class="header-stat">
+                    <span class="header-stat-value">{{ selectedCase.type || '冒充客服' }}</span>
+                    <span class="header-stat-label">案件类型</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-tabs">
+                <el-tabs v-model="detailTab">
+                  <el-tab-pane label="案件概述" name="overview">
+                    <div class="timeline-section tech-card">
+                      <div class="case-overview">
+                        <div class="overview-section">
+                          <h4 class="overview-title">📝 案情描述</h4>
+                          <p class="overview-content">{{ selectedCase.description || '2024年3月15日，受害人王女士接到自称"京东客服"的电话，对方准确报出其个人信息后，称其名下有一笔账户异常需要处理，否则将影响征信。在对方的诱导下，王女士通过手机银行转账至对方提供的"安全账户"，共计转账125,800元。转账后对方失联，王女士才发现被骗。' }}</p>
+                        </div>
+                        <div class="overview-section">
+                          <h4 class="overview-title">👤 受害人信息</h4>
+                          <div class="info-grid">
+                            <div class="info-item">
+                              <span class="info-label">姓名</span>
+                              <span class="info-value">{{ selectedCase.victimName || '王女士' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">性别</span>
+                              <span class="info-value">{{ selectedCase.victimGender || '女' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">年龄</span>
+                              <span class="info-value">{{ selectedCase.victimAge || '32' }}岁</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">联系方式</span>
+                              <span class="info-value">{{ selectedCase.victimPhone || '138****5678' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">职业</span>
+                              <span class="info-value">{{ selectedCase.victimJob || '公司职员' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">户籍地址</span>
+                              <span class="info-value">{{ selectedCase.victimAddress || '广东省深圳市' }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="overview-section">
+                          <h4 class="overview-title">📞 涉案通讯信息</h4>
+                          <div class="info-grid">
+                            <div class="info-item">
+                              <span class="info-label">诈骗号码</span>
+                              <span class="info-value danger">{{ selectedCase.scamPhone || '0755-8888****' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">归属地</span>
+                              <span class="info-value">{{ selectedCase.phoneLocation || '广东深圳' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">诈骗网址</span>
+                              <span class="info-value danger">{{ selectedCase.scamUrl || 'jd-security.com' }}</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">IP地址</span>
+                              <span class="info-value">{{ selectedCase.ipAddress || '192.168.***.***' }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="资金流向" name="money">
+                    <div class="money-section tech-card">
+                      <div class="money-header">
+                        <span class="money-icon">💰</span>
+                        <span class="money-title">资金流向追踪</span>
+                      </div>
+                      <div class="money-flow">
+                        <div class="flow-diagram">
+                          <div class="flow-node source">
+                            <span class="node-icon">👤</span>
+                            <span class="node-label">受害人账户</span>
+                            <span class="node-amount">{{ selectedCase.amount }}</span>
+                          </div>
+                          <div class="flow-arrow">
+                            <span>→</span>
+                            <span class="arrow-label">转账</span>
+                          </div>
+                          <div class="flow-node gang">
+                            <span class="node-icon">💳</span>
+                            <span class="node-label">涉案账户</span>
+                            <span class="node-amount">***1234</span>
+                          </div>
+                          <div class="flow-arrow">
+                            <span>→</span>
+                            <span class="arrow-label">分散</span>
+                          </div>
+                          <div class="flow-node middle">
+                            <span class="node-icon">🏦</span>
+                            <span class="node-label">中转账户</span>
+                            <span class="node-amount">多层分散</span>
+                          </div>
+                          <div class="flow-arrow">
+                            <span>→</span>
+                            <span class="arrow-label">出境</span>
+                          </div>
+                          <div class="flow-node target">
+                            <span class="node-icon">🌍</span>
+                            <span class="node-label">境外取现</span>
+                            <span class="node-amount">最终去向</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="money-stats">
+                        <div class="money-stat">
+                          <span class="ms-label">涉案账户数</span>
+                          <span class="ms-value">23个</span>
+                        </div>
+                        <div class="money-stat">
+                          <span class="ms-label">资金层级</span>
+                          <span class="ms-value">3-5层</span>
+                        </div>
+                        <div class="money-stat">
+                          <span class="ms-label">境外流向</span>
+                          <span class="ms-value">85%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="调查进展" name="progress">
+                    <div class="method-section tech-card">
+                      <div class="method-header">
+                        <span class="method-icon">📊</span>
+                        <span class="method-title">案件调查进展</span>
+                      </div>
+                      <div class="investigation-timeline">
+                        <div class="timeline-item" v-for="(step, idx) in investigationSteps" :key="idx">
+                          <div class="timeline-marker">
+                            <div class="timeline-dot" :class="{ completed: step.completed, current: step.current }"></div>
+                            <div class="timeline-line" v-if="idx < investigationSteps.length - 1"></div>
+                          </div>
+                          <div class="timeline-content">
+                            <div class="timeline-header">
+                              <span class="timeline-date">{{ step.date }}</span>
+                              <el-tag :type="step.completed ? 'success' : 'warning'" size="small">{{ step.status }}</el-tag>
+                            </div>
+                            <div class="timeline-title">{{ step.title }}</div>
+                            <div class="timeline-desc">{{ step.description }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
+              </div>
+            </div>
+
+            <div class="detail-sidebar">
+              <div class="sidebar-section tech-card">
+                <div class="section-title-bar">
+                  <span class="section-icon">📋</span>
+                  <span class="section-title-text">证据材料</span>
+                </div>
+                <div class="evidence-list">
+                  <div v-for="(ev, idx) in selectedCase.evidence || caseEvidence" :key="idx" class="evidence-item">
+                    <span class="evidence-icon">{{ ev.icon }}</span>
+                    <div class="evidence-info">
+                      <div class="evidence-name">{{ ev.name }}</div>
+                      <div class="evidence-meta">
+                        <el-tag :type="ev.status === '已验证' ? 'success' : 'warning'" size="small">
+                          {{ ev.status }}
+                        </el-tag>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-section tech-card">
+                <div class="section-title-bar">
+                  <span class="section-icon">🕵️</span>
+                  <span class="section-title-text">办案民警</span>
+                </div>
+                <div class="member-list">
+                  <div class="member-item">
+                    <span class="member-avatar">👮</span>
+                    <div class="member-info">
+                      <span class="member-name">张警官</span>
+                      <span class="member-role">主办民警</span>
+                    </div>
+                  </div>
+                  <div class="member-item">
+                    <span class="member-avatar">👮</span>
+                    <div class="member-info">
+                      <span class="member-name">李警官</span>
+                      <span class="member-role">协办民警</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-section tech-card">
+                <div class="section-title-bar">
+                  <span class="section-icon">🔗</span>
+                  <span class="section-title-text">关联团伙</span>
+                </div>
+                <div class="tag-cloud">
+                  <el-tag v-if="selectedCase.gang" type="danger" size="small" @click="viewRelatedGang(selectedCase.gang)">
+                    {{ getGangById(selectedCase.gang)?.name || '未知团伙' }}
                   </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
-            
-            <!-- 案件统计图表 -->
-            <div class="chart-summary">
-              <div class="stat-card">
-                <div class="stat-number">{{ reportCasesData.length }}</div>
-                <div class="stat-label">关联案件总数</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number money-highlight">{{ calculateTotalAmount() }}</div>
-                <div class="stat-label">涉案总金额</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">{{ calculateAvgAmount() }}</div>
-                <div class="stat-label">单案平均金额</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">{{ calculateHighRiskCount() }}</div>
-                <div class="stat-label">高风险案件数</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 第四章：证据链完整性评估 -->
-          <div class="section">
-            <h3 class="section-title">
-              <span class="section-number">{{ reportType === 'gang' ? '四、' : '三、' }}</span>
-              证据链完整性评估
-            </h3>
-            <div class="evidence-assessment">
-              <div class="assessment-item">
-                <div class="assessment-header">
-                  <span class="assessment-icon">📞</span>
-                  <span class="assessment-title">通话记录</span>
-                  <el-tag size="small" type="success">已提取</el-tag>
-                </div>
-                <div class="assessment-detail">
-                  <p>来电号码：+86-170****5678</p>
-                  <p>通话时长：12 分 35 秒</p>
-                </div>
-                <div class="assessment-score">
-                  <el-progress :percentage="95" :format="() => '95%'"></el-progress>
-                </div>
-              </div>
-              
-              <div class="assessment-item">
-                <div class="assessment-header">
-                  <span class="assessment-icon">💬</span>
-                  <span class="assessment-title">聊天记录</span>
-                  <el-tag size="small" type="success">已提取</el-tag>
-                </div>
-                <div class="assessment-detail">
-                  <p>腾讯会议截图 3 张</p>
-                  <p>文字记录 1 份</p>
-                </div>
-                <div class="assessment-score">
-                  <el-progress :percentage="90" :format="() => '90%'"></el-progress>
-                </div>
-              </div>
-              
-              <div class="assessment-item">
-                <div class="assessment-header">
-                  <span class="assessment-icon">🏦</span>
-                  <span class="assessment-title">资金流向</span>
-                  <el-tag size="small" type="warning">待核实</el-tag>
-                </div>
-                <div class="assessment-detail">
-                  <p>收款账户：6222****5678</p>
-                  <p>转账金额：{{ calculateTotalAmount() }}</p>
-                </div>
-                <div class="assessment-score">
-                  <el-progress :percentage="70" :format="() => '70%'"></el-progress>
-                </div>
-              </div>
-              
-              <div class="assessment-item">
-                <div class="assessment-header">
-                  <span class="assessment-icon">🌐</span>
-                  <span class="assessment-title">IP 地址追踪</span>
-                  <el-tag size="small" type="info">分析中</el-tag>
-                </div>
-                <div class="assessment-detail">
-                  <p>登录 IP：183.214.***.***</p>
-                  <p>归属地：湖南省长沙市</p>
-                </div>
-                <div class="assessment-score">
-                  <el-progress :percentage="60" :format="() => '60%'"></el-progress>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 证据链雷达图 -->
-            <div class="evidence-radar">
-              <div ref="evidenceRadarRef" style="width: 100%; height: 300px;"></div>
-            </div>
-          </div>
-
-          <!-- 第五章：研判建议与处置方案 -->
-          <div class="section">
-            <h3 class="section-title">
-              <span class="section-number">{{ reportType === 'gang' ? '五、' : '四、' }}</span>
-              研判建议与处置方案
-            </h3>
-            <div class="suggestion-box">
-              <div class="suggestion-item priority-high">
-                <span class="suggestion-icon">⚠️</span>
-                <div class="suggestion-content">
-                  <strong>立即立案侦查</strong>
-                  <p>该团伙作案手法成熟，涉案金额巨大，建议立即立案并成立专案组</p>
-                </div>
-              </div>
-              
-              <div class="suggestion-item">
-                <span class="suggestion-icon">🔍</span>
-                <div class="suggestion-content">
-                  <strong>调取银行流水</strong>
-                  <p>建议协调银行部门调取涉案账户完整流水，追踪资金去向</p>
-                </div>
-              </div>
-              
-              <div class="suggestion-item">
-                <span class="suggestion-icon">🌐</span>
-                <div class="suggestion-content">
-                  <strong>技术侦查手段</strong>
-                  <p>建议对涉案 IP 地址、虚拟号码进行技术侦查，定位犯罪嫌疑人真实身份</p>
-                </div>
-              </div>
-              
-              <div class="suggestion-item">
-                <span class="suggestion-icon">📢</span>
-                <div class="suggestion-content">
-                  <strong>发布预警信息</strong>
-                  <p>建议通过官方渠道发布预警信息，提高群众防范意识</p>
+                  <el-tag v-else type="info" size="small">待关联</el-tag>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 第六章：附录 (法律法规) -->
-          <div class="section">
-            <h3 class="section-title">
-              <span class="section-number">{{ reportType === 'gang' ? '六、' : '五、' }}</span>
-              附录：相关法律法规依据
-            </h3>
-            <div class="legal-appendix">
-              <div class="legal-item">
-                <h4>《中华人民共和国刑法》第二百六十六条【诈骗罪】</h4>
-                <p>诈骗公私财物，数额较大的，处三年以下有期徒刑、拘役或者管制，并处或者单处罚金；数额巨大或者有其他严重情节的，处三年以上十年以下有期徒刑，并处罚金。</p>
+          <div v-else class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">📋</div>
+              <h3 class="empty-title">暂无选中案件</h3>
+              <p class="empty-desc">请先在案件总览中选择一个案件查看详情</p>
+              <el-button type="primary" size="large" @click="activeMenu = 'overview'">
+                <span>📊</span> 前往案件总览
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'groups'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">👥</span>
+                团伙画像总览
+              </h2>
+              <p class="section-desc">查看所有涉案团伙的详细画像信息，包括组织架构、作案特征等</p>
+            </div>
+          </div>
+
+          <div v-if="gangs.length" class="profiles-container">
+            <div v-for="gang in gangs" :key="gang.id" class="profile-card tech-card">
+              <div class="profile-header">
+                <div class="profile-avatar-wrapper" :class="'risk-' + gang.riskLevel.toLowerCase()">
+                  <span class="profile-avatar">{{ gang.icon }}</span>
+                </div>
+                <div class="profile-basic">
+                  <div class="profile-name">{{ gang.name }}</div>
+                  <div class="profile-id">ID: {{ gang.id }}</div>
+                  <el-tag :type="getRiskType(gang.riskLevel)" effect="dark">
+                    {{ gang.riskLevel }}级风险
+                  </el-tag>
+                </div>
+                <div class="profile-quick-stats">
+                  <div class="quick-stat-item">
+                    <span class="qsi-value">{{ gang.amount }}</span>
+                    <span class="qsi-label">涉案金额</span>
+                  </div>
+                  <div class="quick-stat-item">
+                    <span class="qsi-value">{{ gang.cases }}起</span>
+                    <span class="qsi-label">案件数</span>
+                  </div>
+                </div>
               </div>
-              <div class="legal-item">
-                <h4>《关于办理诈骗刑事案件具体应用法律若干问题的解释》</h4>
-                <p>诈骗公私财物价值三千元至一万元以上、三万元至十万元以上、五十万元以上的，应当分别认定为刑法第二百六十六条规定的"数额较大"、"数额巨大"、"数额特别巨大"。</p>
+
+              <div class="profile-body">
+                <div class="profile-section">
+                  <div class="section-label">
+                    <span class="label-icon">📊</span>
+                    基本信息
+                  </div>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="info-label">风险等级</span>
+                      <el-tag :type="getRiskType(gang.riskLevel)" size="small">{{ gang.riskLevel }}级</el-tag>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">涉案金额</span>
+                      <span class="info-value danger">{{ gang.amount }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">案件数量</span>
+                      <span class="info-value">{{ gang.cases }} 起</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">成员人数</span>
+                      <span class="info-value">{{ gang.members?.length || 0 }} 人</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="profile-section">
+                  <div class="section-label">
+                    <span class="label-icon">🎭</span>
+                    作案特征
+                  </div>
+                  <div class="feature-tags">
+                    <el-tag v-for="tag in gang.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
+                  </div>
+                </div>
+
+                <div class="profile-section">
+                  <div class="section-label">
+                    <span class="label-icon">👥</span>
+                    成员信息
+                  </div>
+                  <div class="member-grid">
+                    <div v-for="member in gang.members" :key="member.id" class="member-card">
+                      <span class="member-avatar">{{ member.icon }}</span>
+                      <div class="member-details">
+                        <span class="member-name">{{ member.name }}</span>
+                        <el-tag size="small" :type="member.role === '头目' ? 'danger' : 'info'">
+                          {{ member.role }}
+                        </el-tag>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="profile-section">
+                  <div class="section-label">
+                    <span class="label-icon">📈</span>
+                    能力评估
+                  </div>
+                  <div class="ability-bars">
+                    <div class="ability-item">
+                      <span class="ability-label">技术能力</span>
+                      <el-progress :percentage="gang.abilities?.tech || 75" :color="'#00d4ff'" :stroke-width="8" />
+                    </div>
+                    <div class="ability-item">
+                      <span class="ability-label">组织严密性</span>
+                      <el-progress :percentage="gang.abilities?.org || 85" :color="'#f59e0b'" :stroke-width="8" />
+                    </div>
+                    <div class="ability-item">
+                      <span class="ability-label">反侦察能力</span>
+                      <el-progress :percentage="gang.abilities?.antiDetect || 60" :color="'#ef4444'" :stroke-width="8" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-footer">
+                <el-button size="small" @click="selectGang(gang); activeMenu = 'case-detail'">
+                  <span>🔍</span> 查看详情
+                </el-button>
+                <el-button size="small" type="primary" @click="selectGang(gang); activeMenu = 'report'">
+                  <span>📄</span> 生成报告
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">👥</div>
+              <h3 class="empty-title">暂无团伙画像数据</h3>
+              <p class="empty-desc">请先录入案情信息，系统将自动生成团伙画像</p>
+              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+                <span>📝</span> 前往录入
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="activeMenu === 'details'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📈</span>
+                深度分析
+              </h2>
+              <p class="section-desc">AI 智能分析团伙特征、资金流向和关联关系</p>
+            </div>
+          </div>
+
+          <div class="analysis-dashboard">
+            <div class="analysis-row">
+              <div class="analysis-card tech-card money-flow-card">
+                <div class="analysis-header">
+                  <span class="analysis-icon">💰</span>
+                  <span class="analysis-title">资金流向追踪</span>
+                  <span class="flow-badge">AI分析</span>
+                </div>
+                <div class="analysis-content">
+                  <div class="flow-chart">
+                    <div class="flow-path">
+                      <div class="flow-stage">
+                        <div class="stage-node source">
+                          <div class="node-glow"></div>
+                          <span class="node-icon">👤</span>
+                        </div>
+                        <span class="stage-label">受害者</span>
+                        <span class="stage-desc">账户资金流出</span>
+                      </div>
+                      <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-arrow"></div>
+                        <span class="connector-label">转账</span>
+                      </div>
+                      <div class="flow-stage">
+                        <div class="stage-node gang">
+                          <div class="node-glow"></div>
+                          <span class="node-icon">💳</span>
+                        </div>
+                        <span class="stage-label">涉案账户</span>
+                        <span class="stage-desc">第一层接收</span>
+                      </div>
+                      <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-arrow"></div>
+                        <span class="connector-label">分散</span>
+                      </div>
+                      <div class="flow-stage">
+                        <div class="stage-node middle">
+                          <div class="node-glow"></div>
+                          <span class="node-icon">🏦</span>
+                        </div>
+                        <span class="stage-label">中转账户</span>
+                        <span class="stage-desc">多层流转</span>
+                      </div>
+                      <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-arrow"></div>
+                        <span class="connector-label">出境</span>
+                      </div>
+                      <div class="flow-stage">
+                        <div class="stage-node target">
+                          <div class="node-glow"></div>
+                          <span class="node-icon">🌍</span>
+                        </div>
+                        <span class="stage-label">境外取现</span>
+                        <span class="stage-desc">最终去向</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flow-metrics">
+                    <div class="metric-item">
+                      <div class="metric-icon">💰</div>
+                      <div class="metric-info">
+                        <span class="metric-label">涉案金额</span>
+                        <span class="metric-value danger">{{ totalAmountFormatted }}</span>
+                      </div>
+                    </div>
+                    <div class="metric-item">
+                      <div class="metric-icon">📊</div>
+                      <div class="metric-info">
+                        <span class="metric-label">中转层级</span>
+                        <span class="metric-value">3-5层</span>
+                      </div>
+                    </div>
+                    <div class="metric-item">
+                      <div class="metric-icon">🌏</div>
+                      <div class="metric-info">
+                        <span class="metric-label">境外流向</span>
+                        <span class="metric-value warning">85%</span>
+                      </div>
+                    </div>
+                    <div class="metric-item">
+                      <div class="metric-icon">🏦</div>
+                      <div class="metric-info">
+                        <span class="metric-label">涉案账户</span>
+                        <span class="metric-value">23个</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="analysis-card tech-card">
+                <div class="analysis-header">
+                  <span class="analysis-icon">🎯</span>
+                  <span class="analysis-title">团伙特征提取</span>
+                  <span class="analysis-subtitle">AI智能分析</span>
+                </div>
+                <div class="analysis-content">
+                  <div class="feature-grid">
+                    <div v-for="(feature, idx) in features" :key="feature.name" class="feature-card" :style="{ '--feature-color': feature.color }">
+                      <div class="feature-icon-wrap">
+                        <span class="feature-icon">{{ getFeatureIcon(idx) }}</span>
+                      </div>
+                      <div class="feature-info">
+                        <div class="feature-header">
+                          <span class="feature-name">{{ feature.name }}</span>
+                          <span class="feature-value" :style="{ color: feature.color }">{{ feature.confidence }}%</span>
+                        </div>
+                        <span class="feature-desc">{{ feature.desc }}</span>
+                      </div>
+                      <div class="feature-bar-wrap">
+                        <div class="feature-bar" :style="{ width: feature.confidence + '%', background: feature.color }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="analysis-row">
+              <div class="analysis-card tech-card full-width">
+                <div class="analysis-header">
+                  <span class="analysis-icon">🔗</span>
+                  <span class="analysis-title">关联关系图谱</span>
+                </div>
+                <div class="analysis-content relation-map">
+                  <div class="relation-viz">
+                    <div v-for="node in relationNodes" :key="node.id" class="rel-node" :class="node.type" :style="node.style">
+                      <span class="rel-icon">{{ node.icon }}</span>
+                      <span class="rel-label">{{ node.label }}</span>
+                    </div>
+                    <svg class="relation-lines">
+                      <line v-for="line in relationLines" :key="line.id" :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="analysis-row">
+              <div class="analysis-card tech-card">
+                <div class="analysis-header">
+                  <span class="analysis-icon">📊</span>
+                  <span class="analysis-title">案件类型统计</span>
+                </div>
+                <div class="analysis-content">
+                  <div class="type-stats">
+                    <div class="type-item" v-for="(item, idx) in caseTypeStats" :key="idx">
+                      <div class="type-bar" :style="{ width: item.percent + '%', background: item.color }"></div>
+                      <div class="type-info">
+                        <span class="type-name">{{ item.name }}</span>
+                        <span class="type-count">{{ item.count }}起</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="analysis-card tech-card">
+                <div class="analysis-header">
+                  <span class="analysis-icon">🌍</span>
+                  <span class="analysis-title">地域分布</span>
+                </div>
+                <div class="analysis-content">
+                  <div class="region-stats">
+                    <div class="region-item" v-for="(item, idx) in regionStats" :key="idx">
+                      <span class="region-name">{{ item.name }}</span>
+                      <div class="region-bar-wrapper">
+                        <div class="region-bar" :style="{ width: item.percent + '%' }"></div>
+                      </div>
+                      <span class="region-count">{{ item.count }}起</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 报告页脚 -->
-        <div class="report-footer">
-          <p>本报告由 AI 反诈团伙画像系统自动生成，仅供参考</p>
-          <p>生成单位：XXX 公安局反诈中心 | 报告编号：{{ reportNumber }}</p>
-          <p>本报告一式三份，分别存档于：办案部门、法制部门、档案室</p>
+        <div v-if="activeMenu === 'network'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">🕸️</span>
+                关联网络
+              </h2>
+              <p class="section-desc">展示案件、团伙、资金等多维度关联关系</p>
+            </div>
+            <div class="header-right">
+              <div class="network-controls">
+                <el-button-group>
+                  <el-button size="small" :type="networkView === 'all' ? 'primary' : ''" @click="networkView = 'all'">
+                    全部
+                  </el-button>
+                  <el-button size="small" :type="networkView === 'gang' ? 'primary' : ''" @click="networkView = 'gang'">
+                    团伙
+                  </el-button>
+                  <el-button size="small" :type="networkView === 'case' ? 'primary' : ''" @click="networkView = 'case'">
+                    案件
+                  </el-button>
+                </el-button-group>
+              </div>
+            </div>
+          </div>
+
+          <div class="network-container tech-card">
+            <NetworkGraph :gangs="gangs" :selectedGang="selectedGang" @select="selectGang" />
+          </div>
         </div>
+
+        <div v-if="activeMenu === 'report'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📄</span>
+                分析报告生成
+              </h2>
+              <p class="section-desc">一键生成标准化的案件分析报告，支持多种格式导出</p>
+            </div>
+          </div>
+
+          <div class="report-container">
+            <div class="report-config-panel tech-card">
+              <div class="config-header">
+                <span class="config-icon">⚙️</span>
+                <span class="config-title">报告配置</span>
+              </div>
+              <div class="config-body">
+                <div class="config-item">
+                  <label class="config-label">报告类型</label>
+                  <el-select v-model="reportConfig.type" class="dark-select">
+                    <el-option label="团伙分析报告" value="gang" />
+                    <el-option label="案件分析报告" value="case" />
+                    <el-option label="综合研判报告" value="comprehensive" />
+                  </el-select>
+                </div>
+                <div class="config-item">
+                  <label class="config-label">选择团伙</label>
+                  <el-select v-model="reportConfig.gangId" class="dark-select" placeholder="请选择团伙">
+                    <el-option v-for="gang in gangs" :key="gang.id" :label="gang.name" :value="gang.id" />
+                  </el-select>
+                </div>
+                <div class="config-item">
+                  <label class="config-label">导出格式</label>
+                  <el-select v-model="reportConfig.format" class="dark-select">
+                    <el-option label="PDF 文档" value="pdf" />
+                    <el-option label="Word 文档" value="docx" />
+                    <el-option label="HTML 网页" value="html" />
+                  </el-select>
+                </div>
+                <div class="config-item">
+                  <label class="config-label">报告内容</label>
+                  <div class="checkbox-group">
+                    <el-checkbox v-model="reportConfig.includeTimeline">时间线</el-checkbox>
+                    <el-checkbox v-model="reportConfig.includeMoney">资金分析</el-checkbox>
+                    <el-checkbox v-model="reportConfig.includeNetwork">关联网络</el-checkbox>
+                    <el-checkbox v-model="reportConfig.includeSuggestion">处置建议</el-checkbox>
+                  </div>
+                </div>
+              </div>
+              <div class="config-footer">
+                <el-button type="primary" class="generate-btn" @click="generateReport" :loading="generatingReport">
+                  <span>🚀</span> 生成报告
+                </el-button>
+              </div>
+            </div>
+
+            <div class="report-preview-panel tech-card">
+              <div class="preview-header">
+                <span class="preview-icon">👁️</span>
+                <span class="preview-title">报告预览</span>
+                <div class="preview-actions" v-if="reportPreview">
+                  <el-button size="small" @click="printReport">
+                    <span>🖨️</span> 打印
+                  </el-button>
+                  <el-button size="small" type="primary" @click="downloadReport">
+                    <span>📥</span> 下载
+                  </el-button>
+                </div>
+              </div>
+              <div class="preview-body">
+                <div class="report-document" v-if="reportPreview">
+                  <div class="doc-header">
+                    <div class="doc-logo">
+                      <span class="logo-icon">🛡️</span>
+                      <span class="logo-text">反诈情报分析系统</span>
+                    </div>
+                    <div class="doc-title">{{ getReportTitle() }}</div>
+                    <div class="doc-meta">
+                      <div class="meta-item">
+                        <span class="meta-label">报告编号：</span>
+                        <span class="meta-value">RPT-{{ Date.now().toString().slice(-8) }}</span>
+                      </div>
+                      <div class="meta-item">
+                        <span class="meta-label">生成时间：</span>
+                        <span class="meta-value">{{ new Date().toLocaleString() }}</span>
+                      </div>
+                      <div class="meta-item">
+                        <span class="meta-label">密级：</span>
+                        <span class="meta-value secret">机密</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="doc-content">
+                    <div class="doc-section">
+                      <div class="section-title">一、团伙基本信息</div>
+                      <div class="section-body">
+                        <div class="info-table">
+                          <div class="info-row">
+                            <span class="info-label">团伙名称</span>
+                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.name || '未选择' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">风险等级</span>
+                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.riskLevel || '-' }}级</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">涉案金额</span>
+                            <span class="info-value danger">{{ getGangById(reportConfig.gangId)?.amount || '-' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">关联案件</span>
+                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.cases || 0 }} 起</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="doc-section" v-if="reportConfig.includeTimeline">
+                      <div class="section-title">二、作案时间线</div>
+                      <div class="section-body">
+                        <div class="doc-timeline">
+                          <div v-for="(event, idx) in getGangById(reportConfig.gangId)?.timeline || []" :key="idx" class="doc-timeline-item">
+                            <span class="doc-time">{{ event.date }}</span>
+                            <span class="doc-event">{{ event.title }}</span>
+                            <span class="doc-desc">{{ event.desc }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="doc-section" v-if="reportConfig.includeMoney">
+                      <div class="section-title">三、资金流向分析</div>
+                      <div class="section-body">
+                        <div class="money-flow-summary">
+                          <p>经分析，该团伙涉案资金主要通过多级账户进行转移，最终流向境外。资金流转层级约3-5层，境外资金占比约85%。</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="doc-section" v-if="reportConfig.includeSuggestion">
+                      <div class="section-title">四、处置建议</div>
+                      <div class="section-body">
+                        <div class="suggestion-list">
+                          <div class="suggestion-item">
+                            <span class="suggestion-num">1</span>
+                            <span class="suggestion-text">建议立即对涉案账户进行止付冻结，防止资金进一步转移</span>
+                          </div>
+                          <div class="suggestion-item">
+                            <span class="suggestion-num">2</span>
+                            <span class="suggestion-text">协调银行调取完整交易流水，追踪资金去向</span>
+                          </div>
+                          <div class="suggestion-item">
+                            <span class="suggestion-num">3</span>
+                            <span class="suggestion-text">对团伙成员实施布控，择机收网</span>
+                          </div>
+                          <div class="suggestion-item">
+                            <span class="suggestion-num">4</span>
+                            <span class="suggestion-text">联系境外执法机构，开展国际协作</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="doc-footer">
+                    <div class="footer-line"></div>
+                    <div class="footer-text">
+                      <span>本报告由反诈情报分析系统自动生成</span>
+                      <span>仅供内部参考使用</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="preview-empty" v-else>
+                  <div class="empty-icon">📄</div>
+                  <div class="empty-text">请配置报告参数并点击"生成报告"</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </el-card>
-  </div>
-</div>
-
-
     </main>
   </div>
-  
 </template>
+
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import axios from 'axios'
+import NetworkGraph from './components/NetworkGraph.vue'
 
-// ================= 配置 =================
-const API_BASE_URL = 'http://localhost:5000'
-
-// --- 状态管理 ---
 const activeMenu = ref('input')
-const inputText = ref('')
 const loading = ref(false)
-const hasData = ref(false)
-const selectedGroupIndex = ref(null)
+const inputText = ref('')
+const uploadedImages = ref([])
+const gangs = ref([])
+const cases = ref([])
+const selectedGang = ref(null)
+const selectedCase = ref(null)
+const viewMode = ref('card')
+const gangSearchKeyword = ref('')
+const riskFilter = ref('')
+const detailTab = ref('overview')
+const networkView = ref('all')
+const generatingReport = ref(false)
 
-// 图表 DOM 引用
-const radarChartRef = ref(null)
-const wordCloudRef = ref(null)
-const networkChartRef = ref(null)
-
-// 数据模型
-const totalCases = ref(0)
-const currentTime = ref('')
-const results = ref([])          // 团伙列表
-
-// 案件详情相关
-const selectedCaseId = ref('')
-const currentCaseDetail = ref(null)
-const selectedCaseGang = ref(null)
-const allCases = ref([])
-
-// 报告相关
-const reportType = ref('gang')
-const reportTypeText = computed(() => {
-  const map = { gang: '团伙分析报告', case: '案件分析报告' }
-  return map[reportType.value] || '分析报告'
+const reportConfig = ref({
+  type: 'gang',
+  gangId: '',
+  format: 'pdf',
+  includeTimeline: true,
+  includeMoney: true,
+  includeNetwork: true,
+  includeSuggestion: true
 })
-const selectedReportGangId = ref('')
-const selectedReportCaseId = ref('')
-const exportFormat = ref('pdf')
-const showPreview = ref(false)
-const exporting = ref(false)
-const reportPreviewRef = ref(null)
-const reportNumber = ref('')
-const reportBasicData = ref([])
-const reportCasesData = ref([])
-const evidenceRadarRef = ref(null)
-const currentGangSteps = ref([])
+const reportPreview = ref(false)
 
-// ---------- 数据适配函数 ----------
-/**
- * 将后端返回的gang对象转换为前端期望的格式
- */
-const adaptGangData = (gang) => {
-  if (!gang) return null
-  
-  // 提取字段，处理可能的字段名差异
-  const gangName = gang.gang_name || gang.gangName || '未命名团伙'
-  const gangId = gang.gang_id || gang.gangId || 'unknown'
-  const riskLevel = gang.risk_level || gang.riskLevel || 'LOW'
-  const scriptType = gang.script_type || gang.scriptType || '未知类型'
-  const totalAmount = gang.total_amount_involved || gang.totalAmountInvolved || '0万元'
-  const totalCases = gang.total_cases || gang.totalCases || 0
-  
-  // 处理关联案件
-  let relatedCases = []
-  if (gang.related_cases && Array.isArray(gang.related_cases)) {
-    relatedCases = gang.related_cases
-  } else if (gang.relatedCases && Array.isArray(gang.relatedCases)) {
-    relatedCases = gang.relatedCases
-  }
-  
-  // 确保每个案件有必要的字段
-  relatedCases = relatedCases.map(caseItem => ({
-    case_id: caseItem.case_id || caseItem.caseId || '未知',
-    victim: caseItem.victim || '未知',
-    amount: caseItem.amount || '未知金额',
-    snippet: caseItem.snippet || (caseItem.ai_report ? caseItem.ai_report.substring(0, 60) + '...' : '无详细片段'),
-    risk_level: caseItem.risk_level || caseItem.riskLevel || riskLevel
-  }))
-  
-  return {
-    // 基础信息
-    gang_id: gangId,
-    gang_name: gangName,
-    
-    // 风险信息
-    risk_level: riskLevel,
-    risk_label: gang.risk_label || gang.riskLabel || 
-               (riskLevel === 'HIGH' ? '高风险' : 
-                riskLevel === 'MEDIUM' ? '中风险' : '低风险'),
-    risk_type: gang.risk_type || gang.riskType || 
-              (riskLevel === 'HIGH' ? 'danger' : 
-               riskLevel === 'MEDIUM' ? 'warning' : 'info'),
-    confidence: gang.confidence || 70 + relatedCases.length * 3,
-    
-    // 统计信息
-    total_cases: totalCases,
-    total_amount_involved: totalAmount,
-    member_count_estimate: gang.member_count_estimate || gang.memberCountEstimate || '未知',
-    active_time: gang.active_time || gang.activeTime || '未知',
-    
-    // 技术信息
-    script_type: scriptType,
-    tech_level: gang.tech_level || gang.techLevel || '中',
-    
-    // 特征信息
-    fingerprint: gang.fingerprint || gang.characteristics || [],
-    steps: gang.steps || [],
-    description: gang.description || '',
-    
-    // 关联信息
-    related_cases: relatedCases,
-    
-    // 网络数据
-    network_nodes: gang.network_nodes || gang.networkNodes || []
-  }
-}
+const apiSources = ref({
+  bank: { connected: false, records: 1256, lastSync: '10分钟前' },
+  police: { connected: false, records: 89, lastSync: '5分钟前' },
+  antiFraud: { connected: false, records: 3567, lastSync: '刚刚' }
+})
+const apiDataPreview = ref([])
 
-/**
- * 适配后端返回的完整响应数据
- */
-const adaptBackendResponse = (responseData) => {
-  console.log('后端原始数据:', responseData)
-  
-  if (!responseData || !responseData.success) {
-    return { totalCases: 0, gangs: [], networkData: null }
-  }
-  
-  // 处理gangs数组
-  const gangs = Array.isArray(responseData.gangs) ? responseData.gangs : []
-  const adaptedGangs = gangs.map(gang => adaptGangData(gang))
-  
-  return {
-    totalCases: responseData.total_cases || adaptedGangs.reduce((sum, gang) => sum + gang.total_cases, 0),
-    gangs: adaptedGangs,
-    networkData: responseData.network_data || null,
-    processingInfo: responseData.processing_info || {},
-    triageStatus: responseData.triage_status || 'unknown'
-  }
-}
+const pieChartRef = ref(null)
+const lineChartRef = ref(null)
+let pieChart = null
+let lineChart = null
 
-// 计算属性
-const currentGangData = computed(() => {
-  if (selectedGroupIndex.value === null || !results.value[selectedGroupIndex.value]) {
-    return { 
-      gang_name: '未知', 
-      risk_level: 'LOW', 
-      steps: [], 
-      fingerprint: [], 
-      related_cases: [],
-      total_amount_involved: '0万元',
-      risk_label: '低风险',
-      gang_id: 'unknown',
-      script_type: '未知类型',
-      total_cases: 0
-    }
-  }
-  return results.value[selectedGroupIndex.value]
+const totalAmount = computed(() => {
+  return gangs.value.reduce((sum, g) => {
+    const num = parseFloat(g.amount?.replace(/[^0-9.]/g, '') || 0)
+    return sum + (isNaN(num) ? 0 : num)
+  }, 0)
 })
 
-const messageCount = computed(() => inputText.value.split('\n').filter(l => l.trim()).length)
-
-// ---------- 辅助函数 ----------
-const parseInputToMessages = () => {
-  const lines = inputText.value.split('\n').filter(line => line.trim().length > 0)
-  
-  if (lines.length === 0) return []
-  
-  return lines.map((line, index) => {
-    // 尝试提取发送者信息
-    let sender = 'unknown'
-    let content = line.trim()
-    
-    // 简单的发送者识别逻辑
-    if (content.includes('受害人') || content.includes('用户') || content.includes('我')) {
-      sender = 'victim'
-    } else if (content.includes('客服') || content.includes('公安') || content.includes('银行')) {
-      sender = 'suspect'
-    } else if (content.includes('系统') || content.includes('平台')) {
-      sender = 'system'
-    }
-    
-    return {
-      content: content,
-      sender: sender,
-      timestamp: null
-    }
-  })
-}
-
-// 金额解析辅助函数
-const parseAmountToNumber = (amountStr) => {
-  if (!amountStr) return 0
-  const match = amountStr.match(/(\d+(?:\.\d+)?)/)
-  if (match) {
-    let num = parseFloat(match.group(1))
-    if (amountStr.includes('万')) num *= 10000
-    return num
+const totalAmountFormatted = computed(() => {
+  const amount = totalAmount.value
+  if (amount >= 100) {
+    return `¥${amount.toFixed(1)}万`
   }
-  return 0
-}
+  return `¥${amount.toFixed(2)}万`
+})
 
-// ---------- 核心分析函数（调用后端） ----------
-const analyze = async () => {
-  if (inputText.value.length < 10) {
-    ElMessage.warning('请输入更多数据以便进行团伙聚类')
-    return
+const successRate = ref(92)
+
+const textLineCount = computed(() => {
+  return inputText.value.split('\n').filter(line => line.trim()).length
+})
+
+const extractedKeywords = computed(() => {
+  const keywords = []
+  const text = inputText.value
+  if (text.includes('诈骗') || text.includes('被骗')) keywords.push('诈骗')
+  if (text.includes('转账') || text.includes('汇款')) keywords.push('转账')
+  if (text.includes('客服') || text.includes('京东')) keywords.push('冒充客服')
+  if (text.includes('征信') || text.includes('贷款')) keywords.push('征信诈骗')
+  if (text.includes('刷单') || text.includes('返利')) keywords.push('刷单诈骗')
+  if (/\d{11}/.test(text)) keywords.push('手机号')
+  if (/¥|万元|元/.test(text)) keywords.push('涉案金额')
+  return keywords.slice(0, 6)
+})
+
+const hasTime = computed(() => /\d{4}年|\d{1,2}月|\d{1,2}日|\d{4}-\d{1,2}-\d{1,2}/.test(inputText.value))
+const hasAmount = computed(() => /¥|万元|元|\d+万/.test(inputText.value))
+const hasPhone = computed(() => /\d{11}/.test(inputText.value))
+const hasMethod = computed(() => /诈骗|被骗|转账|汇款|客服|征信|贷款|刷单/.test(inputText.value))
+
+const connectedSources = computed(() => {
+  return Object.values(apiSources.value).filter(s => s.connected).length
+})
+
+const hasApiData = computed(() => {
+  return apiDataPreview.value.length > 0
+})
+
+const filteredGangs = computed(() => {
+  let result = gangs.value
+  if (gangSearchKeyword.value) {
+    result = result.filter(g => g.name.includes(gangSearchKeyword.value))
   }
+  if (riskFilter.value) {
+    result = result.filter(g => g.riskLevel === riskFilter.value)
+  }
+  return result
+})
 
-  loading.value = true
-  hasData.value = false
-  selectedGroupIndex.value = null
-  results.value = []
+const features = ref([
+  { name: '诈骗话术成熟度', confidence: 92, color: '#ef4444', desc: '话术模板标准化程度' },
+  { name: '资金分散程度', confidence: 85, color: '#f59e0b', desc: '资金流转层级数量' },
+  { name: '成员关联密度', confidence: 78, color: '#00d4ff', desc: '团伙成员社交关系' },
+  { name: '跨区域作案特征', confidence: 88, color: '#8b5cf6', desc: '跨省跨境作案能力' },
+  { name: '技术手段先进性', confidence: 73, color: '#10b981', desc: '反侦察技术水平' },
+  { name: '受害者画像精准度', confidence: 89, color: '#ec4899', desc: '目标人群定位能力' }
+])
 
-  try {
-    const messages = parseInputToMessages()
-    console.log('发送消息到后端:', messages)
-    
-    const response = await axios.post(`${API_BASE_URL}/agent-analyze`, {
-      messages: messages,
-      platform_data: {}
-    }, {
-      timeout: 120000  // 2分钟超时
-    })
+const relationNodes = ref([
+  { id: 1, type: 'gang', icon: '👥', label: '团伙A', style: { left: '50%', top: '25%' } },
+  { id: 2, type: 'case', icon: '📋', label: '案件1', style: { left: '25%', top: '45%' } },
+  { id: 3, type: 'case', icon: '📋', label: '案件2', style: { left: '75%', top: '45%' } },
+  { id: 4, type: 'money', icon: '💰', label: '资金', style: { left: '35%', top: '70%' } },
+  { id: 5, type: 'money', icon: '💰', label: '资金', style: { left: '65%', top: '70%' } }
+])
+const relationLines = ref([
+  { id: 1, x1: '50%', y1: '25%', x2: '25%', y2: '45%' },
+  { id: 2, x1: '50%', y1: '25%', x2: '75%', y2: '45%' },
+  { id: 3, x1: '25%', y1: '45%', x2: '35%', y2: '70%' },
+  { id: 4, x1: '75%', y1: '45%', x2: '65%', y2: '70%' }
+])
 
-    console.log('后端响应状态:', response.status)
-    
-    if (response.data) {
-      // 适配后端数据
-      const adaptedData = adaptBackendResponse(response.data)
-      
-      totalCases.value = adaptedData.totalCases
-      currentTime.value = adaptedData.processingInfo.server_time || new Date().toLocaleString()
-      results.value = adaptedData.gangs
-      hasData.value = true
+const caseEvidence = ref([
+  { icon: '📱', name: '通话记录', status: '已验证' },
+  { icon: '💳', name: '转账凭证', status: '已验证' },
+  { icon: '📧', name: '聊天记录', status: '已验证' },
+  { icon: '🖥️', name: '涉案设备', status: '核实中' }
+])
 
-      // 存储网络数据
-      if (adaptedData.networkData) {
-        window.backendNetworkData = adaptedData.networkData
-        console.log('已接收网络数据:', adaptedData.networkData)
-      }
+const investigationSteps = ref([
+  { date: '2024-03-15', title: '案件受理', description: '受害人报案，记录案情经过', status: '已完成', completed: true, current: false },
+  { date: '2024-03-16', title: '初步调查', description: '调取银行流水、通话记录', status: '已完成', completed: true, current: false },
+  { date: '2024-03-18', title: '案件分析', description: 'AI研判分析，关联涉案团伙', status: '已完成', completed: true, current: false },
+  { date: '2024-03-20', title: '资金追踪', description: '追踪资金流向，冻结涉案账户', status: '进行中', completed: false, current: true },
+  { date: '', title: '抓捕行动', description: '根据线索实施抓捕', status: '待进行', completed: false, current: false },
+  { date: '', title: '案件结案', description: '移送审查起诉', status: '待进行', completed: false, current: false }
+])
 
-      activeMenu.value = 'overview'
-      
-      const processTime = adaptedData.processingInfo.processing_time_ms
-      const timeMsg = processTime ? ` (耗时: ${processTime}ms)` : ''
-      
-      ElMessage.success({
-        message: `✅ 研判完成！发现 ${totalCases.value} 起案件，成功聚类为 ${results.value.length} 个犯罪团伙${timeMsg}`,
-        duration: 5000
-      })
+const defaultMethodFlow = [
+  { title: '获取信任', desc: '冒充客服，准确报出受害人信息' },
+  { title: '制造恐慌', desc: '声称账户异常，影响征信' },
+  { title: '诱导转账', desc: '要求转账至"安全账户"验证' },
+  { title: '完成诈骗', desc: '资金到账后立即失联' }
+]
 
-      // 调试输出
-      console.log('处理后团伙数据:', results.value)
-      if (results.value.length > 0) {
-        console.log('第一个团伙详情:', results.value[0])
-      }
-      
-      setTimeout(() => initCharts(), 300)
-    } else {
-      ElMessage.error('后端返回空数据')
-    }
-  } catch (error) {
-    console.error('请求错误详情:', error)
-    
-    let errorMsg = '分析失败: '
-    if (error.response) {
-      // 服务器返回了错误状态码
-      console.error('响应状态:', error.response.status)
-      console.error('响应数据:', error.response.data)
-      
-      if (error.response.status === 500) {
-        errorMsg = '后端服务器内部错误'
-      } else if (error.response.status === 404) {
-        errorMsg = '接口不存在，请检查后端服务'
-      } else if (error.response.status === 400) {
-        errorMsg = '请求格式错误: ' + (error.response.data.error || '')
-      } else {
-        errorMsg = `HTTP ${error.response.status}: ${error.response.data.error || ''}`
-      }
-    } else if (error.request) {
-      // 请求发出但没有响应
-      errorMsg = '无法连接到后端服务，请检查:'
-      errorMsg += '\n1. 后端服务是否已启动 (python app.py)'
-      errorMsg += '\n2. 端口5000是否被占用'
-      errorMsg += '\n3. 网络连接是否正常'
-    } else if (error.code === 'ECONNABORTED') {
-      errorMsg = '请求超时，请检查后端处理时间是否过长'
-    } else {
-      errorMsg = error.message
-    }
-    
-    ElMessage.error(errorMsg)
-  } finally {
-    loading.value = false
+const defaultKeywords = ['冒充客服', '征信诈骗', '安全账户', '转账验证']
+
+const caseTypeStats = ref([
+  { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
+  { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
+  { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
+  { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
+])
+
+const regionStats = ref([
+  { name: '广东', count: 25, percent: 30 },
+  { name: '浙江', count: 18, percent: 22 },
+  { name: '江苏', count: 15, percent: 18 },
+  { name: '北京', count: 12, percent: 14 },
+  { name: '上海', count: 10, percent: 12 }
+])
+
+const getParticleStyle = (i) => {
+  const size = Math.random() * 4 + 2
+  const duration = Math.random() * 20 + 10
+  const delay = Math.random() * 10
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`
   }
 }
 
-// 加载演示数据
+const getRiskType = (level) => {
+  const map = { S: 'danger', A: 'warning', B: 'info', C: 'success' }
+  return map[level] || 'info'
+}
+
+const getEventType = (type) => {
+  const map = { '作案': 'danger', '转移': 'warning', '洗钱': 'warning', '活动': 'info' }
+  return map[type] || 'info'
+}
+
+const getGangById = (id) => gangs.value.find(g => g.id === id)
+
+const getFeatureIcon = (idx) => {
+  const icons = ['💬', '💰', '🔗', '🌍', '🔧', '🎯']
+  return icons[idx] || '📊'
+}
+
+const getReportTitle = () => {
+  const titles = {
+    gang: '团伙分析报告',
+    case: '案件分析报告',
+    comprehensive: '综合研判报告'
+  }
+  return titles[reportConfig.value.type] || '分析报告'
+}
+
+const handleMenuSelect = (index) => {
+  activeMenu.value = index
+}
+
+const selectGang = (gang) => {
+  selectedGang.value = gang
+}
+
+const viewGangDetail = (gang) => {
+  selectGang(gang)
+  activeMenu.value = 'groups'
+}
+
+const viewCaseDetail = (caseItem) => {
+  selectedCase.value = caseItem
+  activeMenu.value = 'case-detail'
+}
+
+const viewRelatedGang = (gangId) => {
+  const gang = gangs.value.find(g => g.id === gangId)
+  if (gang) {
+    selectGang(gang)
+    activeMenu.value = 'groups'
+  }
+}
+
+const clearInput = () => {
+  inputText.value = ''
+}
+
+const clearImages = () => {
+  uploadedImages.value = []
+}
+
+const removeImage = (idx) => {
+  uploadedImages.value.splice(idx, 1)
+}
+
 const loadDemo = () => {
-  inputText.value = `[案件 1] 受害人张三：您好，这里是京东金融官方客服，您的百万保障即将扣费 800 元...要求屏幕共享
-[案件 2] 受害人李四：系统检测到您之前开通的京东白条需要注销，否则影响征信...要求屏幕共享
-[案件 3] 受害人王五：我是公安局的，你涉嫌洗钱，需要核查资金...要求转账安全账户
-[案件 4] 受害人赵六：宝妈兼职，在家动动手指就能日赚 300 元...刷单返利
-[案件 5] 受害人孙七：简单，给抖音店铺点赞关注，每单佣金 3-5 元...刷单返利
-[案件 6] 受害人周八：京东客服，您的白条利率过高需要调整...屏幕共享
-[案件 7] 受害人吴九：点赞任务，先垫付 100 元返 115 元...刷单
-[案件 8] 受害人郑十：公安局通缉令，需要资金核查...安全账户`
-  ElMessage.success('已加载 8 起模拟案件数据，点击"开始智能研判"进行分析')
+  inputText.value = `【案情描述】
+受害人王女士报警称：2024年3月15日接到自称"京东客服"电话，对方准确报出其个人信息后称其开通了"京东金条"服务，如不取消将影响征信。王女士在对方指导下通过手机银行转账至"安全账户"共计 125,800 元。
+
+受害人李先生报警称：2024年3月18日接到同样手法诈骗，对方冒充"京东金融"客服，诱骗其转账 89,600 元。
+
+【资金流向】
+被骗资金通过多个一级账户迅速分散转入二级账户，最终在境外取现。账户信息显示开户人均为"张伟"等人，但实际控制人信息被层层掩盖。
+
+【作案手法分析】
+1. 开场白："您好，我是京东金融/京东客服，您名下有一笔账户异常..."
+2. 制造恐慌："如不处理，您的征信将受到严重影响"
+3. 诱导转账："请将资金转入安全账户进行验证，稍后会全额返还"
+4. 消失：验证后即失联
+
+【初步结论】
+初步判断为同一诈骗团伙所为，具有"注销校园贷"类诈骗特征，建议并案侦查。`
 }
 
 const handleBeforeUpload = (file) => {
   const isImage = file.type.startsWith('image/')
+  const isLt10M = file.size / 1024 / 1024 < 10
   if (!isImage) {
     ElMessage.error('只能上传图片文件')
     return false
   }
+  if (!isLt10M) {
+    ElMessage.error('图片大小不能超过 10MB')
+    return false
+  }
   const reader = new FileReader()
   reader.onload = (e) => {
-    inputText.value += `\n[图片证据] ${file.name}\n`
-    ElMessage.success('图片已上传 (模拟 OCR 识别)')
+    uploadedImages.value.push({
+      url: e.target.result,
+      name: file.name
+    })
   }
   reader.readAsDataURL(file)
   return false
 }
 
-// ---------- 团伙与案件导航 ----------
-const selectGang = (index) => {
-  if (!results.value[index]) return
-  
-  selectedGroupIndex.value = index
-  activeMenu.value = 'details'
-  
-  nextTick(() => {
-    initCharts()
-    ElMessage.success(`已加载团伙 [${results.value[index].gang_name}] 深度画像`)
-  })
-}
+const startAnalysis = async () => {
+  if (!inputText.value.trim()) return
+  loading.value = true
 
-// 获取所有案件列表
-const getAllCases = () => {
-  const cases = []
-  results.value.forEach(gang => {
-    const relatedCases = gang.related_cases || []
-    
-    relatedCases.forEach(c => {
-      cases.push({
-        case_id: c.case_id,
-        victim: c.victim,
-        amount: c.amount,
-        snippet: c.snippet,
-        risk_level: c.risk_level,
-        gang_id: gang.gang_id,
-        gang_name: gang.gang_name,
-        fraud_type: gang.script_type,
-        input_time: '2024-03-23'
-      })
-    })
-  })
-  allCases.value = cases
-}
-
-const loadCaseDetail = (caseId) => {
-  if (!caseId) {
-    currentCaseDetail.value = null
-    selectedCaseGang.value = null
-    return
-  }
-  
-  // 在所有团伙中查找案件
-  for (const gang of results.value) {
-    const relatedCases = gang.related_cases || []
-    const caseItem = relatedCases.find(c => c.case_id === caseId)
-    
-    if (caseItem) {
-      currentCaseDetail.value = {
-        ...caseItem,
-        gang_id: gang.gang_id,
-        gang_name: gang.gang_name,
-        fraud_type: gang.script_type,
-        risk_level: gang.risk_level
+  setTimeout(() => {
+    gangs.value = [
+      {
+        id: 'G001',
+        name: '"注销校园贷"诈骗团伙',
+        icon: '🦈',
+        riskLevel: 'S',
+        amount: '¥215.8万',
+        cases: 12,
+        tags: ['冒充客服', '征信诈骗', '跨境洗钱', '话术成熟'],
+        members: [
+          { id: 1, name: '张某', icon: '👤', role: '头目' },
+          { id: 2, name: '李某', icon: '👤', role: '骨干' },
+          { id: 3, name: '王某', icon: '👤', role: '马仔' },
+          { id: 4, name: '刘某', icon: '👤', role: '马仔' }
+        ],
+        timeline: [
+          { date: '2024-01', title: '开始活动', desc: '在境内建立诈骗窝点', type: '活动' },
+          { date: '2024-02', title: '扩大规模', desc: '招募成员，建立话术培训体系', type: '活动' },
+          { date: '2024-03', title: '疯狂作案', desc: '单月作案12起，涉案金额超200万', type: '作案' },
+          { date: '2024-04', title: '资金转移', desc: '通过地下钱庄将资金转移境外', type: '洗钱' }
+        ],
+        evidence: [
+          { icon: '📱', name: '作案手机', status: '已验证' },
+          { icon: '💳', name: '银行卡', status: '已验证' },
+          { icon: '📝', name: '话术本', status: '已验证' },
+          { icon: '💰', name: '资金流水', status: '核实中' }
+        ],
+        abilities: { tech: 85, org: 92, antiDetect: 78 },
+        victims: 12,
+        createTime: '2024-03-20',
+        updateTime: '刚刚'
+      },
+      {
+        id: 'G002',
+        name: '"刷单返利"诈骗团伙',
+        icon: '🐺',
+        riskLevel: 'A',
+        amount: '¥86.5万',
+        cases: 8,
+        tags: ['刷单诈骗', '返利诱惑', '网络推广'],
+        members: [
+          { id: 1, name: '陈某', icon: '👤', role: '头目' },
+          { id: 2, name: '刘某', icon: '👤', role: '骨干' }
+        ],
+        timeline: [
+          { date: '2024-02', title: '建立平台', desc: '搭建虚假刷单平台', type: '活动' },
+          { date: '2024-03', title: '推广引流', desc: '通过社交媒体大量推广', type: '作案' }
+        ],
+        evidence: [
+          { icon: '💻', name: '诈骗平台', status: '已验证' },
+          { icon: '📱', name: '引流账号', status: '已验证' }
+        ],
+        abilities: { tech: 70, org: 75, antiDetect: 55 },
+        victims: 8,
+        createTime: '2024-03-15',
+        updateTime: '刚刚'
       }
-      selectedCaseGang.value = gang
-      ElMessage.success(`已加载案件 ${caseId} 详情`)
-      return
-    }
-  }
-  
-  ElMessage.warning(`未找到案件 ${caseId}`)
-  currentCaseDetail.value = null
-  selectedCaseGang.value = null
-}
-
-const viewGangDetail = () => {
-  if (!selectedCaseGang.value) return
-  const idx = results.value.findIndex(g => g.gang_id === selectedCaseGang.value.gang_id)
-  if (idx !== -1) {
-    selectGang(idx)
-  }
-}
-
-const exportCaseReport = () => {
-  if (!currentCaseDetail.value) {
-    ElMessage.warning('请先选择案件')
-    return
-  }
-  reportType.value = 'case'
-  selectedReportCaseId.value = currentCaseDetail.value.case_id
-  activeMenu.value = 'report'
-}
-
-// ---------- 图表初始化 ----------
-const initCharts = () => {
-  if (activeMenu.value === 'details' && currentGangData.value.gang_name !== '未知') {
-    initRadar()
-    initBar()
-  }
-  if (activeMenu.value === 'network') {
-    initNetwork()
-  }
-}
-
-// 雷达图
-const initRadar = () => {
-  if (!radarChartRef.value) return
-  const chart = echarts.init(radarChartRef.value)
-  const data = currentGangData.value
-  
-  // 根据风险等级设置雷达图数值
-  let radarValues = [60, 50, 70, 40, 50] // 默认值
-  if (data.risk_level === 'HIGH') {
-    radarValues = [90, 85, 95, 80, 95]
-  } else if (data.risk_level === 'MEDIUM') {
-    radarValues = [75, 70, 80, 65, 75]
-  }
-
-  const option = {
-    radar: {
-      indicator: [
-        { name: '组织严密性', max: 100 },
-        { name: '反侦察能力', max: 100 },
-        { name: '资金流转速', max: 100 },
-        { name: '技术对抗力', max: 100 },
-        { name: '话术标准化', max: 100 }
-      ],
-      radius: '68%',
-      axisName: {
-        color: '#1e40af',
-        fontSize: 13,
-        fontWeight: '600'
-      },
-      splitArea: {
-        areaStyle: {
-          color: [
-            'rgba(59, 130, 246, 0.1)',
-            'rgba(59, 130, 246, 0.2)',
-            'rgba(59, 130, 246, 0.3)',
-            'rgba(59, 130, 246, 0.4)'
-          ]
-        }
-      },
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(59, 130, 246, 0.4)',
-          width: 2
-        }
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(59, 130, 246, 0.3)',
-          width: 1
-        }
-      }
-    },
-    series: [{
-      type: 'radar',
-      data: [
-        {
-          value: radarValues,
-          name: '团伙能力',
-          areaStyle: { 
-            color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
-              { offset: 0, color: 'rgba(59, 130, 246, 0.8)' },
-              { offset: 0.5, color: 'rgba(37, 99, 235, 0.6)' },
-              { offset: 1, color: 'rgba(29, 78, 216, 0.4)' }
-            ])
-          },
-          lineStyle: { 
-            color: '#2563eb',
-            width: 3,
-            shadowColor: 'rgba(37, 99, 235, 0.5)',
-            shadowBlur: 10
-          },
-          itemStyle: {
-            color: '#ffffff',
-            borderColor: '#2563eb',
-            borderWidth: 3,
-            shadowColor: 'rgba(37, 99, 235, 0.6)',
-            shadowBlur: 8
-          }
-        }
-      ]
-    }]
-  }
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 柱状图
-const initBar = () => {
-  if (!wordCloudRef.value) return
-  const chart = echarts.init(wordCloudRef.value)
-  const data = currentGangData.value.fingerprint.map((item, index) => ({
-    name: item,
-    value: Math.floor(Math.random() * 50) + 50
-  }))
-  
-  // 多彩颜色数组
-  const colors = [
-    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-      { offset: 0, color: '#3b82f6' },
-      { offset: 1, color: '#1d4ed8' }
-    ]),
-    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-      { offset: 0, color: '#10b981' },
-      { offset: 1, color: '#059669' }
-    ]),
-    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-      { offset: 0, color: '#f59e0b' },
-      { offset: 1, color: '#d97706' }
-    ]),
-    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-      { offset: 0, color: '#ef4444' },
-      { offset: 1, color: '#dc2626' }
-    ]),
-    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-      { offset: 0, color: '#8b5cf6' },
-      { offset: 1, color: '#7c3aed' }
-    ])
-  ]
-  
-  const option = {
-    grid: { top: 10, bottom: 20, left: 100, right: 40 },
-    xAxis: { type: 'value', show: false },
-    yAxis: { 
-      type: 'category', 
-      data: data.map(d => d.name), 
-      axisLabel: { 
-        width: 80, 
-        overflow: 'truncate',
-        color: '#475569',
-        fontWeight: '500'
-      },
-      axisLine: { show: false },
-      axisTick: { show: false }
-    },
-    series: [{
-      type: 'bar',
-      data: data.map((item, index) => ({
-        ...item,
-        itemStyle: {
-          color: colors[index % colors.length],
-          borderRadius: [0, 8, 8, 0]
-        }
-      })),
-      label: { 
-        show: true, 
-        position: 'right', 
-        formatter: '{c}%',
-        color: '#475569',
-        fontSize: 13,
-        fontWeight: '600'
-      },
-      barWidth: '65%',
-      showBackground: true,
-      backgroundStyle: {
-        color: 'rgba(226, 232, 240, 0.4)',
-        borderRadius: [0, 8, 8, 0]
-      }
-    }]
-  }
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 网络图
-const initNetwork = () => {
-  if (!networkChartRef.value) return
-  const chart = echarts.init(networkChartRef.value)
-  
-  const nodes = []
-  const links = []
-  const colors = { HIGH: '#f56c6c', MEDIUM: '#e6a23c', LOW: '#67c23a' }
-  const gangColors = {
-    '"黑鲨"专业客服诈骗团': '#f56c6c',
-    '"野狼"兼职刷单团': '#e6a23c',
-    '"毒蛛"冒充公检法团': '#f56c6c'
-  }
-
-  // 尝试使用后端提供的 network_nodes，如果没有则回退到前端计算
-  let hasBackendNetworkData = false
-  if (window.backendNetworkData && Array.isArray(window.backendNetworkData.nodes)) {
-    console.log('使用后端网络数据')
-    window.backendNetworkData.nodes.forEach(node => {
-      const isGang = node.type === 'gang'
-      const nodeColor = isGang ? (gangColors[node.name] || colors[node.risk_level]) : '#409EFF'
-      nodes.push({
-        id: node.id,
-        name: node.name,
-        symbolSize: isGang ? 80 : 40,
-        itemStyle: { 
-          color: nodeColor,
-          shadowBlur: isGang ? 15 : 8,
-          shadowColor: isGang ? 'rgba(0,0,0,0.3)' : 'rgba(64, 158, 255, 0.4)',
-          borderColor: '#fff',
-          borderWidth: isGang ? 3 : 2
-        },
-        category: isGang ? 0 : 1,
-        value: node.value,
-        label: {
-          show: true,
-          position: 'right',
-          formatter: '{b}',
-          fontSize: isGang ? 13 : 11,
-          fontWeight: isGang ? 'bold' : 'normal',
-          color: isGang ? '#303133' : '#606266',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          padding: isGang ? [4, 8] : [3, 6],
-          borderRadius: isGang ? 4 : 3
-        }
-      })
-      // 构建链接 (案件节点链接到其所属团伙)
-      if (!isGang && node.gang_id) {
-        links.push({
-          source: node.gang_id,
-          target: node.id,
-          value: node.value,
-          lineStyle: {
-            width: Math.max(2, Math.min(8, (node.value || 0) / 3000)),
-            color: gangColors[node.gang_name] || colors[node.risk_level],
-            curveness: 0.2,
-            opacity: 0.7
-          }
-        })
-      }
-    })
-    hasBackendNetworkData = true
-  }
-
-  // 如果后端没有提供 network_nodes，则使用原来的前端计算逻辑
-  if (!hasBackendNetworkData) {
-    console.warn('后端未提供 network_nodes 数据，使用前端计算网络')
-    results.value.forEach((gang) => {
-      const gangColor = gangColors[gang.gang_name] || colors[gang.risk_level]
-      nodes.push({
-        id: gang.gang_id,
-        name: gang.gang_name,
-        symbolSize: 80,
-        itemStyle: { 
-          color: gangColor,
-          shadowBlur: 15,
-          shadowColor: 'rgba(0,0,0,0.3)',
-          borderColor: '#fff',
-          borderWidth: 3
-        },
-        category: 0,
-        value: parseFloat(gang.total_amount_involved.replace('万元', '')),
-        label: {
-          show: true,
-          position: 'right',
-          formatter: '{b}',
-          fontSize: 13,
-          fontWeight: 'bold',
-          color: '#303133',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          padding: [4, 8],
-          borderRadius: 4
-        },
-        fixed: false
-      })
-      
-      gang.related_cases.forEach((caseItem) => {
-        const caseId = caseItem.case_id
-        const amountNum = parseAmountToNumber(caseItem.amount)
-        nodes.push({
-          id: caseId,
-          name: `${caseId}\n${caseItem.victim}`,
-          symbolSize: 40,
-          itemStyle: { 
-            color: '#409EFF',
-            shadowBlur: 8,
-            shadowColor: 'rgba(64, 158, 255, 0.4)',
-            borderColor: '#fff',
-            borderWidth: 2
-          },
-          category: 1,
-          label: {
-            show: true,
-            position: 'right',
-            formatter: '{b}',
-            fontSize: 11,
-            color: '#606266',
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            padding: [3, 6],
-            borderRadius: 3
-          }
-        })
-
-        links.push({
-          source: gang.gang_id,
-          target: caseId,
-          value: amountNum,
-          lineStyle: {
-            width: Math.max(2, Math.min(8, amountNum / 3000)),
-            color: gangColor,
-            curveness: 0.2,
-            opacity: 0.7
-          }
-        })
-      })
-    })
-  }
-
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: function(params) {
-        if (params.data.category === 0) {
-          const gang = results.value.find(g => g.gang_id === params.data.id)
-          return `<div style="padding: 8px;">
-            <strong style="font-size: 14px;">${params.data.name}</strong><br/>
-            <span style="color: #909399;">风险等级：</span>${gang?.risk_label || '未知'}<br/>
-            <span style="color: #909399;">涉案总额：</span>${gang?.total_amount_involved || '0万元'}<br/>
-            <span style="color: #909399;">关联案件：</span>${gang?.total_cases || 0} 起
-          </div>`
-        } else {
-          const caseData = results.value.flatMap(g => g.related_cases).find(c => c.case_id === params.data.id)
-          return `<div style="padding: 8px;">
-            <strong style="font-size: 14px;">${params.data.name}</strong><br/>
-            <span style="color: #909399;">受害人：</span>${caseData?.victim || '未知'}<br/>
-            <span style="color: #909399;">涉案金额：</span>${caseData?.amount || '未知'}
-          </div>`
-        }
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e4e7ed',
-      borderWidth: 1,
-      textStyle: {
-        color: '#606266'
-      }
-    },
-    legend: [{
-      data: ['犯罪团伙', '关联案件'],
-      bottom: 10,
-      left: 'center',
-      textStyle: { 
-        color: '#606266',
-        fontSize: 13
-      },
-      itemWidth: 15,
-      itemHeight: 15
-    }],
-    series: [{
-      type: 'graph',
-      layout: 'force',
-      data: nodes,
-      links: links,
-      categories: [
-        { name: '犯罪团伙', itemStyle: { color: '#f56c6c' } },
-        { name: '关联案件', itemStyle: { color: '#409EFF' } }
-      ],
-      roam: true,
-      draggable: true,
-      label: { show: true },
-      force: {
-        repulsion: 800,
-        edgeLength: 250,
-        gravity: 0.05,
-        friction: 0.6
-      },
-      lineStyle: {
-        opacity: 0.8,
-        curveness: 0.2
-      },
-      emphasis: {
-        focus: 'adjacency',
-        lineStyle: { 
-          width: 10,
-          opacity: 1
-        },
-        itemStyle: {
-          shadowBlur: 20,
-          shadowColor: 'rgba(0,0,0,0.5)'
-        }
-      },
-      animation: true,
-      animationDuration: 1500,
-      animationEasing: 'cubicOut'
-    }]
-  }
-
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// ---------- 报告预览与导出 ----------
-const previewReport = () => {
-  if (reportType.value === 'gang' && !selectedReportGangId.value) {
-    ElMessage.warning('请选择团伙')
-    return
-  }
-  if (reportType.value === 'case' && !selectedReportCaseId.value) {
-    ElMessage.warning('请选择案件')
-    return
-  }
-  reportNumber.value = `REPORT-${Date.now().toString().slice(-8)}`
-  if (reportType.value === 'gang') {
-    const gang = results.value.find(g => g.gang_id === selectedReportGangId.value)
-    currentGangSteps.value = gang.steps
-    reportBasicData.value = [
-      { label: '团伙名称', value: gang.gang_name },
-      { label: '风险等级', value: gang.risk_label },
-      { label: '涉案总额', value: gang.total_amount_involved },
-      { label: '关联案件', value: `${gang.total_cases}起` }
     ]
-    reportCasesData.value = gang.related_cases
-  } else {
-    const c = allCases.value.find(c => c.case_id === selectedReportCaseId.value)
-    currentGangSteps.value = []
-    reportBasicData.value = [
-      { label: '案件编号', value: c.case_id },
-      { label: '受害人', value: c.victim },
-      { label: '涉案金额', value: c.amount },
-      { label: '诈骗类型', value: c.fraud_type }
+    cases.value = [
+      { 
+        id: 'C001', 
+        title: '王女士被诈骗案', 
+        gang: 'G001', 
+        amount: '¥12.58万', 
+        status: '已立案',
+        date: '2024-03-15',
+        region: '广东省深圳市',
+        type: '冒充客服',
+        victims: 1,
+        victimName: '王女士',
+        victimGender: '女',
+        victimAge: '32',
+        victimPhone: '138****5678',
+        victimJob: '公司职员',
+        victimAddress: '广东省深圳市南山区',
+        scamPhone: '0755-8888****',
+        phoneLocation: '广东深圳',
+        scamUrl: 'jd-security.com',
+        ipAddress: '192.168.***.***',
+        description: '2024年3月15日，受害人王女士接到自称"京东客服"的电话，对方准确报出其个人信息后，称其名下有一笔账户异常需要处理，否则将影响征信。在对方的诱导下，王女士通过手机银行转账至对方提供的"安全账户"，共计转账125,800元。转账后对方失联，王女士才发现被骗。'
+      },
+      { 
+        id: 'C002', 
+        title: '李先生被诈骗案', 
+        gang: 'G001', 
+        amount: '¥8.96万', 
+        status: '已立案',
+        date: '2024-03-18',
+        region: '广东省广州市',
+        type: '冒充客服',
+        victims: 1,
+        victimName: '李先生',
+        victimGender: '男',
+        victimAge: '28',
+        victimPhone: '139****8765',
+        victimJob: '程序员',
+        victimAddress: '广东省广州市天河区',
+        scamPhone: '0755-8888****',
+        phoneLocation: '广东深圳',
+        scamUrl: 'jd-security.com',
+        ipAddress: '10.0.***.***'
+      },
+      { 
+        id: 'C003', 
+        title: '刷单被骗案', 
+        gang: 'G002', 
+        amount: '¥3.2万', 
+        status: '侦办中',
+        date: '2024-03-20',
+        region: '浙江省杭州市',
+        type: '刷单返利',
+        victims: 1,
+        victimName: '张女士',
+        victimGender: '女',
+        victimAge: '25',
+        victimPhone: '137****1234',
+        victimJob: '学生',
+        victimAddress: '浙江省杭州市西湖区'
+      }
     ]
-    reportCasesData.value = [c]
-  }
-  showPreview.value = true
-  nextTick(() => {
-    if (evidenceRadarRef.value) {
-      const radar = echarts.init(evidenceRadarRef.value)
-      radar.setOption({
-        radar: { indicator: [{ name:'通话记录',max:100},{ name:'聊天记录',max:100},{ name:'资金流向',max:100},{ name:'IP追踪',max:100}] },
-        series: [{ type:'radar', data:[{ value:[95,90,70,60], name:'证据完整性' }] }]
-      })
-    }
-  })
+    selectedCase.value = cases.value[0]
+    loading.value = false
+    ElMessage.success('AI 研判完成！已识别出 2 个涉案团伙')
+    activeMenu.value = 'overview'
+  }, 2500)
 }
 
-const exportReport = async () => {
-  if (!showPreview.value) previewReport()
-  else {
-    exporting.value = true
-    await new Promise(r => setTimeout(r, 1500))
-    exporting.value = false
-    showPreview.value = false
-    ElMessage.success(`报告已导出 (${exportFormat.value.toUpperCase()})`)
+const startImageAnalysis = () => {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    ElMessage.success('图片识别完成，已提取关键信息')
+    startAnalysis()
+  }, 2000)
+}
+
+const toggleApiSource = (source) => {
+  if (apiSources.value[source].connected) {
+    ElMessage.success(`${source === 'bank' ? '银行风控' : source === 'police' ? '110报警平台' : '反诈平台'}已连接`)
   }
+}
+
+const syncApiData = (source) => {
+  ElMessage.success('数据同步中...')
+  setTimeout(() => {
+    apiSources.value[source].lastSync = '刚刚'
+    ElMessage.success('数据同步完成')
+  }, 1500)
+}
+
+const fetchBankData = () => {
+  apiDataPreview.value.push(
+    { source: '银行风控', type: '交易流水', content: '账户 ***1234 异常转账记录', time: '2024-03-20 14:30', status: '已验证' },
+    { source: '银行风控', type: '账户信息', content: '涉案账户开户人信息', time: '2024-03-20 14:25', status: '待验证' }
+  )
+  ElMessage.success('已获取银行风控数据')
+}
+
+const fetchPoliceData = () => {
+  apiDataPreview.value.push(
+    { source: '110平台', type: '警情信息', content: '诈骗类警情推送 #20240320001', time: '2024-03-20 10:15', status: '已验证' }
+  )
+  ElMessage.success('已获取110报警平台数据')
+}
+
+const fetchAntiFraudData = () => {
+  apiDataPreview.value.push(
+    { source: '反诈平台', type: '黑名单', content: '涉案号码 138****5678 已入库', time: '2024-03-20 09:00', status: '已验证' },
+    { source: '反诈平台', type: '涉案账户', content: '账户 ***5678 已标记', time: '2024-03-20 09:05', status: '已验证' }
+  )
+  ElMessage.success('已获取反诈平台数据')
+}
+
+const importApiData = () => {
+  ElMessage.success('数据已导入系统')
+  apiDataPreview.value = []
+}
+
+const startApiAnalysis = () => {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    startAnalysis()
+  }, 1500)
+}
+
+const generateReport = () => {
+  if (!reportConfig.value.gangId) {
+    ElMessage.warning('请先选择一个团伙')
+    return
+  }
+  generatingReport.value = true
+  setTimeout(() => {
+    generatingReport.value = false
+    reportPreview.value = true
+    ElMessage.success('报告生成成功')
+  }, 1500)
 }
 
 const printReport = () => {
-  if (!showPreview.value) previewReport()
-  else window.print()
+  ElMessage.success('正在准备打印...')
 }
 
-const resetReportConfig = () => {
-  reportType.value = 'gang'
-  selectedReportGangId.value = ''
-  selectedReportCaseId.value = ''
-  showPreview.value = false
+const downloadReport = () => {
+  ElMessage.success('报告下载中...')
 }
 
-const getRiskLevelType = () => {
-  if (reportType.value === 'gang') {
-    const g = results.value.find(g => g.gang_id === selectedReportGangId.value)
-    return g?.risk_type || 'info'
+const initCharts = () => {
+  nextTick(() => {
+    if (pieChartRef.value) {
+      if (pieChart) {
+        pieChart.dispose()
+      }
+      pieChart = echarts.init(pieChartRef.value)
+      pieChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item', formatter: '{b}: {c}起 ({d}%)' },
+        legend: {
+          orient: 'vertical',
+          right: 10,
+          top: 'center',
+          textStyle: { color: '#94a3b8' }
+        },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
+          data: [
+            { value: 45, name: '冒充客服', itemStyle: { color: '#ef4444' } },
+            { value: 32, name: '刷单返利', itemStyle: { color: '#f59e0b' } },
+            { value: 28, name: '贷款诈骗', itemStyle: { color: '#8b5cf6' } },
+            { value: 23, name: '投资理财', itemStyle: { color: '#00d4ff' } }
+          ]
+        }]
+      })
+      pieChart.resize()
+    }
+    if (lineChartRef.value) {
+      if (lineChart) {
+        lineChart.dispose()
+      }
+      lineChart = echarts.init(lineChartRef.value)
+      lineChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' },
+          splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } }
+        },
+        series: [{
+          name: '涉案金额',
+          type: 'line',
+          smooth: true,
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+              { offset: 1, color: 'rgba(0, 212, 255, 0.05)' }
+            ])
+          },
+          lineStyle: { color: '#00d4ff', width: 2 },
+          itemStyle: { color: '#00d4ff' },
+          data: [120, 182, 191, 234, 290, 330]
+        }]
+      })
+      lineChart.resize()
+    }
+  })
+}
+
+watch(activeMenu, (newVal) => {
+  if (newVal === 'overview' && gangs.value.length) {
+    nextTick(() => initCharts())
   }
-  return 'warning'
-}
-const getRiskLevelText = () => {
-  if (reportType.value === 'gang') {
-    const g = results.value.find(g => g.gang_id === selectedReportGangId.value)
-    return g?.risk_label || '未知'
-  }
-  return '中风险'
-}
-const calculateTotalAmount = () => {
-  const total = reportCasesData.value.reduce((s, i) => s + parseFloat(i.amount.replace(/[^0-9.]/g,'')||0), 0)
-  return `${total.toFixed(1)}万元`
-}
-const calculateAvgAmount = () => {
-  const total = reportCasesData.value.reduce((s, i) => s + parseFloat(i.amount.replace(/[^0-9.]/g,'')||0), 0)
-  const avg = reportCasesData.value.length ? total / reportCasesData.value.length : 0
-  return `${avg.toFixed(1)}万元`
-}
-const calculateHighRiskCount = () => reportCasesData.value.filter(i => i.risk_level === 'HIGH').length
-
-// 菜单切换
-const handleMenuSelect = (index) => {
-  activeMenu.value = index
-  if (index === 'case-detail') getAllCases()
-  if (hasData.value && (index === 'details' || index === 'network')) nextTick(() => initCharts())
-}
+})
 
 onMounted(() => {
-  currentTime.value = new Date().toLocaleString()
+  console.log('反诈情报分析系统已启动')
 })
 </script>
-<style >
-/* =========================================
-   【全局变量与基础重置】
-   ========================================= */
-:root {
-  --primary-bg: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
-  --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  --card-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  --card-hover-shadow: 0 8px 30px rgba(0,0,0,0.12);
-  --header-gradient: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%);
-  --accent-blue: #3b82f6;
-  --accent-purple: #8b5cf6;
-  --accent-red: #ef4444;
-  --accent-green: #10b981;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-}
 
-/* ====== 整体布局 ====== */
+<style scoped>
 .police-system-layout {
   display: flex;
   height: 100vh;
-  background: var(--primary-bg);
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  width: 100vw;
+  background: var(--bg-primary);
   position: relative;
   overflow: hidden;
-  color: var(--text-primary);
 }
 
-/* ====== 演示模式提示条 ====== */
-.mock-mode-banner {
+.particle-bg {
   position: absolute;
   top: 0;
-  left: 240px;
-  right: 0;
-  background: linear-gradient(90deg, var(--accent-blue), #2563eb);
-  color: white;
-  padding: 10px 20px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
-.mock-mode-banner strong { color: #ffd700; margin: 0 4px; }
 
-/* ====== 侧边栏 ====== */
+.particle {
+  position: absolute;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-30px) translateX(20px); opacity: 0.5; }
+  50% { transform: translateY(-60px) translateX(-20px); opacity: 0.3; }
+  75% { transform: translateY(-30px) translateX(10px); opacity: 0.5; }
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(rgba(0, 198, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 198, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  animation: scan 8s linear infinite;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
 .sidebar {
-  width: 240px;
-  background: var(--sidebar-bg);
-  color: white;
+  width: 260px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
-  box-shadow: 4px 0 16px rgba(0,0,0,0.15);
   z-index: 10;
   flex-shrink: 0;
 }
-.logo-area { 
-  padding: 25px 20px; 
-  text-align: center; 
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  background: rgba(0,0,0,0.2);
+
+.logo-area {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-primary);
+  background: linear-gradient(180deg, rgba(0, 198, 255, 0.05) 0%, transparent 100%);
 }
-.logo-icon { font-size: 36px; margin-bottom: 8px; }
-.logo-area h2 { 
-  margin: 0; 
-  font-size: 20px; 
-  color: #fff; 
-  letter-spacing: 2px;
+
+.logo-icon-wrapper {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 12px;
+}
+
+.logo-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--accent-cyan);
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.logo-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+}
+
+.logo-area h2 {
+  margin: 0;
+  font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 2px;
 }
-.sub-title { 
-  font-size: 11px; 
-  color: #94a3b8; 
-  display: block; 
-  margin-top: 6px; 
+
+.sub-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-top: 4px;
+  display: block;
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 12px;
+  background: rgba(0, 198, 255, 0.1);
+  border: 1px solid rgba(0, 198, 255, 0.3);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--accent-cyan);
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.side-menu {
+  flex: 1;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+
+.menu-group {
+  margin-bottom: 8px;
+}
+
+.menu-group-title {
+  padding: 8px 20px;
+  font-size: 11px;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-.side-menu { flex: 1; border-right: none; background-color: transparent; }
-.side-menu .el-menu-item {
-  border-radius: 8px;
-  margin: 4px 12px;
-  padding-left: 20px !important;
-  transition: all 0.3s;
-  color: #cbd5e1;
+
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.side-menu .el-menu-item:hover {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: var(--accent-blue);
+
+.menu-icon {
+  font-size: 16px;
 }
-.side-menu .el-menu-item.is-active {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
-  color: var(--accent-blue);
-  border-left: 4px solid var(--accent-blue);
+
+.menu-text {
+  flex: 1;
+}
+
+.menu-badge {
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
   font-weight: 600;
 }
-.system-status { 
-  padding: 20px; 
-  border-top: 1px solid rgba(255,255,255,0.1); 
-  text-align: center;
-  background: rgba(0,0,0,0.2);
-}
-.version-info { font-size: 11px; color: #94a3b8; margin-top: 8px; }
 
-/* ====== 主内容区 ====== */
-.main-content {
-  flex: 1;
-  padding: 24px;
-  padding-top: 56px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  position: relative;
-}
-.content-wrapper, .content-view { 
-  animation: fadeIn 0.5s ease; 
-  min-height: 400px; 
-}
-@keyframes fadeIn { 
-  from { opacity: 0; transform: translateY(15px); } 
-  to { opacity: 1; transform: translateY(0); } 
-}
-.empty-state { 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  height: 400px; 
-  background: white; 
-  border-radius: 12px; 
-  box-shadow: var(--card-shadow); 
+.system-status {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-primary);
+  background: rgba(0, 0, 0, 0.2);
 }
 
-/* ====== 通用卡片与顶栏美化 (核心修复) ====== */
-.el-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: var(--card-shadow);
-  transition: all 0.3s;
-  background: #ffffff;
-  overflow: hidden;
-  position: relative;
-}
-.el-card:hover {
-  box-shadow: var(--card-hover-shadow);
-  transform: translateY(-2px);
-}
-
-.el-card__header {
-  background: var(--header-gradient);
-  border-bottom: 1px solid #e2e8f0;
-  padding: 18px 24px;
-  position: relative;
+.status-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+  margin-bottom: 12px;
 }
 
-/* 顶栏标题装饰 */
-.el-card__header .page-title,
-.el-card__header h2,
-.el-card__header h3,
-.el-card__header .card-title {
-  margin: 0;
-  font-size: 20px;
-  color: var(--text-primary);
-  font-weight: 700;
-  position: relative;
-  display: inline-block;
-  padding-right: 20px;
-}
-.el-card__header .page-title::after,
-.el-card__header h2::after,
-.el-card__header h3::after,
-.el-card__header .card-title::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  width: 50px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-  border-radius: 2px;
-  
-}
-
-/* 【关键】顶栏右侧空白填充 - 系统状态标签 */
-.el-card__header::before {
-  content: '📊 数据实时同步 | 最后更新：' attr(data-update-time);
-  position: absolute;
-  top: 50%;
-  left: 280px;
-  right: 160px;
-  transform: translateY(-50%);
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
-  color: #059669;
-  background: rgba(5, 150, 105, 0.08);
-  padding: 6px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(5, 150, 105, 0.2);
-  white-space: nowrap;
-  z-index: 1;
-  pointer-events: none;
-  font-style: italic;
-  letter-spacing: 0.5px;
-  left: 400px; /* 【修改】从 280px 改为 320px，避开左侧标题 */
-  top: 55%;    /* 【修改】微调垂直位置，使其居中 */
+  color: var(--text-secondary);
 }
 
-.el-card__header .header-actions {
-  z-index: 2;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.active {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.version {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  background: rgba(0, 198, 255, 0.1);
+  border-radius: 4px;
+}
+
+.status-details {
+  display: flex;
+  gap: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.status-value {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-value.online {
+  color: var(--accent-green);
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 5;
+}
+
+.content-wrapper {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+.view-section {
+  animation: fadeIn 0.5s ease;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 28px;
+}
+
+.section-desc {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 14px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.quick-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.quick-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(0, 198, 255, 0.1);
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: 8px;
+}
+
+.qs-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.qs-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.input-container {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.input-main {
+  padding: 20px;
+}
+
+.input-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-icon {
+  font-size: 20px;
+}
+
+.toolbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+}
+
+.input-area {
+  margin-bottom: 12px;
+}
+
+.input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.format-tips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tip-icon {
+  font-size: 14px;
+}
+
+.input-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.card-icon {
+  font-size: 18px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-content {
+  min-height: 60px;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.empty-text {
+  font-size: 12px;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.check-item.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+}
+
+.check-icon {
+  font-size: 14px;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.analyze-btn {
+  padding: 16px 48px;
+  font-size: 16px;
+  font-weight: 600;
+  height: auto;
+  background: linear-gradient(135deg, #00d4ff 0%, #0084ff 100%) !important;
+  border: none !important;
+  border-radius: 12px;
+  color: #0a0e1a !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.analyze-btn:hover {
+  box-shadow: 0 0 30px rgba(0, 198, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.upload-main {
+  padding: 20px;
+}
+
+.upload-toolbar {
+  margin-bottom: 16px;
+}
+
+.upload-area {
+  width: 100%;
+}
+
+.upload-area :deep(.el-upload) {
+  width: 100%;
+}
+
+.upload-area :deep(.el-upload-dragger) {
+  background: rgba(10, 14, 26, 0.8) !important;
+  border: 2px dashed rgba(0, 198, 255, 0.4) !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  height: auto !important;
+  transition: all 0.3s ease !important;
+}
+
+.upload-area :deep(.el-upload-dragger:hover) {
+  border-color: var(--accent-cyan) !important;
+  background: rgba(0, 198, 255, 0.05) !important;
+  box-shadow: 0 0 30px rgba(0, 198, 255, 0.2) !important;
+}
+
+.upload-content {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.upload-icon-wrapper {
+  margin-bottom: 16px;
+}
+
+.upload-icon {
+  font-size: 56px;
+  color: var(--accent-cyan);
+}
+
+.upload-text {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.upload-text .highlight {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.upload-formats {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.format-tag {
+  padding: 4px 12px;
+  background: rgba(0, 198, 255, 0.1);
+  border: 1px solid rgba(0, 198, 255, 0.3);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--accent-cyan);
+}
+
+.upload-preview {
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: rgba(10, 14, 26, 0.9);
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.preview-name {
+  font-size: 10px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.preview-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.upload-tips {
+  padding: 20px;
+}
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tip-icon {
+  font-size: 18px;
+}
+
+.tip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tip-num {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 198, 255, 0.2);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.tip-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.api-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.api-source-card {
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.api-source-card.active {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(0, 198, 255, 0.2);
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.source-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border-radius: 12px;
+}
+
+.source-icon.bank {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.source-icon.police {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.source-icon.antiFraud {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.source-info {
+  flex: 1;
+}
+
+.source-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.source-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.source-content {
+  margin-bottom: 16px;
+}
+
+.source-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.source-features {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.feature-icon {
+  font-size: 14px;
+}
+
+.source-stats {
+  display: flex;
+  gap: 24px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.source-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.api-data-preview {
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.api-data-preview .preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.api-data-preview .preview-icon {
+  font-size: 18px;
+}
+
+.api-data-preview .preview-title {
+  flex: 1;
+}
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 28px;
+}
+
+.stat-icon-wrapper.danger {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.stat-icon-wrapper.warning {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.stat-icon-wrapper.success {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.stat-icon-wrapper.info {
+  background: rgba(0, 198, 255, 0.15);
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-content .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-content .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.stat-trend.up {
+  color: var(--accent-green);
+}
+
+.overview-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  padding: 20px;
+}
+
+.chart-header {
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-content {
+  height: 250px;
+}
+
+.gangs-section {
+  margin-bottom: 24px;
+}
+
+.section-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sub-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.sub-icon {
+  font-size: 18px;
+}
+
+.filter-bar {
   display: flex;
   gap: 12px;
 }
 
-/* ====== 录入页特定样式 ====== */
-.input-card-full { 
-  height: calc(100vh - 96px); 
-  display: flex; 
-  flex-direction: column;
-  border-radius: 16px;
-}
-.page-subtitle { 
-  margin: 6px 0 0; 
-  font-size: 14px; 
-  color: var(--text-secondary); 
-}
-.input-workspace { 
-  display: flex; 
-  gap: 24px; 
-  flex: 1; 
-  overflow: hidden; 
-}
-.input-panel { 
-  flex: 2; 
-  display: flex; 
-  flex-direction: column; 
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
-  padding: 20px; 
-  border-radius: 12px; 
-  border: 1px solid #e2e8f0;
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.03);
-}
-.panel-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 12px; 
-  font-weight: 600; 
-  color: #475569;
-  font-size: 15px;
-}
-.chat-input-large { 
-  flex: 1; 
-  font-family: 'Courier New', Courier, monospace; 
-  font-size: 14px; 
-  line-height: 1.8;
-  border-radius: 8px;
-}
-.input-stats { 
-  margin-top: 12px; 
-  font-size: 13px; 
-  color: var(--text-secondary); 
-  display: flex; 
-  justify-content: space-between;
-  background: rgba(255,255,255,0.6);
-  padding: 8px 12px;
-  border-radius: 6px;
-}
-.input-stats strong { color: var(--accent-blue); }
-
-.tools-panel { 
-  flex: 1; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 20px; 
-  min-width: 340px; 
+.search-input {
+  width: 200px;
 }
 
-.tool-card { 
-  background: white; 
-  padding: 20px; 
-  border-radius: 12px; 
-  border: 1px solid #e2e8f0; 
-  box-shadow: var(--card-shadow); 
-  transition: all 0.3s;
-}
-.tool-card:hover {
-  box-shadow: var(--card-hover-shadow);
-  transform: translateY(-3px);
-  border-color: var(--accent-blue);
-}
-.tool-card h4 { 
-  margin: 0 0 16px; 
-  font-size: 16px; 
-  color: var(--text-primary); 
-  border-left: 4px solid var(--accent-blue); 
-  padding-left: 12px; 
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-.upload-area-large { 
-  width: 100%; 
-  border: 2px dashed #cbd5e1; 
-  border-radius: 10px; 
-  transition: all 0.3s;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-}
-.upload-area-large:hover { 
-  border-color: var(--accent-blue); 
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
+.gangs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
-.external-data-panel {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border-left: 4px solid var(--accent-green);
-  border-color: #86efac;
-  border-radius: 12px;
-  padding: 20px;
-}
-.current-mode {
-  font-size: 13px;
-  color: #475569;
-  margin-bottom: 14px;
-  line-height: 1.6;
-  background: rgba(255,255,255,0.7);
-  padding: 10px;
-  border-radius: 6px;
-}
-.future-integrations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.integration-tag {
-  font-size: 12px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  color: #1d4ed8;
-  border-radius: 20px;
-  border: 1px solid #bfdbfe;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 500;
-  transition: all 0.3s;
-}
-.integration-tag:hover {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  transform: scale(1.05);
-}
-.note {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  font-style: italic;
-  border-top: 1px dashed #cbd5e1;
-  padding-top: 10px;
-  background: rgba(255,255,255,0.5);
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.action-area { 
-  margin-top: auto; 
-  padding-top: 20px; 
-  position: relative; 
-}
-.analyze-btn-pro {
-  background: linear-gradient(135deg, var(--accent-red), #dc2626);
-  border: none;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 1px;
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  height: 54px;
-  border-radius: 10px;
-  width: 100%;
-}
-.analyze-btn-pro:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6);
-  background: linear-gradient(135deg, #f87171 0%, var(--accent-red) 100%);
-}
-.analyze-btn-pro:active { transform: translateY(-2px); }
-.analyze-btn-pro.is-disabled {
-  background: #f1f5f9;
-  color: #94a3b8;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-.progress-text { 
-  font-size: 13px; 
-  color: var(--text-secondary); 
-  text-align: center; 
-  margin-top: 8px; 
-  font-weight: 500;
-  background: rgba(255,255,255,0.8);
-  padding: 6px;
-  border-radius: 4px;
-}
-.action-hint { 
-  text-align: center; 
-  font-size: 12px; 
-  color: #94a3b8; 
-  margin-top: 12px;
-  font-style: italic;
-}
-
-/* ====== 报告头部 (案件总览页) ====== */
-.report-header { 
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
-  color: white; 
-  padding: 24px; 
-  border-radius: 16px; 
-  margin-bottom: 24px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-.report-header::after {
-  content: 'AI INTELLIGENCE V2.0';
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 10px;
-  color: rgba(255,255,255,0.3);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-.report-title-section h2 { 
-  margin: 0 0 8px; 
-  font-size: 24px;
-  font-weight: 600;
-  color: #fff;
-}
-.report-subtitle {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.8;
-  color: #cbd5e1;
-}
-.report-meta { 
-  display: flex; 
-  gap: 24px; 
-  font-size: 14px; 
-  margin-top: 16px;
-  flex-wrap: wrap;
-}
-.meta-item { display: flex; flex-direction: column; gap: 4px; }
-.meta-label { font-size: 12px; opacity: 0.7; }
-.meta-value { font-size: 18px; font-weight: 600; }
-.meta-value.highlight { color: #60a5fa; }
-.meta-value.highlight-red { color: #f87171; }
-
-/* ====== 统计卡片与团伙卡片 ====== */
-.stats-cards { 
-  display: grid; 
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 20px; 
-  margin-bottom: 24px; 
-}
-.stat-card {
-  text-align: center;
-  padding: 20px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: var(--card-shadow);
-}
-.stat-icon { font-size: 32px; margin-bottom: 8px; }
-.stat-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
-.stat-value { 
-  font-size: 32px; 
-  font-weight: 700; 
-  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.section-title { 
-  font-size: 18px; 
-  margin: 24px 0 16px; 
-  border-left: 5px solid var(--accent-blue); 
-  padding-left: 12px;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-/* 修复：添加了缺失的右括号 */
-.case-grid { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-  gap: 20px; 
-}
-.gang-summary-card { height: 100%; border-radius: 12px; }
-.gang-header { display: flex; justify-content: space-between; align-items: center; }
-.gang-name { font-weight: 600; font-size: 16px; color: var(--text-primary); }
-.case-item { 
-  margin-top: 16px; 
-  padding-top: 16px; 
-  border-top: 1px solid #e2e8f0;
-  transition: all 0.3s;
-}
-.case-item:hover {
-  background: #f8fafc;
-  margin: 16px -20px -16px;
-  padding: 16px 20px;
-  border-radius: 8px;
-}
-.case-id { font-weight: 600; color: var(--accent-blue); font-size: 14px; margin-bottom: 8px; }
-.case-detail { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; color: #475569; }
-.case-amount { color: var(--accent-red); font-weight: 500; }
-.case-snippet { 
-  font-size: 12px; 
-  color: var(--text-secondary); 
-  background: #f1f5f9; 
-  padding: 8px 10px; 
-  border-radius: 6px;
-  line-height: 1.5;
-}
-
-.summary-stats { 
-  display: grid; 
-  grid-template-columns: repeat(4, 1fr); 
-  gap: 20px; 
-  margin-bottom: 30px; 
-}
-.stat-box { 
-  background: white; 
-  padding: 24px; 
-  border-radius: 12px; 
-  text-align: center; 
-  box-shadow: var(--card-shadow);
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-.stat-box::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-}
-.stat-box.red::before { background: linear-gradient(90deg, #f87171, var(--accent-red)); }
-.stat-box.orange::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-.stat-box.blue::before { background: linear-gradient(90deg, #60a5fa, var(--accent-blue)); }
-.stat-box.green::before { background: linear-gradient(90deg, #34d399, var(--accent-green)); }
-.stat-box:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--card-hover-shadow);
-}
-.stat-icon-large { font-size: 36px; margin-bottom: 8px; }
-.stat-box .num { font-size: 36px; font-weight: 700; margin-bottom: 6px; }
-.stat-box.red .num { color: var(--accent-red); }
-.stat-box.orange .num { color: #f59e0b; }
-.stat-box.blue .num { color: var(--accent-blue); }
-.stat-box.green .num { color: var(--accent-green); }
-.stat-box .label { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
-
-/* 修复：添加了缺失的右括号 */
-.gang-cards-container { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); 
-  gap: 24px; 
-}
-.gang-card { 
-  background: white; 
-  border: 1px solid #e2e8f0; 
-  border-radius: 16px; 
-  padding: 24px; 
-  cursor: pointer; 
-  transition: all 0.3s; 
-  position: relative;
-}
-.gang-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.gang-card:hover::before { opacity: 1; }
-.gang-card:hover { 
-  transform: translateY(-6px); 
-  box-shadow: var(--card-hover-shadow); 
-  border-color: var(--accent-blue);
-}
-.gang-card.active { 
-  border: 2px solid var(--accent-blue); 
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.2);
-}
-.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.badge { 
-  background: linear-gradient(135deg, #6366f1, #4f46e5); 
-  color: white; 
-  padding: 4px 10px; 
-  border-radius: 6px; 
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-.gang-title { margin: 0 0 6px; font-size: 18px; color: var(--text-primary); font-weight: 600; }
-.gang-id { font-size: 12px; color: #94a3b8; margin-bottom: 16px; font-family: 'Courier New', monospace; }
-.gang-metrics { 
-  display: grid; 
-  grid-template-columns: 1fr 1fr 1fr; 
-  gap: 12px; 
-  margin-bottom: 16px; 
-  text-align: center;
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 8px;
-}
-.metric .m-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-.metric .m-value { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-top: 4px; }
-.metric .m-value.money { color: var(--accent-red); font-size: 16px; }
-.tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-.tags-row .el-tag { border-radius: 6px; font-size: 11px; padding: 4px 8px; }
-.card-action { text-align: right; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-.link-text { color: var(--accent-blue); font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
-.link-text:hover { color: #1d4ed8; text-decoration: underline; }
-
-/* ====== 详情页特定样式 ====== */
-.details-header { 
-  display: flex; 
-  align-items: center; 
-  margin-bottom: 24px;
-  background: white;
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-}
-.page-main-title { font-size: 24px; margin: 0; color: var(--text-primary); font-weight: 600; }
-.page-desc { color: var(--text-secondary); margin-bottom: 24px; font-size: 14px; line-height: 1.6; }
-.page-header-section { margin-bottom: 24px; }
-.info-card { margin-bottom: 24px; border-radius: 12px; }
-.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-.chart-card { height: 380px; border-radius: 12px; }
-.echart-container { width: 100%; height: 320px; }
-.flow-card { margin-bottom: 24px; border-radius: 12px; }
-.flow-steps { 
-  display: flex; 
-  gap: 20px; 
-  overflow-x: auto; 
-  padding: 20px 10px;
-  background: #f8fafc;
-  border-radius: 8px;
-}
-.step-item { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  min-width: 130px;
-  position: relative;
-}
-.step-item:not(:last-child)::after {
-  content: '→';
-  position: absolute;
-  right: -15px;
-  top: 15px;
-  color: #94a3b8;
-  font-size: 18px;
-}
-.step-num { 
-  width: 36px; height: 36px; 
-  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); 
-  color: white; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-weight: 700; 
-  margin-bottom: 10px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-.step-text { font-size: 13px; text-align: center; color: #475569; line-height: 1.5; font-weight: 500; }
-.flow-note { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 12px; font-style: italic; }
-.cases-card { margin-bottom: 24px; border-radius: 12px; }
-
-.case-selector-card { margin-bottom: 24px; border-radius: 16px; }
-.case-selector-content { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
-.selector-bar { background: linear-gradient(90deg, var(--accent-green), #14b8a6, #06b6d4); }
-
-.detail-card { border-radius: 16px; transition: all 0.3s; }
-.detail-card:hover { box-shadow: var(--card-hover-shadow); }
-
-.info-bar { background: linear-gradient(90deg, var(--accent-blue), #1d4ed8); }
-.snippet-bar { background: linear-gradient(90deg, var(--accent-green), #059669); }
-.gang-bar { background: linear-gradient(90deg, var(--accent-purple), #7c3aed); }
-.evidence-bar { background: linear-gradient(90deg, #f59e0b, #d97706); }
-
-.snippet-content { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #f8fafc; border-radius: 12px; }
-.message-bubble { max-width: 80%; padding: 16px; border-radius: 16px; position: relative; }
-.message-bubble.suspect { align-self: flex-start; background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%); border-left: 4px solid var(--accent-red); }
-.message-bubble.victim { align-self: flex-end; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-right: 4px solid var(--accent-blue); }
-.bubble-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
-.bubble-header .avatar { font-size: 16px; }
-.bubble-text { font-size: 14px; color: var(--text-primary); line-height: 1.6; }
-
-.gang-link-content { padding: 10px; }
-.gang-link-card { 
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+.gang-card {
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
-.gang-link-card:hover {
-  border-color: var(--accent-purple);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.2);
+
+.gang-card:hover,
+.gang-card.selected {
+  transform: translateY(-4px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(0, 198, 255, 0.2);
+}
+
+.gang-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.gang-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 28px;
+}
+
+.gang-icon-wrapper.risk-s {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.gang-icon-wrapper.risk-a {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.gang-icon-wrapper.risk-b {
+  background: rgba(0, 198, 255, 0.2);
+  border: 1px solid rgba(0, 198, 255, 0.4);
+}
+
+.gang-info {
+  flex: 1;
+}
+
+.gang-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.gang-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gang-id {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gang-card-body {
+  margin-bottom: 16px;
+}
+
+.gang-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.gang-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.gang-stat .stat-icon {
+  font-size: 16px;
+}
+
+.gang-stat .stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.gang-stat .stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gang-stat .stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.gang-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gang-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.update-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.empty-content {
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.case-detail-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.case-header-card {
+  padding: 24px;
+}
+
+.case-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.case-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  font-size: 32px;
+}
+
+.case-icon-wrapper.risk-s {
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+}
+
+.case-icon-wrapper.risk-a {
+  background: rgba(245, 158, 11, 0.2);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+}
+
+.case-header-info {
+  flex: 1;
+}
+
+.case-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.case-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.meta-icon {
+  font-size: 14px;
+}
+
+.case-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.case-header-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+.header-stat {
+  text-align: center;
+}
+
+.header-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+}
+
+.header-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.detail-tabs {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.detail-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  padding: 0 20px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.detail-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+.detail-tabs :deep(.el-tabs__item) {
+  color: var(--text-secondary);
+  padding: 16px 20px;
+  height: auto;
+}
+
+.detail-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--accent-cyan);
+}
+
+.detail-tabs :deep(.el-tabs__active-bar) {
+  background: var(--accent-cyan);
+}
+
+.detail-tabs :deep(.el-tabs__content) {
+  padding: 20px;
+}
+
+.timeline-section {
+  padding: 24px;
+}
+
+.timeline {
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 3px solid var(--bg-primary);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.timeline-dot.dot-0 { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+.timeline-dot.dot-1 { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+.timeline-dot.dot-2 { background: #8b5cf6; box-shadow: 0 0 10px #8b5cf6; }
+.timeline-dot.dot-3 { background: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
+
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(to bottom, var(--border-secondary), transparent);
+  margin-top: 8px;
+}
+
+.timeline-content {
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.timeline-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.timeline-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.timeline-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.timeline-details {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.detail-item {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.detail-label {
+  color: var(--text-muted);
+}
+
+.detail-value {
+  color: var(--text-primary);
+}
+
+.method-section,
+.money-section {
+  padding: 24px;
+}
+
+.method-header,
+.money-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.method-icon,
+.money-icon {
+  font-size: 24px;
+}
+
+.method-title,
+.money-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.method-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding: 16px 0;
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: max-content;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.step-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.step-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 150px;
+}
+
+.step-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+.method-keywords {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.keyword-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.money-flow {
+  margin-bottom: 20px;
+}
+
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  min-width: 100px;
+}
+
+.flow-node.source {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.flow-node.gang {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.flow-node.middle {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.flow-node.target {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.node-icon {
+  font-size: 24px;
+}
+
+.node-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.node-amount {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.arrow-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.money-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.money-stat {
+  text-align: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.ms-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ms-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-section {
+  padding: 16px;
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-icon {
+  font-size: 16px;
+}
+
+.section-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.evidence-icon {
+  font-size: 20px;
+}
+
+.evidence-info {
+  flex: 1;
+}
+
+.evidence-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.member-avatar {
+  font-size: 20px;
+}
+
+.member-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.member-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feature-tag {
+  margin: 0;
+}
+
+.profiles-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.profile-card {
+  padding: 24px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.profile-avatar-wrapper {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  font-size: 32px;
+}
+
+.profile-avatar-wrapper.risk-s {
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+}
+
+.profile-avatar-wrapper.risk-a {
+  background: rgba(245, 158, 11, 0.2);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+}
+
+.profile-basic {
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.profile-id {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.profile-quick-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.quick-stat-item {
+  text-align: right;
+}
+
+.qsi-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.qsi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-section {
+  margin-bottom: 0;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--accent-cyan);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.label-icon {
+  font-size: 14px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.info-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.info-value.danger {
+  color: var(--accent-red);
+}
+
+.feature-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.member-details {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ability-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ability-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ability-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.profile-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.analysis-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analysis-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.analysis-card {
+  padding: 20px;
+}
+
+.analysis-card.full-width {
+  grid-column: span 2;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.analysis-icon {
+  font-size: 20px;
+}
+
+.analysis-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.analysis-subtitle {
+  font-size: 12px;
+  color: var(--accent-cyan);
+  margin-left: auto;
+  padding: 2px 8px;
+  background: rgba(0, 198, 255, 0.1);
+  border-radius: 4px;
+}
+
+.flow-badge {
+  font-size: 11px;
+  color: #f59e0b;
+  margin-left: auto;
+  padding: 3px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.flow-chart {
+  margin-bottom: 20px;
+}
+
+.flow-path {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.flow-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-node {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 2px solid;
+}
+
+.stage-node.source {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.stage-node.gang {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.stage-node.middle {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.stage-node.target {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.stage-node .node-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.stage-node.source .node-glow {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.stage-node.gang .node-glow {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+.stage-node.middle .node-glow {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.stage-node.target .node-glow {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.stage-node .node-icon {
+  font-size: 22px;
+  position: relative;
+  z-index: 1;
+}
+
+.stage-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stage-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.flow-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+}
+
+.connector-line {
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-cyan), rgba(0, 198, 255, 0.3));
+}
+
+.connector-arrow {
+  width: 0;
+  height: 0;
+  border-left: 8px solid var(--accent-cyan);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.connector-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.flow-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.metric-icon {
+  font-size: 20px;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: var(--feature-color, var(--accent-cyan));
   transform: translateY(-2px);
 }
-.gang-link-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.gang-link-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.gang-link-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
-.metric-item { text-align: center; padding: 12px; background: white; border-radius: 8px; }
-.metric-label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
-.metric-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.metric-value.money { color: var(--accent-red); }
-.gang-link-action { text-align: right; }
 
-.evidence-list { display: flex; flex-direction: column; gap: 16px; }
-.evidence-item { 
-  display: flex; 
-  align-items: center; 
-  gap: 16px; 
-  padding: 16px; 
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 10px;
-  border-left: 4px solid #f59e0b;
-  transition: all 0.3s;
+.feature-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(0, 198, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.evidence-item:hover {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  transform: translateX(5px);
-}
-.evidence-icon { font-size: 28px; }
-.evidence-info { flex: 1; }
-.evidence-info .evidence-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-.evidence-info .evidence-desc { font-size: 13px; color: var(--text-secondary); }
 
-/* ====== 网络图谱 ====== */
-.network-legend { 
-  display: flex; 
-  gap: 24px; 
-  margin-bottom: 16px; 
-  font-size: 14px; 
-  color: #475569;
-  flex-wrap: wrap;
-  background: white;
-  padding: 12px 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+.feature-icon {
+  font-size: 18px;
 }
-.legend-item { display: flex; align-items: center; gap: 6px; font-weight: 500; }
-.dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-.dot.red { background: linear-gradient(135deg, #f87171, var(--accent-red)); border: 2px solid #fff; }
-.dot.blue { background: linear-gradient(135deg, #60a5fa, var(--accent-blue)); border: 2px solid #fff; }
-.line-sample { width: 30px; height: 4px; border-radius: 2px; display: inline-block; }
-.line-sample.thick { background: linear-gradient(90deg, #f87171, var(--accent-red)); height: 6px; }
-.line-sample.color { background: linear-gradient(90deg, #60a5fa, var(--accent-blue)); }
 
-.network-container { 
-  width: 100%; 
-  height: 650px; 
-  background: white; 
-  border-radius: 16px; 
-  box-shadow: var(--card-shadow);
-  border: 1px solid #e2e8f0;
-  position: relative;
+.feature-info {
+  flex: 1;
+}
+
+.feature-card .feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feature-card .feature-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.feature-card .feature-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.feature-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.feature-bar-wrap {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
   overflow: hidden;
 }
-.network-container::before {
+
+.feature-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0; }
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feature-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.feature-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.relation-map {
+  min-height: 300px;
+}
+
+.relation-viz {
+  position: relative;
+  height: 300px;
+}
+
+.rel-node {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.rel-node.gang {
+  background: rgba(139, 92, 246, 0.3);
+  border: 2px solid var(--accent-purple);
+}
+
+.rel-node.case {
+  background: rgba(0, 198, 255, 0.3);
+  border: 2px solid var(--accent-cyan);
+}
+
+.rel-node.money {
+  background: rgba(245, 158, 11, 0.3);
+  border: 2px solid var(--accent-orange);
+}
+
+.rel-node:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.rel-icon {
+  font-size: 20px;
+}
+
+.rel-label {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.relation-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.relation-lines line {
+  stroke: var(--border-secondary);
+  stroke-width: 2;
+}
+
+.type-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.type-item {
+  position: relative;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.type-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  opacity: 0.3;
+  border-radius: 8px;
+}
+
+.type-info {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.type-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.type-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.region-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.region-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.region-name {
+  width: 50px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.region-bar-wrapper {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.region-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+  border-radius: 4px;
+}
+
+.region-count {
+  width: 50px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.network-container {
+  height: calc(100vh - 320px);
+  min-height: 500px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 16px;
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-dot.gang-s {
+  background: #ff3860;
+  box-shadow: 0 0 8px rgba(255, 56, 96, 0.5);
+}
+
+.legend-dot.gang-a {
+  background: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.legend-dot.case {
+  background: #00c6ff;
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.5);
+}
+
+.legend-dot.money {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.legend-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.report-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+}
+
+.report-config-panel {
+  padding: 20px;
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.config-icon {
+  font-size: 20px;
+}
+
+.config-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.generate-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+}
+
+.report-preview-panel {
+  padding: 20px;
+}
+
+.report-preview-panel .preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.report-preview-panel .preview-icon {
+  font-size: 18px;
+}
+
+.report-preview-panel .preview-title {
+  flex: 1;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.preview-body {
+  min-height: 500px;
+}
+
+.report-document {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #e2e8f0;
+  padding: 40px;
+  border-radius: 12px;
+  font-family: "Microsoft YaHei", "SimHei", serif;
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0, 198, 255, 0.1);
+}
+
+.doc-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid rgba(0, 198, 255, 0.3);
+  position: relative;
+}
+
+.doc-header::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: 
-    radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 2%),
-    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 2%);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: 0;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
 }
-.network-tips { display: flex; justify-content: center; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
-.tip-item { font-size: 13px; color: var(--text-secondary); background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); font-weight: 500; }
-.network-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; font-style: italic; }
 
-/* ====== 报告生成页面 ====== */
-.report-config-card { margin-bottom: 24px; border-radius: 16px; }
-.report-config-content { display: flex; flex-direction: column; gap: 20px; padding: 10px 0; }
-.config-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.config-label { font-size: 15px; font-weight: 600; color: #475569; min-width: 100px; }
-.config-bar { background: linear-gradient(90deg, #6366f1, var(--accent-purple), #a855f7); }
+.doc-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
 
-.report-actions { display: flex; gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; justify-content: center; }
+.doc-logo .logo-icon {
+  font-size: 24px;
+  position: static;
+  transform: none;
+}
 
-.report-preview-card { margin-top: 24px; }
-.preview-card { border-radius: 16px; overflow: hidden; }
-.preview-header { display: flex; justify-content: space-between; align-items: center; }
-.preview-header h4 { margin: 0; font-size: 16px; color: var(--text-primary); }
-.preview-actions { display: flex; gap: 10px; }
-.preview-content { background: white; padding: 40px; min-height: 600px; }
+.doc-logo .logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
 
-.report-cover {
-  text-align: center;
-  padding: 60px 40px;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: white;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  position: relative;
+.doc-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  text-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
+}
+
+.doc-meta {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.doc-meta .meta-item {
+  color: var(--text-secondary);
+}
+
+.doc-meta .meta-value {
+  color: var(--text-primary);
+}
+
+.doc-meta .meta-value.secret {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+
+.doc-content {
+  margin-bottom: 32px;
+}
+
+.doc-section {
+  margin-bottom: 24px;
+}
+
+.doc-section .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--accent-cyan);
+}
+
+.doc-section .section-body {
+  padding-left: 16px;
+}
+
+.info-table {
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: 8px;
   overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
 }
-.cover-logo { font-size: 64px; margin-bottom: 20px; display: block; }
-.cover-title { font-size: 32px; margin: 0 0 10px; font-weight: 700; }
-.cover-subtitle { font-size: 24px; margin: 0 0 40px; font-weight: 400; opacity: 0.9; }
-.cover-info { text-align: left; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin: 0 auto; max-width: 500px; }
-.cover-info p { margin: 10px 0; font-size: 14px; opacity: 0.9; }
-.cover-seal {
-  position: absolute;
-  bottom: 30px; right: 40px;
-  width: 100px; height: 100px;
-  border: 3px solid rgba(255,255,255,0.3);
+
+.info-row {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .info-label {
+  width: 120px;
+  padding: 10px 12px;
+  background: rgba(0, 198, 255, 0.1);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.info-row .info-value {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.info-row .info-value.danger {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+
+.doc-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.doc-timeline-item {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.doc-time {
+  width: 80px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.doc-event {
+  width: 120px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.doc-desc {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.money-flow-summary {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.money-flow-summary p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.suggestion-num {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  transform: rotate(-15deg);
-  color: rgba(255,255,255,0.5);
-  font-size: 12px; font-weight: bold;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.report-body { padding: 20px 0; }
-.section { margin-bottom: 40px; }
-.section-title-report { font-size: 20px; color: var(--text-primary); margin: 0 0 20px; padding-left: 15px; border-left: 4px solid var(--accent-blue); font-weight: 600; }
+.suggestion-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
 
-.chart-placeholder { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chart-box { background: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; }
-.chart-title { font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; font-weight: 500; }
-.chart-image { height: 200px; border-radius: 8px; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); }
-.radar-placeholder { background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0.05) 70%); }
-.bar-placeholder { background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.3) 100%); }
+.doc-footer {
+  text-align: center;
+  padding-top: 24px;
+}
 
-.suggestion-box { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 12px; padding: 20px; }
-.suggestion-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px dashed rgba(245, 158, 11, 0.3); }
-.suggestion-item:last-child { border-bottom: none; }
-.suggestion-icon { font-size: 20px; }
-.suggestion-item span:last-child { font-size: 14px; color: #475569; font-weight: 500; }
+.footer-line {
+  height: 1px;
+  background: #ddd;
+  margin-bottom: 16px;
+}
 
-.report-footer { text-align: center; padding: 30px; margin-top: 40px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
-.report-footer p { margin: 8px 0; }
+.footer-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #999;
+}
 
-/* ====== 响应式适配 ====== */
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--text-muted);
+}
+
+.preview-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.preview-empty .empty-text {
+  font-size: 14px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1400px) {
+  .api-sources-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .profiles-container {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1200px) {
-  .stats-cards, .summary-stats, .charts-row, .gang-cards-container { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 1000px) {
-  .mock-mode-banner { left: 0; }
-  .sidebar { display: none; }
-  .main-content { padding-top: 64px; }
-  .input-workspace { flex-direction: column; overflow-y: auto; }
-  .tools-panel { min-width: auto; }
-  .stats-cards, .summary-stats, .charts-row, .gang-cards-container { grid-template-columns: 1fr; }
-}
-@media print {
-  .sidebar, .mock-mode-banner, .report-actions, .preview-actions, .el-card__header::before { display: none !important; }
-  .main-content { padding: 0 !important; }
-  .preview-card { box-shadow: none !important; }
-  .el-card { box-shadow: none; border: 1px solid #ccc; }
+  .input-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .case-detail-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .sidebar-section {
+    flex: 1;
+    min-width: 280px;
+  }
+  
+  .report-container {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

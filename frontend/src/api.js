@@ -184,4 +184,42 @@ export async function checkHealth() {
   return response.data
 }
 
+// ========== Dashboard ==========
+export async function getDashboardData() {
+  const response = await api.get('/api/dashboard')
+  return response.data
+}
+
+// ========== Alerts ==========
+export async function getActiveAlerts() {
+  const response = await api.get('/api/alerts')
+  return response.data
+}
+
+export async function resolveAlert(alertId) {
+  const response = await api.post(`/api/alerts/${alertId}/resolve`)
+  return response.data
+}
+
+// ========== Batch Import ==========
+export async function importCSV(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post('/api/import/csv', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000
+  })
+  return response.data
+}
+
+export async function importExcel(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post('/api/import/excel', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000
+  })
+  return response.data
+}
+
 export default api

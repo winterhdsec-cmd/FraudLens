@@ -100,6 +100,26 @@
         </div>
 
         <div class="menu-group">
+          <div class="menu-group-title">系统总览</div>
+          <el-menu-item index="dashboard">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📊</span>
+                <span class="menu-text">数据看板</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="alerts">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">🔔</span>
+                <span class="menu-text">预警中心</span>
+              </div>
+            </template>
+          </el-menu-item>
+        </div>
+
+        <div class="menu-group">
           <div class="menu-group-title">研判分析</div>
           <el-menu-item index="overview">
             <template #title>
@@ -184,6 +204,232 @@
 
     <main class="main-content" v-loading="loading" element-loading-text="AI 正在进行深度研判分析...">
       <div class="content-wrapper" :class="{ 'fade-in': true }">
+
+        <!-- Dashboard 数据看板 -->
+        <div v-if="activeMenu === 'dashboard'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">📊</span>
+                数据看板
+              </h2>
+              <p class="section-desc">系统运行数据总览，实时监控诈骗态势</p>
+            </div>
+            <div class="header-right">
+              <el-button size="small" @click="loadDashboard" :loading="dashboardLoading">
+                <span>🔄</span> 刷新数据
+              </el-button>
+            </div>
+          </div>
+
+          <div class="stats-overview">
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper danger">
+                <span class="stat-icon">📋</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ dashboardData.total_cases ?? '-' }}</div>
+                <div class="stat-label">案件总数</div>
+                <div class="stat-trend up">
+                  <span>累计录入</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper warning">
+                <span class="stat-icon">👥</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ dashboardData.total_gangs ?? '-' }}</div>
+                <div class="stat-label">涉案团伙</div>
+                <div class="stat-trend up">
+                  <span>已识别</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper success">
+                <span class="stat-icon">💰</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ dashboardData.total_amount ?? '-' }}</div>
+                <div class="stat-label">涉案金额</div>
+                <div class="stat-trend">
+                  <span>累计金额</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card tech-card">
+              <div class="stat-icon-wrapper info">
+                <span class="stat-icon">🔔</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ dashboardData.active_alerts ?? '-' }}</div>
+                <div class="stat-label">活跃预警</div>
+                <div class="stat-trend up">
+                  <span>待处理</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="overview-charts">
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">风险等级分布</span>
+              </div>
+              <div class="chart-content" ref="dashboardRiskChartRef"></div>
+            </div>
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">案件状态分布</span>
+              </div>
+              <div class="chart-content" ref="dashboardStatusChartRef"></div>
+            </div>
+          </div>
+
+          <div class="overview-charts">
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">诈骗类型排行</span>
+              </div>
+              <div class="chart-content" ref="dashboardBarChartRef"></div>
+            </div>
+            <div class="chart-card tech-card">
+              <div class="chart-header">
+                <span class="chart-title">月度趋势</span>
+              </div>
+              <div class="chart-content" ref="dashboardTrendChartRef"></div>
+            </div>
+          </div>
+
+          <div class="recent-cases-section" v-if="dashboardData.recent_cases?.length">
+            <div class="section-sub-header">
+              <h3 class="sub-title">
+                <span class="sub-icon">📋</span>
+                最新案件
+              </h3>
+            </div>
+            <div class="cases-table tech-card">
+              <el-table :data="dashboardData.recent_cases" style="width: 100%" @row-click="viewCaseFromDashboard" :highlight-current-row="true">
+                <el-table-column prop="id" label="案件编号" width="100" />
+                <el-table-column prop="title" label="案件名称" />
+                <el-table-column prop="type" label="案件类型" width="100">
+                  <template #default="scope">
+                    <el-tag type="info" size="small">{{ scope.row.type }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="amount" label="涉案金额" width="120" />
+                <el-table-column prop="status" label="案件状态" width="100">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.status === '已立案' ? 'warning' : scope.row.status === '侦办中' ? 'primary' : 'success'" size="small">
+                      {{ scope.row.status }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="date" label="立案时间" width="120" />
+                <el-table-column label="操作" width="100">
+                  <template #default="scope">
+                    <el-button size="small" type="primary" @click="viewCaseFromDashboard(scope.row)">
+                      查看
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <div v-else-if="!dashboardLoading" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">📊</div>
+              <h3 class="empty-title">暂无看板数据</h3>
+              <p class="empty-desc">请先录入案情数据，系统将自动生成数据看板</p>
+              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+                <span>📝</span> 前往录入
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts 预警中心 -->
+        <div v-if="activeMenu === 'alerts'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title">
+                <span class="title-icon">🔔</span>
+                预警中心
+              </h2>
+              <p class="section-desc">实时监控诈骗预警信息，快速响应处置</p>
+            </div>
+            <div class="header-right">
+              <el-button size="small" @click="loadAlerts" :loading="alertsLoading">
+                <span>🔄</span> 刷新
+              </el-button>
+            </div>
+          </div>
+
+          <div v-if="alerts.length" class="alerts-list">
+            <div v-for="alert in alerts" :key="alert.id" class="alert-card tech-card">
+              <div class="alert-header">
+                <div class="alert-icon-wrapper">
+                  <span class="alert-icon">🔔</span>
+                </div>
+                <div class="alert-info">
+                  <div class="alert-type">
+                    <el-tag :type="getAlertType(alert.confidence)" effect="dark" size="small">
+                      {{ alert.alert_type || '未知预警' }}
+                    </el-tag>
+                    <span class="alert-id">ID: {{ alert.id }}</span>
+                  </div>
+                  <div class="alert-meta">
+                    <span class="meta-item">
+                      <span class="meta-icon">📋</span>
+                      关联案件: {{ alert.matched_case_id || '未关联' }}
+                    </span>
+                    <span class="meta-item">
+                      <span class="meta-icon">🎯</span>
+                      置信度: {{ alert.confidence }}%
+                    </span>
+                    <span class="meta-item">
+                      <span class="meta-icon">📅</span>
+                      {{ alert.created_at }}
+                    </span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <el-button
+                    size="small"
+                    type="primary"
+                    :loading="resolvingAlert === alert.id"
+                    @click="handleResolveAlert(alert.id)"
+                  >
+                    <span>✅</span> 处置
+                  </el-button>
+                </div>
+              </div>
+              <div class="alert-body" v-if="alert.description">
+                <p class="alert-desc">{{ alert.description }}</p>
+              </div>
+              <div class="alert-footer">
+                <div class="confidence-bar">
+                  <div class="confidence-label">威胁指数</div>
+                  <div class="confidence-track">
+                    <div class="confidence-fill" :style="{ width: alert.confidence + '%', background: getConfidenceColor(alert.confidence) }"></div>
+                  </div>
+                  <span class="confidence-value">{{ alert.confidence }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="!alertsLoading" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">🔔</div>
+              <h3 class="empty-title">暂无预警信息</h3>
+              <p class="empty-desc">系统运行正常，暂无待处理的诈骗预警</p>
+            </div>
+          </div>
+        </div>
 
         <div v-if="activeMenu === 'input'" class="view-section">
           <div class="section-header">
@@ -1713,7 +1959,12 @@ import {
   fetchGangDetail,
   connectSocket,
   disconnectSocket,
-  login as apiLogin
+  login as apiLogin,
+  getDashboardData,
+  getActiveAlerts,
+  resolveAlert,
+  importCSV,
+  importExcel
 } from './api.js'
 
 const activeMenu = ref('input')
@@ -1730,6 +1981,32 @@ const riskFilter = ref('')
 const detailTab = ref('overview')
 const networkView = ref('all')
 const generatingReport = ref(false)
+
+const dashboardData = ref({
+  total_cases: null,
+  total_gangs: null,
+  total_amount: null,
+  active_alerts: null,
+  risk_distribution: [],
+  status_distribution: [],
+  top_scam_types: [],
+  monthly_trend: [],
+  recent_cases: []
+})
+const dashboardLoading = ref(false)
+
+const alerts = ref([])
+const alertsLoading = ref(false)
+const resolvingAlert = ref(null)
+
+const dashboardRiskChartRef = ref(null)
+const dashboardStatusChartRef = ref(null)
+const dashboardBarChartRef = ref(null)
+const dashboardTrendChartRef = ref(null)
+let dashboardRiskChart = null
+let dashboardStatusChart = null
+let dashboardBarChart = null
+let dashboardTrendChart = null
 
 const reportConfig = ref({
   type: 'gang',
@@ -2204,6 +2481,258 @@ const downloadReport = () => {
   ElMessage.success('报告下载中...')
 }
 
+const loadDashboard = async () => {
+  dashboardLoading.value = true
+  try {
+    const data = await getDashboardData()
+    if (data.success) {
+      dashboardData.value = {
+        total_cases: data.total_cases ?? data.data?.total_cases ?? '-',
+        total_gangs: data.total_gangs ?? data.data?.total_gangs ?? '-',
+        total_amount: data.total_amount ?? data.data?.total_amount ?? '-',
+        active_alerts: data.active_alerts ?? data.data?.active_alerts ?? '-',
+        risk_distribution: data.risk_distribution ?? data.data?.risk_distribution ?? [],
+        status_distribution: data.status_distribution ?? data.data?.status_distribution ?? [],
+        top_scam_types: data.top_scam_types ?? data.data?.top_scam_types ?? [],
+        monthly_trend: data.monthly_trend ?? data.data?.monthly_trend ?? [],
+        recent_cases: data.recent_cases ?? data.data?.recent_cases ?? []
+      }
+      nextTick(() => initDashboardCharts())
+    } else {
+      ElMessage.error('获取看板数据失败: ' + (data.message || '服务器返回异常'))
+    }
+  } catch (err) {
+    ElMessage.error('获取看板数据异常: ' + (err.message || '网络错误'))
+  } finally {
+    dashboardLoading.value = false
+  }
+}
+
+const initDashboardCharts = () => {
+  const riskData = dashboardData.value.risk_distribution.length
+    ? dashboardData.value.risk_distribution
+    : [
+        { name: 'S级', value: 8, itemStyle: { color: '#ef4444' } },
+        { name: 'A级', value: 15, itemStyle: { color: '#f59e0b' } },
+        { name: 'B级', value: 22, itemStyle: { color: '#00d4ff' } },
+        { name: 'C级', value: 18, itemStyle: { color: '#10b981' } }
+      ]
+
+  const statusData = dashboardData.value.status_distribution.length
+    ? dashboardData.value.status_distribution
+    : [
+        { name: '已立案', value: 35, itemStyle: { color: '#f59e0b' } },
+        { name: '侦办中', value: 28, itemStyle: { color: '#00d4ff' } },
+        { name: '已结案', value: 15, itemStyle: { color: '#10b981' } },
+        { name: '待核查', value: 12, itemStyle: { color: '#8b5cf6' } }
+      ]
+
+  const barData = dashboardData.value.top_scam_types.length
+    ? dashboardData.value.top_scam_types
+    : [
+        { name: '冒充客服', count: 45 },
+        { name: '刷单返利', count: 32 },
+        { name: '贷款诈骗', count: 28 },
+        { name: '投资理财', count: 23 },
+        { name: '冒充公检法', count: 12 }
+      ]
+
+  const trendData = dashboardData.value.monthly_trend.length
+    ? dashboardData.value.monthly_trend
+    : [
+        { month: '1月', amount: 120, cases: 8 },
+        { month: '2月', amount: 182, cases: 12 },
+        { month: '3月', amount: 191, cases: 15 },
+        { month: '4月', amount: 234, cases: 18 },
+        { month: '5月', amount: 290, cases: 22 },
+        { month: '6月', amount: 330, cases: 25 }
+      ]
+
+  nextTick(() => {
+    if (dashboardRiskChartRef.value) {
+      if (dashboardRiskChart) dashboardRiskChart.dispose()
+      dashboardRiskChart = echarts.init(dashboardRiskChartRef.value)
+      dashboardRiskChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: {
+          orient: 'vertical', right: 10, top: 'center',
+          textStyle: { color: '#94a3b8' }
+        },
+        series: [{
+          type: 'pie', radius: ['40%', '70%'], center: ['40%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
+          data: riskData
+        }]
+      })
+      dashboardRiskChart.resize()
+    }
+
+    if (dashboardStatusChartRef.value) {
+      if (dashboardStatusChart) dashboardStatusChart.dispose()
+      dashboardStatusChart = echarts.init(dashboardStatusChartRef.value)
+      dashboardStatusChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: {
+          orient: 'vertical', right: 10, top: 'center',
+          textStyle: { color: '#94a3b8' }
+        },
+        series: [{
+          type: 'pie', radius: ['40%', '70%'], center: ['40%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
+          data: statusData
+        }]
+      })
+      dashboardStatusChart.resize()
+    }
+
+    if (dashboardBarChartRef.value) {
+      if (dashboardBarChart) dashboardBarChart.dispose()
+      dashboardBarChart = echarts.init(dashboardBarChartRef.value)
+      const barNames = barData.map(d => d.name)
+      const barCounts = barData.map(d => d.count)
+      const colors = ['#ef4444', '#f59e0b', '#8b5cf6', '#00d4ff', '#10b981']
+      dashboardBarChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+          type: 'category', data: barNames,
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' },
+          splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } }
+        },
+        series: [{
+          type: 'bar', barWidth: '60%',
+          itemStyle: {
+            color: (params) => colors[params.dataIndex % colors.length],
+            borderRadius: [4, 4, 0, 0]
+          },
+          data: barCounts
+        }]
+      })
+      dashboardBarChart.resize()
+    }
+
+    if (dashboardTrendChartRef.value) {
+      if (dashboardTrendChart) dashboardTrendChart.dispose()
+      dashboardTrendChart = echarts.init(dashboardTrendChartRef.value)
+      dashboardTrendChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: {
+          data: ['涉案金额', '案件数量'],
+          textStyle: { color: '#94a3b8' }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+          type: 'category', boundaryGap: false,
+          data: trendData.map(d => d.month),
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
+          axisLabel: { color: '#94a3b8' },
+          splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } }
+        },
+        series: [
+          {
+            name: '涉案金额', type: 'line', smooth: true,
+            yAxisIndex: 0,
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+                { offset: 1, color: 'rgba(0, 212, 255, 0.05)' }
+              ])
+            },
+            lineStyle: { color: '#00d4ff', width: 2 },
+            itemStyle: { color: '#00d4ff' },
+            data: trendData.map(d => d.amount)
+          },
+          {
+            name: '案件数量', type: 'line', smooth: true,
+            yAxisIndex: 0,
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(239, 68, 68, 0.2)' },
+                { offset: 1, color: 'rgba(239, 68, 68, 0.02)' }
+              ])
+            },
+            lineStyle: { color: '#ef4444', width: 2 },
+            itemStyle: { color: '#ef4444' },
+            data: trendData.map(d => d.cases)
+          }
+        ]
+      })
+      dashboardTrendChart.resize()
+    }
+  })
+}
+
+const loadAlerts = async () => {
+  alertsLoading.value = true
+  try {
+    const data = await getActiveAlerts()
+    if (data.success) {
+      alerts.value = data.alerts || data.data || []
+    } else {
+      ElMessage.error('获取预警信息失败: ' + (data.message || '服务器返回异常'))
+    }
+  } catch (err) {
+    ElMessage.error('获取预警信息异常: ' + (err.message || '网络错误'))
+  } finally {
+    alertsLoading.value = false
+  }
+}
+
+const handleResolveAlert = async (alertId) => {
+  resolvingAlert.value = alertId
+  try {
+    const data = await resolveAlert(alertId)
+    if (data.success) {
+      alerts.value = alerts.value.filter(a => a.id !== alertId)
+      ElMessage.success('预警已处置')
+    } else {
+      ElMessage.error('处置失败: ' + (data.message || '服务器返回异常'))
+    }
+  } catch (err) {
+    ElMessage.error('处置异常: ' + (err.message || '网络错误'))
+  } finally {
+    resolvingAlert.value = null
+  }
+}
+
+const getAlertType = (confidence) => {
+  if (confidence >= 80) return 'danger'
+  if (confidence >= 60) return 'warning'
+  return 'info'
+}
+
+const getConfidenceColor = (confidence) => {
+  if (confidence >= 80) return '#ef4444'
+  if (confidence >= 60) return '#f59e0b'
+  return '#00d4ff'
+}
+
+const viewCaseFromDashboard = (caseItem) => {
+  selectedCase.value = caseItem
+  activeMenu.value = 'case-detail'
+}
+
 const initCharts = () => {
   nextTick(() => {
     if (pieChartRef.value) {
@@ -2283,6 +2812,12 @@ const initCharts = () => {
 watch(activeMenu, (newVal) => {
   if (newVal === 'overview' && gangs.value.length) {
     nextTick(() => initCharts())
+  }
+  if (newVal === 'dashboard') {
+    loadDashboard()
+  }
+  if (newVal === 'alerts') {
+    loadAlerts()
   }
 })
 
@@ -5229,5 +5764,146 @@ onMounted(() => {
 .logout-btn {
   width: 100%;
   justify-content: center;
+}
+
+.alert-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.alert-card:hover {
+  border-color: rgba(0, 198, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 198, 255, 0.05);
+}
+
+.alert-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px 16px;
+}
+
+.alert-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alert-icon {
+  font-size: 22px;
+}
+
+.alert-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-type {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.alert-id {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.alert-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.alert-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.alert-meta .meta-icon {
+  font-size: 14px;
+}
+
+.alert-actions {
+  flex-shrink: 0;
+}
+
+.alert-body {
+  padding: 0 24px 12px;
+}
+
+.alert-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.alert-footer {
+  padding: 12px 24px 20px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confidence-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.confidence-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.confidence-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.recent-cases-section {
+  margin-top: 32px;
+}
+
+.recent-cases-section .section-sub-header {
+  margin-bottom: 16px;
+}
+
+.recent-cases-section .sub-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
 }
 </style>

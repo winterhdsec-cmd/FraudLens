@@ -648,6 +648,121 @@ def api_public_logs():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+# ========== Dashboard ==========
+
+@app.route('/api/dashboard', methods=['GET'])
+def api_dashboard():
+    try:
+        from database.dashboard import get_dashboard_data
+        data = get_dashboard_data()
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/dashboard/trend', methods=['GET'])
+def api_dashboard_trend():
+    try:
+        from database.dashboard import get_dashboard_data
+        data = get_dashboard_data()
+        return jsonify({"success": True, "trend": data['trend_data']})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Alerts ==========
+
+from database.alert import alert_engine
+
+@app.route('/api/alerts', methods=['GET'])
+def api_get_alerts():
+    try:
+        alerts = alert_engine.get_active_alerts()
+        return jsonify({"success": True, "alerts": alerts, "total": len(alerts)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/alerts/<int:alert_id>/resolve', methods=['POST'])
+def api_resolve_alert(alert_id):
+    try:
+        result = alert_engine.resolve_alert(alert_id)
+        if result:
+            return jsonify({"success": True, "message": "警报已解决"})
+        return jsonify({"success": False, "error": "警报不存在"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/alerts/check', methods=['POST'])
+def api_check_alerts():
+    try:
+        from database.crud import get_all_cases
+        cases = get_all_cases()
+        if not cases:
+            return jsonify({"success": True, "alerts": []})
+        latest = cases[0]
+        alerts = alert_engine.check_new_case(latest)
+        return jsonify({"success": True, "alerts": alerts})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Batch Import ==========
+
+@app.route('/api/import/csv', methods=['POST'])
+def api_import_csv():
+    try:
+        from database.importer import import_from_csv
+        file = request.files.get('file')
+        if not file:
+            return jsonify({"success": False, "error": "请上传CSV文件"}), 400
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+        file.save(tmp.name)
+        result = import_from_csv(tmp.name)
+        os.unlink(tmp.name)
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/import/excel', methods=['POST'])
+def api_import_excel():
+    try:
+        from database.importer import import_from_excel
+        file = request.files.get('file')
+        if not file:
+            return jsonify({"success": False, "error": "请上传Excel文件"}), 400
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+        file.save(tmp.name)
+        result = import_from_excel(tmp.name)
+        os.unlink(tmp.name)
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Latest Session Data (for dashboard) ==========
+
+@app.route('/api/dashboard/latest-session', methods=['GET'])
+def api_latest_session():
+    try:
+        from database.crud import get_sessions
+        sessions = get_sessions()
+        if sessions:
+            sid = sessions[0]['session_id']
+            from database.crud import get_session_detail
+            detail = get_session_detail(sid)
+            if detail:
+                return jsonify({"success": True, **detail})
+        return jsonify({"success": True, "session": None, "cases": [], "gangs": []})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("=" * 60)
     print("🤖 AI 反诈研判官系统 v2.1 启动")

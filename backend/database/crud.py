@@ -113,6 +113,12 @@ def _safe_text(value):
         return json.dumps(value, ensure_ascii=False)
     return value or ''
 
+def _parse_json(value, default=None):
+    if isinstance(value, str):
+        try: return json.loads(value)
+        except: return default or value
+    return value if value else (default or value)
+
 def save_gang(gang_data, session_id=None):
     existing = Gang.query.filter_by(gang_id=gang_data['gang_id']).first()
     if existing:
@@ -323,11 +329,11 @@ def _gang_to_dict(g):
         'enhanced_fingerprint': g.enhanced_fingerprint if g.enhanced_fingerprint else [],
         'steps': g.steps if g.steps else [],
         'radar_data': g.radar_data if g.radar_data else {},
-        'deep_characteristics': g.deep_characteristics if g.deep_characteristics else [],
-        'risk_assessment': g.risk_assessment if g.risk_assessment else {},
-        'modus_operandi': g.modus_operandi,
+        'deep_characteristics': _parse_json(g.deep_characteristics, []),
+        'risk_assessment': _parse_json(g.risk_assessment, {}),
+        'modus_operandi': g.modus_operandi or '',
         'prevention_advice': g.prevention_advice,
-        'network_nodes': g.network_nodes if g.network_nodes else [],
+        'network_nodes': _parse_json(g.network_nodes, []),
         'related_cases': case_details,
         'created_at': g.created_at.isoformat() if g.created_at else None
     }

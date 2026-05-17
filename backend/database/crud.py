@@ -102,6 +102,17 @@ def save_case(case_data, session_id=None):
     return case
 
 
+def _safe_json(value):
+    if isinstance(value, str):
+        try: return json.loads(value)
+        except: return []
+    return value or []
+
+def _safe_text(value):
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False)
+    return value or ''
+
 def save_gang(gang_data, session_id=None):
     existing = Gang.query.filter_by(gang_id=gang_data['gang_id']).first()
     if existing:
@@ -124,17 +135,17 @@ def save_gang(gang_data, session_id=None):
     gang = Gang(
         gang_id=gang_data['gang_id'],
         session_id=session_id,
-        gang_name=gang_data.get('gang_name', '未命名团伙'),
+        gang_name=gang_data.get('gang_name', ''),
         risk_level=gang_data.get('risk_level', 'C'),
         risk_label=gang_data.get('risk_label', '低风险'),
         risk_type=gang_data.get('risk_type', 'info'),
-        threat_level=gang_data.get('threat_level', 'C'),
-        comprehensive_score=gang_data.get('comprehensive_score', 0),
+        threat_level=gang_data.get('threat_level', gang_data.get('risk_level', 'C')),
+        comprehensive_score=gang_data.get('comprehensive_score', gang_data.get('risk_score', 0)),
         confidence=gang_data.get('confidence', 0),
         member_count_estimate=gang_data.get('member_count_estimate', ''),
         tech_level=gang_data.get('tech_level', '中'),
         script_type=gang_data.get('script_type', ''),
-        total_cases=gang_data.get('total_cases', 0),
+        total_cases=int(gang_data.get('total_cases', 0)),
         total_amount=amount_str,
         total_amount_value=amount_value,
         description=gang_data.get('description', ''),
@@ -145,9 +156,10 @@ def save_gang(gang_data, session_id=None):
         deep_characteristics=gang_data.get('deep_characteristics', []),
         risk_assessment=gang_data.get('risk_assessment', {}),
         modus_operandi=gang_data.get('modus_operandi', ''),
-        prevention_advice=gang_data.get('prevention_advice', ''),
-        network_nodes=gang_data.get('network_nodes', []),
-        centroid=centroid_bytes
+        prevention_advice=_safe_text(gang_data.get('prevention_advice', '')),
+        network_nodes=_safe_json(gang_data.get('network_nodes', [])),
+        centroid=centroid_bytes,
+        created_at=datetime.utcnow()
     )
     db.session.add(gang)
     db.session.commit()

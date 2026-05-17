@@ -8,12 +8,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 import time
 import uuid
 from typing import Dict, Any, List
+import sys
+import os
+
+# 数据库 CRUD
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database.crud import create_session, save_case, save_gang, complete_session
 
 
 class ChiefAgent(BaseAgent):
-    """研判协同智能体"""
+    """研判协同智能体（v2 - 支持数据库持久化）"""
 
-    # 阶段进度百分比配置
     STAGE_PROGRESS = {
         'data_preparation': {'start': 0, 'end': 10, 'name': '数据准备'},
         'case_triage': {'start': 10, 'end': 25, 'name': '智能分案'},
@@ -22,14 +27,14 @@ class ChiefAgent(BaseAgent):
         'profile_enhancement': {'start': 95, 'end': 100, 'name': '画像增强'}
     }
 
-    def __init__(self, config: AgentConfig, llm_analyze, llm_triage, socketio=None, session_id=None):
+    def __init__(self, config: AgentConfig, llm_analyze, llm_triage, socketio=None, session_id=None, persist=True):
         super().__init__(config)
         self.llm_analyze = llm_analyze
         self.llm_triage = llm_triage
-        self.socketio = socketio  # WebSocket实例（可选）
-        self.session_id = session_id  # 会话ID（可选）
-        
-        # 初始化所有子Agent
+        self.socketio = socketio
+        self.session_id = session_id
+        self.persist = persist  # 是否持久化到数据库
+
         self.agents = {
             'preprocess': PreprocessAgent(AgentConfig(agent_id="PreprocessAgent")),
             'triage': TriageAgent(AgentConfig(agent_id="TriageAgent"), llm_triage),
@@ -38,7 +43,6 @@ class ChiefAgent(BaseAgent):
             'profiler': ProfilerAgent(AgentConfig(agent_id="ProfilerAgent"), llm_analyze)
         }
 
-        # 任务上下文
         self.context = {
             'raw_data': None,
             'cleaned_data': None,
@@ -196,6 +200,24 @@ class ChiefAgent(BaseAgent):
                 "errors": self.context['errors']
             }
 
+            # 持久化到数据库
+            if self.persist:
+                try:
+                    self._log("INFO", "正在将分析结果持久化到数据库...", context)
+                    create_session(self.session_id, raw_input=payload.get('messages', []))
+                    for case in all_results:
+                        save_case(case, session_id=self.session_id)
+                    for gang in enhanced_gangs:
+                        save_gang(gang, session_id=self.session_id)
+                    complete_session(
+                        self.session_id,
+                        status='completed',
+                        processing_info=processing_info
+                    )
+                    self._log("INFO", f"数据库持久化完成: {len(all_results)} 个案件, {len(enhanced_gangs)} 个团伙", context)
+                except Exception as db_err:
+                    self._log("ERROR", f"数据库持久化失败: {db_err}", context)
+
             # 确保团伙数据格式正确
             for gang in enhanced_gangs:
                 # 确保有 gang_name 字段
@@ -228,7 +250,8 @@ class ChiefAgent(BaseAgent):
                 "triage_status": "failed" if is_triage_failed else "success",
                 "raw_cases": all_results,
                 "gangs": enhanced_gangs,
-                "network_data": network_data,  # 网络数据单独返回
+                "network_data": network_data,
+                "cluster_quality": cluster_result.get('cluster_quality', {}),
                 "processing_info": processing_info,
                 "message": "智能研判完成"
             }

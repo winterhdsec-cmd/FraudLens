@@ -1,5 +1,54 @@
 <template>
   <div class="police-system-layout">
+    <div v-if="!store.isLoggedIn" class="login-overlay">
+      <div class="login-container tech-card">
+        <div class="login-header">
+          <div class="login-logo-wrapper">
+            <div class="login-logo-ring"></div>
+            <div class="login-logo-icon">🛡️</div>
+          </div>
+          <h2 class="login-title">反诈情报分析系统</h2>
+          <p class="login-subtitle">AI INTELLIGENT SYSTEM</p>
+        </div>
+        <div class="login-form">
+          <div class="login-field">
+            <span class="login-field-icon">👤</span>
+            <el-input
+              v-model="loginForm.username"
+              placeholder="用户名"
+              size="large"
+              class="login-input"
+              @keyup.enter="handleLogin"
+            />
+          </div>
+          <div class="login-field">
+            <span class="login-field-icon">🔑</span>
+            <el-input
+              v-model="loginForm.password"
+              type="password"
+              placeholder="密码"
+              size="large"
+              class="login-input"
+              show-password
+              @keyup.enter="handleLogin"
+            />
+          </div>
+          <div v-if="loginError" class="login-error">{{ loginError }}</div>
+          <el-button
+            class="login-btn"
+            type="primary"
+            size="large"
+            :loading="loginLoading"
+            @click="handleLogin"
+          >
+            <span>{{ loginLoading ? '验证中...' : '登 录' }}</span>
+          </el-button>
+        </div>
+        <div class="login-footer">
+          <span class="login-footer-text">智能研判平台 v2.0</span>
+        </div>
+      </div>
+    </div>
     <div class="particle-bg">
       <div v-for="i in 60" :key="i" class="particle" :style="getParticleStyle(i)"></div>
     </div>
@@ -124,6 +173,11 @@
             <span class="status-label">数据库</span>
             <span class="status-value online">已连接</span>
           </div>
+        </div>
+        <div class="logout-area" v-if="store.isLoggedIn">
+          <el-button class="logout-btn" size="small" @click="handleLogout">
+            <span>🚪</span> 退出登录
+          </el-button>
         </div>
       </div>
     </aside>
@@ -1651,6 +1705,16 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import NetworkGraph from './components/NetworkGraph.vue'
+import { store } from './store.js'
+import {
+  startAnalysis as apiStartAnalysis,
+  fetchCases,
+  fetchGangs,
+  fetchGangDetail,
+  connectSocket,
+  disconnectSocket,
+  login as apiLogin
+} from './api.js'
 
 const activeMenu = ref('input')
 const loading = ref(false)
@@ -1677,6 +1741,38 @@ const reportConfig = ref({
   includeSuggestion: true
 })
 const reportPreview = ref(false)
+
+const loginForm = ref({ username: '', password: '' })
+const loginLoading = ref(false)
+const loginError = ref('')
+
+const handleLogin = async () => {
+  if (!loginForm.value.username.trim() || !loginForm.value.password.trim()) {
+    loginError.value = '请输入用户名和密码'
+    return
+  }
+  loginLoading.value = true
+  loginError.value = ''
+  try {
+    const data = await apiLogin(loginForm.value.username, loginForm.value.password)
+    if (data.success) {
+      store.login(data.user || { username: loginForm.value.username }, data.token)
+      loginForm.value = { username: '', password: '' }
+      ElMessage.success('登录成功')
+    } else {
+      loginError.value = data.message || '登录失败，请重试'
+    }
+  } catch (err) {
+    loginError.value = err.response?.data?.message || err.message || '登录失败，请检查网络连接'
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+const handleLogout = () => {
+  store.logout()
+  ElMessage.success('已安全退出')
+}
 
 const apiSources = ref({
   bank: { connected: false, records: 1256, lastSync: '10分钟前' },
@@ -1930,136 +2026,102 @@ const handleBeforeUpload = (file) => {
   return false
 }
 
+const gangIcons = ['🦈', '🐺', '🦊', '🐍', '🐯', '🦅']
+
+const formatAmount = (amount) => {
+  const num = typeof amount === 'number' ? amount : parseFloat(amount) || 0
+  if (num >= 10000) {
+    return '¥' + (num / 10000).toFixed(1) + '万'
+  }
+  return '¥' + num.toLocaleString()
+}
+
 const startAnalysis = async () => {
   if (!inputText.value.trim()) return
   loading.value = true
 
-  setTimeout(() => {
-    gangs.value = [
-      {
-        id: 'G001',
-        name: '"注销校园贷"诈骗团伙',
-        icon: '🦈',
-        riskLevel: 'S',
-        amount: '¥215.8万',
-        cases: 12,
-        tags: ['冒充客服', '征信诈骗', '跨境洗钱', '话术成熟'],
-        members: [
-          { id: 1, name: '张某', icon: '👤', role: '头目' },
-          { id: 2, name: '李某', icon: '👤', role: '骨干' },
-          { id: 3, name: '王某', icon: '👤', role: '马仔' },
-          { id: 4, name: '刘某', icon: '👤', role: '马仔' }
-        ],
-        timeline: [
-          { date: '2024-01', title: '开始活动', desc: '在境内建立诈骗窝点', type: '活动' },
-          { date: '2024-02', title: '扩大规模', desc: '招募成员，建立话术培训体系', type: '活动' },
-          { date: '2024-03', title: '疯狂作案', desc: '单月作案12起，涉案金额超200万', type: '作案' },
-          { date: '2024-04', title: '资金转移', desc: '通过地下钱庄将资金转移境外', type: '洗钱' }
-        ],
-        evidence: [
-          { icon: '📱', name: '作案手机', status: '已验证' },
-          { icon: '💳', name: '银行卡', status: '已验证' },
-          { icon: '📝', name: '话术本', status: '已验证' },
-          { icon: '💰', name: '资金流水', status: '核实中' }
-        ],
-        abilities: { tech: 85, org: 92, antiDetect: 78 },
-        victims: 12,
-        createTime: '2024-03-20',
-        updateTime: '刚刚'
+  const sessionId = 'session_' + Date.now()
+  const messages = [{ role: 'user', content: inputText.value }]
+
+  try {
+    connectSocket(sessionId, {
+      onProgress: (data) => {
+        console.log('分析进度:', data)
       },
-      {
-        id: 'G002',
-        name: '"刷单返利"诈骗团伙',
-        icon: '🐺',
-        riskLevel: 'A',
-        amount: '¥86.5万',
-        cases: 8,
-        tags: ['刷单诈骗', '返利诱惑', '网络推广'],
-        members: [
-          { id: 1, name: '陈某', icon: '👤', role: '头目' },
-          { id: 2, name: '刘某', icon: '👤', role: '骨干' }
-        ],
-        timeline: [
-          { date: '2024-02', title: '建立平台', desc: '搭建虚假刷单平台', type: '活动' },
-          { date: '2024-03', title: '推广引流', desc: '通过社交媒体大量推广', type: '作案' }
-        ],
-        evidence: [
-          { icon: '💻', name: '诈骗平台', status: '已验证' },
-          { icon: '📱', name: '引流账号', status: '已验证' }
-        ],
-        abilities: { tech: 70, org: 75, antiDetect: 55 },
-        victims: 8,
-        createTime: '2024-03-15',
-        updateTime: '刚刚'
+      onComplete: (data) => {
+        console.log('分析完成:', data)
       }
-    ]
-    cases.value = [
-      { 
-        id: 'C001', 
-        title: '王女士被诈骗案', 
-        gang: 'G001', 
-        amount: '¥12.58万', 
-        status: '已立案',
-        date: '2024-03-15',
-        region: '广东省深圳市',
-        type: '冒充客服',
+    })
+
+    const response = await apiStartAnalysis(messages, sessionId)
+
+    if (response.success) {
+      gangs.value = (response.gangs || []).map((g, idx) => ({
+        id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+        name: g.gang_name || '未知团伙',
+        icon: gangIcons[idx % gangIcons.length],
+        riskLevel: g.risk_level || 'B',
+        amount: formatAmount(g.total_amount_involved),
+        cases: g.total_cases || 0,
+        tags: g.fingerprint
+          ? g.fingerprint.split(/[,，、]/).map(t => t.trim()).filter(Boolean)
+          : [],
+        members: g.network_nodes
+          ? g.network_nodes.slice(0, 6).map((n, i) => ({
+              id: i + 1,
+              name: n.label || n.id || '成员' + (i + 1),
+              icon: '👤',
+              role: n.role || n.type || '成员'
+            }))
+          : [],
+        timeline: (g.steps || []).map(s => ({
+          date: s.date || s.time || '',
+          title: s.title || s.name || '',
+          desc: s.description || s.desc || '',
+          type: s.type || '活动'
+        })),
+        evidence: [],
+        abilities: g.radar_data || { tech: 50, org: 50, antiDetect: 50 },
+        victims: g.total_cases || 0,
+        createTime: '',
+        updateTime: '刚刚'
+      }))
+
+      cases.value = (response.raw_cases || []).map(c => ({
+        id: c.case_id || 'C' + String(Math.random()).slice(2, 8),
+        title: (c.victim || '当事人') + '被诈骗案',
+        gang: c.related_gang_id || c.assigned_gang || '',
+        amount: formatAmount(c.amount),
+        status: c.is_error ? '待核查' : '已立案',
+        date: c.extracted_entities?.date || '',
+        region: c.extracted_entities?.address || '',
+        type: c.scam_type || '',
         victims: 1,
-        victimName: '王女士',
-        victimGender: '女',
-        victimAge: '32',
-        victimPhone: '138****5678',
-        victimJob: '公司职员',
-        victimAddress: '广东省深圳市南山区',
-        scamPhone: '0755-8888****',
-        phoneLocation: '广东深圳',
-        scamUrl: 'jd-security.com',
-        ipAddress: '192.168.***.***',
-        description: '2024年3月15日，受害人王女士接到自称"京东客服"的电话，对方准确报出其个人信息后，称其名下有一笔账户异常需要处理，否则将影响征信。在对方的诱导下，王女士通过手机银行转账至对方提供的"安全账户"，共计转账125,800元。转账后对方失联，王女士才发现被骗。'
-      },
-      { 
-        id: 'C002', 
-        title: '李先生被诈骗案', 
-        gang: 'G001', 
-        amount: '¥8.96万', 
-        status: '已立案',
-        date: '2024-03-18',
-        region: '广东省广州市',
-        type: '冒充客服',
-        victims: 1,
-        victimName: '李先生',
-        victimGender: '男',
-        victimAge: '28',
-        victimPhone: '139****8765',
-        victimJob: '程序员',
-        victimAddress: '广东省广州市天河区',
-        scamPhone: '0755-8888****',
-        phoneLocation: '广东深圳',
-        scamUrl: 'jd-security.com',
-        ipAddress: '10.0.***.***'
-      },
-      { 
-        id: 'C003', 
-        title: '刷单被骗案', 
-        gang: 'G002', 
-        amount: '¥3.2万', 
-        status: '侦办中',
-        date: '2024-03-20',
-        region: '浙江省杭州市',
-        type: '刷单返利',
-        victims: 1,
-        victimName: '张女士',
-        victimGender: '女',
-        victimAge: '25',
-        victimPhone: '137****1234',
-        victimJob: '学生',
-        victimAddress: '浙江省杭州市西湖区'
-      }
-    ]
-    selectedCase.value = cases.value[0]
+        victimName: c.victim || '',
+        victimGender: c.extracted_entities?.gender || '',
+        victimAge: c.extracted_entities?.age || '',
+        victimPhone: c.extracted_entities?.phone || '',
+        victimJob: c.extracted_entities?.job || '',
+        victimAddress: c.extracted_entities?.address || '',
+        scamPhone: c.extracted_entities?.scam_phone || '',
+        phoneLocation: c.extracted_entities?.phone_location || '',
+        scamUrl: c.extracted_entities?.url || '',
+        ipAddress: c.extracted_entities?.ip || '',
+        description: c.ai_report || ''
+      }))
+
+      selectedCase.value = cases.value[0] || null
+      const gangCount = response.gangs?.length || 0
+      ElMessage.success(`AI 研判完成！已识别出 ${gangCount} 个涉案团伙`)
+      activeMenu.value = 'overview'
+    } else {
+      ElMessage.error('分析失败: ' + (response.message || '服务器返回异常'))
+    }
+  } catch (err) {
+    ElMessage.error('分析请求异常: ' + (err.message || '网络错误'))
+  } finally {
     loading.value = false
-    ElMessage.success('AI 研判完成！已识别出 2 个涉案团伙')
-    activeMenu.value = 'overview'
-  }, 2500)
+  }
 }
 
 const startImageAnalysis = () => {
@@ -5024,5 +5086,148 @@ onMounted(() => {
   .report-container {
     grid-template-columns: 1fr;
   }
+}
+
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 14, 26, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+
+.login-container {
+  width: 420px;
+  padding: 0;
+  overflow: visible;
+}
+
+.login-header {
+  text-align: center;
+  padding: 40px 40px 24px;
+  border-bottom: 1px solid var(--border-primary);
+  background: linear-gradient(180deg, rgba(0, 198, 255, 0.05) 0%, transparent 100%);
+}
+
+.login-logo-wrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+}
+
+.login-logo-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--accent-cyan);
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.login-logo-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 3px;
+  margin: 0 0 8px;
+}
+
+.login-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  margin: 0;
+}
+
+.login-form {
+  padding: 32px 40px 24px;
+}
+
+.login-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.login-field-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 198, 255, 0.08);
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.login-input {
+  flex: 1;
+}
+
+.login-input .el-input__wrapper {
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+.login-error {
+  color: var(--accent-red);
+  font-size: 13px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.login-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  letter-spacing: 6px;
+}
+
+.login-btn .el-button--primary {
+  height: 44px;
+}
+
+.login-footer {
+  text-align: center;
+  padding: 16px 40px 32px;
+}
+
+.login-footer-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.logout-area {
+  border-top: 1px solid var(--border-primary);
+  padding: 8px 12px;
+}
+
+.logout-btn {
+  width: 100%;
+  justify-content: center;
 }
 </style>

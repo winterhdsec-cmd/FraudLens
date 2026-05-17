@@ -1,63 +1,69 @@
-from .base import BaseAgent, AgentConfig, AgentContext
+import os
+import sys
 import numpy as np
 import hdbscan
 import json
 import re
+import warnings
 from typing import Dict, Any, List
 from collections import defaultdict
-from sentence_transformers import SentenceTransformer, models
-from transformers import AutoTokenizer, AutoModel
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+from .base import BaseAgent, AgentConfig, AgentContext
 
 
 class ClusterAgent(BaseAgent):
-    """团伙发现智能体"""
+    """团伙发现智能体（v2 - 接入 UMAP 降维 + 聚类质量评估）"""
+
+    # UMAP 超参数（可根据数据规模动态调整）
+    UMAP_CONFIG = {
+        'n_neighbors': 15,
+        'n_components': 30,
+        'min_dist': 0.0,
+        'metric': 'cosine'
+    }
 
     def __init__(self, config: AgentConfig, llm_analyze=None):
         super().__init__(config)
         self.llm_analyze = llm_analyze
         self.embedder = None
         self.clusterer = None
-        self.gang_centroids = {}  # 存储团伙中心向量 {gang_id: np.array}
+        self.umap_reducer = None
+        self.gang_centroids = {}
         self._initialize_model()
 
     def _initialize_model(self):
-        """初始化语义编码模型"""
-        import os
-        
-        # 使用默认模型路径
-        embedding_model_name = r"C:\Users\hd\Desktop\FraudLens\backend\bge-large-zh-v1.5"
-        
-        print(f"[工具D] 正在加载语义编码模型: {embedding_model_name}...")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        model_name = "bge-large-zh-v1.5"
+        model_path = os.path.join(base_dir, model_name)
+
+        print(f"正在加载语义编码模型: {model_path}...")
+
+        if not os.path.exists(model_path):
+            # 尝试从上一级目录寻找
+            alt_path = os.path.join(os.path.dirname(base_dir), model_name)
+            if os.path.exists(alt_path):
+                model_path = alt_path
+            else:
+                raise FileNotFoundError(
+                    f"找不到模型文件夹。请确认 bge-large-zh-v1.5 位于以下任一位置：\n"
+                    f"  1. {model_path}\n"
+                    f"  2. {alt_path}"
+                )
 
         try:
-            # 加载 tokenizer 和模型
-            tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
-            transformer_model = AutoModel.from_pretrained(embedding_model_name)
-
-            # 创建 SentenceTransformer
-            word_embedding_model = models.Transformer(embedding_model_name)
-            pooling_model = models.Pooling(
-                word_embedding_model.get_word_embedding_dimension(),
-                pooling_mode_mean_tokens=True
-            )
-
             self.embedder = SentenceTransformer(
-                modules=[word_embedding_model, pooling_model]
+                model_path,
+                device='cpu'
             )
-            print("✅ 通过 Transformers 加载成功")
-
+            print("✅ SentenceTransformer 加载成功")
         except Exception as e:
             print(f"❌ 模型加载失败: {e}")
             raise
 
-        # 验证模型
-        try:
-            test_embedding = self.embedder.encode(["测试"], normalize_embeddings=True)
-            print(f"✅ 模型验证成功，维度: {test_embedding.shape}")
-        except Exception as e:
-            print(f"⚠️ 模型验证警告: {e}")
+        test_emb = self.embedder.encode(["测试"], normalize_embeddings=True)
+        print(f"✅ 模型验证成功，向量维度: {test_emb.shape[1]}")
 
-        # HDBSCAN配置
         self.clusterer = hdbscan.HDBSCAN(
             min_cluster_size=2,
             min_samples=1,
@@ -66,11 +72,33 @@ class ClusterAgent(BaseAgent):
             prediction_data=True
         )
 
+        self.umap_reducer = None
+
         print("[ClusterAgent] 模型加载完毕。")
+
+    def _init_umap(self):
+        """延迟初始化 UMAP 安装延迟初始化解版本兼容问题）"""
+        if self.umap_reducer is not None:
+            return
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                from umap import UMAP
+            self.umap_reducer = UMAP(
+                n_neighbors=self.UMAP_CONFIG['n_neighbors'],
+                n_components=self.UMAP_CONFIG['n_components'],
+                min_dist=self.UMAP_CONFIG['min_dist'],
+                metric=self.UMAP_CONFIG['metric'],
+                random_state=42
+            )
+            print("✅ UMAP 加载成功")
+        except Exception as e:
+            print(f"⚠️ UMAP 加载失败（将使用原始维度聚类）: {e}")
+            self.umap_reducer = None
 
     async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         """
-        执行团伙发现聚类
+        执行团伙发现聚类（v2-stage聚类（BGE → UMAP → HDBSCAN）
         """
         cases = payload.get('cases', [])
         self._log("INFO", f"开始对 {len(cases)} 个案件进行智能团伙聚类", context)
@@ -78,61 +106,119 @@ class ClusterAgent(BaseAgent):
         if len(cases) < 2:
             self._log("INFO", "案件数量不足2，无法进行有效聚类", context)
             gangs = self._create_single_case_gangs(cases)
-            return {"gangs": gangs}
+            return {"gangs": gangs, "cluster_quality": {"info": "案件数量不足，无法聚类评估"}}
 
         # 1. 提取语义指纹
         fingerprint_texts = self.extract_semantic_fingerprint(cases)
         self._log("INFO", f"已生成 {len(fingerprint_texts)} 个语义指纹", context)
 
-        # 2. 转换为高维语义向量
-        self._log("INFO", "正在进行语义向量编码", context)
+        # 2. BGE 语义向量编码
+        self._log("INFO", "正在进行 BGE 语义向量编码", context)
         try:
-            embeddings = self.embedder.encode(
+            embeddings_1024 = self.embedder.encode(
                 fingerprint_texts,
-                normalize_embeddings=True,  # 归一化，便于计算余弦相似度
+                normalize_embeddings=True,
                 show_progress_bar=False
             )
-            self._log("INFO", f"向量编码完成，维度: {embeddings.shape}", context)
+            self._log("INFO", f"BGE 编码完成，维度: {embeddings_1024.shape}", context)
         except Exception as e:
             self._log("ERROR", f"语义向量编码失败: {e}", context)
             gangs = self._fallback_to_rule_based_clustering(cases, context)
-            return {"gangs": gangs}
+            return {"gangs": gangs, "cluster_quality": {"error": str(e)}}
 
-        # 3. HDBSCAN无监督聚类
-        self._log("INFO", "正在执行HDBSCAN无监督聚类", context)
-        cluster_labels = self.clusterer.fit_predict(embeddings)
-        # cluster_labels: -1 表示噪声点（独立案件），>=0 表示团伙ID
+        # 3. UMAP 降维（1024维 → 30维）
+        self._log("INFO", f"正在执行 UMAP 降维 (1024→{self.UMAP_CONFIG['n_components']}维)...", context)
+        self._init_umap()
+        if self.umap_reducer is not None:
+            try:
+                embeddings_30d = self.umap_reducer.fit_transform(embeddings_1024)
+                self._log("INFO", f"UMAP 降维完成，降维后维度: {embeddings_30d.shape}", context)
+            except Exception as e:
+                self._log("WARNING", f"UMAP 降维失败，回退到原始维度聚类: {e}", context)
+                embeddings_30d = embeddings_1024
+        else:
+            self._log("INFO", "UMAP 不可用，使用原始 1024 维向量进行聚类", context)
+            embeddings_30d = embeddings_1024
+
+        # 4. HDBSCAN 无监督聚类（在降维后的空间进行）
+        self._log("INFO", "正在执行 HDBSCAN 无监督聚类", context)
+        cluster_labels = self.clusterer.fit_predict(embeddings_30d)
+
         unique_labels = set(cluster_labels)
         noise_count = list(cluster_labels).count(-1)
-        self._log("INFO", f"聚类完成。发现 {len(unique_labels) - (1 if -1 in unique_labels else 0)} 个潜在团伙，{noise_count} 个独立案件", context)
+        gang_count = len(unique_labels) - (1 if -1 in unique_labels else 0)
+        self._log("INFO", f"聚类完成。发现 {gang_count} 个潜在团伙，{noise_count} 个独立案件", context)
 
-        # 4. 组织案件到团伙
+        # 5. 计算聚类质量指标
+        self._log("INFO", "正在计算聚类质量指标", context)
+        cluster_quality = self._evaluate_cluster_quality(embeddings_30d, cluster_labels, gang_count)
+
+        # 6. 组织案件到团伙
         gangs_map = {}
         for idx, label in enumerate(cluster_labels):
             if label not in gangs_map:
                 gangs_map[label] = []
             gangs_map[label].append(cases[idx])
 
-        # 5. 为每个团伙生成智能画像
+        # 7. 为每个团伙生成智能画像
         self._log("INFO", "正在为各团伙生成智能画像", context)
         final_gangs = []
         for label, case_list in gangs_map.items():
             if label == -1:
-                # 噪声点（独立案件），每个单独作为一个"团伙"处理
                 for case in case_list:
                     solo_gang = self._create_solo_case_gang(case)
                     final_gangs.append(solo_gang)
             else:
-                # 真正的团伙簇
                 gang_profile = self._generate_gang_profile(label, case_list, context)
                 final_gangs.append(gang_profile)
 
         self._log("INFO", f"聚类完成，共生成 {len(final_gangs)} 个团伙/独立案件单元", context)
-        
-        # 更新团伙中心向量
+
         self._update_gang_centroids(final_gangs)
-        
-        return {"gangs": final_gangs}
+
+        return {
+            "gangs": final_gangs,
+            "cluster_quality": cluster_quality
+        }
+
+    def _evaluate_cluster_quality(self, embeddings, labels, gang_count):
+        """评估聚类质量，返回多维度指标"""
+        quality = {
+            "total_samples": len(labels),
+            "gang_count": gang_count,
+            "noise_count": int(list(labels).count(-1)),
+            "noise_ratio": round(float(list(labels).count(-1)) / len(labels), 3) if len(labels) > 0 else 0
+        }
+
+        if gang_count > 1:
+            try:
+                mask = labels != -1
+                if np.sum(mask) > 1 and len(set(labels[mask])) > 1:
+                    sil = silhouette_score(embeddings[mask], labels[mask])
+                    db = davies_bouldin_score(embeddings[mask], labels[mask])
+                    quality["silhouette_score"] = round(float(sil), 4)
+                    quality["davies_bouldin_score"] = round(float(db), 4)
+                    if sil > 0.5:
+                        quality["quality_label"] = "优秀"
+                    elif sil > 0.25:
+                        quality["quality_label"] = "良好"
+                    elif sil > 0.1:
+                        quality["quality_label"] = "一般"
+                    else:
+                        quality["quality_label"] = "需人工复核"
+                else:
+                    quality["silhouette_score"] = None
+                    quality["davies_bouldin_score"] = None
+                    quality["quality_label"] = "单簇或样本不足"
+            except Exception as e:
+                quality["error"] = str(e)
+                quality["quality_label"] = "计算异常"
+        else:
+            quality["silhouette_score"] = None
+            quality["davies_bouldin_score"] = None
+            quality["quality_label"] = "无有效聚类"
+
+        return quality
 
     async def incremental_cluster(self, new_cases: list, existing_gangs: list, context: AgentContext) -> dict:
         """

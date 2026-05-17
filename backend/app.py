@@ -14,17 +14,28 @@ import traceback
 import time
 import uuid
 
-# 添加 Python 3.8 的 site-packages 路径（包含 langchain 相关包）
+# 添加 Python 3.8 的 site-packages 路径（仅当实际使用 Python 3.8 时）
 python38_site_packages = os.path.join(
     os.path.expanduser('~'),
     'AppData', 'Roaming', 'Python', 'Python38', 'site-packages'
 )
-sys.path.insert(0, python38_site_packages)
-print(f"Added Python 3.8 site-packages: {python38_site_packages}")
+if sys.version_info[:2] == (3, 8) and os.path.exists(python38_site_packages):
+    sys.path.insert(0, python38_site_packages)
+    print(f"Added Python 3.8 site-packages: {python38_site_packages}")
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+
+# 数据库
+from database import db, init_db
+from database.crud import (
+    get_all_cases, get_case_by_id,
+    get_all_gangs, get_gang_by_id,
+    get_sessions, get_session_detail,
+    search_cases, delete_session
+)
 
 # LLM 相关
 try:
@@ -56,6 +67,34 @@ from agents.base import AgentContext, AgentConfig
 # 初始化Flask应用
 app = Flask(__name__)
 load_dotenv()
+
+# 数据库配置
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "fraudlens")
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 初始化数据库
+init_db(app)
+
+# 初始化认证
+from database.auth import init_auth, register_routes, log_operation
+init_auth(app)
+register_routes(app)
+
+# 创建默认管理员账号
+from database.models import User
+with app.app_context():
+    if not User.query.filter_by(username='admin').first():
+        admin = User(username='admin', display_name='系统管理员', role='admin', department='反诈中心')
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ 默认管理员账号已创建 (admin/admin123)")
+
 CORS(app, origins=['http://localhost:5173'])
 
 # 配置WebSocket
@@ -301,10 +340,18 @@ async def agent_analyze():
 @app.route('/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
+    db_ok = False
+    try:
+        from database.models import Case
+        Case.query.first()
+        db_ok = True
+    except:
+        pass
     return jsonify({
         "status": "healthy",
         "service": "AI反诈研判官系统",
-        "version": "2.0",
+        "version": "2.1",
+        "database": "connected" if db_ok else "disconnected",
         "agent_status": "active",
         "models": {
             "qwen_max": "active" if llm_analyze else "inactive",
@@ -333,25 +380,301 @@ def get_network_data():
     })
 
 
+# ========== CRUD API ==========
+
+@app.route('/api/cases', methods=['GET'])
+def api_get_cases():
+    """获取所有案件"""
+    try:
+        cases = get_all_cases()
+        return jsonify({"success": True, "cases": cases, "total": len(cases)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/cases/<case_id>', methods=['GET'])
+def api_get_case(case_id):
+    """获取单个案件详情"""
+    try:
+        case = get_case_by_id(case_id)
+        if case:
+            return jsonify({"success": True, "case": case})
+        return jsonify({"success": False, "error": "案件不存在"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/gangs', methods=['GET'])
+def api_get_gangs():
+    """获取所有团伙"""
+    try:
+        gangs = get_all_gangs()
+        return jsonify({"success": True, "gangs": gangs, "total": len(gangs)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/gangs/<gang_id>', methods=['GET'])
+def api_get_gang(gang_id):
+    """获取单个团伙详情"""
+    try:
+        gang = get_gang_by_id(gang_id)
+        if gang:
+            return jsonify({"success": True, "gang": gang})
+        return jsonify({"success": False, "error": "团伙不存在"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/sessions', methods=['GET'])
+def api_get_sessions():
+    """获取分析会话列表"""
+    try:
+        sessions = get_sessions()
+        return jsonify({"success": True, "sessions": sessions})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/sessions/<session_id>', methods=['GET'])
+def api_get_session_detail(session_id):
+    """获取分析会话详情（含案件和团伙数据）"""
+    try:
+        detail = get_session_detail(session_id)
+        if detail:
+            return jsonify({"success": True, **detail})
+        return jsonify({"success": False, "error": "会话不存在"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/sessions/<session_id>', methods=['DELETE'])
+def api_delete_session(session_id):
+    """删除分析会话及其关联数据"""
+    try:
+        delete_session(session_id)
+        return jsonify({"success": True, "message": "删除成功"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/search', methods=['GET'])
+def api_search():
+    """搜索案件"""
+    try:
+        query = request.args.get('q', '')
+        if not query:
+            return jsonify({"success": True, "cases": []})
+        cases = search_cases(query)
+        return jsonify({"success": True, "cases": cases, "total": len(cases)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Case Status ==========
+
+@app.route('/api/cases/<case_id>/status', methods=['PUT'])
+@jwt_required()
+def api_update_case_status(case_id):
+    try:
+        from database.crud import update_case_status
+        data = request.json
+        new_status = data.get('status', '')
+        if not new_status:
+            return jsonify({"success": False, "error": "缺少状态参数"}), 400
+        result = update_case_status(case_id, new_status)
+        claims = get_jwt()
+        log_operation(int(get_jwt_identity()), claims.get('username', ''),
+                      'update_status', 'case', case_id, {'new_status': new_status})
+        return jsonify({"success": True, "case": result})
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/cases/stats', methods=['GET'])
+def api_case_stats():
+    try:
+        from database.crud import get_case_stats
+        stats = get_case_stats()
+        return jsonify({"success": True, "stats": stats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Merge Suggestions ==========
+
+@app.route('/api/merges/suggest', methods=['POST'])
+@jwt_required()
+def api_suggest_merges():
+    try:
+        from database.merge import suggest_merges
+        from database.crud import get_all_cases
+        cases = get_all_cases()
+        result = suggest_merges(cases)
+        return jsonify({"success": True, "suggestions": result, "total": len(result)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/merges/confirm', methods=['POST'])
+@jwt_required()
+def api_confirm_merge():
+    try:
+        from database.merge import confirm_merge
+        data = request.json
+        result = confirm_merge(
+            data.get('case_id_a', ''),
+            data.get('case_id_b', ''),
+            data.get('gang_id', ''),
+            int(get_jwt_identity())
+        )
+        claims = get_jwt()
+        log_operation(int(get_jwt_identity()), claims.get('username', ''),
+                      'confirm_merge', 'merge', f"{data['case_id_a']}+{data['case_id_b']}")
+        return jsonify({"success": True, "message": "合并成功"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/merges/pending', methods=['GET'])
+@jwt_required()
+def api_pending_merges():
+    try:
+        from database.merge import get_pending_merges
+        suggestions = get_pending_merges()
+        return jsonify({"success": True, "suggestions": suggestions})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Reports ==========
+
+@app.route('/api/reports/case/<case_id>', methods=['GET'])
+def api_case_report(case_id):
+    try:
+        from database.report import generate_case_report, export_case_docx
+        fmt = request.args.get('format', 'pdf')
+        if fmt == 'docx':
+            filepath = export_case_docx(case_id)
+        else:
+            filepath = generate_case_report(case_id)
+        filename = os.path.basename(filepath)
+        return jsonify({
+            "success": True,
+            "file_path": f"/api/reports/download/{filename}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/gang/<gang_id>', methods=['GET'])
+def api_gang_report(gang_id):
+    try:
+        from database.report import generate_gang_report
+        filepath = generate_gang_report(gang_id)
+        filename = os.path.basename(filepath)
+        return jsonify({
+            "success": True,
+            "file_path": f"/api/reports/download/{filename}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/download/<filename>', methods=['GET'])
+def api_download_report(filename):
+    try:
+        from flask import send_from_directory
+        reports_dir = os.path.join(os.path.dirname(__file__), 'reports')
+        return send_from_directory(reports_dir, filename, as_attachment=True)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Enhanced Search ==========
+
+@app.route('/api/search/advanced', methods=['GET'])
+def api_advanced_search():
+    try:
+        from database.crud import search_cases
+        entity_type = request.args.get('type', '')
+        entity_value = request.args.get('value', '')
+        if not entity_type or not entity_value:
+            return jsonify({"success": False, "error": "请指定搜索类型和关键词"}), 400
+
+        from database.models import Case
+        cases = Case.query.order_by(Case.created_at.desc()).all()
+        results = []
+        for c in cases:
+            entities = c.extracted_entities or {}
+            if entity_type == 'phone' and entity_value in str(entities.get('phone_numbers', [])):
+                results.append(c)
+            elif entity_type == 'bank' and entity_value in str(entities.get('bank_accounts', [])):
+                results.append(c)
+            elif entity_type == 'ip' and entity_value in str(entities.get('ip_addresses', [])):
+                results.append(c)
+            elif entity_type == 'app' and entity_value in str(entities.get('app_names', [])):
+                results.append(c)
+
+        from database.crud import _case_to_dict
+        return jsonify({
+            "success": True,
+            "cases": [_case_to_dict(c) for c in results],
+            "total": len(results)
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========== Operation Logs (public read) ==========
+
+@app.route('/api/logs', methods=['GET'])
+def api_public_logs():
+    try:
+        from database.models import OperationLog
+        logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(50).all()
+        return jsonify({
+            "success": True,
+            "logs": [{
+                'id': l.id,
+                'username': l.username,
+                'action': l.action,
+                'target': f"{l.target_type}/{l.target_id}",
+                'created_at': l.created_at.isoformat() if l.created_at else None
+            } for l in logs]
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == '__main__':
     print("=" * 60)
-    print("🤖 AI 反诈研判官系统 v2.0 启动")
+    print("🤖 AI 反诈研判官系统 v2.1 启动")
     print("=" * 60)
     print("🔧 配置信息:")
+    print(f"   - 数据库: MySQL ({DB_HOST}:{DB_PORT}/{DB_NAME})")
     print(f"   - 并发数: {MAX_WORKERS}")
     print(f"   - LLM超时: {LLM_REQUEST_TIMEOUT}s")
     print(f"   - 线程等待: {THREAD_WAIT_TIMEOUT}s")
     print(f"   - Agent架构: 三层智能体架构")
-    print(f"   - 团伙发现: BGE + HDBSCAN 智能聚类")
+    print(f"   - 团伙发现: BGE → UMAP → HDBSCAN")
     print(f"   - WebSocket: 已启用")
     print("=" * 60)
     print("🌐 可用接口:")
-    print("   - POST /upload        (传统分析，向后兼容)")
-    print("   - POST /agent-analyze (智能分析，推荐使用)")
-    print("   - GET  /health        (健康检查)")
-    print("   - GET  /api/network-data (网络数据)")
-    print("   - WebSocket /socket.io (实时进度推送)")
+    print("   POST /agent-analyze   (智能研判分析)")
+    print("   POST /upload          (传统分析)")
+    print("   GET  /health          (健康检查)")
+    print("   GET  /api/cases       (案件列表)")
+    print("   GET  /api/cases/<id>  (案件详情)")
+    print("   GET  /api/gangs       (团伙列表)")
+    print("   GET  /api/gangs/<id>  (团伙详情)")
+    print("   GET  /api/sessions    (会话列表)")
+    print("   GET  /api/sessions/<id> (会话详情)")
+    print("   DELETE /api/sessions/<id> (删除会话)")
+    print("   GET  /api/search?q=   (搜索案件)")
+    print("   GET  /api/network-data (网络数据)")
+    print("   WebSocket /socket.io  (实时进度推送)")
     print("=" * 60)
 
-    # 使用socketio启动应用
-    socketio.run(app, debug=False, port=5000, host='0.0.0.0')
+    socketio.run(app, debug=False, port=5000, host='0.0.0.0', allow_unsafe_werkzeug=True)

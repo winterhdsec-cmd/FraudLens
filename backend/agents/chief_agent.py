@@ -204,11 +204,13 @@ class ChiefAgent(BaseAgent):
             if self.persist:
                 try:
                     self._log("INFO", "正在将分析结果持久化到数据库...", context)
+                    from database import db
                     create_session(self.session_id, raw_input=payload.get('messages', []))
                     for case in all_results:
                         save_case(case, session_id=self.session_id)
                     for gang in enhanced_gangs:
                         save_gang(gang, session_id=self.session_id)
+                    db.session.commit()
                     complete_session(
                         self.session_id,
                         status='completed',
@@ -314,14 +316,13 @@ class ChiefAgent(BaseAgent):
 
         return all_results
 
-    async def _process_single_case(self, split: Dict[str, Any], text_messages: List[str], context: AgentContext) -> Dict[str, Any]:
-        """
-        处理单个案件
-        """
-        result = await self.agents['analyst'].process({
+    def _process_single_case(self, split: Dict[str, Any], text_messages: List[str], context: AgentContext) -> Dict[str, Any]:
+        """处理单个案件（同步包装器，用于 ThreadPoolExecutor）"""
+        import asyncio
+        result = asyncio.run(self.agents['analyst'].process({
             'split': split,
             'text_messages': text_messages
-        }, context)
+        }, context))
         return result
 
     def _create_fallback_result(self, split, error_msg):

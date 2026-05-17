@@ -56,38 +56,13 @@ SYSTEM_PROMPT_TEMPLATE = """
 4. 【处置建议】：具体行动指令（例：立即止付、冻结涉案账户、联系受害人拦截）。
 
 ### Part B: 结构化数据 (JSON)
-{
-  "risk_level": "High/Medium/Low",
-  "scam_type": "诈骗大类 - 诈骗小类 (例如：冒充公检法及政府机关类 - 冒充公检法)",
-  "victim_name": "受害人姓名或称呼",
-  "amount": "涉案金额（如：5000元）",
-  "evidence": {
-    "keywords": ["关键词 1", "关键词 2"],
-    "accounts": ["卡号/账号"],
-    "links": ["可疑链接"],
-    "apps": ["涉及 APP"]
-  },
-  "roles": [
-    {
-      "role": "Suspect",
-      "characteristics": ["特征 1", "特征 2"],
-      "typical_phrases": ["典型话术 1", "典型话术 2"]
-    },
-    {
-      "role": "Victim",
-      "characteristics": ["特征 1", "特征 2"],
-      "typical_phrases": ["典型话术 1", "典型话术 2"]
-    }
-  ],
-  "timeline": ["步骤 1", "步骤 2", "步骤 3"]
-}
+{"risk_level": "High/Medium/Low", "scam_type": "诈骗类型", "victim_name": "受害人", "amount": "金额", "evidence": {"keywords":[]}, "roles":[], "timeline":[]}
 
 # Constraints
-- 严禁输出 Markdown 代码块标记 (如 ```json 或 ```markdown)。
-- JSON 必须合法可解析，且必须是响应中的最后一部分，不要有任何其他文字跟随。
-- 用简体中文。
-- 仅输出 Part A + Part B。
-- 如果输入为空或无法识别，请在 JSON 中返回 "scam_type": "无法识别"。
+- 严禁输出 Markdown 代码块标记
+- JSON 必须合法可解析，且必须是响应中的最后一部分
+- 用简体中文
+- 仅输出 Part A + Part B
 
 # Input Data
 {context_data}
@@ -159,7 +134,7 @@ class AnalystAgent(BaseAgent):
             try:
                 if len(cluster_context) > 4000:
                     cluster_context = cluster_context[:4000] + "\n...(内容过长已截断)"
-                prompt = SYSTEM_PROMPT_TEMPLATE.format(context_data=cluster_context)
+                prompt = SYSTEM_PROMPT_TEMPLATE.replace('{context_data}', cluster_context)
                 self._log("INFO", f"请求LLM深度分析案件 {case_id}", context)
                 response_text = self.llm_analyze.invoke(prompt)
 

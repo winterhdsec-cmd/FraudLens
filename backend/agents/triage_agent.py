@@ -56,7 +56,7 @@ class TriageAgent(BaseAgent):
         3. **输出格式**：仅输出一个标准的 JSON 数组，包含 case_id, start, end, reason。不要有任何 Markdown 标记。
 
         # Output Example
-        [{"case_id": 1, "start": 0, "end": 45, "reason": "刷单返利诱导期"}, {"case_id": 2, "start": 46, "end": 98, "reason": "转为冒充公检法恐吓"}]
+        [{{"case_id": 1, "start": 0, "end": 45, "reason": "刷单返利诱导期"}}, {{"case_id": 2, "start": 46, "end": 98, "reason": "转为冒充公检法恐吓"}}]
 
         # Action
         请分析上述数据，输出 JSON 数组：

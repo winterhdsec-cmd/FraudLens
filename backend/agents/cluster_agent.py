@@ -7,9 +7,11 @@ import re
 import warnings
 from typing import Dict, Any, List
 from collections import defaultdict
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 from .base import BaseAgent, AgentConfig, AgentContext
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tools import engine
 
 
 class ClusterAgent(BaseAgent):
@@ -26,44 +28,14 @@ class ClusterAgent(BaseAgent):
     def __init__(self, config: AgentConfig, llm_analyze=None):
         super().__init__(config)
         self.llm_analyze = llm_analyze
-        self.embedder = None
         self.clusterer = None
         self.umap_reducer = None
         self.gang_centroids = {}
         self._initialize_model()
 
     def _initialize_model(self):
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_name = "bge-large-zh-v1.5"
-        model_path = os.path.join(base_dir, model_name)
-
-        print(f"正在加载语义编码模型: {model_path}...")
-
-        if not os.path.exists(model_path):
-            # 尝试从上一级目录寻找
-            alt_path = os.path.join(os.path.dirname(base_dir), model_name)
-            if os.path.exists(alt_path):
-                model_path = alt_path
-            else:
-                raise FileNotFoundError(
-                    f"找不到模型文件夹。请确认 bge-large-zh-v1.5 位于以下任一位置：\n"
-                    f"  1. {model_path}\n"
-                    f"  2. {alt_path}"
-                )
-
-        try:
-            self.embedder = SentenceTransformer(
-                model_path,
-                device='cpu'
-            )
-            print("✅ SentenceTransformer 加载成功")
-        except Exception as e:
-            print(f"❌ 模型加载失败: {e}")
-            raise
-
-        test_emb = self.embedder.encode(["测试"], normalize_embeddings=True)
-        print(f"✅ 模型验证成功，向量维度: {test_emb.shape[1]}")
-
+        if engine is None:
+            raise RuntimeError("BGE 引擎未初始化，请检查模型文件")
         self.clusterer = hdbscan.HDBSCAN(
             min_cluster_size=2,
             min_samples=1,
@@ -71,10 +43,11 @@ class ClusterAgent(BaseAgent):
             metric='euclidean',
             prediction_data=True
         )
-
         self.umap_reducer = None
+        print("[ClusterAgent] 共享 BGE 引擎就绪")
 
-        print("[ClusterAgent] 模型加载完毕。")
+    def _encode(self, texts):
+        return engine.encode(texts)
 
     def _init_umap(self):
         """延迟初始化 UMAP 安装延迟初始化解版本兼容问题）"""
@@ -115,11 +88,7 @@ class ClusterAgent(BaseAgent):
         # 2. BGE 语义向量编码
         self._log("INFO", "正在进行 BGE 语义向量编码", context)
         try:
-            embeddings_1024 = self.embedder.encode(
-                fingerprint_texts,
-                normalize_embeddings=True,
-                show_progress_bar=False
-            )
+            embeddings_1024 = self._encode(fingerprint_texts)
             self._log("INFO", f"BGE 编码完成，维度: {embeddings_1024.shape}", context)
         except Exception as e:
             self._log("ERROR", f"语义向量编码失败: {e}", context)
@@ -240,7 +209,7 @@ class ClusterAgent(BaseAgent):
         
         # 生成新案件的语义向量
         fingerprints = self.extract_semantic_fingerprint(new_cases)
-        new_embeddings = self.embedder.encode(fingerprints, normalize_embeddings=True)
+        new_embeddings = self._encode(fingerprints)
         
         # 为每个新案件寻找最相似的团伙
         updated_gangs = existing_gangs.copy()
@@ -307,7 +276,7 @@ class ClusterAgent(BaseAgent):
                     fingerprint = f"诈骗类型：{scam_type}。关键词：{' '.join(keywords)}。摘要：{snippet}"
                     fingerprints.append(fingerprint)
                 
-                embeddings = self.embedder.encode(fingerprints, normalize_embeddings=True)
+                embeddings = self._encode(fingerprints)
                 centroid = np.mean(embeddings, axis=0)
                 self.gang_centroids[gang['gang_id']] = centroid
 

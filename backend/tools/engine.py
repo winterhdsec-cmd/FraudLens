@@ -54,7 +54,7 @@ class FraudAnalysisEngine:
             print("💡 建议：尝试重新下载模型文件夹，确保文件未损坏。")
             raise e
 
-    def encode(self, texts):
+    def encode(self, texts, normalize=True):
         """
         复用你 Demo 中的 Mean Pooling 逻辑
         """
@@ -85,8 +85,15 @@ class FraudAnalysisEngine:
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
         mean_pooled = sum_embeddings / sum_mask
 
-        # 转回 CPU 并转为 numpy
-        return mean_pooled.cpu().numpy()
+        embeddings = mean_pooled.cpu().numpy()
+
+        # L2 归一化（余弦相似度等价）
+        if normalize:
+            norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+            norms = np.where(norms == 0, 1e-9, norms)
+            embeddings = embeddings / norms
+
+        return embeddings
 
     def analyze(self, messages):
         """

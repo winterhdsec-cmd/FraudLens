@@ -4,6 +4,11 @@ from pydantic import BaseModel
 import json
 import time
 import uuid
+from datetime import datetime
+
+
+def _now_str():
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class AgentConfig(BaseModel):
@@ -72,7 +77,7 @@ class BaseAgent(ABC):
             "event": f"{self.config.agent_id}_PROCESS",
             "latency_ms": 0,
             "message": message,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            "timestamp": _now_str()
         }
         print(json.dumps(log_entry))
 
@@ -81,7 +86,7 @@ class BaseAgent(ABC):
         return {
             "event_id": str(uuid.uuid4()),
             "event_type": event_type,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "timestamp": _now_str(),
             "source_agent": self.config.agent_id,
             "target_agent": "ChiefAgent",
             "correlation_id": context.session_id,

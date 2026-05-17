@@ -59,7 +59,7 @@ def save_case(case_data, session_id=None):
             roles_data.append(str(r))
 
     case = Case(
-        case_id=case_data['case_id'],
+        case_id=str(case_data['case_id']),
         session_id=session_id,
         title=case_data.get('title', f"案件{case_data['case_id']}"),
         scam_type=case_data.get('scam_type', ''),
@@ -155,7 +155,7 @@ def save_gang(gang_data, session_id=None):
     for case_ref in gang_data.get('related_cases', []):
         relation = GangCaseRelation(
             gang_id=gang_data['gang_id'],
-            case_id=case_ref.get('case_id', ''),
+            case_id=str(case_ref.get('case_id', '')),
             similarity=case_ref.get('similarity', 0.0)
         )
         db.session.add(relation)

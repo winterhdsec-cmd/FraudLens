@@ -8,8 +8,8 @@ from transformers import AutoTokenizer, AutoModel
 class FraudAnalysisEngine:
     def __init__(self):
         # 【关键步骤 1】确定模型绝对路径
-        # 假设模型文件夹和 tools.py 在同一级目录 (backend/bge-large-zh-v1.5)
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # 模型文件夹位于 backend/bge-large-zh-v1.5
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         model_name = "bge-large-zh-v1.5"
         model_path = os.path.join(base_dir, model_name)
 
@@ -44,8 +44,7 @@ class FraudAnalysisEngine:
             self.model = AutoModel.from_pretrained(
                 model_path,
                 local_files_only=True,
-                torch_dtype=torch.float32,  # 强制使用 float32 避免精度问题
-                device_map="cpu"  # 明确指定用 CPU (如果有显卡可改为 'cuda')
+                torch_dtype=torch.float32
             )
             self.model.eval()  # 设置为评估模式
             print("✅ 模型加载成功！引擎就绪。")

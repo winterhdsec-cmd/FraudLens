@@ -318,13 +318,20 @@ def generate_gang_report(gang_id):
     prevention_advice = gang.get('prevention_advice', '')
     if prevention_advice:
         elements.append(Paragraph('六、防范建议', styles['ChineseHeading']))
-        elements.append(Paragraph(prevention_advice[:1000], styles['ChineseBody']))
+        if isinstance(prevention_advice, list):
+            for item in prevention_advice:
+                elements.append(Paragraph(f'• {item}', styles['ChineseBody']))
+        else:
+            elements.append(Paragraph(str(prevention_advice)[:1000], styles['ChineseBody']))
 
     risk_assessment = gang.get('risk_assessment', {})
     if risk_assessment:
         elements.append(Paragraph('七、风险评估', styles['ChineseHeading']))
-        for key, value in risk_assessment.items():
-            elements.append(Paragraph(f'• {key}: {value}', styles['ChineseBody']))
+        if isinstance(risk_assessment, dict):
+            for key, value in risk_assessment.items():
+                elements.append(Paragraph(f'• {key}: {value}', styles['ChineseBody']))
+        else:
+            elements.append(Paragraph(str(risk_assessment)[:1000], styles['ChineseBody']))
 
     elements.append(Spacer(1, 10*mm))
     elements.append(Paragraph('— 报告结束 —', styles['ChineseSmall']))

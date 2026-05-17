@@ -2340,10 +2340,12 @@ const startAnalysis = async () => {
         riskLevel: g.risk_level || 'B',
         amount: formatAmount(g.total_amount_involved),
         cases: g.total_cases || 0,
-        tags: g.fingerprint
-          ? g.fingerprint.split(/[,，、]/).map(t => t.trim()).filter(Boolean)
-          : [],
-        members: g.network_nodes
+        tags: Array.isArray(g.fingerprint)
+          ? g.fingerprint.filter(Boolean)
+          : g.fingerprint
+            ? g.fingerprint.split(/[,，、]/).map(t => t.trim()).filter(Boolean)
+            : [],
+        members: Array.isArray(g.network_nodes)
           ? g.network_nodes.slice(0, 6).map((n, i) => ({
               id: i + 1,
               name: n.label || n.id || '成员' + (i + 1),

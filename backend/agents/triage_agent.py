@@ -13,10 +13,7 @@ class TriageAgent(BaseAgent):
 
     CONFIDENCE_THRESHOLD = 0.6  # 人工复核阈值
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        智能分案处理
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         self._log("INFO", "开始智能分案", context)
         
         text_messages = payload.get('text_messages', [])

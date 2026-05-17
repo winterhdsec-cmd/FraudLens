@@ -69,10 +69,7 @@ class ClusterAgent(BaseAgent):
             print(f"⚠️ UMAP 加载失败（将使用原始维度聚类）: {e}")
             self.umap_reducer = None
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        执行团伙发现聚类（v2-stage聚类（BGE → UMAP → HDBSCAN）
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         cases = payload.get('cases', [])
         self._log("INFO", f"开始对 {len(cases)} 个案件进行智能团伙聚类", context)
 
@@ -189,10 +186,7 @@ class ClusterAgent(BaseAgent):
 
         return quality
 
-    async def incremental_cluster(self, new_cases: list, existing_gangs: list, context: AgentContext) -> dict:
-        """
-        增量聚类：将新案件动态归入已有团伙
-        """
+    def incremental_cluster(self, new_cases: list, existing_gangs: list, context: AgentContext) -> dict:
         self._log("INFO", f"开始增量聚类，{len(new_cases)}个新案件，{len(existing_gangs)}个现有团伙", context)
         
         # 如果没有现有团伙，直接返回新案件作为独立案件

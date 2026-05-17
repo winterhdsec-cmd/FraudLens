@@ -51,20 +51,13 @@ class LogicError(AgentException):
 class BaseAgent(ABC):
     def __init__(self, config: AgentConfig):
         self.config = config
-        self.state = {}  # 轻量级状态存储
+        self.state = {}
 
     @abstractmethod
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        核心处理逻辑（必须实现）。
-        - 输入：业务数据 payload，上下文 context。
-        - 输出：处理后的业务数据字典。
-        - 异常：抛出标准 AgentException 子类。
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         pass
 
-    async def on_error(self, error: Exception, context: AgentContext) -> None:
-        """错误回调（可选实现），用于上报监控或清理资源"""
+    def on_error(self, error: Exception, context: AgentContext) -> None:
         self._log("ERROR", f"Agent error: {str(error)}", context)
 
     def _log(self, level: str, message: str, context: AgentContext) -> None:

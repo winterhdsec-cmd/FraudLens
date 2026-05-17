@@ -12,31 +12,25 @@ class ProfilerAgent(BaseAgent):
         super().__init__(config)
         self.llm_analyze = llm_analyze
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        生成团伙全息画像
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         gangs = payload.get('gangs', [])
         self._log("INFO", f"开始为 {len(gangs)} 个团伙生成全息画像", context)
 
         enhanced_gangs = []
         for gang in gangs:
-            enhanced_gang = await self.enhance_gang_profile(gang, context)
+            enhanced_gang = self.enhance_gang_profile(gang, context)
             enhanced_gangs.append(enhanced_gang)
 
         self._log("INFO", "团伙画像生成完成", context)
         return {"gangs": enhanced_gangs}
 
-    async def enhance_gang_profile(self, gang: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        增强团伙画像，添加更多分析维度
-        """
+    def enhance_gang_profile(self, gang: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         # 确保必要字段存在
         gang = self._ensure_gang_fields(gang)
 
         # 如果有LLM，使用LLM增强画像
         if self.llm_analyze:
-            gang = await self._enhance_with_llm(gang, context)
+            gang = self._enhance_with_llm(gang, context)
 
         # 添加雷达图数据
         gang['radar_data'] = self._generate_radar_data(gang)
@@ -83,10 +77,9 @@ class ProfilerAgent(BaseAgent):
 
         return gang
 
-    async def _enhance_with_llm(self, gang: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        使用LLM增强团伙画像
-        """
+    def _enhance_with_llm(self, gang: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
+        self._log("INFO", f"正在用LLM增强团伙画像: {gang.get('gang_name', 'unknown')}", context)
+        # 使用LLM增强团伙画像
         # 准备案件摘要
         case_summaries = []
         for case in gang.get('related_cases', []):

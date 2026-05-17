@@ -7,6 +7,7 @@ from .profiler_agent import ProfilerAgent
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 import time
 import uuid
+from datetime import datetime
 from typing import Dict, Any, List
 import sys
 import os
@@ -95,7 +96,7 @@ class ChiefAgent(BaseAgent):
         self._emit_progress(stage, status, message, context)
         self._log("INFO", f"阶段[{stage}] {status}: {message}", context)
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         """
         执行完整的智能研判流程
         """
@@ -107,7 +108,7 @@ class ChiefAgent(BaseAgent):
             # ========== 阶段1: 数据准备 ==========
             self._update_progress('data_preparation', 'running', '正在清洗和标准化数据...', context)
 
-            preprocess_result = await self.agents['preprocess'].process(payload, context)
+            preprocess_result = self.agents['preprocess'].process(payload, context)
             standardized_messages = preprocess_result.get('standardized_messages', [])
             text_messages = preprocess_result.get('text_messages', [])
 
@@ -122,7 +123,7 @@ class ChiefAgent(BaseAgent):
             # ========== 阶段2: 智能分案 ==========
             self._update_progress('case_triage', 'running', '正在进行智能分案...', context)
 
-            triage_result = await self.agents['triage'].process({
+            triage_result = self.agents['triage'].process({
                 'text_messages': text_messages
             }, context)
             splits = triage_result.get('splits', [])
@@ -148,7 +149,7 @@ class ChiefAgent(BaseAgent):
             # ========== 阶段3: 并行案件深度分析 ==========
             self._update_progress('case_analysis', 'running', f'正在并行分析{len(splits)}个案件...', context)
 
-            all_results = await self._process_cases_in_parallel(splits, text_messages, context)
+            all_results = self._process_cases_in_parallel(splits, text_messages, context)
             all_results.sort(key=lambda x: x.get('case_id', 9999))
             self.context['analyzed_cases'] = all_results
 
@@ -160,7 +161,7 @@ class ChiefAgent(BaseAgent):
             # ========== 阶段4: 智能团伙发现 ==========
             self._update_progress('gang_discovery', 'running', '正在进行团伙聚类分析...', context)
 
-            cluster_result = await self.agents['cluster'].process({
+            cluster_result = self.agents['cluster'].process({
                 'cases': all_results
             }, context)
             gangs = cluster_result.get('gangs', [])
@@ -171,7 +172,7 @@ class ChiefAgent(BaseAgent):
             # ========== 阶段5: 团伙画像增强 ==========
             self._update_progress('profile_enhancement', 'running', '正在增强团伙画像...', context)
 
-            profiler_result = await self.agents['profiler'].process({
+            profiler_result = self.agents['profiler'].process({
                 'gangs': gangs
             }, context)
             enhanced_gangs = profiler_result.get('gangs', [])
@@ -277,7 +278,7 @@ class ChiefAgent(BaseAgent):
                 "message": "研判流程执行失败"
             }
 
-    async def _process_cases_in_parallel(self, splits: List[Dict[str, Any]], text_messages: List[str], context: AgentContext) -> List[Dict[str, Any]]:
+    def _process_cases_in_parallel(self, splits: List[Dict[str, Any]], text_messages: List[str], context: AgentContext) -> List[Dict[str, Any]]:
         """
         并行处理多个案件
         """

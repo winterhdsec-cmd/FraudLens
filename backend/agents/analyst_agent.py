@@ -78,10 +78,7 @@ class AnalystAgent(BaseAgent):
         super().__init__(config)
         self.llm_analyze = llm_analyze
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        分析单个案件
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         split = payload.get('split')
         text_messages = payload.get('text_messages', [])
         

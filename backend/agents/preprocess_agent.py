@@ -17,10 +17,7 @@ class PreprocessAgent(BaseAgent):
     def __init__(self, config: AgentConfig):
         super().__init__(config)
 
-    async def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
-        """
-        处理原始消息和平台数据
-        """
+    def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         self._log("INFO", "开始数据预处理", context)
         
         raw_messages = payload.get('messages', [])

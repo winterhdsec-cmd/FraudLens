@@ -22,6 +22,12 @@ from pydantic import BaseModel
 import jwt as pyjwt
 
 from flask import Flask as _Flask
+from dotenv import load_dotenv
+
+# 加载 key.env
+dotenv_path = os.path.join(os.path.dirname(__file__), 'key.env')
+load_dotenv(dotenv_path)
+
 from database import db, init_db
 from database.crud import (
     get_all_cases, get_case_by_id,
@@ -44,7 +50,22 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 8
 _TOKEN_BLACKLIST: set = set()
 
-USE_CELERY = os.getenv("USE_CELERY", "false").lower() == "true"
+USE_CELERY = os.getenv("USE_CELERY", "auto").lower()
+if USE_CELERY == "auto":
+    try:
+        import redis as _redis_check
+        r = _redis_check.Redis(host='localhost', port=6379, socket_connect_timeout=1)
+        r.ping()
+        USE_CELERY = True
+        r.close()
+        print("✅ Redis 已检测到，自动启用 Celery 异步模式")
+    except Exception:
+        USE_CELERY = False
+        print("ℹ️ Redis 未检测到，使用同步模式 (安装 Redis 后自动切换)")
+elif USE_CELERY == "true":
+    USE_CELERY = True
+else:
+    USE_CELERY = False
 
 _flask_app: Optional[_Flask] = None
 
@@ -905,4 +926,4 @@ if __name__ == '__main__':
     print("   GET  /api/cases       (案件列表)")
     print("   WS   /ws/{session_id} (实时进度)")
     print("=" * 60)
-    uvicorn.run(app, host='0.0.0.0', port=5000)
+    uvicorn.run(app, host='0.0.0.0', port=5001)

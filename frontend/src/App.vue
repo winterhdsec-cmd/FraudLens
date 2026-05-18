@@ -194,7 +194,7 @@
         <div class="menu-group">
           <div class="menu-group-title">输出报告</div>
           <el-menu-item index="report">
-            <template #title">
+            <template #title>
               <div class="menu-item-content">
                 <span class="menu-icon">📄</span>
                 <span class="menu-text">报告生成</span>
@@ -206,7 +206,7 @@
         <div class="menu-group">
           <div class="menu-group-title">系统管理</div>
           <el-menu-item index="admin">
-            <template #title">
+            <template #title>
               <div class="menu-item-content">
                 <span class="menu-icon">⚙️</span>
                 <span class="menu-text">系统管理</span>

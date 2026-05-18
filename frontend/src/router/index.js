@@ -13,6 +13,7 @@ import CapitalFlowView from '../views/CapitalFlowView.vue'
 import DispatchView from '../views/DispatchView.vue'
 import KeyPersonsView from '../views/KeyPersonsView.vue'
 import ReportView from '../views/ReportView.vue'
+import AdminView from '../views/AdminView.vue'
 
 const routes = [
   { path: '/', redirect: '/input' },
@@ -30,6 +31,7 @@ const routes = [
   { path: '/dispatch', name: 'dispatch', component: DispatchView },
   { path: '/key-persons', name: 'key-persons', component: KeyPersonsView },
   { path: '/report', name: 'report', component: ReportView },
+  { path: '/admin', name: 'admin', component: AdminView },
 ]
 
 const router = createRouter({

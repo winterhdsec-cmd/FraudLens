@@ -82,6 +82,46 @@ export async function getMe() {
   return response.data
 }
 
+export async function changePassword(old_password, new_password) {
+  const response = await api.put('/api/auth/change-password', { old_password, new_password })
+  return response.data
+}
+
+export async function updateUser(user_id, data) {
+  const response = await api.put('/api/admin/users/' + user_id, data)
+  return response.data
+}
+
+export async function deleteUser(user_id) {
+  const response = await api.delete('/api/admin/users/' + user_id)
+  return response.data
+}
+
+export async function getOperationLogs() {
+  const response = await api.get('/api/auth/logs')
+  return response.data
+}
+
+// Add 401 interceptor for auto refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && store.refreshToken) {
+      try {
+        const res = await axios.post(API_BASE + '/api/auth/refresh', { refresh_token: store.refreshToken })
+        if (res.data.success) {
+          store.token = res.data.access_token
+          error.config.headers.Authorization = 'Bearer ' + res.data.access_token
+          return api(error.config)
+        }
+      } catch (refreshError) {
+        store.logout()
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ========== Analysis ==========
 export async function startAnalysis(messages, sessionId) {
   const response = await api.post('/agent-analyze', {

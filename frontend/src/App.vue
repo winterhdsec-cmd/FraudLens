@@ -83,8 +83,8 @@
           <el-menu-item index="upload">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📷</span>
-                <span class="menu-text">图片上传</span>
+                <span class="menu-icon">📂</span>
+                <span class="menu-text">文件上传</span>
               </div>
             </template>
           </el-menu-item>

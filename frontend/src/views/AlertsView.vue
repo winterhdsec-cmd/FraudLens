@@ -1,5 +1,5 @@
 <template>
-<div v-if="activeMenu === 'alerts'" class="view-section">
+<div class="view-section">
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">

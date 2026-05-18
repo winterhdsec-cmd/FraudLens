@@ -1268,7 +1268,7 @@ const appState = {
 provide('appState', appState)
 </script>
 
-<style scoped>
+<style>
 .police-system-layout {
   display: flex;
   height: 100vh;

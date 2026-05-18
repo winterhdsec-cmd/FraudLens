@@ -370,31 +370,31 @@ def export_case_docx(case_id):
     info_table = document.add_table(rows=6, cols=2)
     info_table.style = 'Table Grid'
     info_data = [
-        ('案件标题', case.get('title', '')),
-        ('诈骗类型', case.get('scam_type', '')),
-        ('风险等级', case.get('risk_label', '')),
-        ('涉案金额', case.get('amount', '')),
-        ('案件来源', case.get('source', '')),
-        ('案件状态', case.get('status', '')),
+        ('案件标题', case.get('title', '') or ''),
+        ('诈骗类型', case.get('scam_type', '') or ''),
+        ('风险等级', case.get('risk_label', '') or ''),
+        ('涉案金额', case.get('amount', '') or ''),
+        ('案件来源', case.get('source', '') or ''),
+        ('案件状态', case.get('status', '') or ''),
     ]
     for i, (label, value) in enumerate(info_data):
-        info_table.rows[i].cells[0].text = label
-        info_table.rows[i].cells[1].text = value
+        info_table.rows[i].cells[0].text = label or ''
+        info_table.rows[i].cells[1].text = value or ''
 
     document.add_heading('二、受害人信息', level=1)
     victim_table = document.add_table(rows=6, cols=2)
     victim_table.style = 'Table Grid'
     victim_data = [
-        ('姓名', case.get('victim', '')),
-        ('性别', case.get('victim_gender', '')),
-        ('年龄', case.get('victim_age', '')),
-        ('电话', case.get('victim_phone', '')),
-        ('职业', case.get('victim_job', '')),
-        ('地址', case.get('victim_address', '')),
+        ('姓名', case.get('victim', '') or ''),
+        ('性别', case.get('victim_gender', '') or ''),
+        ('年龄', case.get('victim_age', '') or ''),
+        ('电话', case.get('victim_phone', '') or ''),
+        ('职业', case.get('victim_job', '') or ''),
+        ('地址', case.get('victim_address', '') or ''),
     ]
     for i, (label, value) in enumerate(victim_data):
-        victim_table.rows[i].cells[0].text = label
-        victim_table.rows[i].cells[1].text = value
+        victim_table.rows[i].cells[0].text = label or ''
+        victim_table.rows[i].cells[1].text = value or ''
 
     entities = case.get('extracted_entities', {})
     if entities:

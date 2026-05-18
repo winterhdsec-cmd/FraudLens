@@ -135,6 +135,13 @@ export async function ocrImage(file) {
   return response.data
 }
 
+export async function extractText(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await api.post('/api/extract-text', form)
+  return response.data
+}
+
 // ========== Cases ==========
 export async function fetchCases() {
   const response = await api.get('/api/cases')

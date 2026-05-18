@@ -430,6 +430,33 @@ async def api_refresh(data: RefreshRequest):
         )
         return {"success": True, "access_token": access_token}
 
+# ========== File Text Extraction ==========
+
+@app.post('/api/extract-text')
+async def api_extract_text(file: UploadFile = File(...)):
+    try:
+        filename = file.filename or ''
+        ext = os.path.splitext(filename)[1].lower()
+        content = await file.read()
+
+        text = ''
+        if ext == '.txt':
+            text = content.decode('utf-8', errors='ignore')
+        elif ext == '.csv':
+            text = content.decode('utf-8', errors='ignore')
+        elif ext == '.docx':
+            import io
+            from docx import Document
+            doc = Document(io.BytesIO(content))
+            text = '\n'.join(p.text for p in doc.paragraphs)
+        else:
+            return JSONResponse(status_code=400, content={"success": False, "error": f"不支持的文件格式: {ext}"})
+
+        return {"success": True, "text": text, "filename": filename}
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
 # ========== OCR ==========
 
 @app.post('/api/ocr')

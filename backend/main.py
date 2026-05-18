@@ -934,4 +934,4 @@ if __name__ == '__main__':
     print("   GET  /api/cases       (案件列表)")
     print("   WS   /ws/{session_id} (实时进度)")
     print("=" * 60)
-    uvicorn.run(app, host='0.0.0.0', port=5001)
+    uvicorn.run(app, host='0.0.0.0', port=5002)

@@ -2,8 +2,8 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { store } from './store.js'
 
-const API_BASE = 'http://localhost:5001'
-const WS_URL = 'http://localhost:5001'
+const API_BASE = 'http://localhost:5002'
+const WS_URL = 'http://localhost:5002'
 
 const api = axios.create({
   baseURL: API_BASE,

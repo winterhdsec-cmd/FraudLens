@@ -121,10 +121,10 @@ def run_analysis_task(self, messages, session_id):
             'message': '开始智能研判'
         })
 
-        result = asyncio.run(chief_agent.process({
+        result = chief_agent.process({
             'messages': messages,
             'platform_data': {}
-        }, context))
+        }, context)
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'complete',
@@ -137,7 +137,11 @@ def run_analysis_task(self, messages, session_id):
             'total_cases': result.get('total_cases', 0),
             'total_gangs': len(result.get('gangs', [])),
             'session_id': session_id,
+            'raw_cases': result.get('raw_cases', []),
+            'gangs': result.get('gangs', []),
+            'cluster_quality': result.get('cluster_quality', {}),
             'processing_info': result.get('processing_info', {}),
+            'warnings': result.get('warnings', []),
             'error': result.get('error'),
             'message': result.get('message', '')
         }

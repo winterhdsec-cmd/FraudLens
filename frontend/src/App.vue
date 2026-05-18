@@ -6140,4 +6140,953 @@ onMounted(() => {
   gap: 8px;
   margin: 0;
 }
+
+/* ────────────── 结构优化 ────────────── */
+
+/* KPI 数字更突出 */
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 120px;
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 24px;
+}
+
+.stat-icon-wrapper.danger { background: rgba(239, 68, 68, 0.15); }
+.stat-icon-wrapper.warning { background: rgba(245, 158, 11, 0.15); }
+.stat-icon-wrapper.success { background: rgba(16, 185, 129, 0.15); }
+.stat-icon-wrapper.info { background: rgba(0, 198, 255, 0.15); }
+
+.stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.stat-trend.up {
+  color: var(--accent-green);
+}
+
+/* 案件详情信息网格 - 3列 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+.info-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.info-value.danger {
+  color: var(--accent-red);
+}
+
+/* 案件详情布局优化 */
+.case-detail-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.detail-tabs :deep(.el-tabs__content) {
+  padding: 20px 0;
+}
+
+.detail-tabs :deep(.el-tabs__item) {
+  font-size: 14px;
+  padding: 0 20px;
+}
+
+.detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-section {
+  padding: 16px;
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.section-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 团伙画像卡片优化 */
+.gangs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.gang-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gang-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gang-card .gang-icon {
+  font-size: 28px;
+}
+
+.gang-card .gang-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gang-card .card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.gang-card .card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+/* 空状态居中优化 */
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 40px 20px;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-content .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* 内容区边距优化 */
+.main-content {
+  padding: 32px;
+}
+
+.section-header {
+  margin-bottom: 28px;
+}
+
+.overview-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  padding: 20px;
+}
+
+.chart-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-content {
+  height: 280px;
+}
+
+/* 报警卡片置信度条 */
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confidence-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.confidence-value {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* 证据列表 */
+.evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.evidence-icon {
+  font-size: 20px;
+}
+
+.evidence-info {
+  flex: 1;
+}
+
+.evidence-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.evidence-meta {
+  margin-top: 2px;
+}
+
+/* 办案民警列表 */
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.member-avatar {
+  font-size: 24px;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.member-role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 资金流向可视化 */
+.money-section {
+  padding: 20px;
+}
+
+.money-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.money-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 20px;
+  background: rgba(0, 198, 255, 0.08);
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: 12px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.flow-node .node-icon {
+  font-size: 24px;
+}
+
+.flow-node .node-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.flow-node .node-amount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 20px;
+}
+
+.arrow-label {
+  font-size: 10px;
+}
+
+.money-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.money-stat {
+  text-align: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.money-stat .ms-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.money-stat .ms-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 调查时间线 */
+.investigation-timeline {
+  padding: 16px 0;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.timeline-dot.completed {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.timeline-dot.current {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.5);
+}
+
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: rgba(0, 198, 255, 0.15);
+  margin: 4px 0;
+}
+
+.timeline-content {
+  padding-bottom: 24px;
+  flex: 1;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.timeline-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.timeline-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.timeline-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 告警列表布局 */
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-card {
+  padding: 16px;
+}
+
+.alert-header {
+  display: flex;
+  gap: 16px;
+}
+
+.alert-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.alert-icon {
+  font-size: 20px;
+}
+
+.alert-info {
+  flex: 1;
+}
+
+.alert-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.alert-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.alert-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.alert-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+/* 分析看板 */
+.analysis-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analysis-card {
+  padding: 20px;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.analysis-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.flow-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(0, 198, 255, 0.15);
+  border-radius: 8px;
+  color: var(--accent-cyan);
+  font-weight: 500;
+}
+
+/* 章节子标题 */
+.section-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sub-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-icon {
+  font-size: 22px;
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  width: 200px;
+}
+
+/* 能力评估条 */
+.profile-section {
+  margin-top: 12px;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ability-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ability-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ability-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.ability-item :deep(.el-progress) {
+  flex: 1;
+}
+
+/* 案件详情头部 */
+.case-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.case-detail-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.case-detail-info {
+  flex: 1;
+}
+
+.case-detail-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.case-detail-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 16px;
+}
+
+.case-header-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.header-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.header-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.header-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 概述内容排版 */
+.case-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.overview-section {
+  padding: 0 4px;
+}
+
+.overview-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+/* 能力评估进度条 */
+.profile-section .el-progress,
+.profile-section :deep(.el-progress) {
+  --el-progress-text-color: var(--text-secondary);
+}
+
+/* 团伙画像页布局 */
+.gang-profiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 20px;
+}
+
+.gang-profile-card {
+  padding: 0;
+}
+
+.profile-content {
+  padding: 20px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.profile-body {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.profile-chip .chip-icon {
+  font-size: 14px;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.risk-badge.S { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.risk-badge.A { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.risk-badge.B { background: rgba(0, 198, 255, 0.2); color: #00d4ff; }
+.risk-badge.C { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+
+/* 标签云 */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 仪表盘进度等 misc */
+.cases-table {
+  overflow: hidden;
+}
+
+.cases-table :deep(.el-table) {
+  border-radius: 8px;
+}
+
+/* 案情模拟卡片 */
+.method-section {
+  padding: 20px;
+}
+
+.method-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.method-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.method-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.method-step {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+.method-step .step-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.method-step .step-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.method-step .step-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 看板最近案件 */
+.recent-cases-section {
+  margin-top: 24px;
+}
+
+/* 退出按钮 */
+.logout-btn {
+  width: 100%;
+  margin-top: 12px;
+}
 </style>

@@ -1,18 +1,37 @@
 <template>
   <div class="police-system-layout">
     <div v-if="!store.isLoggedIn" class="login-overlay">
-      <div class="login-container tech-card">
+      <div class="login-bg-pattern"></div>
+      <div class="login-container">
+        <div class="login-badge-corner">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8 2V8l-8-4-8 4v16c0-6 8-2 8-2z"/>
+          </svg>
+          <span>公安网</span>
+        </div>
         <div class="login-header">
           <div class="login-logo-wrapper">
             <div class="login-logo-ring"></div>
-            <div class="login-logo-icon">🛡️</div>
+            <div class="login-logo-icon">
+              <svg viewBox="0 0 40 40" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 36s12-6 12 3V12L20 4 8 12v27c0-9 12-3 12-3z"/>
+                <path d="M14 18l4 4 8-8" stroke-width="2" stroke="#d4a843" fill="none"/>
+              </svg>
+            </div>
           </div>
           <h2 class="login-title">反诈情报分析系统</h2>
-          <p class="login-subtitle">AI INTELLIGENT SYSTEM</p>
+          <div class="police-badge" style="justify-content:center;margin-top:4px">
+            <span>AI 智能研判平台 v3.0</span>
+          </div>
         </div>
-        <div class="login-form">
+        <div class="login-body">
           <div class="login-field">
-            <span class="login-field-icon">👤</span>
+            <div class="login-field-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
             <el-input
               v-model="loginForm.username"
               placeholder="用户名"
@@ -22,7 +41,12 @@
             />
           </div>
           <div class="login-field">
-            <span class="login-field-icon">🔑</span>
+            <div class="login-field-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
             <el-input
               v-model="loginForm.password"
               type="password"
@@ -41,11 +65,12 @@
             :loading="loginLoading"
             @click="handleLogin"
           >
-            <span>{{ loginLoading ? '验证中...' : '登 录' }}</span>
+            <span v-if="!loginLoading">登 录</span>
+            <span v-else>验证中...</span>
           </el-button>
-        </div>
-        <div class="login-footer">
-          <span class="login-footer-text">智能研判平台 v2.0</span>
+          <div class="login-footer-text">
+            <span>授权登录 · 内部使用</span>
+          </div>
         </div>
       </div>
     </div>
@@ -59,13 +84,16 @@
       <div class="logo-area">
         <div class="logo-icon-wrapper">
           <div class="logo-ring"></div>
-          <div class="logo-icon">🛡️</div>
+          <div class="logo-icon">
+            <svg viewBox="0 0 40 40" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 36s12-6 12 3V12L20 4 8 12v27c0-9 12-3 12-3z"/>
+              <path d="M16 20l3 3 6-6" stroke-width="2" stroke="#d4a843" fill="none"/>
+            </svg>
+          </div>
         </div>
-        <h2>反诈情报分析</h2>
-        <span class="sub-title">AI INTELLIGENT SYSTEM</span>
-        <div class="logo-badge">
-          <span class="badge-dot"></span>
-          <span>智能研判平台</span>
+        <h2 class="gradient-text">反诈情报分析</h2>
+        <div class="police-badge">
+          <span>智能研判平台 v3.0</span>
         </div>
       </div>
 
@@ -75,7 +103,11 @@
           <el-menu-item index="input">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📝</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 2l4 4-12 12H5v-4z"/>
+                  </svg>
+                </span>
                 <span class="menu-text">文本录入</span>
               </div>
             </template>
@@ -83,7 +115,12 @@
           <el-menu-item index="upload">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📷</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </span>
                 <span class="menu-text">图片上传</span>
               </div>
             </template>
@@ -91,7 +128,11 @@
           <el-menu-item index="api">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">🔌</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/>
+                  </svg>
+                </span>
                 <span class="menu-text">API接入</span>
                 
               </div>
@@ -104,7 +145,11 @@
           <el-menu-item index="dashboard">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📊</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                  </svg>
+                </span>
                 <span class="menu-text">数据看板</span>
               </div>
             </template>
@@ -112,7 +157,11 @@
           <el-menu-item index="alerts">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">🔔</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </span>
                 <span class="menu-text">预警中心</span>
               </div>
             </template>
@@ -124,7 +173,11 @@
           <el-menu-item index="overview">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📊</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                  </svg>
+                </span>
                 <span class="menu-text">案件总览</span>
               </div>
             </template>
@@ -132,7 +185,11 @@
           <el-menu-item index="case-detail">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">🔍</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </span>
                 <span class="menu-text">案件详情</span>
               </div>
             </template>
@@ -140,7 +197,11 @@
           <el-menu-item index="groups">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">👥</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><circle cx="17" cy="7" r="4"/>
+                  </svg>
+                </span>
                 <span class="menu-text">团伙画像</span>
               </div>
             </template>
@@ -148,7 +209,11 @@
           <el-menu-item index="details">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📈</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                  </svg>
+                </span>
                 <span class="menu-text">深度分析</span>
               </div>
             </template>
@@ -156,7 +221,11 @@
           <el-menu-item index="network">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">🕸️</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+                  </svg>
+                </span>
                 <span class="menu-text">关联网络</span>
               </div>
             </template>
@@ -168,7 +237,11 @@
           <el-menu-item index="capital-flow">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">💰</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </span>
                 <span class="menu-text">资金流向</span>
               </div>
             </template>
@@ -176,7 +249,11 @@
           <el-menu-item index="dispatch">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📋</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>
+                  </svg>
+                </span>
                 <span class="menu-text">预警派单</span>
               </div>
             </template>
@@ -184,7 +261,11 @@
           <el-menu-item index="key-persons">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">👤</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
                 <span class="menu-text">重点人员</span>
               </div>
             </template>
@@ -196,7 +277,11 @@
           <el-menu-item index="report">
             <template #title>
               <div class="menu-item-content">
-                <span class="menu-icon">📄</span>
+                <span class="menu-icon">
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                </span>
                 <span class="menu-text">报告生成</span>
               </div>
             </template>
@@ -207,10 +292,10 @@
       <div class="system-status">
         <div class="status-row">
           <div class="status-indicator">
-            <div class="status-dot"></div>
+            <span class="dot online"></span>
             <span>系统运行正常</span>
           </div>
-          <div class="version">v2.0</div>
+          <div class="police-badge">v3.0</div>
         </div>
         <div class="status-details">
           <div class="status-item">
@@ -224,7 +309,8 @@
         </div>
         <div class="logout-area" v-if="store.isLoggedIn">
           <el-button class="logout-btn" size="small" @click="handleLogout">
-            <span>🚪</span> 退出登录
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 12 21 12 3 16 8"/></svg>
+            <span style="margin-left:4px">退出</span>
           </el-button>
         </div>
       </div>
@@ -234,18 +320,19 @@
       <div class="content-wrapper" :class="{ 'fade-in': true }">
 
         <!-- Dashboard 数据看板 -->
-        <div v-if="activeMenu === 'dashboard'" class="view-section">
+        <div v-if="activeMenu === 'dashboard'" class="view-section animate-fade-up">
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📊</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="title-svg"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 数据看板
               </h2>
-              <p class="section-desc">系统运行数据总览，实时监控诈骗态势</p>
+              <p class="section-desc">系统运行数据总览</p>
             </div>
             <div class="header-right">
               <el-button size="small" @click="loadDashboard" :loading="dashboardLoading">
-                <span>🔄</span> 刷新数据
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:4px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                刷新数据
               </el-button>
             </div>
           </div>
@@ -253,7 +340,7 @@
           <div class="stats-overview">
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper danger">
-                <span class="stat-icon">📋</span>
+                <svg class="svg-icon stat-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ dashboardData.total_cases ?? '-' }}</div>
@@ -265,7 +352,7 @@
             </div>
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper warning">
-                <span class="stat-icon">👥</span>
+                <svg class="svg-icon stat-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ dashboardData.total_gangs ?? '-' }}</div>
@@ -277,7 +364,7 @@
             </div>
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper success">
-                <span class="stat-icon">💰</span>
+                <svg class="svg-icon stat-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ dashboardData.total_amount ?? '-' }}</div>
@@ -289,7 +376,7 @@
             </div>
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper info">
-                <span class="stat-icon">🔔</span>
+                <svg class="svg-icon stat-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ dashboardData.active_alerts ?? '-' }}</div>
@@ -334,7 +421,7 @@
           <div class="recent-cases-section" v-if="dashboardData.recent_cases?.length">
             <div class="section-sub-header">
               <h3 class="sub-title">
-                <span class="sub-icon">📋</span>
+                <svg class="svg-icon sub-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                 最新案件
               </h3>
             </div>
@@ -369,11 +456,11 @@
 
           <div v-else-if="!dashboardLoading" class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">📊</div>
+              <svg class="svg-icon empty-icon" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               <h3 class="empty-title">暂无看板数据</h3>
               <p class="empty-desc">请先录入案情数据，系统将自动生成数据看板</p>
               <el-button type="primary" size="large" @click="activeMenu = 'input'">
-                <span>📝</span> 前往录入
+                <svg class="svg-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg> 前往录入
               </el-button>
             </div>
           </div>
@@ -384,14 +471,14 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">🔔</span>
+                <svg class="svg-icon title-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 预警中心
               </h2>
               <p class="section-desc">实时监控诈骗预警信息，快速响应处置</p>
             </div>
             <div class="header-right">
               <el-button size="small" @click="loadAlerts" :loading="alertsLoading">
-                <span>🔄</span> 刷新
+                <svg class="svg-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 刷新
               </el-button>
             </div>
           </div>
@@ -400,7 +487,7 @@
             <div v-for="alert in alerts" :key="alert.id" class="alert-card tech-card">
               <div class="alert-header">
                 <div class="alert-icon-wrapper">
-                  <span class="alert-icon">🔔</span>
+                  <svg class="svg-icon alert-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </div>
                 <div class="alert-info">
                   <div class="alert-type">
@@ -411,7 +498,7 @@
                   </div>
                   <div class="alert-meta">
                     <span class="meta-item">
-                      <span class="meta-icon">📋</span>
+                      <svg class="svg-icon meta-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                       关联案件: {{ alert.matched_case_id || '未关联' }}
                     </span>
                     <span class="meta-item">
@@ -452,7 +539,7 @@
 
           <div v-else-if="!alertsLoading" class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">🔔</div>
+              <svg class="svg-icon empty-icon" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <h3 class="empty-title">暂无预警信息</h3>
               <p class="empty-desc">系统运行正常，暂无待处理的诈骗预警</p>
             </div>
@@ -463,10 +550,10 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📝</span>
+                <svg class="svg-icon title-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg>
                 涉案文本录入
-              </h2>
-              <p class="section-desc">支持聊天记录、报警文本、涉案信息等多种文本格式录入</p>
+                </h2>
+                <p class="section-desc">支持聊天记录、报警文本、涉案信息等多种文本格式录入</p>
             </div>
             <div class="header-right">
               <div class="quick-stats">
@@ -486,7 +573,7 @@
             <div class="input-main tech-card">
               <div class="input-toolbar">
                 <div class="toolbar-left">
-                  <span class="toolbar-icon">📝</span>
+                  <svg class="svg-icon toolbar-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg>
                   <span class="toolbar-title">文本输入区</span>
                 </div>
                 <div class="toolbar-right">
@@ -494,7 +581,7 @@
                     <span>🗑️</span> 清空
                   </el-button>
                   <el-button size="small" type="primary" @click="loadDemo">
-                    <span>📋</span> 加载测试案情
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 加载测试案情
                   </el-button>
                 </div>
               </div>
@@ -518,7 +605,7 @@
             <div class="input-sidebar">
               <div class="sidebar-card tech-card">
                 <div class="card-header">
-                  <span class="card-icon">📊</span>
+                  <svg class="svg-icon card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                   <span class="card-title">文本分析预览</span>
                 </div>
                 <div class="card-content">
@@ -529,7 +616,7 @@
                     </div>
                   </div>
                   <div class="preview-empty" v-else>
-                    <span class="empty-icon">📝</span>
+                    <svg class="svg-icon empty-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg>
                     <span class="empty-text">输入文本后自动分析</span>
                   </div>
                 </div>
@@ -583,7 +670,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📷</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 图片证据上传
               </h2>
               <p class="section-desc">支持聊天截图、转账凭证、诈骗页面截图等图片证据上传</p>
@@ -602,7 +689,7 @@
             <div class="upload-main tech-card">
               <div class="upload-toolbar">
                 <div class="toolbar-left">
-                  <span class="toolbar-icon">📷</span>
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   <span class="toolbar-title">图片上传区</span>
                 </div>
               </div>
@@ -678,7 +765,7 @@
               :disabled="!uploadedImages.length"
               @click="startImageAnalysis"
             >
-              <span class="btn-icon">🔍</span>
+              <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <span>{{ loading ? 'AI 正在识别图片...' : '开始图片识别' }}</span>
             </el-button>
           </div>
@@ -688,7 +775,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">🔌</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
                 多源数据API接入
               </h2>
               <p class="section-desc">对接银行风控、110报警平台、反诈平台等外部数据源</p>
@@ -720,7 +807,7 @@
                 <div class="source-desc">接入银行风控数据，获取涉案账户交易流水、异常交易预警等信息</div>
                 <div class="source-features">
                   <div class="feature-item">
-                    <span class="feature-icon">💰</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     <span>账户交易流水</span>
                   </div>
                   <div class="feature-item">
@@ -745,7 +832,7 @@
               </div>
               <div class="source-actions" v-if="apiSources.bank.connected">
                 <el-button size="small" @click="syncApiData('bank')">
-                  <span>🔄</span> 同步数据
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 同步数据
                 </el-button>
                 <el-button size="small" type="primary" @click="fetchBankData">
                   <span>📥</span> 获取数据
@@ -773,7 +860,7 @@
                     <span>警情实时推送</span>
                   </div>
                   <div class="feature-item">
-                    <span class="feature-icon">📋</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                     <span>案件基本信息</span>
                   </div>
                   <div class="feature-item">
@@ -794,7 +881,7 @@
               </div>
               <div class="source-actions" v-if="apiSources.police.connected">
                 <el-button size="small" @click="syncApiData('police')">
-                  <span>🔄</span> 同步数据
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 同步数据
                 </el-button>
                 <el-button size="small" type="primary" @click="fetchPoliceData">
                   <span>📥</span> 获取数据
@@ -843,7 +930,7 @@
               </div>
               <div class="source-actions" v-if="apiSources.antiFraud.connected">
                 <el-button size="small" @click="syncApiData('antiFraud')">
-                  <span>🔄</span> 同步数据
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 同步数据
                 </el-button>
                 <el-button size="small" type="primary" @click="fetchAntiFraudData">
                   <span>📥</span> 获取数据
@@ -854,7 +941,7 @@
 
           <div class="api-data-preview tech-card" v-if="apiDataPreview.length">
             <div class="preview-header">
-              <span class="preview-icon">📊</span>
+              <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               <span class="preview-title">接入数据预览</span>
               <el-button size="small" @click="importApiData" type="primary">
                 <span>📥</span> 导入系统
@@ -896,7 +983,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📊</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 案件总览
               </h2>
               <p class="section-desc">展示所有录入的案件及团伙信息概览，支持快速筛选和定位</p>
@@ -908,7 +995,7 @@
                     <span>📇</span> 卡片
                   </el-button>
                   <el-button size="small" :type="viewMode === 'table' ? 'primary' : ''" @click="viewMode = 'table'">
-                    <span>📋</span> 列表
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 列表
                   </el-button>
                 </el-button-group>
               </div>
@@ -918,7 +1005,7 @@
           <div class="stats-overview">
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper danger">
-                <span class="stat-icon">👥</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ gangs.length }}</div>
@@ -931,7 +1018,7 @@
             </div>
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper warning">
-                <span class="stat-icon">📋</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ cases.length }}</div>
@@ -944,7 +1031,7 @@
             </div>
             <div class="stat-card tech-card">
               <div class="stat-icon-wrapper success">
-                <span class="stat-icon">💰</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ totalAmountFormatted }}</div>
@@ -988,7 +1075,7 @@
           <div class="gangs-section" v-if="gangs.length">
             <div class="section-sub-header">
               <h3 class="sub-title">
-                <span class="sub-icon">👥</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 团伙列表
               </h3>
               <div class="filter-bar">
@@ -1000,7 +1087,7 @@
                   clearable
                 >
                   <template #prefix>
-                    <span>🔍</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   </template>
                 </el-input>
                 <el-select v-model="riskFilter" placeholder="风险等级" size="small" clearable>
@@ -1036,21 +1123,21 @@
                 <div class="gang-card-body">
                   <div class="gang-stats">
                     <div class="gang-stat">
-                      <span class="stat-icon">💰</span>
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                       <div class="stat-content">
                         <span class="stat-value">{{ gang.amount }}</span>
                         <span class="stat-label">涉案金额</span>
                       </div>
                     </div>
                     <div class="gang-stat">
-                      <span class="stat-icon">📋</span>
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                       <div class="stat-content">
                         <span class="stat-value">{{ gang.cases }}起</span>
                         <span class="stat-label">关联案件</span>
                       </div>
                     </div>
                     <div class="gang-stat">
-                      <span class="stat-icon">👥</span>
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                       <div class="stat-content">
                         <span class="stat-value">{{ gang.members?.length || 0 }}人</span>
                         <span class="stat-label">团伙成员</span>
@@ -1102,7 +1189,7 @@
           <div class="cases-section" v-if="cases.length">
             <div class="section-sub-header">
               <h3 class="sub-title">
-                <span class="sub-icon">📋</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                 案件列表
               </h3>
             </div>
@@ -1138,11 +1225,11 @@
 
           <div v-else class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">📊</div>
+              <svg class="empty-icon-svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               <h3 class="empty-title">暂无案件数据</h3>
               <p class="empty-desc">请先通过数据录入功能添加案情信息，系统将自动进行智能研判</p>
               <el-button type="primary" size="large" @click="activeMenu = 'input'">
-                <span>📝</span> 前往录入
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg> 前往录入
               </el-button>
             </div>
           </div>
@@ -1152,7 +1239,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">🔍</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 案件详情
               </h2>
               <p class="section-desc">查看选中案件的详细信息、受害人和证据材料</p>
@@ -1164,7 +1251,7 @@
               <div class="case-header-card tech-card">
                 <div class="case-header-top">
                   <div class="case-icon-wrapper">
-                    <span class="case-icon">🔍</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   </div>
                   <div class="case-header-info">
                     <h3 class="case-title">{{ selectedCase.title }}</h3>
@@ -1173,7 +1260,7 @@
                         {{ selectedCase.status }}
                       </el-tag>
                       <span class="meta-item">
-                        <span class="meta-icon">📋</span>
+                        <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                         案件编号：{{ selectedCase.id }}
                       </span>
                       <span class="meta-item">
@@ -1184,7 +1271,7 @@
                   </div>
                   <div class="case-header-actions">
                     <el-button type="primary" @click="activeMenu = 'report'">
-                      <span>📄</span> 生成报告
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> 生成报告
                     </el-button>
                   </div>
                 </div>
@@ -1214,11 +1301,11 @@
                     <div class="timeline-section tech-card">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">📝 案情描述</h4>
+                          <h4 class="overview-title">案情描述</h4>
                           <p class="overview-content">{{ selectedCase.description || '2024年3月15日，受害人王女士接到自称"京东客服"的电话，对方准确报出其个人信息后，称其名下有一笔账户异常需要处理，否则将影响征信。在对方的诱导下，王女士通过手机银行转账至对方提供的"安全账户"，共计转账125,800元。转账后对方失联，王女士才发现被骗。' }}</p>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">👤 受害人信息</h4>
+                          <h4 class="overview-title">受害人信息</h4>
                           <div class="info-grid">
                             <div class="info-item">
                               <span class="info-label">姓名</span>
@@ -1273,13 +1360,13 @@
                   <el-tab-pane label="资金流向" name="money">
                     <div class="money-section tech-card">
                       <div class="money-header">
-                        <span class="money-icon">💰</span>
+                        <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         <span class="money-title">资金流向追踪</span>
                       </div>
                       <div class="money-flow">
                         <div class="flow-diagram">
                           <div class="flow-node source">
-                            <span class="node-icon">👤</span>
+                            <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             <span class="node-label">受害人账户</span>
                             <span class="node-amount">{{ selectedCase.amount }}</span>
                           </div>
@@ -1331,7 +1418,7 @@
                   <el-tab-pane label="调查进展" name="progress">
                     <div class="method-section tech-card">
                       <div class="method-header">
-                        <span class="method-icon">📊</span>
+                        <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                         <span class="method-title">案件调查进展</span>
                       </div>
                       <div class="investigation-timeline">
@@ -1359,7 +1446,7 @@
             <div class="detail-sidebar">
               <div class="sidebar-section tech-card">
                 <div class="section-title-bar">
-                  <span class="section-icon">📋</span>
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                   <span class="section-title-text">证据材料</span>
                 </div>
                 <div class="evidence-list">
@@ -1417,11 +1504,11 @@
 
           <div v-else class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">📋</div>
+              <svg class="empty-icon-svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
               <h3 class="empty-title">暂无选中案件</h3>
               <p class="empty-desc">请先在案件总览中选择一个案件查看详情</p>
               <el-button type="primary" size="large" @click="activeMenu = 'overview'">
-                <span>📊</span> 前往案件总览
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 前往案件总览
               </el-button>
             </div>
           </div>
@@ -1431,7 +1518,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">👥</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 团伙画像总览
               </h2>
               <p class="section-desc">查看所有涉案团伙的详细画像信息，包括组织架构、作案特征等</p>
@@ -1466,7 +1553,7 @@
               <div class="profile-body">
                 <div class="profile-section">
                   <div class="section-label">
-                    <span class="label-icon">📊</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                     基本信息
                   </div>
                   <div class="info-grid">
@@ -1501,7 +1588,7 @@
 
                 <div class="profile-section">
                   <div class="section-label">
-                    <span class="label-icon">👥</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     成员信息
                   </div>
                   <div class="member-grid">
@@ -1519,7 +1606,7 @@
 
                 <div class="profile-section">
                   <div class="section-label">
-                    <span class="label-icon">📈</span>
+                    <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                     能力评估
                   </div>
                   <div class="ability-bars">
@@ -1541,10 +1628,10 @@
 
               <div class="profile-footer">
                 <el-button size="small" @click="selectGang(gang); activeMenu = 'case-detail'">
-                  <span>🔍</span> 查看详情
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 查看详情
                 </el-button>
                 <el-button size="small" type="primary" @click="selectGang(gang); activeMenu = 'report'">
-                  <span>📄</span> 生成报告
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> 生成报告
                 </el-button>
               </div>
             </div>
@@ -1552,11 +1639,11 @@
 
           <div v-else class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">👥</div>
+              <svg class="empty-icon-svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <h3 class="empty-title">暂无团伙画像数据</h3>
               <p class="empty-desc">请先录入案情信息，系统将自动生成团伙画像</p>
               <el-button type="primary" size="large" @click="activeMenu = 'input'">
-                <span>📝</span> 前往录入
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-12 12H5v-4z"/></svg> 前往录入
               </el-button>
             </div>
           </div>
@@ -1566,7 +1653,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📈</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                 深度分析
               </h2>
               <p class="section-desc">AI 智能分析团伙特征、资金流向和关联关系</p>
@@ -1577,7 +1664,7 @@
             <div class="analysis-row">
               <div class="analysis-card tech-card money-flow-card">
                 <div class="analysis-header">
-                  <span class="analysis-icon">💰</span>
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                   <span class="analysis-title">资金流向追踪</span>
                   <span class="flow-badge">AI分析</span>
                 </div>
@@ -1587,7 +1674,7 @@
                       <div class="flow-stage">
                         <div class="stage-node source">
                           <div class="node-glow"></div>
-                          <span class="node-icon">👤</span>
+                          <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </div>
                         <span class="stage-label">受害者</span>
                         <span class="stage-desc">账户资金流出</span>
@@ -1635,14 +1722,14 @@
                   </div>
                   <div class="flow-metrics">
                     <div class="metric-item">
-                      <div class="metric-icon">💰</div>
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                       <div class="metric-info">
                         <span class="metric-label">涉案金额</span>
                         <span class="metric-value danger">{{ totalAmountFormatted }}</span>
                       </div>
                     </div>
                     <div class="metric-item">
-                      <div class="metric-icon">📊</div>
+                      <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                       <div class="metric-info">
                         <span class="metric-label">中转层级</span>
                         <span class="metric-value">3-5层</span>
@@ -1717,7 +1804,7 @@
             <div class="analysis-row">
               <div class="analysis-card tech-card">
                 <div class="analysis-header">
-                  <span class="analysis-icon">📊</span>
+                  <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                   <span class="analysis-title">案件类型统计</span>
                 </div>
                 <div class="analysis-content">
@@ -1789,7 +1876,7 @@
         <div v-if="activeMenu === 'capital-flow'" class="view-section">
           <div class="section-header">
             <div class="header-left">
-              <h2 class="section-title"><span class="title-icon">💰</span>资金流向追踪</h2>
+              <h2 class="section-title"><svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>资金流向追踪</h2>
               <p class="section-desc">追踪涉案资金的一级卡→二级卡→三级卡转账链路</p>
             </div>
             <div class="header-actions">
@@ -1826,7 +1913,7 @@
         <div v-if="activeMenu === 'dispatch'" class="view-section">
           <div class="section-header">
             <div class="header-left">
-              <h2 class="section-title"><span class="title-icon">📋</span>预警落地派单</h2>
+              <h2 class="section-title"><svg class="svg-icon title-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>预警落地派单</h2>
               <p class="section-desc">预警生成 → 派单到辖区 → 签收 → 处置反馈</p>
             </div>
             <div class="header-actions">
@@ -1868,7 +1955,7 @@
         <div v-if="activeMenu === 'key-persons'" class="view-section">
           <div class="section-header">
             <div class="header-left">
-              <h2 class="section-title"><span class="title-icon">👤</span>重点人员库</h2>
+              <h2 class="section-title"><svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>重点人员库</h2>
               <p class="section-desc">前科人员 / 高危人员管理，研判时自动碰撞比对</p>
             </div>
             <div class="header-actions">
@@ -1908,7 +1995,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📄</span>
+                <svg class="svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 分析报告生成
               </h2>
               <p class="section-desc">一键生成标准化的案件分析报告，支持多种格式导出</p>
@@ -2080,7 +2167,7 @@
                 </div>
 
                 <div class="preview-empty" v-else>
-                  <div class="empty-icon">📄</div>
+                  <svg class="empty-icon-svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                   <div class="empty-text">请配置报告参数并点击"生成报告"</div>
                 </div>
               </div>
@@ -2290,11 +2377,11 @@ const features = ref([
 ])
 
 const relationNodes = ref([
-  { id: 1, type: 'gang', icon: '👥', label: '团伙A', style: { left: '50%', top: '25%' } },
-  { id: 2, type: 'case', icon: '📋', label: '案件1', style: { left: '25%', top: '45%' } },
-  { id: 3, type: 'case', icon: '📋', label: '案件2', style: { left: '75%', top: '45%' } },
-  { id: 4, type: 'money', icon: '💰', label: '资金', style: { left: '35%', top: '70%' } },
-  { id: 5, type: 'money', icon: '💰', label: '资金', style: { left: '65%', top: '70%' } }
+  { id: 1, type: 'gang', icon: '', label: '团伙A', style: { left: '50%', top: '25%' } },
+  { id: 2, type: 'case', icon: '', label: '案件1', style: { left: '25%', top: '45%' } },
+  { id: 3, type: 'case', icon: '', label: '案件2', style: { left: '75%', top: '45%' } },
+  { id: 4, type: 'money', icon: '', label: '资金', style: { left: '35%', top: '70%' } },
+  { id: 5, type: 'money', icon: '', label: '资金', style: { left: '65%', top: '70%' } }
 ])
 const relationLines = ref([
   { id: 1, x1: '50%', y1: '25%', x2: '25%', y2: '45%' },
@@ -2370,8 +2457,8 @@ const getEventType = (type) => {
 const getGangById = (id) => gangs.value.find(g => g.id === id)
 
 const getFeatureIcon = (idx) => {
-  const icons = ['💬', '💰', '🔗', '🌍', '🔧', '🎯']
-  return icons[idx] || '📊'
+  const icons = ['', '', '', '', '', '']
+  return icons[idx] || ''
 }
 
 const getReportTitle = () => {
@@ -2508,7 +2595,7 @@ const startAnalysis = async () => {
           ? g.network_nodes.slice(0, 6).map((n, i) => ({
               id: i + 1,
               name: n.label || n.id || '成员' + (i + 1),
-              icon: '👤',
+              icon: '',
               role: n.role || n.type || '成员'
             }))
           : [],
@@ -3061,6 +3148,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.svg-icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+
 .police-system-layout {
   display: flex;
   height: 100vh;
@@ -3361,8 +3450,10 @@ onMounted(() => {
   gap: 12px;
 }
 
-.title-icon {
-  font-size: 28px;
+.title-svg {
+  width: 22px; height: 22px;
+  color: var(--accent-blue);
+  flex-shrink: 0;
 }
 
 .section-desc {

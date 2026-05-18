@@ -195,4 +195,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, caseTypeStats, features, getFeatureIcon, regionStats, relationLines,
+  relationNodes, totalAmount, totalAmountFormatted
+} = state
 </script>

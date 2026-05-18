@@ -42,4 +42,7 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, keyPersons, loadKeyPersons, personSearch, personTypeFilter, showCreatePerson
+} = state
 </script>

@@ -39,4 +39,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, capitalFlows, flowGraphData, flowSearchCaseId, gangs, loadFlowData,
+  selectedGang
+} = state
 </script>

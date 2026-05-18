@@ -259,4 +259,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, cases, gangSearchKeyword, gangs, lineChartRef, pieChartRef,
+  successRate, totalAmount, totalAmountFormatted, viewMode
+} = state
 </script>

@@ -123,4 +123,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, clearInput, extractedKeywords, hasAmount, hasMethod, hasPhone,
+  hasTime, inputText, loadDemo, loading, startAnalysis, textLineCount
+} = state
 </script>

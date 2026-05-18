@@ -44,4 +44,7 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch
+} = state
 </script>

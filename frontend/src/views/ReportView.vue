@@ -188,4 +188,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, cases, downloadReport, gangs, generateReport, generatingReport,
+  getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview
+} = state
 </script>

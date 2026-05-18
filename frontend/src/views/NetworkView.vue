@@ -34,4 +34,7 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, gangs, networkView, selectGang, selectedGang
+} = state
 </script>

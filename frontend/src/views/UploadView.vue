@@ -108,4 +108,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, clearImages, handleBeforeUpload, loading, removeImage, startImageAnalysis,
+  uploadedImages
+} = state
 </script>

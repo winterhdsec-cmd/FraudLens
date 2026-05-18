@@ -148,4 +148,9 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, alerts, cases, dashboardBarChartRef, dashboardData, dashboardLoading,
+  dashboardRiskChartRef, dashboardStatusChartRef, dashboardTrendChartRef, gangs, loadDashboard, loading,
+  viewCaseFromDashboard
+} = state
 </script>

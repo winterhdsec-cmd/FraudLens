@@ -7,6 +7,9 @@ import sys
 import time
 import json
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
+
 from celery_app import celery_app
 from celery import Task
 

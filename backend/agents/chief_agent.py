@@ -318,12 +318,10 @@ class ChiefAgent(BaseAgent):
         return all_results
 
     def _process_single_case(self, split: Dict[str, Any], text_messages: List[str], context: AgentContext) -> Dict[str, Any]:
-        """处理单个案件（同步包装器，用于 ThreadPoolExecutor）"""
-        import asyncio
-        result = asyncio.run(self.agents['analyst'].process({
+        result = self.agents['analyst'].process({
             'split': split,
             'text_messages': text_messages
-        }, context))
+        }, context)
         return result
 
     def _create_fallback_result(self, split, error_msg):

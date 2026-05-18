@@ -54,40 +54,36 @@ class FraudAnalysisEngine:
             print("💡 建议：尝试重新下载模型文件夹，确保文件未损坏。")
             raise e
 
-    def encode(self, texts, normalize=True):
+    def encode(self, texts, normalize=True, batch_size=32):
         """
-        复用你 Demo 中的 Mean Pooling 逻辑
+        批量推理：自动将大列表切分为 batch_size 大小的子批次
         """
         if not texts:
             return np.array([])
 
-        # 编码
-        inputs = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-            max_length=512
-        )
+        all_embeddings = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            inputs = self.tokenizer(
+                batch,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+                max_length=512
+            )
+            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            attention_mask = inputs['attention_mask']
+            token_embeddings = outputs.last_hidden_state
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+            sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+            mean_pooled = sum_embeddings / sum_mask
+            all_embeddings.append(mean_pooled.cpu().numpy())
 
-        # 移动到模型所在设备 (CPU)
-        # 如果上面 device_map 用了 cuda，这里也要 .to('cuda')
-        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+        embeddings = np.vstack(all_embeddings) if len(all_embeddings) > 1 else all_embeddings[0]
 
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-
-        # Mean Pooling (核心逻辑)
-        attention_mask = inputs['attention_mask']
-        token_embeddings = outputs.last_hidden_state
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-        sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-        mean_pooled = sum_embeddings / sum_mask
-
-        embeddings = mean_pooled.cpu().numpy()
-
-        # L2 归一化（余弦相似度等价）
         if normalize:
             norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
             norms = np.where(norms == 0, 1e-9, norms)

@@ -16,7 +16,8 @@
     "socket.io-client": "^4.8.3",
     "vis-data": "^8.0.3",
     "vis-network": "^10.1.0",
-    "vue": "^3.5.25"
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.2",

@@ -444,8 +444,11 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
         llm_triage = None
         try:
             from langchain_community.llms import Tongyi
-            llm_analyze = Tongyi(model_name="qwen-max", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
-            llm_triage = Tongyi(model_name="qwen-turbo", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
+            from agents.llm_wrapper import wrap_llm
+            raw_analyze = Tongyi(model_name="qwen-turbo", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
+            raw_triage = Tongyi(model_name="qwen-turbo", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
+            llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
+            llm_triage = wrap_llm(raw_triage, max_concurrent=3)
         except ImportError:
             print("使用模拟模式 (langchain不可用)")
         progress_adapter = ProgressAdapter(session_id)

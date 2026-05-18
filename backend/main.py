@@ -227,6 +227,8 @@ async def lifespan(app: FastAPI):
     flask_app = get_flask_app()
     with flask_app.app_context():
         from database.models import User
+        # 注册P1模型
+        from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
         db.create_all()
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', display_name='系统管理员', role='admin', department='反诈中心')
@@ -250,6 +252,12 @@ async def lifespan(app: FastAPI):
 
 # ---------- App ----------
 app = FastAPI(title="FraudLens AI 反诈研判官系统", version="3.0", lifespan=lifespan)
+
+# 挂载P1路由
+
+# 挂载 P1 路由 (资金流向/派单/重点人员)
+from database.p1_routes import router as p1_router
+app.include_router(p1_router)
 
 app.add_middleware(
     CORSMiddleware,

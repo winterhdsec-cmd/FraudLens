@@ -303,4 +303,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, caseEvidence, detailTab, getGangById, investigationSteps,
+  parsedReport, selectGang, selectedCase, viewRelatedGang
+} = state
 </script>

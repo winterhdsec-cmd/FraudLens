@@ -211,4 +211,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, apiDataPreview, apiSources, connectedSources, features, fetchAntiFraudData,
+  fetchBankData, fetchPoliceData, importApiData, syncApiData, toggleApiSource
+} = state
 </script>

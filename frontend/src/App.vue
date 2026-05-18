@@ -240,6 +240,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, provide } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import NetworkGraph from './components/NetworkGraph.vue'
@@ -258,6 +259,8 @@ import {
   importCSV,
   importExcel
 } from './api.js'
+
+const router = useRouter()
 
 const activeMenu = ref('input')
 const loading = ref(false)
@@ -353,6 +356,7 @@ const handleLogin = async () => {
       store.login(data.user || { username: loginForm.value.username }, data.token)
       loginForm.value = { username: '', password: '' }
       ElMessage.success('登录成功')
+      router.push({ name: 'input' })
     } else {
       loginError.value = data.message || '登录失败，请重试'
     }
@@ -543,6 +547,7 @@ const getReportTitle = () => {
 
 const handleMenuSelect = (index) => {
   activeMenu.value = index
+  router.push({ name: index })
 }
 
 const selectGang = (gang) => {
@@ -1215,6 +1220,10 @@ watch(activeMenu, (newVal) => {
 
 onMounted(() => {
   console.log('反诈情报分析系统已启动')
+  const routeName = router.currentRoute.value.name
+  if (routeName) {
+    activeMenu.value = routeName
+  }
 })
 
 
@@ -1249,7 +1258,12 @@ const appState = {
   loadCapitalFlows, loadFlowGraph, loadFlowData,
   loadDispatchOrders, signDispatch, showCompleteDispatch,
   loadKeyPersons, deleteKeyPerson,
-  handleResolveAlert, getAlertType, getConfidenceColor
+  handleResolveAlert, getAlertType, getConfidenceColor,
+  features, relationNodes, relationLines,
+  caseEvidence, investigationSteps,
+  defaultMethodFlow, defaultKeywords,
+  caseTypeStats, regionStats,
+  gangIcons, formatAmount
 }
 provide('appState', appState)
 </script>

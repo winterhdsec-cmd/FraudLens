@@ -82,4 +82,8 @@
 <script setup>
 import { inject } from "vue"
 const state = inject("appState")
+const {
+  activeMenu, alerts, alertsLoading, getAlertType, getConfidenceColor, handleResolveAlert,
+  loadAlerts, loading, resolvingAlert
+} = state
 </script>

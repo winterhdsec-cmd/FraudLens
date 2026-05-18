@@ -1214,8 +1214,29 @@
                     <div class="timeline-section tech-card">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">📝 案情描述</h4>
-                          <p class="overview-content">{{ selectedCase.description || '2024年3月15日，受害人王女士接到自称"京东客服"的电话，对方准确报出其个人信息后，称其名下有一笔账户异常需要处理，否则将影响征信。在对方的诱导下，王女士通过手机银行转账至对方提供的"安全账户"，共计转账125,800元。转账后对方失联，王女士才发现被骗。' }}</p>
+                          <h4 class="overview-title">📝 AI 研判结论</h4>
+                          <div v-if="parsedReport.partA" class="report-part-a">
+                            <div v-for="(line, li) in parsedReport.partA.split('\n')" :key="li" class="report-line" :class="{ 'report-heading': line.startsWith('###'), 'report-item': line.match(/^\d+\./) }">
+                              <template v-if="line.startsWith('###')">
+                                <span class="report-section-title">{{ line.replace('### ', '') }}</span>
+                              </template>
+                              <template v-else-if="line.match(/^\d+\./)">
+                                <span class="report-bullet">{{ line }}</span>
+                              </template>
+                              <template v-else>
+                                <span>{{ line }}</span>
+                              </template>
+                            </div>
+                          </div>
+                          <div v-if="parsedReport.partB" class="report-part-b">
+                            <div class="report-json-grid">
+                              <div v-for="(val, key) in parsedReport.partB" :key="key" class="report-json-item">
+                                <span class="report-json-key">{{ key }}</span>
+                                <span class="report-json-value">{{ typeof val === 'object' ? JSON.stringify(val) : val }}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <p v-else class="overview-content">{{ selectedCase.description }}</p>
                         </div>
                         <div class="overview-section">
                           <h4 class="overview-title">👤 受害人信息</h4>
@@ -2128,6 +2149,19 @@ const riskFilter = ref('')
 const detailTab = ref('overview')
 const networkView = ref('all')
 const generatingReport = ref(false)
+
+const parsedReport = computed(() => {
+  const desc = selectedCase.value?.description || ''
+  if (!desc || !desc.includes('### Part A')) return { partA: '', partB: null }
+  const parts = desc.split('### Part B')
+  const partA = parts[0].replace('### Part A: 《案件研判结论》', '').trim()
+  let partB = null
+  if (parts[1]) {
+    const jsonStr = parts[1].replace('结构化数据 (JSON)', '').replace('```json', '').replace('```', '').trim()
+    try { partB = JSON.parse(jsonStr) } catch (e) { partB = null }
+  }
+  return { partA, partB }
+})
 
 // P1 features state
 const flowSearchCaseId = ref('')
@@ -7088,5 +7122,78 @@ onMounted(() => {
 .logout-btn {
   width: 100%;
   margin-top: 12px;
+}
+
+/* AI研判结论展示 */
+.report-part-a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-part-b {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.report-line {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+.report-line.report-heading {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.report-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  display: block;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.report-line.report-item {
+  padding-left: 8px;
+  border-left: 2px solid rgba(0, 198, 255, 0.15);
+  margin: 4px 0;
+}
+
+.report-bullet {
+  color: var(--text-primary);
+}
+
+.report-json-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.report-json-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+.report-json-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.report-json-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  word-break: break-all;
 }
 </style>

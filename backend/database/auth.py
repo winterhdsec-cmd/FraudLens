@@ -1,6 +1,7 @@
+import os
 from flask import request, jsonify
 from flask_jwt_extended import (
-    JWTManager, create_access_token, create_refresh_token,
+    create_access_token, JWTManager, create_refresh_token,
     jwt_required, get_jwt_identity, get_jwt
 )
 from datetime import timedelta, datetime
@@ -12,8 +13,11 @@ BLACKLIST = set()
 
 
 def init_auth(app):
-    app.config['JWT_SECRET_KEY'] = 'fraudlens-jwt-secret-key-2024'
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
+    secret = os.getenv("JWT_SECRET_KEY", "")
+    if not secret or len(secret) < 16:
+        secret = "fraudlens-jwt-secret-key-2024"
+    app.config['JWT_SECRET_KEY'] = secret
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
     jwt.init_app(app)
 
@@ -158,3 +162,56 @@ def register_routes(app):
                 'created_at': l.created_at.isoformat() if l.created_at else None
             } for l in logs]
         })
+
+    @app.route('/api/auth/change-password', methods=['PUT'])
+    @jwt_required()
+    def change_password():
+        user_id = int(get_jwt_identity())
+        data = request.json
+        old_pw = data.get('old_password', '')
+        new_pw = data.get('new_password', '')
+        if not old_pw or not new_pw:
+            return jsonify({"success": False, "error": "请提供旧密码和新密码"}), 400
+        if len(new_pw) < 6:
+            return jsonify({"success": False, "error": "新密码至少6位"}), 400
+        user = User.query.get(user_id)
+        if not user or not user.check_password(old_pw):
+            return jsonify({"success": False, "error": "旧密码错误"}), 403
+        user.set_password(new_pw)
+        db.session.commit()
+        log_operation(user.id, user.username, 'change_password')
+        return jsonify({"success": True, "message": "密码已修改"})
+
+    # ---------- Admin: User Management ----------
+    @app.route('/api/admin/users/<int:user_id>', methods=['PUT', 'DELETE'])
+    @jwt_required()
+    def admin_user(user_id):
+        current_id = int(get_jwt_identity())
+        current_user = User.query.get(current_id)
+        if not current_user or current_user.role != 'admin':
+            return jsonify({"success": False, "error": "无权限"}), 403
+
+        target = User.query.get(user_id)
+        if not target:
+            return jsonify({"success": False, "error": "用户不存在"}), 404
+
+        if request.method == 'PUT':
+            data = request.json
+            if 'role' in data:
+                target.role = data['role']
+            if 'is_active' in data:
+                target.is_active = data['is_active']
+            if 'display_name' in data:
+                target.display_name = data['display_name']
+            if 'department' in data:
+                target.department = data['department']
+            if 'phone' in data:
+                target.phone = data['phone']
+            db.session.commit()
+            log_operation(current_id, current_user.username, 'update_user', 'user', str(user_id), data)
+            return jsonify({"success": True, "user": target.to_dict()})
+
+        db.session.delete(target)
+        db.session.commit()
+        log_operation(current_id, current_user.username, 'delete_user', 'user', str(user_id))
+        return jsonify({"success": True, "message": "用户已删除"})

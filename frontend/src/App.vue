@@ -194,10 +194,22 @@
         <div class="menu-group">
           <div class="menu-group-title">输出报告</div>
           <el-menu-item index="report">
-            <template #title>
+            <template #title">
               <div class="menu-item-content">
                 <span class="menu-icon">📄</span>
                 <span class="menu-text">报告生成</span>
+              </div>
+            </template>
+          </el-menu-item>
+        </div>
+
+        <div class="menu-group">
+          <div class="menu-group-title">系统管理</div>
+          <el-menu-item index="admin">
+            <template #title">
+              <div class="menu-item-content">
+                <span class="menu-icon">⚙️</span>
+                <span class="menu-text">系统管理</span>
               </div>
             </template>
           </el-menu-item>
@@ -353,7 +365,7 @@ const handleLogin = async () => {
   try {
     const data = await apiLogin(loginForm.value.username, loginForm.value.password)
     if (data.success) {
-      store.login(data.user || { username: loginForm.value.username }, data.token)
+      store.login(data.user || { username: loginForm.value.username }, data.access_token, data.refresh_token)
       loginForm.value = { username: '', password: '' }
       ElMessage.success('登录成功')
       router.push({ name: 'input' })
@@ -5369,5 +5381,62 @@ provide('appState', appState)
   color: var(--text-primary);
   font-weight: 500;
   word-break: break-all;
+}
+
+/* 系统管理页面 */
+.admin-tabs {
+  margin-top: 16px;
+}
+
+.admin-toolbar {
+  margin-bottom: 16px;
+}
+
+.admin-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.info-card {
+  padding: 20px;
+}
+
+.info-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.05);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.info-row span:last-child {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.status-online {
+  color: #10b981 !important;
+}
+
+.log-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.admin-form .el-form-item {
+  margin-bottom: 12px;
 }
 </style>

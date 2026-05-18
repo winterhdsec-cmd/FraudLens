@@ -47,7 +47,7 @@ DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fraudlens-jwt-secret-key-2024")
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 8
+ACCESS_TOKEN_EXPIRE_HOURS = 24
 _TOKEN_BLACKLIST: set = set()
 
 USE_CELERY = os.getenv("USE_CELERY", "auto").lower()
@@ -274,6 +274,22 @@ async def db_context_middleware(request: Request, call_next):
     with flask_app.app_context():
         response = await call_next(request)
     return response
+
+# ---------- Global Exception Handler ----------
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error": str(exc), "type": type(exc).__name__}
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": exc.detail}
+    )
 
 # ========== Auth Routes ==========
 
@@ -665,8 +681,11 @@ async def api_get_session_detail(session_id: str):
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 @app.delete('/api/sessions/{session_id}')
-async def api_delete_session(session_id: str):
+async def api_delete_session(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
     try:
+        ip = request.client.host if request.client else ''
+        log_operation(current_user['id'], current_user.get('username', ''),
+                      'delete_session', 'session', session_id, ip_address=ip)
         delete_session(session_id)
         return {"success": True, "message": "删除成功"}
     except Exception as e:

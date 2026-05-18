@@ -124,11 +124,14 @@ api.interceptors.response.use(
 
 // ========== Analysis ==========
 export async function startAnalysis(messages, sessionId) {
-  const response = await api.post('/agent-analyze', {
-    messages: messages,
-    session_id: sessionId,
-    platform_data: {}
-  })
+  const response = await api.post('/agent-analyze', { messages: messages, session_id: sessionId, platform_data: {} })
+  return response.data
+}
+
+export async function ocrImage(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await api.post('/api/ocr', form)
   return response.data
 }
 

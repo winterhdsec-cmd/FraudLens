@@ -430,6 +430,19 @@ async def api_refresh(data: RefreshRequest):
         )
         return {"success": True, "access_token": access_token}
 
+# ========== OCR ==========
+
+@app.post('/api/ocr')
+async def api_ocr(file: UploadFile = File(...)):
+    try:
+        from tools.ocr import ocr_image
+        content = await file.read()
+        text = ocr_image(content)
+        return {"success": True, "text": text, "filename": file.filename}
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
 # ========== Agent Analysis ==========
 
 @app.post('/agent-analyze')

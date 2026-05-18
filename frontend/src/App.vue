@@ -269,7 +269,8 @@ import {
   getActiveAlerts,
   resolveAlert,
   importCSV,
-  importExcel
+  importExcel,
+  ocrImage
 } from './api.js'
 
 const router = useRouter()
@@ -737,13 +738,30 @@ const startAnalysis = async () => {
   }
 }
 
-const startImageAnalysis = () => {
+const startImageAnalysis = async () => {
+  if (!uploadedImages.value.length) return
   loading.value = true
-  setTimeout(() => {
+  ElMessage.info('正在识别图片中的文字...')
+  try {
+    const promises = uploadedImages.value.map(async (img) => {
+      const blob = await fetch(img.url).then(r => r.blob())
+      const file = new File([blob], img.name, { type: blob.type })
+      return await ocrImage(file)
+    })
+    const results = await Promise.all(promises)
+    const allText = results.map(r => r.text || '').filter(Boolean).join('\n\n---\n\n')
+    if (allText) {
+      inputText.value = allText
+      ElMessage.success(`OCR 识别完成，共识别 ${allText.length} 个字符`)
+      await startAnalysis()
+    } else {
+      ElMessage.warning('未从图片中识别到文字，请手动输入')
+    }
+  } catch (err) {
+    ElMessage.error('OCR 识别失败: ' + (err.message || '请检查后端 OCR 服务'))
+  } finally {
     loading.value = false
-    ElMessage.success('图片识别完成，已提取关键信息')
-    startAnalysis()
-  }, 2000)
+  }
 }
 
 const toggleApiSource = (source) => {

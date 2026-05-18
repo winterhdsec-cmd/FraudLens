@@ -164,6 +164,34 @@
         </div>
 
         <div class="menu-group">
+          <div class="menu-group-title">深度研判</div>
+          <el-menu-item index="capital-flow">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">💰</span>
+                <span class="menu-text">资金流向</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="dispatch">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📋</span>
+                <span class="menu-text">预警派单</span>
+              </div>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="key-persons">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">👤</span>
+                <span class="menu-text">重点人员</span>
+              </div>
+            </template>
+          </el-menu-item>
+        </div>
+
+        <div class="menu-group">
           <div class="menu-group-title">输出报告</div>
           <el-menu-item index="report">
             <template #title>
@@ -1757,6 +1785,125 @@
           </div>
         </div>
 
+        <!-- 资金流向 -->
+        <div v-if="activeMenu === 'capital-flow'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title"><span class="title-icon">💰</span>资金流向追踪</h2>
+              <p class="section-desc">追踪涉案资金的一级卡→二级卡→三级卡转账链路</p>
+            </div>
+            <div class="header-actions">
+              <el-input v-model="flowSearchCaseId" placeholder="按案件编号搜索" style="width:200px" size="small" clearable @clear="loadFlowData" @keyup.enter="loadFlowData" />
+              <el-button type="primary" size="small" @click="loadFlowData">查询</el-button>
+            </div>
+          </div>
+          <div class="flow-container">
+            <div class="network-container tech-card" style="height:450px">
+              <NetworkGraph :gangs="[]" :selectedGang="null" :flowData="flowGraphData" />
+            </div>
+            <el-table :data="capitalFlows" style="width:100%;margin-top:12px" stripe size="small" max-height="300">
+              <el-table-column prop="source_account" label="转出账户" min-width="140" />
+              <el-table-column prop="target_account" label="转入账户" min-width="140" />
+              <el-table-column prop="bank_name" label="开户行" width="120" />
+              <el-table-column prop="amount" label="金额" width="100">
+                 <template #default="{row}">¥{{ Number(row.amount || 0).toFixed(2) }}</template>
+               </el-table-column>
+              <el-table-column prop="direction" label="方向" width="70">
+                <template #default="{row}"><el-tag :type="row.direction==='out' ? 'warning' : 'danger'" size="small">{{row.direction === 'out' ? '转出' : '转入'}}</el-tag></template>
+              </el-table-column>
+              <el-table-column prop="level" label="层级" width="60" />
+              <el-table-column prop="transaction_time" label="交易时间" width="160" />
+              <el-table-column label="操作" width="100" fixed="right">
+                <template #default="{row}">
+                  <el-button size="small" @click="addFlowRecord(row)">追加</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- 预警派单 -->
+        <div v-if="activeMenu === 'dispatch'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title"><span class="title-icon">📋</span>预警落地派单</h2>
+              <p class="section-desc">预警生成 → 派单到辖区 → 签收 → 处置反馈</p>
+            </div>
+            <div class="header-actions">
+              <el-select v-model="dispatchStatusFilter" placeholder="按状态" size="small" style="width:120px" @change="loadDispatchOrders">
+                <el-option label="全部" value="" />
+                <el-option label="待签收" value="pending" />
+                <el-option label="已签收" value="signed" />
+                <el-option label="已完成" value="completed" />
+              </el-select>
+              <el-button type="primary" size="small" @click="showCreateDispatch = true">新建派单</el-button>
+            </div>
+          </div>
+          <div class="dispatch-list">
+            <el-table :data="dispatchOrders" stripe size="small" max-height="500">
+              <el-table-column prop="alert_id" label="预警编号" width="120" />
+              <el-table-column prop="assigned_dept" label="派往单位" width="150" />
+              <el-table-column prop="assigned_officer" label="责任人" width="100" />
+              <el-table-column prop="status" label="状态" width="100">
+                <template #default="{row}">
+                  <el-tag :type="row.status==='pending' ? 'warning' : row.status==='signed' ? 'primary' : 'success'" size="small">
+                    {{row.status==='pending' ? '待签收' : row.status==='signed' ? '已签收' : '已完成'}}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="dispatch_time" label="派单时间" width="160" />
+              <el-table-column prop="sign_time" label="签收时间" width="160" />
+              <el-table-column prop="feedback" label="处置反馈" min-width="200" show-overflow-tooltip />
+              <el-table-column label="操作" width="160" fixed="right">
+                <template #default="{row}">
+                  <el-button v-if="row.status==='pending'" size="small" type="primary" @click="signDispatch(row.id)">签收</el-button>
+                  <el-button v-if="row.status==='signed'" size="small" @click="showCompleteDispatch(row)">完成反馈</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- 重点人员 -->
+        <div v-if="activeMenu === 'key-persons'" class="view-section">
+          <div class="section-header">
+            <div class="header-left">
+              <h2 class="section-title"><span class="title-icon">👤</span>重点人员库</h2>
+              <p class="section-desc">前科人员 / 高危人员管理，研判时自动碰撞比对</p>
+            </div>
+            <div class="header-actions">
+              <el-input v-model="personSearch" placeholder="姓名/电话/身份证" style="width:200px" size="small" clearable @clear="loadKeyPersons" @keyup.enter="loadKeyPersons" />
+              <el-select v-model="personTypeFilter" placeholder="人员类型" size="small" style="width:120px" @change="loadKeyPersons">
+                <el-option label="全部" value="" />
+                <el-option label="前科人员" value="前科人员" />
+                <el-option label="高危人员" value="高危人员" />
+                <el-option label="在逃人员" value="在逃人员" />
+              </el-select>
+              <el-button type="primary" size="small" @click="showCreatePerson = true">新增人员</el-button>
+            </div>
+          </div>
+          <div class="persons-container">
+            <el-table :data="keyPersons" stripe size="small" max-height="500">
+              <el-table-column prop="name" label="姓名" width="100" />
+              <el-table-column prop="id_number" label="身份证号" width="180" />
+              <el-table-column prop="phone" label="电话" width="130" />
+              <el-table-column prop="bank_account" label="银行卡号" width="160" />
+              <el-table-column prop="risk_label" label="风险等级" width="80">
+                <template #default="{row}">
+                  <el-tag :type="row.risk_level==='A' ? 'danger' : row.risk_level==='B' ? 'warning' : 'info'" size="small">{{row.risk_label}}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="person_type" label="类型" width="100" />
+              <el-table-column prop="source" label="来源" width="100" />
+              <el-table-column label="操作" width="120" fixed="right">
+                <template #default="{row}">
+                  <el-button size="small" type="danger" @click="deleteKeyPerson(row.id)">移除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
         <div v-if="activeMenu === 'report'" class="view-section">
           <div class="section-header">
             <div class="header-left">
@@ -1981,6 +2128,18 @@ const riskFilter = ref('')
 const detailTab = ref('overview')
 const networkView = ref('all')
 const generatingReport = ref(false)
+
+// P1 features state
+const flowSearchCaseId = ref('')
+const capitalFlows = ref([])
+const flowGraphData = ref(null)
+const dispatchOrders = ref([])
+const dispatchStatusFilter = ref('')
+const showCreateDispatch = ref(false)
+const keyPersons = ref([])
+const personSearch = ref('')
+const personTypeFilter = ref('')
+const showCreatePerson = ref(false)
 
 const dashboardData = ref({
   total_cases: null,
@@ -2698,6 +2857,79 @@ const loadAlerts = async () => {
     ElMessage.error('获取预警信息异常: ' + (err.message || '网络错误'))
   } finally {
     alertsLoading.value = false
+  }
+}
+
+// ========== P1 API Methods ==========
+const loadCapitalFlows = async () => {
+  try {
+    const params = flowSearchCaseId.value ? { case_id: flowSearchCaseId.value } : {}
+    const r = await api.get('/api/capital/flows', { params })
+    capitalFlows.value = r.data.flows || r.data.data || []
+  } catch (e) {
+    console.error('loadCapitalFlows:', e)
+  }
+}
+const loadFlowGraph = async () => {
+  if (!flowSearchCaseId.value) return
+  try {
+    const r = await api.get('/api/capital/graph/' + flowSearchCaseId.value)
+    flowGraphData.value = r.data
+  } catch (e) {
+    console.error('loadFlowGraph:', e)
+  }
+}
+const loadFlowData = async () => {
+  await loadCapitalFlows()
+  await loadFlowGraph()
+}
+const addFlowRecord = (row) => {
+  ElMessage.info('追加资金流向功能：' + row.source_account + ' → ' + row.target_account)
+}
+
+const loadDispatchOrders = async () => {
+  try {
+    const params = dispatchStatusFilter.value ? { status: dispatchStatusFilter.value } : {}
+    const r = await api.get('/api/dispatch/list', { params })
+    dispatchOrders.value = r.data.dispatch_orders || r.data.data || []
+  } catch (e) {
+    console.error('loadDispatchOrders:', e)
+  }
+}
+const signDispatch = async (id) => {
+  try {
+    const r = await api.put('/api/dispatch/' + id + '/sign')
+    if (r.data.success) { ElMessage.success('签收成功'); await loadDispatchOrders() }
+    else ElMessage.error(r.data.error || '签收失败')
+  } catch (e) {
+    ElMessage.error('签收异常: ' + (e.message || ''))
+  }
+}
+const showCompleteDispatch = (row) => {
+  ElMessageBox.prompt('处置反馈内容', '完成派单', { inputType: 'textarea', inputPlaceholder: '请描述处置情况...' })
+    .then(async ({ value }) => {
+      const r = await api.put('/api/dispatch/' + row.id + '/complete', { feedback: value })
+      if (r.data.success) { ElMessage.success('已完成'); await loadDispatchOrders() }
+    }).catch(() => {})
+}
+
+const loadKeyPersons = async () => {
+  try {
+    const params = {}
+    if (personSearch.value) params.search = personSearch.value
+    if (personTypeFilter.value) params.person_type = personTypeFilter.value
+    const r = await api.get('/api/persons/key', { params })
+    keyPersons.value = r.data.persons || r.data.data || []
+  } catch (e) {
+    console.error('loadKeyPersons:', e)
+  }
+}
+const deleteKeyPerson = async (id) => {
+  try {
+    const r = await api.delete('/api/persons/key/' + id)
+    if (r.data.success) { ElMessage.success('已移除'); await loadKeyPersons() }
+  } catch (e) {
+    ElMessage.error('移除失败')
   }
 }
 

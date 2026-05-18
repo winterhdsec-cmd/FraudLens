@@ -2,670 +2,262 @@
   <div class="network-graph">
     <div class="graph-header">
       <div class="engine-status">
-        <div class="status-ring"></div>
         <div class="status-dot"></div>
         <span class="status-text">AI 研判引擎运行中</span>
       </div>
+      <div class="graph-tabs" v-if="hasFlowData">
+        <el-radio-group v-model="graphMode" size="small">
+          <el-radio-button value="gang">团伙关系</el-radio-button>
+          <el-radio-button value="flow">资金流向</el-radio-button>
+        </el-radio-group>
+      </div>
       <div class="graph-controls">
-        <el-button size="small" @click="refreshGraph">
-          <span>🔄</span> 刷新
+        <el-button size="small" @click="fitView">适应屏幕</el-button>
+        <el-button size="small" @click="togglePhysics">
+          {{ physicsEnabled ? '暂停布局' : '恢复布局' }}
         </el-button>
-        <el-button size="small" type="primary" @click="exportGraph">
-          <span>📥</span> 导出
-        </el-button>
+        <el-button size="small" type="primary" @click="exportGraph">导出</el-button>
       </div>
     </div>
-
-    <div class="graph-canvas">
-      <div class="grid-bg"></div>
-      <svg ref="svgRef" class="关系图谱" :width="svgWidth" :height="svgHeight">
-        <defs>
-          <radialGradient id="nodeGradientGangS" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" style="stop-color:#ff3860;stop-opacity:0.9" />
-            <stop offset="50%" style="stop-color:#ff6b6b;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#c0392b;stop-opacity:0.6" />
-          </radialGradient>
-          <radialGradient id="nodeGradientGangA" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" style="stop-color:#ffd700;stop-opacity:0.9" />
-            <stop offset="50%" style="stop-color:#ffb800;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#f39c12;stop-opacity:0.6" />
-          </radialGradient>
-          <radialGradient id="nodeGradientCase" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" style="stop-color:#00c6ff;stop-opacity:0.8" />
-            <stop offset="50%" style="stop-color:#00a8ff;stop-opacity:0.7" />
-            <stop offset="100%" style="stop-color:#0984e3;stop-opacity:0.5" />
-          </radialGradient>
-          <radialGradient id="nodeGradientMoney" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#d69e2e;stop-opacity:0.6" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-          <filter id="glowStrong">
-            <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-
-        <g class="links">
-          <line
-            v-for="edge in edges"
-            :key="'glow-' + edge.id"
-            :x1="edge.x1"
-            :y1="edge.y1"
-            :x2="edge.x2"
-            :y2="edge.y2"
-            :stroke="edge.color"
-            stroke-width="8"
-            stroke-opacity="0.3"
-            stroke-linecap="round"
-            class="link-line-glow"
-          />
-          <line
-            v-for="edge in edges"
-            :key="edge.id"
-            :x1="edge.x1"
-            :y1="edge.y1"
-            :x2="edge.x2"
-            :y2="edge.y2"
-            :stroke="edge.color"
-            stroke-width="3"
-            stroke-linecap="round"
-            class="link-line"
-            :class="{ active: edge.active }"
-          />
-          <polygon
-            v-for="edge in edges"
-            :key="'arrow-' + edge.id"
-            :points="getArrowPoints(edge.x1, edge.y1, edge.x2, edge.y2)"
-            :fill="edge.color"
-            class="link-arrow"
-          />
-        </g>
-
-        <g class="nodes">
-          <g
-            v-for="node in nodes"
-            :key="node.id"
-            :transform="`translate(${node.x}, ${node.y})`"
-            class="node-group"
-            :class="{ 
-              selected: selectedGang?.id === node.id,
-              highlighted: hoverNode?.id === node.id 
-            }"
-            @click="handleNodeClick(node)"
-            @mouseenter="hoverNode = node"
-            @mouseleave="hoverNode = null"
-          >
-            <circle
-              :r="node.size + (hoverNode?.id === node.id ? 15 : 10)"
-              :fill="getNodeGlowColor(node)"
-              :opacity="hoverNode?.id === node.id ? 0.4 : 0.25"
-              class="node-glow"
-            />
-            <circle
-              :r="node.size + 5"
-              :fill="getNodeStroke(node)"
-              opacity="0.3"
-              class="node-ring"
-            />
-            <circle
-              :r="node.size"
-              :fill="getNodeFill(node)"
-              :stroke="getNodeStroke(node)"
-              stroke-width="2"
-              :filter="hoverNode?.id === node.id ? 'url(#glowStrong)' : 'url(#glow)'"
-              class="node-body"
-            />
-            <text
-              text-anchor="middle"
-              dominant-baseline="middle"
-              :font-size="node.size * 0.4"
-              class="node-icon"
-            >{{ node.icon }}</text>
-            <g :transform="getLabelTransform(node)">
-              <text
-                text-anchor="middle"
-                font-size="11"
-                fill="#e2e8f0"
-                class="node-label"
-              >{{ node.label }}</text>
-            </g>
-            <g v-if="node.amount" :transform="getAmountTransform(node)">
-              <text
-                text-anchor="middle"
-                font-size="10"
-                fill="#94a3b8"
-                class="node-amount"
-              >{{ node.amount }}</text>
-            </g>
-          </g>
-        </g>
-      </svg>
-
-      <div v-if="hoverNode" class="node-tooltip" :style="tooltipStyle">
-        <div class="tooltip-header">
-          <div class="tooltip-icon">{{ hoverNode.icon }}</div>
-          <div class="tooltip-title">{{ hoverNode.name }}</div>
-        </div>
-        <div class="tooltip-info" v-if="hoverNode.type === 'gang'">
-          <div class="tooltip-row">
-            <span class="tooltip-label">风险等级</span>
-            <span class="tooltip-value" :class="hoverNode.riskLevel.toLowerCase()">{{ hoverNode.riskLevel }}级</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="tooltip-label">涉案金额</span>
-            <span class="tooltip-value danger">{{ hoverNode.amount }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="tooltip-label">关联案件</span>
-            <span class="tooltip-value">{{ hoverNode.cases || 0 }}起</span>
-          </div>
-        </div>
-        <div class="tooltip-info" v-if="hoverNode.type === 'case'">
-          <div class="tooltip-row">
-            <span class="tooltip-label">案件编号</span>
-            <span class="tooltip-value">{{ hoverNode.id }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="tooltip-label">涉案金额</span>
-            <span class="tooltip-value danger">{{ hoverNode.amount }}</span>
-          </div>
-        </div>
-      </div>
+    <div class="graph-canvas" ref="containerRef"></div>
+    <div class="graph-legend" v-show="graphMode === 'gang'">
+      <div class="legend-item"><span class="dot s"></span>S级团伙</div>
+      <div class="legend-item"><span class="dot a"></span>A级团伙</div>
+      <div class="legend-item"><span class="dot b"></span>B级团伙</div>
+      <div class="legend-item"><span class="dot c"></span>案件</div>
+      <div class="legend-item"><span class="dot money"></span>资金流向</div>
     </div>
-
-    <div class="graph-legend">
-      <div class="legend-item">
-        <span class="legend-icon gang-s">👥</span>
-        <span class="legend-text">S级团伙</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-icon gang-a">👥</span>
-        <span class="legend-text">A级团伙</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-icon case">📋</span>
-        <span class="legend-text">案件节点</span>
-      </div>
+    <div class="graph-legend" v-show="graphMode === 'flow'">
+      <div class="legend-item"><span class="dot money"></span>转出账户</div>
+      <div class="legend-item"><span class="dot target"></span>转入账户</div>
+      <div class="legend-item"><span class="dot flow"></span>资金流向</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { Network } from 'vis-network'
+import { DataSet } from 'vis-data'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
-  gangs: {
-    type: Array,
-    default: () => []
-  },
-  selectedGang: {
-    type: Object,
-    default: null
-  }
+  gangs: { type: Array, default: () => [] },
+  selectedGang: { type: Object, default: null },
+  flowData: { type: Object, default: null }
 })
 
 const emit = defineEmits(['select'])
+const containerRef = ref(null)
+const graphMode = ref('gang')
+const physicsEnabled = ref(true)
 
-const svgRef = ref(null)
-const svgWidth = ref(900)
-const svgHeight = ref(550)
-const hoverNode = ref(null)
-const tooltipStyle = ref({})
+let network = null
+let nodes = new DataSet()
+let edges = new DataSet()
 
-const nodes = computed(() => {
-  const result = []
-  const centerX = svgWidth.value / 2
-  const centerY = svgHeight.value / 2
-  
-  const gangCount = Math.max(props.gangs.length, 2)
-  const subgraphSpacing = Math.min(280, svgWidth.value / (gangCount + 1))
-  
-  const gangsData = props.gangs.length > 0 
-    ? props.gangs 
-    : [
-        { id: 'demo-gang-s', name: 'S级诈骗团伙', icon: '🦈', riskLevel: 'S', amount: '¥500万', cases: 8 },
-        { id: 'demo-gang-a', name: 'A级诈骗团伙', icon: '🐺', riskLevel: 'A', amount: '¥200万', cases: 4 }
-      ]
+const hasFlowData = computed(() => props.flowData && props.flowData.nodes && props.flowData.nodes.length > 0)
 
-  gangsData.forEach((gang, idx) => {
-    const subgraphX = subgraphSpacing * (idx + 1)
-    const subgraphY = centerY
-    
-    const gangSize = gang.riskLevel === 'S' ? 32 : 28
-    result.push({
-      id: gang.id,
-      type: 'gang',
-      name: gang.name,
-      icon: gang.icon,
-      label: gang.name.length > 6 ? gang.name.slice(0, 6) + '...' : gang.name,
-      x: subgraphX,
-      y: subgraphY,
-      size: gangSize,
-      riskLevel: gang.riskLevel,
-      amount: gang.amount,
-      cases: gang.cases
+watch(() => props.gangs, () => { nextTick(buildGangGraph) }, { deep: true })
+watch(() => props.flowData, () => { nextTick(buildFlowGraph) }, { deep: true })
+watch(graphMode, (mode) => { mode === 'flow' ? buildFlowGraph() : buildGangGraph() })
+
+const NODE_COLORS = {
+  S: { background: '#ff3860', border: '#ff6b8a', highlight: { background: '#ff1744', border: '#ff5252' } },
+  A: { background: '#ffd700', border: '#ffe047', highlight: { background: '#ffc107', border: '#ffd54f' } },
+  B: { background: '#ff9800', border: '#ffb74d', highlight: { background: '#f57c00', border: '#ff9800' } },
+  C: { background: '#00c6ff', border: '#4dd0e8cff', highlight: { background: '#0091ea', border: '#40c4ff' } },
+  money: { background: '#f59e0b', border: '#fbbf24', highlight: { background: '#d97706', border: '#f59e0b' } }
+}
+
+function buildGangGraph() {
+  if (!containerRef.value || !props.gangs.length) return
+
+  nodes.clear(); edges.clear()
+
+  props.gangs.forEach((gang, idx) => {
+    const tl = gang.riskLevel || gang.threat_level || 'C'
+    const nodeId = 'gang_' + (gang.gang_id || idx)
+    const colors = NODE_COLORS[tl] || NODE_COLORS.C
+
+    nodes.add({
+      id: nodeId,
+      label: gang.gang_name || '团伙' + (idx + 1),
+      title: '<b>' + (gang.gang_name || '团伙') + '</b><br>威胁等级: ' + tl + '<br>案件数: ' + (gang.total_cases || 0) + '<br>金额: ' + (gang.total_amount_involved || '-'),
+      shape: 'dot',
+      size: tl === 'S' ? 35 : tl === 'A' ? 30 : 25,
+      color: colors,
+      font: { color: '#e2e8f0', size: 12, face: 'sans-serif' },
+      borderWidth: 2,
+      shadow: { enabled: true, size: 10, color: colors.background + '66' },
+      group: 'gang',
+      gangData: gang
     })
 
-    const caseCount = Math.min(gang.cases, 4)
-    const casePositions = [
-      { dx: 0, dy: -130 },
-      { dx: 120, dy: -80 },
-      { dx: 120, dy: 80 },
-      { dx: 0, dy: 130 }
-    ]
-    
-    for (let i = 0; i < caseCount; i++) {
-      const pos = casePositions[i]
-      result.push({
-        id: `${gang.id}-case-${i}`,
-        type: 'case',
-        name: `案件 ${i + 1}`,
-        icon: '📋',
-        label: `C${String(i + 1).padStart(3, '0')}`,
-        x: subgraphX + pos.dx,
-        y: subgraphY + pos.dy,
-        size: 18
+    const cases = gang.related_cases || []
+    cases.forEach((c, ci) => {
+      const caseId = 'case_' + nodeId + '_' + ci
+      nodes.add({
+        id: caseId,
+        label: 'C' + String(ci + 1).padStart(3, '0'),
+        title: '<b>案件 ' + c.case_id + '</b><br>受害人: ' + (c.victim || '未知') + '<br>金额: ' + (c.amount || '-'),
+        shape: 'dot',
+        size: 18,
+        color: NODE_COLORS.C,
+        font: { color: '#94a3b8', size: 10, face: 'sans-serif' },
+        group: 'case'
       })
-    }
-  })
-
-  return result
-})
-
-const edges = computed(() => {
-  const result = []
-  const gangNodes = nodes.value.filter(n => n.type === 'gang')
-
-  gangNodes.forEach(gang => {
-    const relatedCases = nodes.value.filter(n => n.type === 'case' && n.id.includes(gang.id))
-    relatedCases.forEach(caseNode => {
-      result.push({
-        id: `${gang.id}-${caseNode.id}`,
-        x1: gang.x,
-        y1: gang.y,
-        x2: caseNode.x,
-        y2: caseNode.y,
-        color: 'rgba(0, 198, 255, 0.7)'
+      edges.add({
+        id: 'e_' + nodeId + '_' + caseId,
+        from: nodeId,
+        to: caseId,
+        color: { color: 'rgba(0,198,255,0.5)', highlight: '#00c6ff' },
+        width: 2,
+        smooth: { type: 'curvedCW', roundness: 0.1 }
       })
     })
   })
 
-  return result
-})
-
-const getNodeFill = (node) => {
-  if (node.type === 'gang') {
-    return node.riskLevel === 'S' ? 'url(#nodeGradientGangS)' : 'url(#nodeGradientGangA)'
+  const options = {
+    physics: physicsEnabled.value ? {
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 180, springConstant: 0.02, damping: 0.4 },
+      stabilization: { iterations: 100 }
+    } : false,
+    edges: { smooth: true },
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true },
+    // DListener: true },
+    groups: {
+      gang: { shape: 'dot' },
+      case: { shape: 'dot', size: 15 }
+    }
   }
-  return 'url(#nodeGradientCase)'
+
+  if (network) network.destroy()
+  network = new Network(containerRef.value, { nodes, edges }, options)
+
+  network.on('click', (params) => {
+    if (params.nodes.length) {
+      const node = nodes.get(params.nodes[0])
+      if (node && node.group === 'gang' && node.gangData) {
+        emit('select', node.gangData)
+      }
+    }
+  })
 }
 
-const getNodeStroke = (node) => {
-  if (node.type === 'gang') {
-    return node.riskLevel === 'S' ? '#ff3860' : '#ffd700'
+function buildFlowGraph() {
+  if (!containerRef.value || !props.flowData) return
+  nodes.clear(); edges.clear()
+
+  const flowNodes = props.flowData.nodes || []
+  const flowEdges = props.flowData.edges || []
+
+  flowNodes.forEach(n => {
+    nodes.add({
+      id: n.id,
+      label: n.label || n.name,
+      title: n.title || n.label,
+      shape: 'dot',
+      size: n.size || 20,
+      color: n.type === 'source'
+        ? { background: '#f59e0b', border: '#fbbf24', highlight: { background: '#d97706', border: '#f59e0b' } }
+        : { background: '#ef4444', border: '#f87171', highlight: { background: '#dc2626', border: '#ef4444' } },
+      font: { color: '#e2e8f0', size: 12 }
+    })
+  })
+
+  flowEdges.forEach(e => {
+    edges.add({
+      id: e.id,
+      from: e.from || e.source,
+      to: e.to || e.target,
+      label: e.label || (e.amount ? '¥' + e.amount : ''),
+      color: { color: 'rgba(245,158,11,0.6)', highlight: '#f59e0b' },
+      width: 2 + Math.min(Math.floor(e.amount || 0) / 50000, 5),
+      arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+      font: { color: '#f59e0b', size: 10, align: 'middle' },
+      smooth: { type: 'curvedCW', roundness: 0.2 }
+    })
+  })
+
+  const options = {
+    physics: {
+      solver: 'barnesHut',
+      barnesHut: { gravitationalConstant: -200, centralGravity: 0.01, springLength: 150 },
+      stabilization: { iterations: 80 }
+    },
+    edges: { smooth: true },
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true }
   }
-  return '#00c6ff'
+
+  if (network) network.destroy()
+  network = new Network(containerRef.value, { nodes, edges }, options)
 }
 
-const getNodeGlowColor = (node) => {
-  if (node.type === 'gang') {
-    return node.riskLevel === 'S' ? '#ff3860' : '#ffd700'
-  }
-  return '#00c6ff'
+function fitView() { if (network) network.fit() }
+function togglePhysics() {
+  physicsEnabled.value = !physicsEnabled.value
+  if (network) network.setOptions({ physics: physicsEnabled.value })
 }
-
-const getArrowPoints = (x1, y1, x2, y2) => {
-  const angle = Math.atan2(y2 - y1, x2 - x1)
-  const arrowLength = 10
-  const arrowWidth = 6
-  const px = x2 - arrowLength * Math.cos(angle)
-  const py = y2 - arrowLength * Math.sin(angle)
-  const p1x = px - arrowWidth * Math.sin(angle)
-  const p1y = py + arrowWidth * Math.cos(angle)
-  const p2x = px + arrowWidth * Math.sin(angle)
-  const p2y = py - arrowWidth * Math.cos(angle)
-  return `${p1x},${p1y} ${p2x},${p2y} ${x2},${y2}`
-}
-
-const handleNodeClick = (node) => {
-  if (node.type === 'gang') {
-    const gang = props.gangs.find(g => g.id === node.id)
-    if (gang) {
-      emit('select', gang)
+function exportGraph() {
+  if (containerRef.value) {
+    const canvas = containerRef.value.querySelector('canvas')
+    if (canvas) {
+      const link = document.createElement('a')
+      link.download = 'network-' + Date.now() + '.png'
+      link.href = canvas.toDataURL()
+      link.click()
     }
   }
 }
 
-const handleResize = () => {
-  if (svgRef.value) {
-    const parent = svgRef.value.parentElement
-    if (parent) {
-      svgWidth.value = Math.min(parent.clientWidth, 900)
-      svgHeight.value = Math.min(parent.clientHeight, 550)
-    }
-  }
-}
-
-const refreshGraph = () => {
-  handleResize()
-}
-
-const getLabelTransform = (node) => {
-  const centerX = svgWidth.value / 2
-  const centerY = svgHeight.value / 2
-  
-  if (node.type === 'gang') {
-    return `translate(0, ${node.size + 20})`
-  }
-  
-  const dx = node.x - centerX
-  const dy = node.y - centerY
-  const angle = Math.atan2(dy, dx)
-  
-  if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
-    if (dx > 0) {
-      return `translate(${node.size + 15}, 0)`
-    } else {
-      return `translate(-${node.size + 15}, 0)`
-    }
-  } else {
-    if (dy > 0) {
-      return `translate(0, ${node.size + 20})`
-    } else {
-      return `translate(0, -${node.size + 25})`
-    }
-  }
-}
-
-const getAmountTransform = (node) => {
-  const centerY = svgHeight.value / 2
-  const dy = node.y - centerY
-  
-  if (dy > 0) {
-    return `translate(0, ${node.size + 36})`
-  } else {
-    return `translate(0, -${node.size + 40})`
-  }
-}
-
-const exportGraph = () => {
-  if (svgRef.value) {
-    const svgData = svgRef.value.outerHTML
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `network-graph-${Date.now()}.svg`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-}
-
-onMounted(() => {
-  handleResize()
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-})
+onMounted(() => { nextTick(buildGangGraph) })
+onUnmounted(() => { if (network) network.destroy() })
 </script>
 
 <style scoped>
 .network-graph {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: rgba(10, 14, 26, 0.5);
-  border-radius: 12px;
-  overflow: hidden;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  background: rgba(10,14,26,0.5);
+  border-radius: 12px; overflow: hidden;
 }
-
 .graph-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid rgba(0, 198, 255, 0.2);
-  position: relative;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 20px;
+  background: rgba(15,23,42,0.8);
+  border-bottom: 1px solid rgba(0,198,255,0.2);
+  gap: 12px; flex-wrap: wrap;
 }
-
-.graph-header::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 2px;
-  background: var(--accent-cyan);
-  box-shadow: 0 0 10px var(--accent-cyan);
-}
-
-.engine-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-ring {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 2px solid #00c6ff;
-  border-radius: 50%;
-  animation: ring-pulse 2s ease-out infinite;
-}
-
+.engine-status { display: flex; align-items: center; gap: 8px; }
 .status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: 10px; height: 10px; border-radius: 50%;
   background: #00c6ff;
-  box-shadow: 0 0 15px #00c6ff, 0 0 30px rgba(0, 198, 255, 0.5);
+  box-shadow: 0 0 15px #00c6ff;
   animation: pulse 2s ease-in-out infinite;
 }
-
-.status-text {
-  font-size: 13px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.graph-controls {
-  display: flex;
-  gap: 10px;
-}
-
-.graph-canvas {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
-.grid-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    radial-gradient(circle, rgba(0, 198, 255, 0.15) 1px, transparent 1px),
-    linear-gradient(rgba(0, 198, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 198, 255, 0.05) 1px, transparent 1px);
-  background-size: 50px 50px, 50px 50px, 50px 50px;
-  animation: grid-move 20s linear infinite;
-}
-
-.关系图谱 {
-  width: 100%;
-  height: 100%;
-}
-
-.node-group {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.node-group:hover {
-  transform: scale(1.05);
-}
-
-.node-group.highlighted .node-glow {
-  animation: glow-pulse 1.5s ease-in-out infinite;
-}
-
-.node-group.selected .node-ring {
-  animation: ring-spin 2s linear infinite;
-}
-
-.node-tooltip {
-  position: absolute;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
-  border: 1px solid rgba(0, 198, 255, 0.4);
-  border-radius: 12px;
-  padding: 16px;
-  pointer-events: none;
-  z-index: 100;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 198, 255, 0.1);
-  min-width: 200px;
-}
-
-.tooltip-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(0, 198, 255, 0.2);
-}
-
-.tooltip-icon {
-  font-size: 24px;
-}
-
-.tooltip-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.tooltip-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tooltip-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tooltip-label {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.tooltip-value {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.tooltip-value.danger {
-  color: #ef4444;
-}
-
-.tooltip-value.s {
-  color: #ff3860;
-}
-
-.tooltip-value.a {
-  color: #ffd700;
-}
-
+.status-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
+.graph-controls { display: flex; gap: 8px; }
+.graph-canvas { flex: 1; min-height: 350px; background: rgba(10,14,26,0.8); }
 .graph-legend {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.85);
-  border-top: 1px solid rgba(0, 198, 255, 0.2);
+  display: flex; justify-content: center; gap: 24px;
+  padding: 10px; background: rgba(15,23,42,0.85);
+  border-top: 1px solid rgba(0,198,255,0.2);
 }
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
 }
-
-.legend-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-}
-
-.legend-icon.gang-s {
-  background: linear-gradient(135deg, #ff3860 0%, #ff6b8a 100%);
-  box-shadow: 0 0 10px rgba(255, 56, 96, 0.6);
-}
-
-.legend-icon.gang-a {
-  background: linear-gradient(135deg, #ffd700 0%, #ffe047 100%);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-}
-
-.legend-icon.case {
-  background: linear-gradient(135deg, #00c6ff 0%, #00e5ff 100%);
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.6);
-}
-
-.legend-text {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
+.dot.s { background: #ff3860; box-shadow: 0 0 6px #ff3860; }
+.dot.a { background: #ffd700; box-shadow: 0 0 6px #ffd700; }
+.dot.b { background: #ff9800; box-shadow: 0 0 6px #ff9800; }
+.dot.c { background: #00c6ff; box-shadow: 0 0 6px #00c6ff; }
+.dot.money { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.dot.target { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.dot.flow { background: transparent; border: 2px solid #f59e0b; width: 8px; height: 8px; }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.95); }
-}
-
-@keyframes ring-pulse {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-
-@keyframes grid-move {
-  0% { background-position: 0 0; }
-  100% { background-position: 50px 50px; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
-}
-
-@keyframes ring-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  50% { opacity: 0.5; transform: scale(0.9); }
 }
 </style>

@@ -270,7 +270,8 @@ import {
   resolveAlert,
   importCSV,
   importExcel,
-  ocrImage
+  ocrImage,
+  extractText
 } from './api.js'
 
 const router = useRouter()
@@ -618,23 +619,42 @@ const loadDemo = () => {
 
 const handleBeforeUpload = (file) => {
   const isImage = file.type.startsWith('image/')
+  const isText = file.type === 'text/plain' || file.name.endsWith('.csv')
+  const isDocx = file.name.endsWith('.docx')
   const isLt10M = file.size / 1024 / 1024 < 10
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件')
+  if (!isImage && !isText && !isDocx) {
+    ElMessage.error('仅支持图片(JPG/PNG)、文本文件(TXT/CSV)或Word文档(DOCX)')
     return false
   }
   if (!isLt10M) {
-    ElMessage.error('图片大小不能超过 10MB')
+    ElMessage.error('文件大小不能超过 10MB')
     return false
   }
-  const reader = new FileReader()
-  reader.onload = (e) => {
+
+  if (isText) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      uploadedImages.value.push({
+        url: '', name: file.name, type: 'text',
+        content: e.target.result, _file: file
+      })
+    }
+    reader.readAsText(file)
+  } else if (isImage) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      uploadedImages.value.push({
+        url: e.target.result, name: file.name, type: 'image',
+        content: '', _file: file
+      })
+    }
+    reader.readAsDataURL(file)
+  } else {
     uploadedImages.value.push({
-      url: e.target.result,
-      name: file.name
+      url: '', name: file.name, type: 'docx',
+      content: '', _file: file
     })
   }
-  reader.readAsDataURL(file)
   return false
 }
 
@@ -741,24 +761,30 @@ const startAnalysis = async () => {
 const startImageAnalysis = async () => {
   if (!uploadedImages.value.length) return
   loading.value = true
-  ElMessage.info('正在识别图片中的文字...')
+  ElMessage.info('正在处理上传文件...')
   try {
-    const promises = uploadedImages.value.map(async (img) => {
-      const blob = await fetch(img.url).then(r => r.blob())
-      const file = new File([blob], img.name, { type: blob.type })
-      return await ocrImage(file)
-    })
-    const results = await Promise.all(promises)
-    const allText = results.map(r => r.text || '').filter(Boolean).join('\n\n---\n\n')
+    const texts = []
+    for (const item of uploadedImages.value) {
+      if (item.type === 'text') {
+        texts.push(item.content || '')
+      } else if (item.type === 'docx') {
+        const data = await extractText(item._file)
+        if (data.text) texts.push(data.text)
+      } else if (item.type === 'image' && item._file) {
+        const data = await ocrImage(item._file)
+        if (data.text) texts.push(data.text)
+      }
+    }
+    const allText = texts.filter(Boolean).join('\n\n---\n\n')
     if (allText) {
       inputText.value = allText
-      ElMessage.success(`OCR 识别完成，共识别 ${allText.length} 个字符`)
+      ElMessage.success('文件处理完成，共提取 ' + allText.length + ' 个字符')
       await startAnalysis()
     } else {
-      ElMessage.warning('未从图片中识别到文字，请手动输入')
+      ElMessage.warning('未能从文件中提取到文字')
     }
   } catch (err) {
-    ElMessage.error('OCR 识别失败: ' + (err.message || '请检查后端 OCR 服务'))
+    ElMessage.error('文件处理失败: ' + (err.message || ''))
   } finally {
     loading.value = false
   }

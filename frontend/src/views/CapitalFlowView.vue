@@ -1,5 +1,5 @@
 <template>
-<div v-if="activeMenu === 'capital-flow'" class="view-section">
+<div class="view-section">
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title"><span class="title-icon">💰</span>资金流向追踪</h2>

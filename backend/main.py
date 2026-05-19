@@ -401,6 +401,60 @@ async def api_refresh(data: RefreshRequest):
     )
     return {"success": True, "access_token": access_token}
 
+@app.put('/api/auth/change-password')
+async def api_change_password(request: Request, current_user: dict = Depends(get_current_user)):
+    try:
+        body = await request.json()
+        old_pw = body.get('old_password', '')
+        new_pw = body.get('new_password', '')
+        if not old_pw or not new_pw:
+            raise HTTPException(status_code=400, detail="请提供旧密码和新密码")
+        if len(new_pw) < 6:
+            raise HTTPException(status_code=400, detail="新密码至少6位")
+        from database.models import User
+        user = User.query.get(current_user['id'])
+        if not user or not user.check_password(old_pw):
+            raise HTTPException(status_code=403, detail="旧密码错误")
+        user.set_password(new_pw)
+        db.session.commit()
+        return {"success": True, "message": "密码已修改"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+@app.put('/api/admin/users/{user_id}')
+@app.delete('/api/admin/users/{user_id}')
+async def api_admin_user(user_id: int, request: Request, current_user: dict = Depends(get_current_user)):
+    try:
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="无权限")
+        from database.models import User
+        target = User.query.get(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        if request.method == 'PUT':
+            body = await request.json()
+            if 'role' in body:
+                target.role = body['role']
+            if 'is_active' in body:
+                target.is_active = body['is_active']
+            if 'display_name' in body:
+                target.display_name = body['display_name']
+            if 'department' in body:
+                target.department = body['department']
+            if 'phone' in body:
+                target.phone = body['phone']
+            db.session.commit()
+            return {"success": True, "user": target.to_dict()}
+        db.session.delete(target)
+        db.session.commit()
+        return {"success": True, "message": "用户已删除"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
 # ========== File Text Extraction ==========
 
 @app.post('/api/extract-text')

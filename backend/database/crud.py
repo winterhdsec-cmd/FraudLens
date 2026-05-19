@@ -240,7 +240,10 @@ def search_cases(query):
             Case.case_id.ilike(f'%{query}%'),
             Case.victim_name.ilike(f'%{query}%'),
             Case.scam_type.ilike(f'%{query}%'),
-            Case.amount.ilike(f'%{query}%')
+            Case.amount.ilike(f'%{query}%'),
+            Case.title.ilike(f'%{query}%'),
+            Case.description.ilike(f'%{query}%'),
+            Case.keywords.ilike(f'%{query}%')
         )
     ).order_by(Case.created_at.desc()).all()
     return [_case_to_dict(c) for c in cases]

@@ -17,6 +17,8 @@
           {{ physicsEnabled ? '暂停布局' : '恢复布局' }}
         </el-button>
         <el-button size="small" type="primary" @click="exportGraph">导出</el-button>
+        <el-button size="small" @click="clusterAll" :disabled="!props.gangs.length">聚合</el-button>
+        <el-button size="small" @click="expandAll" :disabled="!props.gangs.length">展开</el-button>
       </div>
     </div>
     <div class="graph-canvas" ref="containerRef"></div>
@@ -144,6 +146,25 @@ function buildGangGraph() {
       }
     }
   })
+
+  network.on('zoom', () => {
+    const scale = network.getScale()
+    if (scale < 0.4) {
+      network.clustering.clusterByConnection(2)
+    } else {
+      network.clustering.openAllClusters()
+    }
+  })
+}
+
+function clusterAll() {
+  if (!network) return
+  network.clustering.clusterByConnection(2)
+}
+
+function expandAll() {
+  if (!network) return
+  network.clustering.openAllClusters()
 }
 
 function buildFlowGraph() {

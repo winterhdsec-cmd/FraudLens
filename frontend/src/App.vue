@@ -315,7 +315,7 @@ import {
 
 const router = useRouter()
 
-const activeMenu = ref('input')
+const activeMenu = computed(() => router.currentRoute.value.name || 'input')
 const loading = ref(false)
 const showProgress = ref(false)
 const showResult = ref(false)
@@ -605,7 +605,6 @@ const getReportTitle = () => {
 }
 
 const handleMenuSelect = (index) => {
-  activeMenu.value = index
   router.push({ name: index })
 }
 
@@ -1351,7 +1350,6 @@ const initCharts = () => {
 
 watch(() => router.currentRoute.value.name, (routeName) => {
   if (!routeName) return
-  activeMenu.value = routeName
   if (routeName === 'overview' && gangs.value.length) {
     nextTick(() => initCharts())
   }
@@ -1363,19 +1361,55 @@ watch(() => router.currentRoute.value.name, (routeName) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   const routeName = router.currentRoute.value.name
   if (routeName) {
-    activeMenu.value = routeName
-    if (routeName === 'overview' && gangs.value.length) {
-      nextTick(() => initCharts())
-    }
     if (routeName === 'dashboard') {
       loadDashboard()
     }
     if (routeName === 'alerts') {
       loadAlerts()
     }
+  }
+  try {
+    const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
+    if (casesRes.success) {
+      cases.value = (casesRes.data || []).map(c => ({
+        id: c.case_id,
+        title: c.title || (c.victim || '当事人') + '被诈骗案',
+        amount: c.amount,
+        amount_value: c.amount_value,
+        status: c.status || '已立案',
+        type: c.scam_type || '',
+        risk_level: c.risk_level,
+        victimName: c.victim || c.victim_name || '',
+        victimGender: c.victim_gender || '',
+        victimAge: c.victim_age || '',
+        description: c.description || '',
+        keywords: Array.isArray(c.keywords) ? c.keywords : [],
+        date: c.created_at || ''
+      }))
+    }
+    if (gangsRes.success) {
+      gangs.value = (gangsRes.data || []).map((g, idx) => ({
+        id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+        name: g.gang_name || '未知团伙',
+        icon: gangIcons[idx % gangIcons.length],
+        riskLevel: g.risk_level || 'B',
+        risk_label: g.risk_label || '',
+        amount: formatAmount(g.total_amount_involved || g.total_amount),
+        cases: g.total_cases || 0,
+        tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
+        members: [],
+        score: g.comprehensive_score || 0,
+        updateTime: '刚刚'
+      }))
+    }
+  } catch (e) {
+    console.warn('加载初始数据失败:', e)
+  }
+  if (routeName === 'overview' && gangs.value.length) {
+    nextTick(() => initCharts())
   }
 })
 

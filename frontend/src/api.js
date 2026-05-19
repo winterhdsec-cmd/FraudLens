@@ -109,14 +109,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && store.refreshToken) {
       try {
         const res = await axios.post(API_BASE + '/api/auth/refresh', { refresh_token: store.refreshToken })
-        if (res.data.success) {
+        if (res.data?.success && res.data?.access_token) {
           store.token = res.data.access_token
           error.config.headers.Authorization = 'Bearer ' + res.data.access_token
           return api(error.config)
         }
       } catch (refreshError) {
-        store.logout()
+        // refresh failed (network/server error)
       }
+      store.logout()
     }
     return Promise.reject(error)
   }

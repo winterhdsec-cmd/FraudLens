@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from tools.response import logger
 
 db = SQLAlchemy()
 
@@ -7,4 +8,4 @@ def init_db(app):
     with app.app_context():
         from . import models
         db.create_all()
-        print("✅ 数据库表已创建")
+        logger.info("数据库表已创建")

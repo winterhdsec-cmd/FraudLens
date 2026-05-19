@@ -121,8 +121,8 @@
 </template>
 
 <script setup>
-import { inject } from "vue"
-const state = inject("appState")
+import { useAppState } from '../composables/useAppState.js'
+const state = useAppState()
 const {
   activeMenu, clearInput, extractedKeywords, hasAmount, hasMethod, hasPhone,
   hasTime, inputText, loadDemo, loading, startAnalysis, textLineCount

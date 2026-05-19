@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import hdbscan
 from transformers import AutoTokenizer, AutoModel
+from tools.response import logger
 
 
 class FraudAnalysisEngine:
@@ -13,7 +14,7 @@ class FraudAnalysisEngine:
         model_name = "bge-large-zh-v1.5"
         model_path = os.path.join(base_dir, model_name)
 
-        print(f"🔍 正在检查模型路径: {model_path}")
+        logger.info(f"正在检查模型路径: {model_path}")
 
         # 【关键步骤 2】严格检查文件是否存在，避免模糊报错
         if not os.path.exists(model_path):
@@ -32,7 +33,7 @@ class FraudAnalysisEngine:
         if not all(os.path.exists(os.path.join(model_path, f)) for f in required_files) or not has_weights:
             raise FileNotFoundError(f"❌ 错误：模型文件夹不完整，缺少关键配置文件或权重文件。")
 
-        print("✅ 路径检查通过，正在加载模型...")
+        logger.info("路径检查通过，正在加载模型...")
 
         try:
             # 【关键步骤 3】加载 Tokenizer 和 Model
@@ -47,11 +48,11 @@ class FraudAnalysisEngine:
                 torch_dtype=torch.float32
             )
             self.model.eval()  # 设置为评估模式
-            print("✅ 模型加载成功！引擎就绪。")
+            logger.info("模型加载成功！引擎就绪。")
 
         except Exception as e:
-            print(f"❌ 模型加载失败：{e}")
-            print("💡 建议：尝试重新下载模型文件夹，确保文件未损坏。")
+            logger.error(f"模型加载失败：{e}")
+            logger.info("建议：尝试重新下载模型文件夹，确保文件未损坏。")
             raise e
 
     def encode(self, texts, normalize=True, batch_size=32):
@@ -98,9 +99,9 @@ class FraudAnalysisEngine:
         if not messages:
             return {"labels": [], "stats": {}}
         # 👇【新增】强制要求至少 10 条消息
-        print(f"📝 正在处理 {len(messages)} 条消息...")
+        logger.info(f"正在处理 {len(messages)} 条消息...")
         if len(messages) < 10:
-            print(f"⚠️ 消息数量不足 ({len(messages)} < 10)，拒绝分析")
+            logger.warning(f"消息数量不足 ({len(messages)} < 10)，拒绝分析")
             return {
                 "labels": [],
                 "stats": {
@@ -108,7 +109,7 @@ class FraudAnalysisEngine:
                 }
             }
 
-        print(f"📝 正在处理 {len(messages)} 条消息...")
+        logger.info(f"正在处理 {len(messages)} 条消息...")
 
         # 1. 向量化
         embeddings = self.encode(messages)
@@ -125,7 +126,7 @@ class FraudAnalysisEngine:
             cluster_selection_method='eom'
         )
 
-        print("🧠 正在进行 HDBSCAN 聚类...")
+        logger.info("正在进行 HDBSCAN 聚类...")
         labels = clusterer.fit_predict(embeddings)
 
         # 3. 统计
@@ -148,9 +149,9 @@ class FraudAnalysisEngine:
 try:
     engine = FraudAnalysisEngine()
 except Exception as e:
-    print("=" * 50)
-    print("⚠️  警告：反诈引擎初始化失败！")
-    print(f"原因：{e}")
-    print("请检查 backend/bge-large-zh-v1.5 文件夹是否正确。")
-    print("=" * 50)
+    logger.info("=" * 50)
+    logger.warning("警告：反诈引擎初始化失败！")
+    logger.info(f"原因：{e}")
+    logger.info("请检查 backend/bge-large-zh-v1.5 文件夹是否正确。")
+    logger.info("=" * 50)
     engine = None

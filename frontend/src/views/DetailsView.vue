@@ -193,8 +193,8 @@
 </template>
 
 <script setup>
-import { inject } from "vue"
-const state = inject("appState")
+import { useAppState } from '../composables/useAppState.js'
+const state = useAppState()
 const {
   activeMenu, caseTypeStats, features, getFeatureIcon, regionStats, relationLines,
   relationNodes, totalAmount, totalAmountFormatted

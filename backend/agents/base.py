@@ -5,6 +5,7 @@ import json
 import time
 import uuid
 from datetime import datetime
+from tools.response import logger
 
 
 def _now_str():
@@ -72,7 +73,7 @@ class BaseAgent(ABC):
             "message": message,
             "timestamp": _now_str()
         }
-        print(json.dumps(log_entry))
+        logger.info(json.dumps(log_entry))
 
     def _generate_event(self, event_type: str, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         """生成事件信封"""

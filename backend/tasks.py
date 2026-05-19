@@ -10,36 +10,30 @@ import json
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
 
+from database import db, init_db
+from flask import Flask as _Flask
 from celery_app import celery_app
 from celery import Task
 
 
-def _init_task_db():
-    """Initialize database context for Celery workers."""
-    from flask import Flask
-    from database import db, init_db
-
-    DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
-    DB_HOST = os.getenv("DB_HOST", "localhost")
-    DB_PORT = os.getenv("DB_PORT", "3306")
-    DB_NAME = os.getenv("DB_NAME", "fraudlens")
-
-    flask_app = Flask(__name__)
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = (
-        f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
-    )
-    flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    init_db(flask_app)
-    ctx = flask_app.app_context()
-    ctx.push()
-    return flask_app, ctx
+# ---------- Global Flask App (pushed once, keeps Flask-SQLAlchemy working in Celery workers) ----------
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "fraudlens")
+_flask_app = _Flask(__name__)
+_flask_app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+)
+_flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+init_db(_flask_app)
+_flask_app.app_context().push()
 
 
 @celery_app.task(bind=True, name='tasks.run_analysis_task')
 def run_analysis_task(self, messages, session_id):
     """Full analysis pipeline using ChiefAgent."""
-    flask_app, ctx = _init_task_db()
     try:
         import uuid
         from agents.chief_agent import ChiefAgent
@@ -49,17 +43,22 @@ def run_analysis_task(self, messages, session_id):
         LLM_REQUEST_TIMEOUT = 30
 
         try:
-            from langchain_community.llms import Tongyi
+            from langchain_community.chat_models import ChatOpenAI
             from agents.llm_wrapper import wrap_llm
-            raw_analyze = Tongyi(
-                model_name="qwen-turbo",
+            DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+            raw_analyze = ChatOpenAI(
+                model="deepseek-chat",
                 temperature=0.1,
-                request_timeout=LLM_REQUEST_TIMEOUT
+                request_timeout=120,
+                openai_api_key=DEEPSEEK_API_KEY,
+                openai_api_base="https://api.deepseek.com"
             )
-            raw_triage = Tongyi(
-                model_name="qwen-turbo",
+            raw_triage = ChatOpenAI(
+                model="deepseek-chat",
                 temperature=0.1,
-                request_timeout=LLM_REQUEST_TIMEOUT
+                request_timeout=120,
+                openai_api_key=DEEPSEEK_API_KEY,
+                openai_api_base="https://api.deepseek.com"
             )
             llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
             llm_triage = wrap_llm(raw_triage, max_concurrent=3)
@@ -163,14 +162,11 @@ def run_analysis_task(self, messages, session_id):
             'error': str(e),
             'session_id': session_id
         }
-    finally:
-        ctx.pop()
 
 
 @celery_app.task(bind=True, name='tasks.import_csv_task')
 def import_csv_task(self, filepath):
     """Import cases from CSV file."""
-    flask_app, ctx = _init_task_db()
     try:
         from database.importer import import_from_csv
 
@@ -200,14 +196,11 @@ def import_csv_task(self, filepath):
             'success': False,
             'error': str(e)
         }
-    finally:
-        ctx.pop()
 
 
 @celery_app.task(bind=True, name='tasks.import_excel_task')
 def import_excel_task(self, filepath):
     """Import cases from Excel file."""
-    flask_app, ctx = _init_task_db()
     try:
         from database.importer import import_from_excel
 
@@ -237,14 +230,11 @@ def import_excel_task(self, filepath):
             'success': False,
             'error': str(e)
         }
-    finally:
-        ctx.pop()
 
 
 @celery_app.task(bind=True, name='tasks.suggest_merges_task')
 def suggest_merges_task(self):
     """Run merge suggestions on all cases."""
-    flask_app, ctx = _init_task_db()
     try:
         from database.merge import suggest_merges
         from database.crud import get_all_cases
@@ -286,5 +276,3 @@ def suggest_merges_task(self):
             'success': False,
             'error': str(e)
         }
-    finally:
-        ctx.pop()

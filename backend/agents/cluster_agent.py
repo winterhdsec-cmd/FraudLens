@@ -8,6 +8,7 @@ import warnings
 from typing import Dict, Any, List
 from collections import defaultdict
 from sklearn.metrics import silhouette_score, davies_bouldin_score
+from tools.response import logger
 from .base import BaseAgent, AgentConfig, AgentContext
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -44,7 +45,7 @@ class ClusterAgent(BaseAgent):
             prediction_data=True
         )
         self.umap_reducer = None
-        print("[ClusterAgent] 共享 BGE 引擎就绪")
+        logger.info("[ClusterAgent] 共享 BGE 引擎就绪")
 
     def _encode(self, texts):
         return engine.encode(texts)
@@ -64,9 +65,9 @@ class ClusterAgent(BaseAgent):
                 metric=self.UMAP_CONFIG['metric'],
                 random_state=42
             )
-            print("✅ UMAP 加载成功")
+            logger.info("UMAP 加载成功")
         except Exception as e:
-            print(f"⚠️ UMAP 加载失败（将使用原始维度聚类）: {e}")
+            logger.warning(f"UMAP 加载失败（将使用原始维度聚类）: {e}")
             self.umap_reducer = None
 
     def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:

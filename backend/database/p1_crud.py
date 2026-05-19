@@ -2,12 +2,13 @@ from datetime import datetime
 from . import db
 from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
 from sqlalchemy import or_
+from tools.db import transactional
 
 
 # ========== Capital Flow ==========
 
 def save_capital_flow(data):
-    try:
+    with transactional():
         flow = CapitalFlow(
             case_id=data.get('case_id', ''),
             source_account=data.get('source_account', ''),
@@ -20,11 +21,7 @@ def save_capital_flow(data):
             annotation=data.get('annotation', '')
         )
         db.session.add(flow)
-        db.session.commit()
         return flow.to_dict()
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def get_capital_flows(case_id=None):
@@ -83,7 +80,7 @@ def get_capital_flow_graph(case_id):
 # ========== Dispatch ==========
 
 def create_dispatch(data):
-    try:
+    with transactional():
         dispatch = DispatchOrder(
             alert_id=data.get('alert_id', ''),
             case_id=data.get('case_id', ''),
@@ -95,15 +92,11 @@ def create_dispatch(data):
             created_by=data.get('created_by')
         )
         db.session.add(dispatch)
-        db.session.commit()
         return dispatch.to_dict()
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def sign_dispatch(dispatch_id):
-    try:
+    with transactional():
         dispatch = DispatchOrder.query.get(dispatch_id)
         if not dispatch:
             raise ValueError('派单不存在')
@@ -111,15 +104,11 @@ def sign_dispatch(dispatch_id):
             raise ValueError(f'当前状态({dispatch.status})不允许签收')
         dispatch.status = 'signed'
         dispatch.sign_time = datetime.utcnow()
-        db.session.commit()
         return dispatch.to_dict()
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def complete_dispatch(dispatch_id, feedback):
-    try:
+    with transactional():
         dispatch = DispatchOrder.query.get(dispatch_id)
         if not dispatch:
             raise ValueError('派单不存在')
@@ -127,11 +116,7 @@ def complete_dispatch(dispatch_id, feedback):
             raise ValueError(f'当前状态({dispatch.status})不允许完成')
         dispatch.status = 'completed'
         dispatch.feedback = feedback
-        db.session.commit()
         return dispatch.to_dict()
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def get_dispatch_orders(status=None):
@@ -156,7 +141,7 @@ def get_dispatch_by_id(dispatch_id):
 # ========== Key Person ==========
 
 def save_key_person(data):
-    try:
+    with transactional():
         id_number = data.get('id_number', '')
         if not id_number:
             raise ValueError('身份证号不能为空')
@@ -177,7 +162,6 @@ def save_key_person(data):
             existing.source = data.get('source', existing.source)
             existing.notes = data.get('notes', existing.notes)
             existing.is_active = data.get('is_active', existing.is_active)
-            db.session.commit()
             return existing.to_dict()
 
         person = KeyPerson(
@@ -198,11 +182,7 @@ def save_key_person(data):
             is_active=True
         )
         db.session.add(person)
-        db.session.commit()
         return person.to_dict()
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def get_key_persons(search=None, risk_level=None, person_type=None):
@@ -249,16 +229,12 @@ def search_key_persons_by_phone_or_account(query_str):
 
 
 def delete_key_person(person_id):
-    try:
+    with transactional():
         person = KeyPerson.query.get(person_id)
         if not person:
             raise ValueError('重点人员不存在')
         person.is_active = False
-        db.session.commit()
         return {'success': True, 'message': '已移除'}
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 
 def collision_check(phone=None, account=None, id_number=None):

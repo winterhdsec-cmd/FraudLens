@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 import sys
 import os
+from tools.response import logger
 
 # 数据库 CRUD
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -58,7 +59,7 @@ class ChiefAgent(BaseAgent):
             'current_trace_id': None
         }
 
-        print("[ChiefAgent] 初始化完成")
+        logger.info("[ChiefAgent] 初始化完成")
 
     def _emit_progress(self, stage: str, status: str, message: str, context: AgentContext = None):
         """

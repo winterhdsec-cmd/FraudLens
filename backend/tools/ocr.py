@@ -1,6 +1,7 @@
 """OCR module using EasyOCR for Chinese text extraction."""
 import os
 import tempfile
+from tools.response import logger
 
 _reader = None
 
@@ -9,9 +10,9 @@ def get_reader():
     global _reader
     if _reader is None:
         import easyocr
-        print("📷 正在加载 OCR 引擎...")
+        logger.info("正在加载 OCR 引擎...")
         _reader = easyocr.Reader(['ch_sim', 'en'], gpu=False)
-        print("✅ OCR 引擎就绪")
+        logger.info("OCR 引擎就绪")
     return _reader
 
 

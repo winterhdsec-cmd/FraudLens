@@ -304,7 +304,7 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import NetworkGraph from './components/NetworkGraph.vue'
 import { store } from './store.js'
-import {
+import api, {
   startAnalysis as apiStartAnalysis,
   fetchCases,
   fetchGangs,
@@ -1289,7 +1289,7 @@ const loadDispatchOrders = async () => {
   try {
     const params = dispatchStatusFilter.value ? { status: dispatchStatusFilter.value } : {}
     const r = await api.get('/api/dispatch/list', { params })
-    dispatchOrders.value = r.data.dispatch_orders || r.data.data || []
+    dispatchOrders.value = r.data.orders || r.data.data || []
   } catch (e) {
     console.error('loadDispatchOrders:', e)
   }

@@ -244,6 +244,14 @@
 
         <div class="menu-group">
           <div class="menu-group-title">系统管理</div>
+          <el-menu-item index="status">
+            <template #title>
+              <div class="menu-item-content">
+                <span class="menu-icon">📊</span>
+                <span class="menu-text">系统监控</span>
+              </div>
+            </template>
+          </el-menu-item>
           <el-menu-item index="admin">
             <template #title>
               <div class="menu-item-content">
@@ -1527,6 +1535,15 @@ onMounted(async () => {
    } catch (e) {
      console.warn('加载初始数据失败:', e)
    }
+
+   // 数据完整性校验
+   const warnings = []
+   if (cases.value.length === 0) warnings.push('案件数据为空，请检查数据库连接')
+   if (gangs.value.length === 0) warnings.push('团伙数据为空')
+   if (warnings.length && routeName !== 'input') {
+     console.warn('数据完整性警告:', warnings.join('; '))
+   }
+
   if (routeName === 'overview' && gangs.value.length) {
     nextTick(() => initCharts())
   }

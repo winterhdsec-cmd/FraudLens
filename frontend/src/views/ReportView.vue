@@ -28,7 +28,8 @@
                 <div class="config-item">
                   <label class="config-label">选择团伙</label>
                   <el-select v-model="reportConfig.gangId" class="dark-select" placeholder="请选择团伙">
-                    <el-option v-for="gang in gangs" :key="gang.id" :label="gang.name" :value="gang.id" />
+                    <el-option label="-- 不限 --" value="" />
+                    <el-option v-for="gang in gangs" :key="gang.id || gang.gang_id" :label="gang.name || gang.gang_name" :value="gang.id || gang.gang_id" />
                   </el-select>
                 </div>
                 <div class="config-item">
@@ -119,10 +120,10 @@
                             <span class="info-value">{{ selectedCase.status || '-' }}</span>
                           </div>
                         </div>
-                        <div class="info-table" v-else>
+                        <div class="info-table" v-else-if="reportConfig.gangId">
                           <div class="info-row">
                             <span class="info-label">团伙名称</span>
-                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.name || '未选择' }}</span>
+                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.name || getGangById(reportConfig.gangId)?.gang_name || '未选择' }}</span>
                           </div>
                           <div class="info-row">
                             <span class="info-label">风险等级</span>
@@ -135,6 +136,16 @@
                           <div class="info-row">
                             <span class="info-label">关联案件</span>
                             <span class="info-value">{{ getGangById(reportConfig.gangId)?.cases || 0 }} 起</span>
+                          </div>
+                        </div>
+                        <div class="info-table" v-else>
+                          <div class="info-row">
+                            <span class="info-label">报告范围</span>
+                            <span class="info-value">全量案件综合分析</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">案件总数</span>
+                            <span class="info-value">{{ selectedCase?.id ? '聚焦单案' : (state.cases?.length || 0) + ' 起' }}</span>
                           </div>
                         </div>
                       </div>

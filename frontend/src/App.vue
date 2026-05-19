@@ -615,19 +615,19 @@ const selectGang = (gang) => {
 
 const viewGangDetail = (gang) => {
   selectGang(gang)
-  activeMenu.value = 'groups'
+  router.push({ name: 'groups' })
 }
 
 const viewCaseDetail = (caseItem) => {
   selectedCase.value = caseItem
-  activeMenu.value = 'case-detail'
+  router.push({ name: 'case-detail' })
 }
 
 const viewRelatedGang = (gangId) => {
   const gang = gangs.value.find(g => g.id === gangId)
   if (gang) {
     selectGang(gang)
-    activeMenu.value = 'groups'
+    router.push({ name: 'groups' })
   }
 }
 
@@ -1242,7 +1242,7 @@ const getConfidenceColor = (confidence) => {
 
 const viewCaseFromDashboard = (caseItem) => {
   selectedCase.value = caseItem
-  activeMenu.value = 'case-detail'
+  router.push({ name: 'case-detail' })
 }
 
 const initCharts = () => {
@@ -1321,14 +1321,16 @@ const initCharts = () => {
   })
 }
 
-watch(activeMenu, (newVal) => {
-  if (newVal === 'overview' && gangs.value.length) {
+watch(() => router.currentRoute.value.name, (routeName) => {
+  if (!routeName) return
+  activeMenu.value = routeName
+  if (routeName === 'overview' && gangs.value.length) {
     nextTick(() => initCharts())
   }
-  if (newVal === 'dashboard') {
+  if (routeName === 'dashboard') {
     loadDashboard()
   }
-  if (newVal === 'alerts') {
+  if (routeName === 'alerts') {
     loadAlerts()
   }
 })

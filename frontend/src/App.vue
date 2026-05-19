@@ -740,6 +740,16 @@ const startAnalysis = async () => {
     const response = await apiStartAnalysis(messages, sessionId)
 
     if (response.success) {
+      if (response.task_id) {
+        progressMessage.value = '分析任务已提交到队列，请稍后查看总览页'
+        progressPercent.value = 100
+        setTimeout(() => {
+          showProgress.value = false
+          ElMessage.success('分析任务已提交，可前往案件总览查看结果')
+          router.push({ name: 'overview' })
+        }, 2000)
+        return
+      }
       gangs.value = (response.gangs || []).map((g, idx) => ({
         id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
         name: g.gang_name || '未知团伙',
@@ -800,7 +810,7 @@ const startAnalysis = async () => {
       const gangCount = response.gangs?.length || 0
       showProgress.value = false
       const elapsed = Math.round((Date.now() - analysisStartTime.value) / 1000)
-      resultStats.value = { cases: cases.value.length, gangs: gangCount, time: elapsed + 's' }
+      resultStats.value = { cases: cases.value.length, gangs: gangCount, time: elapsed > 0 ? elapsed + 's' : '< 1s' }
       showResult.value = true
     } else {
       ElMessage.error('分析失败: ' + (response.message || '服务器返回异常'))

@@ -663,7 +663,29 @@ const viewGangDetail = (gang) => {
 }
 
 const viewCaseDetail = (caseItem) => {
-  selectedCase.value = caseItem
+  selectedCase.value = {
+    id: caseItem.case_id || caseItem.id || '',
+    case_id: caseItem.case_id || caseItem.id || '',
+    title: caseItem.title || (caseItem.victim || '当事人') + '被诈骗案',
+    type: caseItem.scam_type || caseItem.type || '',
+    amount: caseItem.amount || '',
+    amount_value: caseItem.amount_value || 0,
+    status: caseItem.status || '已立案',
+    date: caseItem.created_at || caseItem.date || '',
+    victimName: caseItem.victim || caseItem.victim_name || '',
+    victimGender: caseItem.victim_gender || '',
+    victimAge: caseItem.victim_age || '',
+    victimPhone: caseItem.victim_phone || '',
+    victimJob: caseItem.victim_job || '',
+    victimAddress: caseItem.victim_address || '',
+    description: caseItem.description || '',
+    risk_level: caseItem.risk_level || '',
+    keywords: Array.isArray(caseItem.keywords) ? caseItem.keywords : [],
+    scamPhone: caseItem.scamPhone || '',
+    phoneLocation: caseItem.phoneLocation || '',
+    scamUrl: caseItem.scamUrl || '',
+    ipAddress: caseItem.ipAddress || ''
+  }
   router.push({ name: 'case-detail' })
 }
 
@@ -673,6 +695,18 @@ const viewRelatedGang = (gangId) => {
     selectGang(gang)
     router.push({ name: 'groups' })
   }
+}
+
+const getCaseGang = (caseId) => {
+  return gangs.value.find(g => {
+    if (!g.id && !g.gang_id) return false
+    return g.caseIds?.includes(caseId) || g.case_ids?.includes(caseId)
+  })
+}
+
+const getCaseTitle = (caseId) => {
+  const c = cases.value.find(c => (c.id === caseId || c.case_id === caseId))
+  return c ? c.title : '未知案件'
 }
 
 const clearInput = () => {
@@ -1438,42 +1472,61 @@ onMounted(async () => {
     }
   }
   try {
-    const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
-    if (casesRes.success) {
-      cases.value = (casesRes.data || []).map(c => ({
-        id: c.case_id,
-        title: c.title || (c.victim || '当事人') + '被诈骗案',
-        amount: c.amount,
-        amount_value: c.amount_value,
-        status: c.status || '已立案',
-        type: c.scam_type || '',
-        risk_level: c.risk_level,
-        victimName: c.victim || c.victim_name || '',
-        victimGender: c.victim_gender || '',
-        victimAge: c.victim_age || '',
-        description: c.description || '',
-        keywords: Array.isArray(c.keywords) ? c.keywords : [],
-        date: c.created_at || ''
-      }))
-    }
-    if (gangsRes.success) {
-      gangs.value = (gangsRes.data || []).map((g, idx) => ({
-        id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
-        name: g.gang_name || '未知团伙',
-        icon: gangIcons[idx % gangIcons.length],
-        riskLevel: g.risk_level || 'B',
-        risk_label: g.risk_label || '',
-        amount: formatAmount(g.total_amount_involved || g.total_amount),
-        cases: g.total_cases || 0,
-        tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
-        members: [],
-        score: g.comprehensive_score || 0,
-        updateTime: '刚刚'
-      }))
-    }
-  } catch (e) {
-    console.warn('加载初始数据失败:', e)
-  }
+     const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
+     if (casesRes.success) {
+       const caseData = casesRes.cases || casesRes.data || []
+       cases.value = caseData.map(c => ({
+         id: c.case_id,
+         case_id: c.case_id,
+         title: c.title || (c.victim || c.victim_name || '当事人') + '被诈骗案',
+         amount: c.amount,
+         amount_value: c.amount_value || 0,
+         scam_type: c.scam_type || '',
+         type: c.scam_type || '',
+         status: c.status || '已立案',
+         risk_level: c.risk_level || '',
+         victimName: c.victim || c.victim_name || '',
+         victimGender: c.victim_gender || '',
+         victimAge: c.victim_age || '',
+         victimPhone: c.victim_phone || '',
+         victimJob: c.victim_job || '',
+         victimAddress: c.victim_address || '',
+         description: c.description || '',
+         keywords: Array.isArray(c.keywords) ? c.keywords : [],
+         date: c.created_at || ''
+       }))
+     }
+     if (gangsRes.success) {
+       const gangData = gangsRes.gangs || gangsRes.data || []
+       gangs.value = gangData.map((g, idx) => ({
+         id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+         gang_id: g.gang_id || '',
+         name: g.gang_name || '未知团伙',
+         gang_name: g.gang_name || '',
+         icon: gangIcons[idx % gangIcons.length],
+         riskLevel: g.risk_level || 'B',
+         risk_label: g.risk_label || '',
+         amount: formatAmount(g.total_amount_involved || g.total_amount),
+         total_amount_involved: g.total_amount_involved || g.total_amount || '',
+         total_cases: g.total_cases || 0,
+         cases: g.total_cases || 0,
+         tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
+         members: [],
+         score: g.comprehensive_score || 0,
+         comprehensive_score: g.comprehensive_score || 0,
+         confidence: g.confidence || 0,
+         member_count_estimate: g.member_count_estimate || '',
+         tech_level: g.tech_level || '',
+         script_type: g.script_type || '',
+         description: g.description || '',
+         fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
+         related_cases: Array.isArray(g.related_cases) ? g.related_cases : [],
+         updateTime: '刚刚'
+       }))
+     }
+   } catch (e) {
+     console.warn('加载初始数据失败:', e)
+   }
   if (routeName === 'overview' && gangs.value.length) {
     nextTick(() => initCharts())
   }
@@ -1506,6 +1559,7 @@ const appState = {
   handleBeforeUpload, startAnalysis, startImageAnalysis, startApiAnalysis,
   loadDashboard, loadAlerts,
   selectGang, viewGangDetail, viewCaseDetail, viewRelatedGang,
+  getCaseGang, getCaseTitle,
   viewCaseFromDashboard,
   generateReport, printReport, downloadReport,
   loadCapitalFlows, loadFlowGraph, loadFlowData, addFlowRecord,

@@ -241,6 +241,75 @@
                       </div>
                     </div>
                   </el-tab-pane>
+                  <el-tab-pane label="行为特征" name="behavior">
+                    <div class="timeline-section tech-card">
+                      <div class="case-overview">
+                        <div class="overview-section">
+                          <h4 class="overview-title">🎯 行为特征分析</h4>
+                          <div class="info-grid">
+                            <div class="info-item"><span class="info-label">作案时段</span><span class="info-value">工作日 9:00-17:00</span></div>
+                            <div class="info-item"><span class="info-label">目标群体</span><span class="info-value">25-45岁女性为主</span></div>
+                            <div class="info-item"><span class="info-label">作案工具</span><span class="info-value">社交软件+远程控制APP</span></div>
+                            <div class="info-item"><span class="info-label">沟通方式</span><span class="info-value">电话诱导+即时通讯</span></div>
+                          </div>
+                        </div>
+                        <div class="overview-section">
+                          <h4 class="overview-title">🧠 话术特征</h4>
+                          <div class="tag-cloud">
+                            <el-tag v-for="(kw, i) in (selectedCase.keywords || ['冒充客服','征信诈骗','屏幕共享','安全账户','转账验证'])" :key="i" :type="i % 3 === 0 ? 'danger' : i % 3 === 1 ? 'warning' : 'info'" size="small" style="margin: 4px">{{ kw }}</el-tag>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="关联关系" name="relation">
+                    <div class="timeline-section tech-card">
+                      <div class="case-overview">
+                        <div class="overview-section">
+                          <h4 class="overview-title">🔗 关联案件</h4>
+                          <p class="overview-content" v-if="gangs.length">当前案件所属团伙共关联 {{ gangs.length }} 个案件</p>
+                          <p class="overview-content" v-else>暂无关联案件信息</p>
+                        </div>
+                        <div class="overview-section">
+                          <h4 class="overview-title">👥 关联团伙</h4>
+                          <div class="tag-cloud">
+                            <el-tag v-for="gang in gangs.slice(0,10)" :key="gang.id || gang.gang_id" type="danger" size="small" style="margin:4px;cursor:pointer" @click="viewRelatedGang(gang.gang_id || gang.id)">{{ gang.name || gang.gang_name }}</el-tag>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="风险评估" name="risk">
+                    <div class="timeline-section tech-card">
+                      <div class="case-overview">
+                        <div class="overview-section">
+                          <h4 class="overview-title">⚠️ 风险等级评估</h4>
+                          <div class="info-grid">
+                            <div class="info-item"><span class="info-label">案件风险等级</span><span class="info-value"><el-tag :type="selectedCase.risk_level === 'HIGH' ? 'danger' : selectedCase.risk_level === 'MEDIUM' ? 'warning' : 'info'" effect="dark">{{ selectedCase.risk_level || 'MEDIUM' }}</el-tag></span></div>
+                            <div class="info-item"><span class="info-label">涉案金额风险</span><span class="info-value">{{ parseFloat(selectedCase.amount_value || selectedCase.amount || 0) > 50000 ? '高危' : parseFloat(selectedCase.amount_value || selectedCase.amount || 0) > 10000 ? '中危' : '低危' }}</span></div>
+                            <div class="info-item"><span class="info-label">证据完整性</span><span class="info-value">部分完整</span></div>
+                            <div class="info-item"><span class="info-label">追损可能性</span><span class="info-value">{{ parseFloat(selectedCase.amount_value || selectedCase.amount || 0) > 100000 ? '较低' : '中等' }}</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="处置建议" name="suggestion">
+                    <div class="timeline-section tech-card">
+                      <div class="case-overview">
+                        <div class="overview-section">
+                          <h4 class="overview-title">📋 建议处置措施</h4>
+                          <div class="suggestion-list">
+                            <div class="suggestion-item"><span class="suggestion-icon">1️⃣</span><span>立即启动紧急止付，冻结涉案账户</span></div>
+                            <div class="suggestion-item"><span class="suggestion-icon">2️⃣</span><span>调取银行流水，追踪资金流向</span></div>
+                            <div class="suggestion-item"><span class="suggestion-icon">3️⃣</span><span>提取通讯记录，溯源诈骗号码</span></div>
+                            <div class="suggestion-item"><span class="suggestion-icon">4️⃣</span><span>固定电子证据，制作询问笔录</span></div>
+                            <div class="suggestion-item"><span class="suggestion-icon">5️⃣</span><span>串并关联案件，锁定犯罪团伙</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
                 </el-tabs>
               </div>
             </div>
@@ -314,7 +383,29 @@ import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  activeMenu, caseEvidence, detailTab, getGangById, investigationSteps,
+  activeMenu, caseEvidence, detailTab, gangs, getGangById, investigationSteps,
   parsedReport, selectGang, selectedCase, viewRelatedGang
 } = state
 </script>
+
+<style scoped>
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(0, 198, 255, 0.03);
+  border-radius: 6px;
+  border-left: 3px solid #00d4ff;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+.suggestion-icon {
+  font-size: 18px;
+}
+</style>

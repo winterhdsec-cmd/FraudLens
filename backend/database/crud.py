@@ -6,100 +6,100 @@ from .models import (
     AnalysisSession, Case, Gang, GangCaseRelation,
     Person, Account, Phone, EvidenceItem
 )
+from tools.db import transactional
 
 
 def create_session(session_id, raw_input=None):
-    session = AnalysisSession(
-        session_id=session_id,
-        status='running',
-        raw_input=raw_input
-    )
-    db.session.add(session)
-    db.session.commit()
-    return session
+    with transactional():
+        session = AnalysisSession(
+            session_id=session_id,
+            status='running',
+            raw_input=raw_input
+        )
+        db.session.add(session)
+        return session
 
 
 def complete_session(session_id, status='completed', processing_info=None):
-    session = AnalysisSession.query.filter_by(session_id=session_id).first()
-    if session:
-        session.status = status
-        session.completed_at = datetime.utcnow()
-        if processing_info:
-            session.processing_info = processing_info
-        db.session.commit()
-    return session
+    with transactional():
+        session = AnalysisSession.query.filter_by(session_id=session_id).first()
+        if session:
+            session.status = status
+            session.completed_at = datetime.utcnow()
+            if processing_info:
+                session.processing_info = processing_info
+        return session
 
 
 def save_case(case_data, session_id=None):
-    existing = Case.query.filter_by(case_id=case_data['case_id']).first()
-    if existing:
-        return existing
+    with transactional():
+        existing = Case.query.filter_by(case_id=case_data['case_id']).first()
+        if existing:
+            return existing
 
-    amount_str = case_data.get('amount', '0')
-    amount_value = 0.0
-    import re
-    match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
-    if match:
-        num = float(match.group(1))
-        if '万' in amount_str:
-            num *= 10000
-        amount_value = num
+        amount_str = case_data.get('amount', '0')
+        amount_value = 0.0
+        import re
+        match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
+        if match:
+            num = float(match.group(1))
+            if '万' in amount_str:
+                num *= 10000
+            amount_value = num
 
-    embedding_bytes = None
-    if 'embedding' in case_data and case_data['embedding'] is not None:
-        embedding_bytes = case_data['embedding'].tobytes() if isinstance(case_data['embedding'], np.ndarray) else case_data['embedding']
+        embedding_bytes = None
+        if 'embedding' in case_data and case_data['embedding'] is not None:
+            embedding_bytes = case_data['embedding'].tobytes() if isinstance(case_data['embedding'], np.ndarray) else case_data['embedding']
 
-    roles_data = []
-    for r in case_data.get('roles', []):
-        if hasattr(r, 'dict'):
-            roles_data.append(r.dict())
-        elif isinstance(r, dict):
-            roles_data.append(r)
-        else:
-            roles_data.append(str(r))
+        roles_data = []
+        for r in case_data.get('roles', []):
+            if hasattr(r, 'dict'):
+                roles_data.append(r.dict())
+            elif isinstance(r, dict):
+                roles_data.append(r)
+            else:
+                roles_data.append(str(r))
 
-    case = Case(
-        case_id=str(case_data['case_id']),
-        session_id=session_id,
-        title=case_data.get('title', f"案件{case_data['case_id']}"),
-        scam_type=case_data.get('scam_type', ''),
-        scam_subtype=case_data.get('scam_subtype', ''),
-        risk_level=case_data.get('risk_level', 'LOW'),
-        risk_label=case_data.get('risk_label', '低风险'),
-        risk_type=case_data.get('risk_type', 'info'),
-        risk_score=case_data.get('risk_score', 0),
-        victim_name=case_data.get('victim', ''),
-        amount=amount_str,
-        amount_value=amount_value,
-        description=case_data.get('description', case_data.get('ai_report', '')[:500]),
-        status='已分析',
-        source=case_data.get('source', '文本'),
-        ai_report=case_data.get('ai_report', ''),
-        keywords=case_data.get('keywords', []),
-        steps=case_data.get('steps', []),
-        roles=roles_data,
-        extracted_entities=case_data.get('extracted_entities', {}),
-        message_count=case_data.get('message_count', 0),
-        time_range=case_data.get('time_range', ''),
-        warning=case_data.get('warning', None),
-        is_error=case_data.get('is_error', False),
-        embedding=embedding_bytes
-    )
-    db.session.add(case)
-    db.session.commit()
-
-    entities = case_data.get('extracted_entities', {})
-    if entities.get('phone_numbers'):
-        person = Person(
-            case_id=case['case_id'],
-            name=case_data.get('victim', ''),
-            role='victim',
-            phone=', '.join(entities['phone_numbers'][:3])
+        case = Case(
+            case_id=str(case_data['case_id']),
+            session_id=session_id,
+            title=case_data.get('title', f"案件{case_data['case_id']}"),
+            scam_type=case_data.get('scam_type', ''),
+            scam_subtype=case_data.get('scam_subtype', ''),
+            risk_level=case_data.get('risk_level', 'LOW'),
+            risk_label=case_data.get('risk_label', '低风险'),
+            risk_type=case_data.get('risk_type', 'info'),
+            risk_score=case_data.get('risk_score', 0),
+            victim_name=case_data.get('victim', ''),
+            amount=amount_str,
+            amount_value=amount_value,
+            description=case_data.get('description', case_data.get('ai_report', '')[:500]),
+            status='已分析',
+            source=case_data.get('source', '文本'),
+            ai_report=case_data.get('ai_report', ''),
+            keywords=case_data.get('keywords', []),
+            steps=case_data.get('steps', []),
+            roles=roles_data,
+            extracted_entities=case_data.get('extracted_entities', {}),
+            message_count=case_data.get('message_count', 0),
+            time_range=case_data.get('time_range', ''),
+            warning=case_data.get('warning', None),
+            is_error=case_data.get('is_error', False),
+            embedding=embedding_bytes
         )
-        db.session.add(person)
-        db.session.commit()
+        db.session.add(case)
 
-    return case
+        entities = case_data.get('extracted_entities', {})
+        if entities.get('phone_numbers'):
+            person = Person(
+                case_id=case['case_id'],
+                name=case_data.get('victim', ''),
+                role='victim',
+                phone=', '.join(entities['phone_numbers'][:3])
+            )
+            db.session.add(person)
+
+        return case
 
 
 def _safe_json(value):
@@ -120,66 +120,65 @@ def _parse_json(value, default=None):
     return value if value else (default or value)
 
 def save_gang(gang_data, session_id=None):
-    existing = Gang.query.filter_by(gang_id=gang_data['gang_id']).first()
-    if existing:
-        return existing
+    with transactional():
+        existing = Gang.query.filter_by(gang_id=gang_data['gang_id']).first()
+        if existing:
+            return existing
 
-    amount_str = gang_data.get('total_amount_involved', '0')
-    amount_value = 0.0
-    import re
-    match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
-    if match:
-        num = float(match.group(1))
-        if '万' in amount_str:
-            num *= 10000
-        amount_value = num
+        amount_str = gang_data.get('total_amount_involved', '0')
+        amount_value = 0.0
+        import re
+        match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
+        if match:
+            num = float(match.group(1))
+            if '万' in amount_str:
+                num *= 10000
+            amount_value = num
 
-    centroid_bytes = None
-    if 'centroid' in gang_data and gang_data['centroid'] is not None:
-        centroid_bytes = gang_data['centroid'].tobytes() if isinstance(gang_data['centroid'], np.ndarray) else gang_data['centroid']
+        centroid_bytes = None
+        if 'centroid' in gang_data and gang_data['centroid'] is not None:
+            centroid_bytes = gang_data['centroid'].tobytes() if isinstance(gang_data['centroid'], np.ndarray) else gang_data['centroid']
 
-    gang = Gang(
-        gang_id=gang_data['gang_id'],
-        session_id=session_id,
-        gang_name=gang_data.get('gang_name', ''),
-        risk_level=gang_data.get('risk_level', 'C'),
-        risk_label=gang_data.get('risk_label', '低风险'),
-        risk_type=gang_data.get('risk_type', 'info'),
-        threat_level=gang_data.get('threat_level', gang_data.get('risk_level', 'C')),
-        comprehensive_score=gang_data.get('comprehensive_score', gang_data.get('risk_score', 0)),
-        confidence=gang_data.get('confidence', 0),
-        member_count_estimate=gang_data.get('member_count_estimate', ''),
-        tech_level=gang_data.get('tech_level', '中'),
-        script_type=gang_data.get('script_type', ''),
-        total_cases=int(gang_data.get('total_cases', 0)),
-        total_amount=amount_str,
-        total_amount_value=amount_value,
-        description=gang_data.get('description', ''),
-        fingerprint=gang_data.get('fingerprint', []),
-        enhanced_fingerprint=gang_data.get('enhanced_fingerprint', []),
-        steps=gang_data.get('steps', []),
-        radar_data=gang_data.get('radar_data', {}),
-        deep_characteristics=gang_data.get('deep_characteristics', []),
-        risk_assessment=gang_data.get('risk_assessment', {}),
-        modus_operandi=gang_data.get('modus_operandi', ''),
-        prevention_advice=_safe_text(gang_data.get('prevention_advice', '')),
-        network_nodes=_safe_json(gang_data.get('network_nodes', [])),
-        centroid=centroid_bytes,
-        created_at=datetime.utcnow()
-    )
-    db.session.add(gang)
-    db.session.commit()
-
-    for case_ref in gang_data.get('related_cases', []):
-        relation = GangCaseRelation(
+        gang = Gang(
             gang_id=gang_data['gang_id'],
-            case_id=str(case_ref.get('case_id', '')),
-            similarity=case_ref.get('similarity', 0.0)
+            session_id=session_id,
+            gang_name=gang_data.get('gang_name', ''),
+            risk_level=gang_data.get('risk_level', 'C'),
+            risk_label=gang_data.get('risk_label', '低风险'),
+            risk_type=gang_data.get('risk_type', 'info'),
+            threat_level=gang_data.get('threat_level', gang_data.get('risk_level', 'C')),
+            comprehensive_score=gang_data.get('comprehensive_score', gang_data.get('risk_score', 0)),
+            confidence=gang_data.get('confidence', 0),
+            member_count_estimate=gang_data.get('member_count_estimate', ''),
+            tech_level=gang_data.get('tech_level', '中'),
+            script_type=gang_data.get('script_type', ''),
+            total_cases=int(gang_data.get('total_cases', 0)),
+            total_amount=amount_str,
+            total_amount_value=amount_value,
+            description=gang_data.get('description', ''),
+            fingerprint=gang_data.get('fingerprint', []),
+            enhanced_fingerprint=gang_data.get('enhanced_fingerprint', []),
+            steps=gang_data.get('steps', []),
+            radar_data=gang_data.get('radar_data', {}),
+            deep_characteristics=gang_data.get('deep_characteristics', []),
+            risk_assessment=gang_data.get('risk_assessment', {}),
+            modus_operandi=gang_data.get('modus_operandi', ''),
+            prevention_advice=_safe_text(gang_data.get('prevention_advice', '')),
+            network_nodes=_safe_json(gang_data.get('network_nodes', [])),
+            centroid=centroid_bytes,
+            created_at=datetime.utcnow()
         )
-        db.session.add(relation)
+        db.session.add(gang)
 
-    db.session.commit()
-    return gang
+        for case_ref in gang_data.get('related_cases', []):
+            relation = GangCaseRelation(
+                gang_id=gang_data['gang_id'],
+                case_id=str(case_ref.get('case_id', '')),
+                similarity=case_ref.get('similarity', 0.0)
+            )
+            db.session.add(relation)
+
+        return gang
 
 
 def get_all_cases():
@@ -349,25 +348,25 @@ VALID_STATUS_TRANSITIONS = {
 
 
 def update_case_status(case_id, new_status):
-    case = Case.query.filter_by(case_id=case_id).first()
-    if not case:
-        raise ValueError(f'Case {case_id} not found')
+    with transactional():
+        case = Case.query.filter_by(case_id=case_id).first()
+        if not case:
+            raise ValueError(f'Case {case_id} not found')
 
-    current = case.status or '待分析'
-    allowed = VALID_STATUS_TRANSITIONS.get(current, [])
+        current = case.status or '待分析'
+        allowed = VALID_STATUS_TRANSITIONS.get(current, [])
 
-    if current == new_status:
+        if current == new_status:
+            return _case_to_dict(case)
+
+        if new_status not in allowed:
+            raise ValueError(
+                f'Invalid status transition: {current} -> {new_status}. '
+                f'Allowed targets: {allowed}'
+            )
+
+        case.status = new_status
         return _case_to_dict(case)
-
-    if new_status not in allowed:
-        raise ValueError(
-            f'Invalid status transition: {current} -> {new_status}. '
-            f'Allowed targets: {allowed}'
-        )
-
-    case.status = new_status
-    db.session.commit()
-    return _case_to_dict(case)
 
 
 def get_case_stats():

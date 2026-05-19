@@ -186,8 +186,8 @@
 </template>
 
 <script setup>
-import { inject } from "vue"
-const state = inject("appState")
+import { useAppState } from '../composables/useAppState.js'
+const state = useAppState()
 const {
   activeMenu, cases, downloadReport, gangs, generateReport, generatingReport,
   getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview

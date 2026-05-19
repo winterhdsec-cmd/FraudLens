@@ -89,11 +89,12 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { changePassword, updateUser, deleteUser, getOperationLogs } from '../api.js'
+import { useAppState } from '../composables/useAppState.js'
 
-const state = inject('appState')
+const state = useAppState()
 const { activeMenu } = state
 
 const adminTab = ref('users')

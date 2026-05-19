@@ -37,6 +37,7 @@ from database.crud import (
     get_case_stats, update_case_status, _case_to_dict
 )
 from database.auth import log_operation as _flask_log_operation
+from tools.response import logger
 
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
@@ -44,6 +45,13 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
 DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+
+# ---------- Global Flask App (pushed once, keeps Flask-SQLAlchemy working) ----------
+_flask_app = _Flask(__name__)
+_flask_app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
+_flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+init_db(_flask_app)
+_flask_app.app_context().push()
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fraudlens-jwt-secret-key-2024")
 JWT_ALGORITHM = "HS256"
@@ -58,25 +66,14 @@ if USE_CELERY == "auto":
         r.ping()
         USE_CELERY = True
         r.close()
-        print("✅ Redis 已检测到，自动启用 Celery 异步模式")
+        logger.info("Redis 已检测到，自动启用 Celery 异步模式")
     except Exception:
         USE_CELERY = False
-        print("ℹ️ Redis 未检测到，使用同步模式 (安装 Redis 后自动切换)")
+        logger.info("Redis 未检测到，使用同步模式 (安装 Redis 后自动切换)")
 elif USE_CELERY == "true":
     USE_CELERY = True
 else:
     USE_CELERY = False
-
-_flask_app: Optional[_Flask] = None
-
-def get_flask_app() -> _Flask:
-    global _flask_app
-    if _flask_app is None:
-        _flask_app = _Flask(__name__)
-        _flask_app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
-        _flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        init_db(_flask_app)
-    return _flask_app
 
 # ---------- JWT Helpers ----------
 def create_token(user_id: Any, extra_claims: Optional[Dict[str, Any]] = None, expires_delta: Optional[timedelta] = None) -> str:
@@ -127,15 +124,13 @@ def get_current_user(request: Request) -> Dict[str, Any]:
     payload = decode_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="令牌无效或已过期")
-    app = get_flask_app()
-    with app.app_context():
-        from database.models import User
-        user = User.query.get(int(payload['sub']))
-        if not user:
-            raise HTTPException(status_code=401, detail="用户不存在")
-        if not user.is_active:
-            raise HTTPException(status_code=403, detail="账号已被禁用")
-        return user.to_dict()
+    from database.models import User
+    user = User.query.get(int(payload['sub']))
+    if not user:
+        raise HTTPException(status_code=401, detail="用户不存在")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="账号已被禁用")
+    return user.to_dict()
 
 def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
     token = get_token_from_header(request)
@@ -148,20 +143,18 @@ def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
 
 # ---------- Operation Log helper ----------
 def log_operation(user_id: int, username: str, action: str, target_type: str = '', target_id: str = '', detail: Any = None, ip_address: str = ''):
-    app = get_flask_app()
-    with app.app_context():
-        from database.models import OperationLog
-        log = OperationLog(
-            user_id=user_id,
-            username=username,
-            action=action,
-            target_type=target_type,
-            target_id=target_id,
-            detail=detail or {},
-            ip_address=ip_address
-        )
-        db.session.add(log)
-        db.session.commit()
+    from database.models import OperationLog
+    log = OperationLog(
+        user_id=user_id,
+        username=username,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        detail=detail or {},
+        ip_address=ip_address
+    )
+    db.session.add(log)
+    db.session.commit()
 
 # ---------- Progress Tracking ----------
 progress_store: Dict[str, List[Dict[str, Any]]] = {}
@@ -221,34 +214,32 @@ class AnalyzeRequest(BaseModel):
 # ---------- Lifespan ----------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("=" * 60)
-    print("AI 反诈研判官系统 v3.0 (FastAPI) 启动")
-    print("=" * 60)
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        from database.models import User
-        # 注册P1模型
-        from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
-        db.create_all()
-        if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin', display_name='系统管理员', role='admin', department='反诈中心')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("默认管理员账号已创建 (admin/admin123)")
+    logger.info("=" * 60)
+    logger.info("AI 反诈研判官系统 v3.0 (FastAPI) 启动")
+    logger.info("=" * 60)
+    from database.models import User
+    # 注册P1模型
+    from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
+    db.create_all()
+    if not User.query.filter_by(username='admin').first():
+        admin = User(username='admin', display_name='系统管理员', role='admin', department='反诈中心')
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+        logger.info("默认管理员账号已创建 (admin/admin123)")
     try:
         from tools.engine import engine as _engine
         global fraud_engine
         fraud_engine = _engine
-        print("反诈引擎初始化成功")
+        logger.info("反诈引擎初始化成功")
     except Exception as e:
-        print(f"反诈引擎初始化失败: {e}")
+        logger.error(f"反诈引擎初始化失败: {e}")
         fraud_engine = None
-    print(f"USE_CELERY={USE_CELERY}")
-    print(f"数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
-    print("=" * 60)
+    logger.info(f"USE_CELERY={USE_CELERY}")
+    logger.info(f"数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+    logger.info("=" * 60)
     yield
-    print("服务关闭")
+    logger.info("服务关闭")
 
 # ---------- App ----------
 app = FastAPI(title="FraudLens AI 反诈研判官系统", version="3.0", lifespan=lifespan)
@@ -266,14 +257,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ---------- DB Context Middleware ----------
-@app.middleware("http")
-async def db_context_middleware(request: Request, call_next):
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        response = await call_next(request)
-    return response
 
 # ---------- Global Exception Handler ----------
 @app.exception_handler(Exception)
@@ -296,33 +279,31 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.post('/api/auth/login')
 async def api_login(data: LoginRequest, request: Request):
     try:
-        flask_app = get_flask_app()
-        with flask_app.app_context():
-            from database.models import User
-            user = User.query.filter_by(username=data.username).first()
-            if not user or not user.check_password(data.password):
-                raise HTTPException(status_code=401, detail="用户名或密码错误")
-            if not user.is_active:
-                raise HTTPException(status_code=403, detail="账号已被禁用")
-            user.last_login = datetime.utcnow()
-            db.session.commit()
-            access_token = create_token(
-                user.id,
-                extra_claims={
-                    'username': user.username,
-                    'role': user.role,
-                    'display_name': user.display_name
-                }
-            )
-            refresh_token = create_refresh_token(user.id)
-            ip = request.client.host if request.client else ''
-            log_operation(user.id, user.username, 'login', ip_address=ip)
-            return {
-                "success": True,
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "user": user.to_dict()
+        from database.models import User
+        user = User.query.filter_by(username=data.username).first()
+        if not user or not user.check_password(data.password):
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="账号已被禁用")
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        access_token = create_token(
+            user.id,
+            extra_claims={
+                'username': user.username,
+                'role': user.role,
+                'display_name': user.display_name
             }
+        )
+        refresh_token = create_refresh_token(user.id)
+        ip = request.client.host if request.client else ''
+        log_operation(user.id, user.username, 'login', ip_address=ip)
+        return {
+            "success": True,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user.to_dict()
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -335,26 +316,24 @@ async def api_register(data: RegisterRequest, request: Request):
             raise HTTPException(status_code=400, detail="用户名和密码不能为空")
         if len(data.password) < 6:
             raise HTTPException(status_code=400, detail="密码长度至少6位")
-        flask_app = get_flask_app()
-        with flask_app.app_context():
-            from database.models import User
-            if User.query.filter_by(username=data.username).first():
-                raise HTTPException(status_code=409, detail="用户名已存在")
-            user = User(
-                username=data.username,
-                display_name=data.display_name or data.username,
-                role=data.role,
-                department=data.department,
-                phone=data.phone
-            )
-            user.set_password(data.password)
-            db.session.add(user)
-            db.session.commit()
-            ip = request.client.host if request.client else ''
-            log_operation(user.id, user.username, 'register', ip_address=ip)
-            return JSONResponse(status_code=201, content={
-                "success": True, "message": "注册成功", "user": user.to_dict()
-            })
+        from database.models import User
+        if User.query.filter_by(username=data.username).first():
+            raise HTTPException(status_code=409, detail="用户名已存在")
+        user = User(
+            username=data.username,
+            display_name=data.display_name or data.username,
+            role=data.role,
+            department=data.department,
+            phone=data.phone
+        )
+        user.set_password(data.password)
+        db.session.add(user)
+        db.session.commit()
+        ip = request.client.host if request.client else ''
+        log_operation(user.id, user.username, 'register', ip_address=ip)
+        return JSONResponse(status_code=201, content={
+            "success": True, "message": "注册成功", "user": user.to_dict()
+        })
     except HTTPException:
         raise
     except Exception as e:
@@ -362,13 +341,11 @@ async def api_register(data: RegisterRequest, request: Request):
 
 @app.get('/api/auth/me')
 async def api_get_me(current_user: dict = Depends(get_current_user)):
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        from database.models import User
-        user = User.query.get(current_user['id'])
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
-        return {"success": True, "user": user.to_dict()}
+    from database.models import User
+    user = User.query.get(current_user['id'])
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return {"success": True, "user": user.to_dict()}
 
 @app.post('/api/auth/logout')
 async def api_logout(request: Request):
@@ -382,30 +359,26 @@ async def api_logout(request: Request):
 
 @app.get('/api/auth/users')
 async def api_list_users(current_user: dict = Depends(get_current_user)):
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        from database.models import User
-        users = User.query.order_by(User.created_at.desc()).all()
-        return {"success": True, "users": [u.to_dict() for u in users]}
+    from database.models import User
+    users = User.query.order_by(User.created_at.desc()).all()
+    return {"success": True, "users": [u.to_dict() for u in users]}
 
 @app.get('/api/auth/logs')
 async def api_get_auth_logs(current_user: dict = Depends(get_current_user)):
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        from database.models import OperationLog
-        logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(100).all()
-        return {
-            "success": True,
-            "logs": [{
-                'id': l.id,
-                'username': l.username,
-                'action': l.action,
-                'target': f"{l.target_type}/{l.target_id}",
-                'detail': l.detail,
-                'ip_address': l.ip_address,
-                'created_at': l.created_at.isoformat() if l.created_at else None
-            } for l in logs]
-        }
+    from database.models import OperationLog
+    logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(100).all()
+    return {
+        "success": True,
+        "logs": [{
+            'id': l.id,
+            'username': l.username,
+            'action': l.action,
+            'target': f"{l.target_type}/{l.target_id}",
+            'detail': l.detail,
+            'ip_address': l.ip_address,
+            'created_at': l.created_at.isoformat() if l.created_at else None
+        } for l in logs]
+    }
 
 @app.post('/api/auth/refresh')
 async def api_refresh(data: RefreshRequest):
@@ -414,21 +387,19 @@ async def api_refresh(data: RefreshRequest):
     if not payload or payload.get('type') != 'refresh':
         raise HTTPException(status_code=401, detail="无效的刷新令牌")
     user_id = int(payload['sub'])
-    flask_app = get_flask_app()
-    with flask_app.app_context():
-        from database.models import User
-        user = User.query.get(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
-        access_token = create_token(
-            user.id,
-            extra_claims={
-                'username': user.username,
-                'role': user.role,
-                'display_name': user.display_name
-            }
-        )
-        return {"success": True, "access_token": access_token}
+    from database.models import User
+    user = User.query.get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    access_token = create_token(
+        user.id,
+        extra_claims={
+            'username': user.username,
+            'role': user.role,
+            'display_name': user.display_name
+        }
+    )
+    return {"success": True, "access_token": access_token}
 
 # ========== File Text Extraction ==========
 
@@ -489,24 +460,37 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
                 "session_id": session_id,
                 "message": "分析任务已提交到队列"
             }
-        print("=" * 60)
-        print("反诈研判官Agent启动智能研判流程 (同步模式)...")
-        print(f"会话ID: {session_id}")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("反诈研判官Agent启动智能研判流程 (同步模式)...")
+        logger.info(f"会话ID: {session_id}")
+        logger.info("=" * 60)
         from agents.chief_agent import ChiefAgent
         from agents.base import AgentConfig, AgentContext
         LLM_REQUEST_TIMEOUT = 30
         llm_analyze = None
         llm_triage = None
         try:
-            from langchain_community.llms import Tongyi
+            from langchain_community.chat_models import ChatOpenAI
             from agents.llm_wrapper import wrap_llm
-            raw_analyze = Tongyi(model_name="qwen-turbo", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
-            raw_triage = Tongyi(model_name="qwen-turbo", temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT)
+            DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+            raw_analyze = ChatOpenAI(
+                model="deepseek-chat",
+                temperature=0.1,
+                request_timeout=120,
+                openai_api_key=DEEPSEEK_API_KEY,
+                openai_api_base="https://api.deepseek.com"
+            )
+            raw_triage = ChatOpenAI(
+                model="deepseek-chat",
+                temperature=0.1,
+                request_timeout=120,
+                openai_api_key=DEEPSEEK_API_KEY,
+                openai_api_base="https://api.deepseek.com"
+            )
             llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
             llm_triage = wrap_llm(raw_triage, max_concurrent=3)
         except ImportError:
-            print("使用模拟模式 (langchain不可用)")
+            logger.warning("使用模拟模式 (langchain不可用)")
         progress_adapter = ProgressAdapter(session_id)
         progress_adapter.emit('analysis_progress', {
             'stage': 'init', 'stage_name': '初始化', 'status': 'running',
@@ -531,9 +515,9 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
             'total_gangs': len(result.get('gangs', [])),
             'trace_id': context.trace_id
         })
-        print("=" * 60)
-        print("智能研判完成！")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("智能研判完成！")
+        logger.info("=" * 60)
         return result
     except HTTPException:
         raise
@@ -606,7 +590,7 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"WebSocket错误 ({session_id}): {e}")
+        logger.error(f"WebSocket错误 ({session_id}): {e}")
     finally:
         progress_store.pop(session_id, None)
         progress_locks.pop(session_id, None)
@@ -617,11 +601,9 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
 async def health_check():
     db_ok = False
     try:
-        flask_app = get_flask_app()
-        with flask_app.app_context():
-            from database.models import Case
-            Case.query.first()
-            db_ok = True
+        from database.models import Case
+        Case.query.first()
+        db_ok = True
     except Exception:
         pass
     return {
@@ -748,22 +730,20 @@ async def api_advanced_search(type: str = Query('', alias='type'), value: str = 
     try:
         if not type or not value:
             raise HTTPException(status_code=400, detail="请指定搜索类型和关键词")
-        flask_app = get_flask_app()
-        with flask_app.app_context():
-            from database.models import Case
-            cases = Case.query.order_by(Case.created_at.desc()).all()
-            results = []
-            for c in cases:
-                entities = c.extracted_entities or {}
-                if type == 'phone' and value in str(entities.get('phone_numbers', [])):
-                    results.append(c)
-                elif type == 'bank' and value in str(entities.get('bank_accounts', [])):
-                    results.append(c)
-                elif type == 'ip' and value in str(entities.get('ips', entities.get('ip_addresses', []))):
-                    results.append(c)
-                elif type == 'app' and value in str(entities.get('app_names', [])):
-                    results.append(c)
-            return {"success": True, "cases": [_case_to_dict(c) for c in results], "total": len(results)}
+        from database.models import Case
+        cases = Case.query.order_by(Case.created_at.desc()).all()
+        results = []
+        for c in cases:
+            entities = c.extracted_entities or {}
+            if type == 'phone' and value in str(entities.get('phone_numbers', [])):
+                results.append(c)
+            elif type == 'bank' and value in str(entities.get('bank_accounts', [])):
+                results.append(c)
+            elif type == 'ip' and value in str(entities.get('ips', entities.get('ip_addresses', []))):
+                results.append(c)
+            elif type == 'app' and value in str(entities.get('app_names', [])):
+                results.append(c)
+        return {"success": True, "cases": [_case_to_dict(c) for c in results], "total": len(results)}
     except HTTPException:
         raise
     except Exception as e:
@@ -951,17 +931,15 @@ async def api_import_excel(file: UploadFile = File(...)):
 async def api_public_logs():
     try:
         from database.models import OperationLog
-        flask_app = get_flask_app()
-        with flask_app.app_context():
-            logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(50).all()
-            return {
-                "success": True,
-                "logs": [{
-                    'id': l.id, 'username': l.username, 'action': l.action,
-                    'target': f"{l.target_type}/{l.target_id}",
-                    'created_at': l.created_at.isoformat() if l.created_at else None
-                } for l in logs]
-            }
+        logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(50).all()
+        return {
+            "success": True,
+            "logs": [{
+                'id': l.id, 'username': l.username, 'action': l.action,
+                'target': f"{l.target_type}/{l.target_id}",
+                'created_at': l.created_at.isoformat() if l.created_at else None
+            } for l in logs]
+        }
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
@@ -987,13 +965,13 @@ async def api_network_data():
 
 if __name__ == '__main__':
     import uvicorn
-    print("=" * 60)
-    print("AI 反诈研判官系统 v3.0 (FastAPI)")
-    print("=" * 60)
-    print("可用接口:")
-    print("   POST /agent-analyze   (智能研判分析)")
-    print("   GET  /health          (健康检查)")
-    print("   GET  /api/cases       (案件列表)")
-    print("   WS   /ws/{session_id} (实时进度)")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("AI 反诈研判官系统 v3.0 (FastAPI)")
+    logger.info("=" * 60)
+    logger.info("可用接口:")
+    logger.info("   POST /agent-analyze   (智能研判分析)")
+    logger.info("   GET  /health          (健康检查)")
+    logger.info("   GET  /api/cases       (案件列表)")
+    logger.info("   WS   /ws/{session_id} (实时进度)")
+    logger.info("=" * 60)
     uvicorn.run(app, host='0.0.0.0', port=5003)

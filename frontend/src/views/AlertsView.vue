@@ -125,13 +125,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
-  activeMenu, alerts, alertsLoading, getAlertType, getConfidenceColor, handleResolveAlert,
-  loadAlerts, loading, resolvingAlert, cases
+  activeMenu, alerts, alertsLoading, cases, getAlertType, getConfidenceColor, handleResolveAlert,
+  loadAlerts, loading, resolvingAlert
 } = state
+
+onMounted(() => loadAlerts())
 
 const getCaseTitle = (caseId) => {
   if (!caseId) return '未知案件'

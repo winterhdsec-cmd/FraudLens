@@ -47,10 +47,13 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, keyPersons, loadKeyPersons, personSearch, personTypeFilter, showCreatePerson,
   deleteKeyPerson
 } = state
+
+onMounted(() => loadKeyPersons())
 </script>

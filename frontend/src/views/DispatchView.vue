@@ -52,6 +52,7 @@
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
-  activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch
+  activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch,
+  signDispatch, showCompleteDispatch
 } = state
 </script>

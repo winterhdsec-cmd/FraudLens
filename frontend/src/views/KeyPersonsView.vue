@@ -50,6 +50,7 @@
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
-  activeMenu, keyPersons, loadKeyPersons, personSearch, personTypeFilter, showCreatePerson
+  activeMenu, keyPersons, loadKeyPersons, personSearch, personTypeFilter, showCreatePerson,
+  deleteKeyPerson
 } = state
 </script>

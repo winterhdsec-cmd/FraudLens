@@ -213,6 +213,7 @@ import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, apiDataPreview, apiSources, connectedSources, features, fetchAntiFraudData,
-  fetchBankData, fetchPoliceData, importApiData, syncApiData, toggleApiSource
+  fetchBankData, fetchPoliceData, importApiData, syncApiData, toggleApiSource,
+  loading, hasApiData
 } = state
 </script>

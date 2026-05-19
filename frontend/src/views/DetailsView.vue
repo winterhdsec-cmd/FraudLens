@@ -1,5 +1,16 @@
 <template>
 <div class="view-section">
+          <div v-if="!gangs.length" class="empty-state" style="margin-top: 60px;">
+            <div class="empty-content">
+              <div class="empty-icon">📈</div>
+              <h3 class="empty-title">暂无分析数据</h3>
+              <p class="empty-desc">请先进行智能研判分析，系统将自动生成团伙特征、资金流向和关联关系分析</p>
+              <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
+                <span>📝</span> 前往录入研判
+              </el-button>
+            </div>
+          </div>
+          <div v-else>
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
@@ -190,10 +201,13 @@
             </div>
           </div>
         </div>
+        </div>
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, caseTypeStats, features, getFeatureIcon, regionStats, relationLines,

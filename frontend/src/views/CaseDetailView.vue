@@ -6,6 +6,17 @@
               <el-breadcrumb-item v-if="selectedCase">{{ selectedCase.title }}</el-breadcrumb-item>
             </el-breadcrumb>
           </div>
+          <div v-if="!selectedCase" class="empty-state" style="margin-top: 60px;">
+            <div class="empty-content">
+              <div class="empty-icon">🔍</div>
+              <h3 class="empty-title">请先选择案件</h3>
+              <p class="empty-desc">请前往"案件总览"页面选择具体案件，查看详细分析</p>
+              <el-button type="primary" size="large" @click="router.push({ name: 'overview' })">
+                <span>📊</span> 前往案件总览
+              </el-button>
+            </div>
+          </div>
+          <template v-else>
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
@@ -16,7 +27,7 @@
             </div>
           </div>
 
-          <div v-if="selectedCase" class="case-detail-content">
+          <div class="case-detail-content">
             <div class="detail-main">
               <div class="case-header-card tech-card">
                 <div class="case-header-top">
@@ -293,16 +304,7 @@
             </div>
           </div>
 
-          <div v-else class="empty-state">
-            <div class="empty-content">
-              <div class="empty-icon">📋</div>
-              <h3 class="empty-title">暂无选中案件</h3>
-              <p class="empty-desc">请先在案件总览中选择一个案件查看详情</p>
-              <el-button type="primary" size="large" @click="router.push({ name: 'overview' })">
-                <span>📊</span> 前往案件总览
-              </el-button>
-            </div>
-          </div>
+          </template>
         </div>
 </template>
 

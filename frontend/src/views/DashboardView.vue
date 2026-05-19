@@ -105,11 +105,11 @@
             </div>
             <div class="cases-table tech-card">
               <el-table :data="dashboardData.recent_cases" style="width: 100%" @row-click="viewCaseFromDashboard" :highlight-current-row="true">
-                <el-table-column prop="id" label="案件编号" width="100" />
+                <el-table-column prop="case_id" label="案件编号" width="100" />
                 <el-table-column prop="title" label="案件名称" />
-                <el-table-column prop="type" label="案件类型" width="100">
+                <el-table-column prop="scam_type" label="案件类型" width="100">
                   <template #default="scope">
-                    <el-tag type="info" size="small">{{ scope.row.type }}</el-tag>
+                    <el-tag type="info" size="small">{{ scope.row.scam_type }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="amount" label="涉案金额" width="120" />
@@ -120,7 +120,7 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="date" label="立案时间" width="120" />
+                <el-table-column prop="created_at" label="立案时间" width="120" />
                 <el-table-column label="操作" width="100">
                   <template #default="scope">
                     <el-button size="small" type="primary" @click="viewCaseFromDashboard(scope.row)">

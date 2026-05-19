@@ -248,7 +248,7 @@
               <div class="empty-icon">📊</div>
               <h3 class="empty-title">暂无案件数据</h3>
               <p class="empty-desc">请先通过数据录入功能添加案情信息，系统将自动进行智能研判</p>
-              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+              <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
                 <span>📝</span> 前往录入
               </el-button>
             </div>
@@ -257,7 +257,9 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, cases, gangSearchKeyword, gangs, lineChartRef, pieChartRef,

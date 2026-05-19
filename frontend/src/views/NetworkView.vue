@@ -28,6 +28,13 @@
           <div class="network-container tech-card">
             <NetworkGraph :gangs="gangs" :selectedGang="selectedGang" @select="selectGang" />
           </div>
+          <div v-if="!gangs.length" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">🕸️</div>
+              <h3 class="empty-title">暂无关联网络</h3>
+              <p class="empty-desc">请先进行智能研判，系统将自动构建团伙关联网络</p>
+            </div>
+          </div>
         </div>
 </template>
 

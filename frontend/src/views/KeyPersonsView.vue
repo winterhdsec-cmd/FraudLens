@@ -36,6 +36,13 @@
               </el-table-column>
             </el-table>
           </div>
+          <div v-if="!keyPersons.length && !personSearch" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">👤</div>
+              <h3 class="empty-title">暂无重点人员</h3>
+              <p class="empty-desc">研判分析中碰撞到的人员会自动添加到重点人员库</p>
+            </div>
+          </div>
         </div>
 </template>
 

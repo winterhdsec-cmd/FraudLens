@@ -33,6 +33,13 @@
               </el-table-column>
             </el-table>
           </div>
+          <div v-if="!capitalFlows.length && !flowSearchCaseId" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">💰</div>
+              <h3 class="empty-title">暂无资金流向数据</h3>
+              <p class="empty-desc">输入案件编号查询资金流转链路，系统将自动分析资金去向</p>
+            </div>
+          </div>
         </div>
 </template>
 

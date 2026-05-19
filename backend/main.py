@@ -470,23 +470,10 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
         llm_analyze = None
         llm_triage = None
         try:
-            from langchain_community.chat_models import ChatOpenAI
+            from langchain_community.llms import Tongyi
             from agents.llm_wrapper import wrap_llm
-            DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-            raw_analyze = ChatOpenAI(
-                model="deepseek-chat",
-                temperature=0.1,
-                request_timeout=120,
-                openai_api_key=DEEPSEEK_API_KEY,
-                openai_api_base="https://api.deepseek.com"
-            )
-            raw_triage = ChatOpenAI(
-                model="deepseek-chat",
-                temperature=0.1,
-                request_timeout=120,
-                openai_api_key=DEEPSEEK_API_KEY,
-                openai_api_base="https://api.deepseek.com"
-            )
+            raw_analyze = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
+            raw_triage = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
             llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
             llm_triage = wrap_llm(raw_triage, max_concurrent=3)
         except ImportError:

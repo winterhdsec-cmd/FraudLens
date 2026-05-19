@@ -262,7 +262,8 @@ import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  activeMenu, cases, gangSearchKeyword, gangs, lineChartRef, pieChartRef,
-  successRate, totalAmount, totalAmountFormatted, viewMode
+  activeMenu, cases, gangSearchKeyword, gangs, lineChartRef, pieChartRef, successRate,
+  totalAmount, totalAmountFormatted, viewMode,
+  riskFilter, filteredGangs, selectedGang, selectGang, viewGangDetail, viewCaseDetail, getRiskType
 } = state
 </script>

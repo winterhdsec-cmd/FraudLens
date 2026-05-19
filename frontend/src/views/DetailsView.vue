@@ -210,7 +210,7 @@ import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  activeMenu, caseTypeStats, features, getFeatureIcon, regionStats, relationLines,
+  activeMenu, caseTypeStats, features, gangs, getFeatureIcon, regionStats, relationLines,
   relationNodes, totalAmount, totalAmountFormatted
 } = state
 </script>

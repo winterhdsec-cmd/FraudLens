@@ -47,7 +47,7 @@
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
-  activeMenu, capitalFlows, flowGraphData, flowSearchCaseId, gangs, loadFlowData,
-  selectedGang
+  activeMenu, capitalFlows, flowGraphData, flowSearchCaseId, gangs, loadFlowData, selectedGang,
+  addFlowRecord
 } = state
 </script>

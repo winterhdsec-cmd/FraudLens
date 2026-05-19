@@ -1,5 +1,11 @@
 <template>
 <div class="view-section">
+          <div class="breadcrumb">
+            <el-breadcrumb>
+              <el-breadcrumb-item :to="{ path: '/overview' }">案件总览</el-breadcrumb-item>
+              <el-breadcrumb-item v-if="selectedCase">{{ selectedCase.title }}</el-breadcrumb-item>
+            </el-breadcrumb>
+          </div>
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
@@ -34,7 +40,7 @@
                     </div>
                   </div>
                   <div class="case-header-actions">
-                    <el-button type="primary" @click="activeMenu = 'report'">
+                    <el-button type="primary" @click="router.push({ name: 'report', query: { gangId: selectedCase.gang } })">
                       <span>📄</span> 生成报告
                     </el-button>
                   </div>
@@ -292,7 +298,7 @@
               <div class="empty-icon">📋</div>
               <h3 class="empty-title">暂无选中案件</h3>
               <p class="empty-desc">请先在案件总览中选择一个案件查看详情</p>
-              <el-button type="primary" size="large" @click="activeMenu = 'overview'">
+              <el-button type="primary" size="large" @click="router.push({ name: 'overview' })">
                 <span>📊</span> 前往案件总览
               </el-button>
             </div>
@@ -301,7 +307,9 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, caseEvidence, detailTab, getGangById, investigationSteps,

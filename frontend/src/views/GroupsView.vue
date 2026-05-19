@@ -112,10 +112,10 @@
               </div>
 
               <div class="profile-footer">
-                <el-button size="small" @click="selectGang(gang); activeMenu = 'case-detail'">
+                <el-button size="small" @click="selectGang(gang); router.push({ name: 'case-detail' })">
                   <span>🔍</span> 查看详情
                 </el-button>
-                <el-button size="small" type="primary" @click="selectGang(gang); activeMenu = 'report'">
+                <el-button size="small" type="primary" @click="selectGang(gang); router.push({ name: 'report', query: { gangId: gang.id } })">
                   <span>📄</span> 生成报告
                 </el-button>
               </div>
@@ -127,7 +127,7 @@
               <div class="empty-icon">👥</div>
               <h3 class="empty-title">暂无团伙画像数据</h3>
               <p class="empty-desc">请先录入案情信息，系统将自动生成团伙画像</p>
-              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+              <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
                 <span>📝</span> 前往录入
               </el-button>
             </div>
@@ -136,7 +136,9 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, cases, gangs, getRiskType, selectGang

@@ -186,10 +186,22 @@
 </template>
 
 <script setup>
+import { useRouter, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
+const route = useRoute()
 const state = useAppState()
 const {
   activeMenu, cases, downloadReport, gangs, generateReport, generatingReport,
   getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview
 } = state
+
+onMounted(() => {
+  if (route.query.gangId) {
+    reportConfig.gangId = route.query.gangId
+    reportConfig.includeTimeline = true
+    reportConfig.includeMoney = true
+  }
+})
 </script>

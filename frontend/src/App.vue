@@ -55,6 +55,45 @@
     <div class="grid-overlay"></div>
     <div class="scan-line"></div>
 
+    <!-- 分析进度弹窗 -->
+    <el-dialog v-model="showProgress" :close-on-click-modal="false" :show-close="false" width="420px" class="progress-dialog">
+      <div class="progress-body">
+        <div class="progress-animation">
+          <span class="pulse-dot"></span>
+        </div>
+        <div class="progress-title">正在智能研判</div>
+        <div class="progress-status">{{ progressMessage }}</div>
+        <el-progress :percentage="progressPercent" :stroke-width="6" striped striped-flow />
+        <div class="progress-hint">AI 正在分析案情数据，请耐心等待</div>
+      </div>
+    </el-dialog>
+
+    <!-- 研判完成弹窗 -->
+    <el-dialog v-model="showResult" width="480px" class="result-dialog">
+      <div class="result-body">
+        <div class="result-icon">✅</div>
+        <div class="result-title">研判完成</div>
+        <div class="result-stats">
+          <div class="result-stat">
+            <div class="rs-value">{{ resultStats.cases }}</div>
+            <div class="rs-label">发现案件</div>
+          </div>
+          <div class="result-stat">
+            <div class="rs-value">{{ resultStats.gangs }}</div>
+            <div class="rs-label">识别团伙</div>
+          </div>
+          <div class="result-stat">
+            <div class="rs-value">{{ resultStats.time }}</div>
+            <div class="rs-label">用时</div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showResult = false" size="large">留在当前页</el-button>
+        <el-button type="primary" @click="goToResults" size="large">查看分析结果 →</el-button>
+      </template>
+    </el-dialog>
+
     <aside class="sidebar">
       <div class="logo-area">
         <div class="logo-icon-wrapper">
@@ -278,6 +317,12 @@ const router = useRouter()
 
 const activeMenu = ref('input')
 const loading = ref(false)
+const showProgress = ref(false)
+const showResult = ref(false)
+const progressPercent = ref(0)
+const progressMessage = ref('正在初始化...')
+const resultStats = ref({ cases: 0, gangs: 0, time: '0s' })
+const analysisStartTime = ref(0)
 const inputText = ref('')
 const uploadedImages = ref([])
 const gangs = ref([])
@@ -676,12 +721,19 @@ const startAnalysis = async () => {
   const messages = [{ role: 'user', content: inputText.value }]
 
   try {
+    analysisStartTime.value = Date.now()
+    showProgress.value = true
+    progressPercent.value = 0
+    progressMessage.value = '正在初始化分析引擎...'
     connectSocket(sessionId, {
       onProgress: (data) => {
-        console.log('分析进度:', data)
+        const pct = data.progress_percent || data.progress || 0
+        progressPercent.value = Math.min(pct, 99)
+        progressMessage.value = data.message || data.stage_name || '分析中...'
       },
       onComplete: (data) => {
-        console.log('分析完成:', data)
+        progressPercent.value = 100
+        progressMessage.value = '分析完成'
       }
     })
 
@@ -746,8 +798,10 @@ const startAnalysis = async () => {
 
       selectedCase.value = cases.value[0] || null
       const gangCount = response.gangs?.length || 0
-      ElMessage.success(`AI 研判完成！已识别出 ${gangCount} 个涉案团伙`)
-      activeMenu.value = 'overview'
+      showProgress.value = false
+      const elapsed = Math.round((Date.now() - analysisStartTime.value) / 1000)
+      resultStats.value = { cases: cases.value.length, gangs: gangCount, time: elapsed + 's' }
+      showResult.value = true
     } else {
       ElMessage.error('分析失败: ' + (response.message || '服务器返回异常'))
     }
@@ -756,6 +810,11 @@ const startAnalysis = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const goToResults = () => {
+  showResult.value = false
+  router.push({ name: 'overview' })
 }
 
 const startImageAnalysis = async () => {
@@ -5483,4 +5542,21 @@ provide('appState', appState)
 .admin-form .el-form-item {
   margin-bottom: 12px;
 }
+
+.progress-dialog .el-dialog__body { padding: 32px; text-align: center; }
+.progress-body { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.progress-animation { width: 48px; height: 48px; border-radius: 50%; background: rgba(0,198,255,0.1); display: flex; align-items: center; justify-content: center; }
+.pulse-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent-cyan); animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.5); } }
+.progress-title { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.progress-status { font-size: 13px; color: var(--text-secondary); }
+.progress-hint { font-size: 12px; color: var(--text-muted); }
+.result-body { text-align: center; padding: 16px 0; }
+.result-icon { font-size: 48px; margin-bottom: 12px; }
+.result-title { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
+.result-stats { display: flex; justify-content: center; gap: 32px; }
+.result-stat { text-align: center; }
+.rs-value { font-size: 28px; font-weight: 700; color: var(--accent-cyan); }
+.rs-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.result-dialog .el-dialog__footer { border-top: 1px solid rgba(0,198,255,0.1); padding: 16px 24px; }
 </style>

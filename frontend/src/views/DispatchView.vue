@@ -38,6 +38,13 @@
               </el-table-column>
             </el-table>
           </div>
+          <div v-if="!dispatchOrders.length && !dispatchStatusFilter" class="empty-state">
+            <div class="empty-content">
+              <div class="empty-icon">📋</div>
+              <h3 class="empty-title">暂无派单记录</h3>
+              <p class="empty-desc">预警生成后，系统将自动创建派单并分配到辖区</p>
+            </div>
+          </div>
         </div>
 </template>
 

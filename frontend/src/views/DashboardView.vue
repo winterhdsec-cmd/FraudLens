@@ -137,7 +137,7 @@
               <div class="empty-icon">📊</div>
               <h3 class="empty-title">暂无看板数据</h3>
               <p class="empty-desc">请先录入案情数据，系统将自动生成数据看板</p>
-              <el-button type="primary" size="large" @click="activeMenu = 'input'">
+              <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
                 <span>📝</span> 前往录入
               </el-button>
             </div>
@@ -147,7 +147,9 @@
 
 <script setup>
 import { useAppState } from '../composables/useAppState.js'
+import { useRouter } from 'vue-router'
 const state = useAppState()
+const router = useRouter()
 const {
   activeMenu, alerts, cases, dashboardBarChartRef, dashboardData, dashboardLoading,
   dashboardRiskChartRef, dashboardStatusChartRef, dashboardTrendChartRef, gangs, loadDashboard, loading,

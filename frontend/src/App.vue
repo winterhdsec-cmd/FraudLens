@@ -1451,7 +1451,7 @@ const appState = {
   textLineCount, extractedKeywords,
   hasTime, hasAmount, hasPhone, hasMethod,
   connectedSources, hasApiData, filteredGangs,
-  getParticleStyle, handleMenuSelect,
+  getParticleStyle, handleMenuSelect, getFeatureIcon,
   handleLogin, handleLogout,
   clearInput, clearImages, removeImage, loadDemo,
   handleBeforeUpload, startAnalysis,

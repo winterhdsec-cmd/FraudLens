@@ -1270,7 +1270,24 @@ const getConfidenceColor = (confidence) => {
 }
 
 const viewCaseFromDashboard = (caseItem) => {
-  selectedCase.value = caseItem
+  selectedCase.value = {
+    id: caseItem.case_id || caseItem.id || '',
+    title: caseItem.title || (caseItem.victim || '当事人') + '被诈骗案',
+    type: caseItem.scam_type || caseItem.type || '',
+    amount: caseItem.amount || '',
+    amount_value: caseItem.amount_value || 0,
+    status: caseItem.status || '已立案',
+    date: caseItem.created_at || caseItem.date || '',
+    victimName: caseItem.victim || caseItem.victim_name || '',
+    victimGender: caseItem.victim_gender || '',
+    victimAge: caseItem.victim_age || '',
+    victimPhone: caseItem.victim_phone || '',
+    victimJob: caseItem.victim_job || '',
+    victimAddress: caseItem.victim_address || '',
+    description: caseItem.description || '',
+    risk_level: caseItem.risk_level || '',
+    keywords: Array.isArray(caseItem.keywords) ? caseItem.keywords : []
+  }
   router.push({ name: 'case-detail' })
 }
 

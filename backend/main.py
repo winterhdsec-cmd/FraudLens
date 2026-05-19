@@ -64,12 +64,19 @@ if USE_CELERY == "auto":
         import redis as _redis_check
         r = _redis_check.Redis(host='localhost', port=6379, socket_connect_timeout=1)
         r.ping()
-        USE_CELERY = True
         r.close()
-        logger.info("Redis 已检测到，自动启用 Celery 异步模式")
+        from celery_app import celery_app as _celery_app_check
+        insp = _celery_app_check.control.inspect()
+        workers = insp.ping()
+        if workers:
+            USE_CELERY = True
+            logger.info("Redis + Celery Worker 已检测到，启用异步模式")
+        else:
+            USE_CELERY = False
+            logger.info("Redis 已检测到但无 Celery Worker 运行，使用同步模式")
     except Exception:
         USE_CELERY = False
-        logger.info("Redis 未检测到，使用同步模式 (安装 Redis 后自动切换)")
+        logger.info("Redis 未检测到，使用同步模式")
 elif USE_CELERY == "true":
     USE_CELERY = True
 else:

@@ -238,6 +238,62 @@ async def lifespan(app: FastAPI):
     logger.info(f"USE_CELERY={USE_CELERY}")
     logger.info(f"数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
     logger.info("=" * 60)
+    # 注入演示预警数据
+    try:
+        import database.alert as _alert_mod
+        now = datetime.utcnow()
+        demo_alerts_data = [
+            ('phone_match', 'FC20260519001', 'FC20260519002', ['138****1234', '139****5678'], 0.85),
+            ('bank_match', 'FC20260519007', 'FC20260519003', ['6222****1234'], 0.72),
+            ('phone_match', 'FC20260519008', 'FC20260519009', ['150****9012'], 0.68),
+            ('app_match', 'FC20260519010', 'FC20260519011', ['腾讯会议', '瞩目'], 0.91),
+            ('ip_match', 'FC20260519014', 'FC20260519015', ['192.168.1.*'], 0.63),
+            ('bank_match', 'FC20260519019', 'FC20260519020', ['6217****5678', '6228****9012'], 0.78),
+            ('phone_match', 'FC20260519022', 'FC20260519023', ['137****7890'], 0.71),
+            ('app_match', 'FC20260519004', 'FC20260519005', ['腾讯会议'], 0.80),
+        ]
+        for at, cid, mcid, entities, conf in demo_alerts_data:
+            a = _alert_mod.Alert(_alert_mod._next_id, at, cid, mcid, entities, conf, created_at=now)
+            _alert_mod._alerts.append(a)
+            _alert_mod._next_id += 1
+        logger.info(f"演示预警数据已注入: {len(_alert_mod._alerts)} 条")
+
+        # 注入P1演示数据
+        from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
+        from database.models import Case as _Case
+        import random
+        _all_cases = _Case.query.all()
+        if CapitalFlow.query.count() <= 2:
+            for i in range(min(8, len(_all_cases))):
+                c = _all_cases[i]
+                flow = CapitalFlow(case_id=c.case_id,
+                    source_account=f"6222{random.randint(100000,999999)}",
+                    target_account=f"6217{random.randint(100000,999999)}",
+                    bank_name=random.choice(["工商银行","建设银行","农业银行"]),
+                    amount=round(random.uniform(5000, 150000), 2),
+                    direction='out' if i % 3 != 0 else 'in', level=random.randint(1, 3))
+                db.session.add(flow)
+            logger.info("资金流向数据已注入")
+        if DispatchOrder.query.count() <= 1:
+            for i in range(min(6, len(_all_cases))):
+                d = DispatchOrder(case_id=_all_cases[i].case_id,
+                    assigned_dept=random.choice(["刑侦大队","网安大队","辖区派出所","反诈中心"]),
+                    status=random.choice(["pending","signed","completed"]))
+                db.session.add(d)
+            logger.info("派单数据已注入")
+        if KeyPerson.query.count() <= 1:
+            for i in range(8):
+                p = KeyPerson(name=["刘某","张某","王某","李某","赵某","陈某","周某","吴某"][i],
+                    id_number=f"420{random.randint(100000,999999)}",
+                    phone=f"138{random.randint(10000000,99999999)}",
+                    person_type=random.choice(["前科人员","高危人员","涉诈重点人"]),
+                    risk_level=random.choice(["S","A","B"]),
+                    bank_account=f"6222{random.randint(100000,999999)}")
+                db.session.add(p)
+            db.session.commit()
+            logger.info("重点人员数据已注入")
+    except Exception as e:
+        logger.warning(f"演示数据注入跳过: {e}")
     yield
     logger.info("服务关闭")
 

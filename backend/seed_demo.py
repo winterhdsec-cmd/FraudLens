@@ -159,6 +159,81 @@ with _flask_app.app_context():
             )
             db.session.add(rel)
 
+    # ---- 5. 注入资金流向数据 ----
+    from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
+    bank_accounts = [
+        ("622202****1234", "工商银行", "621700****5678", "招商银行"),
+        ("621790****9012", "建设银行", "621226****3456", "农业银行"),
+        ("622848****7890", "中国银行", "621558****2345", "交通银行"),
+        ("621700****6789", "招商银行", "622202****8901", "工商银行"),
+        ("621226****4567", "农业银行", "621790****0123", "建设银行"),
+    ]
+    flow_records = []
+    for i in range(15):
+        case_obj = case_objects[i % len(case_objects)]
+        src, src_bank, tgt, tgt_bank = bank_accounts[i % len(bank_accounts)]
+        amount = round(random.uniform(5000, 150000), 2)
+        flow = CapitalFlow(
+            case_id=case_obj.case_id,
+            source_account=src, target_account=tgt,
+            bank_name=src_bank,
+            amount=amount,
+            transaction_time=datetime.now() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
+            direction='out' if i % 3 != 0 else 'in',
+            level=random.randint(1, 3),
+            annotation=f"第{i+1}级资金流转"
+        )
+        db.session.add(flow)
+        flow_records.append(flow)
+    print(f"   资金流向: {len(flow_records)} 条")
+
+    # ---- 6. 注入派单数据 ----
+    depts = ["刑侦大队", "网安大队", "辖区派出所", "反诈中心", "经侦大队"]
+    officers = ["张明", "李华", "王强", "赵刚", "刘伟"]
+    statuses = ["pending", "signed", "completed"]
+    dispatch_records = []
+    for i in range(8):
+        case_obj = case_objects[i % len(case_objects)]
+        dispatch = DispatchOrder(
+            alert_id=f"ALT202605{i+1:03d}",
+            case_id=case_obj.case_id,
+            assigned_dept=random.choice(depts),
+            assigned_officer=random.choice(officers),
+            status=random.choice(statuses),
+            dispatch_time=datetime.now() - timedelta(days=random.randint(1, 15)),
+            sign_time=datetime.now() - timedelta(days=random.randint(0, 10)),
+            feedback="已处置完毕" if random.random() > 0.5 else "",
+            deadline=datetime.now() + timedelta(days=random.randint(1, 7)),
+            created_by=1
+        )
+        db.session.add(dispatch)
+        dispatch_records.append(dispatch)
+    print(f"   派单: {len(dispatch_records)} 条")
+
+    # ---- 7. 注入重点人员数据 ----
+    person_types = ["前科人员", "高危人员", "涉诈重点人", "两卡人员"]
+    identities = ["430****1234", "420****5678", "410****9012", "440****3456", "450****7890"]
+    phones = ["138****1234", "139****5678", "150****9012", "186****3456", "137****7890"]
+    risk_level_map = {"S": "极危", "A": "高危", "B": "中危", "C": "低危"}
+    person_records = []
+    for i in range(10):
+        rl = random.choice(["S", "A", "B", "C"])
+        person = KeyPerson(
+            name=["刘某", "张某", "王某", "李某", "赵某", "陈某", "周某", "吴某", "郑某", "何某"][i],
+            id_number=identities[i % len(identities)],
+            phone=phones[i % len(phones)],
+            person_type=random.choice(person_types),
+            risk_level=rl,
+            risk_label=risk_level_map[rl],
+            bank_account=f"6222{random.randint(100000,999999)}",
+            address=f"湖北省武汉市{random.choice(['江岸区','武昌区','洪山区','江汉区','硚口区'])}某某小区",
+            case_ids=[case_objects[i % len(case_objects)].case_id],
+            notes=f"涉及{random.choice(['冒充客服','刷单返利','投资理财','冒充公检法'])}类诈骗，有前科记录"
+        )
+        db.session.add(person)
+        person_records.append(person)
+    print(f"   重点人员: {len(person_records)} 条")
+
     db.session.commit()
     print(f"✅ 演示数据注入完成!")
     print(f"   会话: {session_id}")

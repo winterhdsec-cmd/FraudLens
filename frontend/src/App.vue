@@ -925,16 +925,36 @@ const loadDashboard = async () => {
   try {
     const data = await getDashboardData()
     if (data.success) {
+      const raw = data.data || data
+      const toArray = (obj, nameKey, valKey) =>
+        Object.entries(obj || {}).map(([k, v]) => ({ [nameKey]: k, [valKey]: v }))
+      const colorMap = {
+        'HIGH': '#ef4444', 'MEDIUM': '#f59e0b', 'LOW': '#00d4ff', 'S': '#ef4444',
+        'A': '#f59e0b', 'B': '#00d4ff', 'C': '#10b981', 'UNKNOWN': '#94a3b8'
+      }
+      const riskArr = toArray(raw.risk_distribution, 'name', 'value').map(d =>
+        ({ ...d, itemStyle: { color: colorMap[d.name] || '#94a3b8' } }))
+      const statusArr = toArray(raw.status_distribution, 'name', 'value').map(d =>
+        ({ name: d.name, value: d.value, itemStyle: { color: ['#f59e0b','#00d4ff','#10b981'][Math.floor(Math.random()*3)] } }))
+      const barArr = (raw.top_scam_types || []).map(d => ({ name: d.name, count: d.count || d.value }))
+      const trendMonths = (raw.trend_data?.dates || []).map((d, i) => ({
+        month: d, amount: (raw.trend_data?.amounts || [])[i] || 0,
+        cases: (raw.trend_data?.counts || [])[i] || 0
+      }))
+      const gangThreatArr = toArray(raw.gang_threat_distribution, 'name', 'value').map(d =>
+        ({ ...d, itemStyle: { color: colorMap[d.name] || '#94a3b8' } }))
+
       dashboardData.value = {
-        total_cases: data.total_cases ?? data.data?.total_cases ?? '-',
-        total_gangs: data.total_gangs ?? data.data?.total_gangs ?? '-',
-        total_amount: data.total_amount ?? data.data?.total_amount ?? '-',
-        active_alerts: data.active_alerts ?? data.data?.active_alerts ?? '-',
-        risk_distribution: data.risk_distribution ?? data.data?.risk_distribution ?? [],
-        status_distribution: data.status_distribution ?? data.data?.status_distribution ?? [],
-        top_scam_types: data.top_scam_types ?? data.data?.top_scam_types ?? [],
-        monthly_trend: data.monthly_trend ?? data.data?.monthly_trend ?? [],
-        recent_cases: data.recent_cases ?? data.data?.recent_cases ?? []
+        total_cases: raw.total_cases ?? '-',
+        total_gangs: raw.total_gangs ?? '-',
+        total_amount: raw.total_amount ?? '-',
+        active_alerts: raw.active_alerts ?? '-',
+        risk_distribution: riskArr,
+        status_distribution: statusArr,
+        top_scam_types: barArr,
+        monthly_trend: trendMonths,
+        gang_threat_distribution: gangThreatArr,
+        recent_cases: raw.recent_cases || []
       }
       nextTick(() => initDashboardCharts())
     } else {
@@ -1246,75 +1266,73 @@ const viewCaseFromDashboard = (caseItem) => {
 }
 
 const initCharts = () => {
+  const scamTypeStats = {}
+  cases.value.forEach(c => {
+    const t = c.scam_type || c.type || '其他'
+    scamTypeStats[t] = (scamTypeStats[t] || 0) + 1
+  })
+  const pieColors = ['#ef4444', '#f59e0b', '#8b5cf6', '#00d4ff', '#10b981', '#ec4899']
+  const pieData = Object.entries(scamTypeStats).length
+    ? Object.entries(scamTypeStats).map(([name, value], i) => ({
+        name, value, itemStyle: { color: pieColors[i % pieColors.length] }
+      }))
+    : [
+        { name: '冒充客服', value: 45, itemStyle: { color: '#ef4444' } },
+        { name: '刷单返利', value: 32, itemStyle: { color: '#f59e0b' } },
+        { name: '贷款诈骗', value: 28, itemStyle: { color: '#8b5cf6' } },
+        { name: '投资理财', value: 23, itemStyle: { color: '#00d4ff' } }
+      ]
+
+  const lineData = dashboardData.value.monthly_trend.length
+    ? dashboardData.value.monthly_trend
+    : [
+        { month: '1月', amount: 120, cases: 8 },
+        { month: '2月', amount: 182, cases: 12 },
+        { month: '3月', amount: 191, cases: 15 },
+        { month: '4月', amount: 234, cases: 18 },
+        { month: '5月', amount: 290, cases: 22 },
+        { month: '6月', amount: 330, cases: 25 }
+      ]
+
   nextTick(() => {
     if (pieChartRef.value) {
-      if (pieChart) {
-        pieChart.dispose()
-      }
+      if (pieChart) pieChart.dispose()
       pieChart = echarts.init(pieChartRef.value)
       pieChart.setOption({
         backgroundColor: 'transparent',
         tooltip: { trigger: 'item', formatter: '{b}: {c}起 ({d}%)' },
-        legend: {
-          orient: 'vertical',
-          right: 10,
-          top: 'center',
-          textStyle: { color: '#94a3b8' }
-        },
-        series: [{
-          type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['40%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
+        legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { color: '#94a3b8' } },
+        series: [{ type: 'pie', radius: ['40%', '70%'], center: ['40%', '50%'],
+          avoidLabelOverlap: false, itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
           label: { show: false },
           emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
-          data: [
-            { value: 45, name: '冒充客服', itemStyle: { color: '#ef4444' } },
-            { value: 32, name: '刷单返利', itemStyle: { color: '#f59e0b' } },
-            { value: 28, name: '贷款诈骗', itemStyle: { color: '#8b5cf6' } },
-            { value: 23, name: '投资理财', itemStyle: { color: '#00d4ff' } }
-          ]
-        }]
+          data: pieData }]
       })
       pieChart.resize()
     }
     if (lineChartRef.value) {
-      if (lineChart) {
-        lineChart.dispose()
-      }
+      if (lineChart) lineChart.dispose()
       lineChart = echarts.init(lineChartRef.value)
       lineChart.setOption({
         backgroundColor: 'transparent',
         tooltip: { trigger: 'axis' },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        xAxis: { type: 'category', boundaryGap: false,
+          data: lineData.map(d => d.month),
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-          axisLabel: { color: '#94a3b8' }
-        },
-        yAxis: {
-          type: 'value',
+          axisLabel: { color: '#94a3b8' } },
+        yAxis: { type: 'value',
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
           axisLabel: { color: '#94a3b8' },
-          splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } }
-        },
+          splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } } },
         series: [{
-          name: '涉案金额',
-          type: 'line',
-          smooth: true,
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
-              { offset: 1, color: 'rgba(0, 212, 255, 0.05)' }
-            ])
-          },
+          name: '涉案金额', type: 'line', smooth: true,
+          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+            { offset: 1, color: 'rgba(0, 212, 255, 0.05)' }]) },
           lineStyle: { color: '#00d4ff', width: 2 },
           itemStyle: { color: '#00d4ff' },
-          data: [120, 182, 191, 234, 290, 330]
-        }]
+          data: lineData.map(d => d.amount) }]
       })
       lineChart.resize()
     }
@@ -1336,10 +1354,18 @@ watch(() => router.currentRoute.value.name, (routeName) => {
 })
 
 onMounted(() => {
-  console.log('反诈情报分析系统已启动')
   const routeName = router.currentRoute.value.name
   if (routeName) {
     activeMenu.value = routeName
+    if (routeName === 'overview' && gangs.value.length) {
+      nextTick(() => initCharts())
+    }
+    if (routeName === 'dashboard') {
+      loadDashboard()
+    }
+    if (routeName === 'alerts') {
+      loadAlerts()
+    }
   }
 })
 

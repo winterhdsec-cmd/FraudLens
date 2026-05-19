@@ -95,9 +95,31 @@
 
                   <div class="doc-content">
                     <div class="doc-section">
-                      <div class="section-title">一、团伙基本信息</div>
+                      <div class="section-title">{{ reportConfig.type === 'case' ? '一、案件基本信息' : '一、团伙基本信息' }}</div>
                       <div class="section-body">
-                        <div class="info-table">
+                        <div class="info-table" v-if="reportConfig.type === 'case' && selectedCase">
+                          <div class="info-row">
+                            <span class="info-label">案件编号</span>
+                            <span class="info-value">{{ selectedCase.id || '-' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">案件名称</span>
+                            <span class="info-value">{{ selectedCase.title || '未选择' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">案件类型</span>
+                            <span class="info-value">{{ selectedCase.type || '-' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">涉案金额</span>
+                            <span class="info-value danger">{{ selectedCase.amount || '-' }}</span>
+                          </div>
+                          <div class="info-row">
+                            <span class="info-label">案件状态</span>
+                            <span class="info-value">{{ selectedCase.status || '-' }}</span>
+                          </div>
+                        </div>
+                        <div class="info-table" v-else>
                           <div class="info-row">
                             <span class="info-label">团伙名称</span>
                             <span class="info-value">{{ getGangById(reportConfig.gangId)?.name || '未选择' }}</span>
@@ -122,10 +144,15 @@
                       <div class="section-title">二、作案时间线</div>
                       <div class="section-body">
                         <div class="doc-timeline">
-                          <div v-for="(event, idx) in getGangById(reportConfig.gangId)?.timeline || []" :key="idx" class="doc-timeline-item">
+                          <div v-for="(event, idx) in reportConfig.type === 'case' ? [] : (getGangById(reportConfig.gangId)?.timeline || [])" :key="idx" class="doc-timeline-item">
                             <span class="doc-time">{{ event.date }}</span>
                             <span class="doc-event">{{ event.title }}</span>
                             <span class="doc-desc">{{ event.desc }}</span>
+                          </div>
+                          <div v-if="reportConfig.type === 'case' && selectedCase?.description" class="doc-timeline-item">
+                            <span class="doc-time">{{ selectedCase.date || '-' }}</span>
+                            <span class="doc-event">案件发生</span>
+                            <span class="doc-desc">{{ selectedCase.title }}，涉及受害人{{ selectedCase.victimName || '未知' }}</span>
                           </div>
                         </div>
                       </div>
@@ -135,7 +162,8 @@
                       <div class="section-title">三、资金流向分析</div>
                       <div class="section-body">
                         <div class="money-flow-summary">
-                          <p>经分析，该团伙涉案资金主要通过多级账户进行转移，最终流向境外。资金流转层级约3-5层，境外资金占比约85%。</p>
+                          <p v-if="reportConfig.type === 'case' && selectedCase">经分析，该案件涉案金额为 {{ selectedCase.amount || '未知' }}，资金流向正在进一步调查中。</p>
+                          <p v-else>经分析，该团伙涉案资金主要通过多级账户进行转移，最终流向境外。资金流转层级约3-5层，境外资金占比约85%。</p>
                         </div>
                       </div>
                     </div>
@@ -194,7 +222,8 @@ const route = useRoute()
 const state = useAppState()
 const {
   activeMenu, cases, downloadReport, gangs, generateReport, generatingReport,
-  getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview
+  getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview,
+  selectedCase
 } = state
 
 onMounted(() => {

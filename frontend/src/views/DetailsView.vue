@@ -200,6 +200,34 @@
               </div>
             </div>
           </div>
+
+          <div class="analysis-row">
+            <div class="analysis-card tech-card full-width">
+              <div class="analysis-header">
+                <span class="analysis-icon">🧬</span>
+                <span class="analysis-title">语义指纹分析</span>
+                <span class="analysis-subtitle">跨案件话术模式识别</span>
+              </div>
+              <div class="analysis-content">
+                <div v-if="semanticFingerprints.length" class="fingerprint-grid">
+                  <div v-for="fp in semanticFingerprints" :key="fp.type" class="fingerprint-card tech-card">
+                    <div class="fp-header">
+                      <span class="fp-type">{{ fp.type }}</span>
+                      <el-tag size="small" type="info">{{ fp.count }}案</el-tag>
+                    </div>
+                    <div class="fp-amount">{{ fp.totalAmount > 10000 ? (fp.totalAmount/10000).toFixed(1) + '万元' : fp.totalAmount + '元' }}</div>
+                    <div class="fp-keywords">
+                      <el-tag v-for="kw in fp.keywords" :key="kw" size="small" class="fp-tag">{{ kw }}</el-tag>
+                    </div>
+                    <div class="fp-signature">{{ fp.signature }}</div>
+                  </div>
+                </div>
+                <div v-else class="fp-empty">
+                  <p>暂无语义指纹数据，请先进行研判分析</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         </div>
 </template>
@@ -211,6 +239,56 @@ const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, caseTypeStats, features, gangs, getFeatureIcon, regionStats, relationLines,
-  relationNodes, totalAmount, totalAmountFormatted
+  relationNodes, semanticFingerprints, totalAmount, totalAmountFormatted
 } = state
 </script>
+
+<style scoped>
+.fingerprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.fingerprint-card {
+  background: rgba(0, 198, 255, 0.03) !important;
+  border: 1px solid rgba(0, 198, 255, 0.1);
+  padding: 16px;
+  border-radius: 8px;
+}
+.fp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.fp-type {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.fp-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00d4ff;
+  margin-bottom: 10px;
+}
+.fp-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.fp-tag {
+  margin: 0 !important;
+}
+.fp-signature {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.fp-empty {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+}
+</style>

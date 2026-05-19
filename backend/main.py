@@ -301,6 +301,39 @@ async def lifespan(app: FastAPI):
             logger.info("重点人员数据已注入")
     except Exception as e:
         logger.warning(f"演示数据注入跳过: {e}")
+
+    try:
+        from database.models import Gang, GangCaseRelation
+        existing_gang_case = set(r.case_id for r in GangCaseRelation.query.all())
+        orphan_cases = [c for c in _all_cases if c.case_id not in existing_gang_case]
+        if orphan_cases:
+            created = 0
+            for c in orphan_cases:
+                solo_gang = Gang(
+                    gang_id=f'SOLO_{c.case_id}',
+                    gang_name=f'独立案件 - {c.scam_type or "未知类型"}',
+                    risk_level=c.risk_level or 'C',
+                    risk_label={'HIGH': '高风险', 'MEDIUM': '中风险', 'LOW': '低风险', 'UNKNOWN': '未知'}.get(c.risk_level, '低风险'),
+                    risk_type={'HIGH': 'danger', 'MEDIUM': 'warning', 'LOW': 'info', 'UNKNOWN': 'info'}.get(c.risk_level, 'info'),
+                    threat_level={'HIGH': 'S', 'MEDIUM': 'A', 'LOW': 'B', 'UNKNOWN': 'C'}.get(c.risk_level, 'C'),
+                    comprehensive_score=c.risk_score or 0,
+                    total_cases=1,
+                    total_amount=c.amount or '0',
+                    total_amount_value=float(c.amount_value or 0),
+                    fingerprint=[c.scam_type or '未知类型', '独立案件'],
+                    description=f'基于{c.scam_type or "未知"}诈骗手法识别的独立案件',
+                )
+                db.session.add(solo_gang)
+                db.session.flush()
+                rel = GangCaseRelation(gang_id=solo_gang.gang_id, case_id=c.case_id, similarity=1.0)
+                db.session.add(rel)
+                created += 1
+            db.session.commit()
+            logger.info(f"独立团伙创建完成: {created} 个")
+    except Exception as e:
+        logger.warning(f"独立团伙创建跳过: {e}")
+        db.session.rollback()
+
     yield
     logger.info("服务关闭")
 

@@ -172,3 +172,33 @@ onMounted(() => {
   loadLogs()
 })
 </script>
+
+<style scoped>
+.admin-tabs .el-table,
+.admin-tabs .el-table__body,
+.admin-tabs .el-table__header,
+.admin-tabs .el-table__body-wrapper,
+.admin-tabs .el-table__inner-wrapper,
+.admin-tabs .el-table__footer {
+  background: transparent !important;
+  color: #e2e8f0;
+}
+.admin-tabs .el-table th.el-table__cell {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(0, 198, 255, 0.1);
+}
+.admin-tabs .el-table tr.el-table__row {
+  background: transparent !important;
+}
+.admin-tabs .el-table tr.el-table__row--striped td {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+.admin-tabs .el-table td.el-table__cell {
+  border-bottom: 1px solid rgba(0, 198, 255, 0.05);
+  color: #e2e8f0;
+}
+.admin-tabs .el-table--enable-row-hover .el-table__body tr:hover > td {
+  background: rgba(0, 198, 255, 0.05) !important;
+}
+</style>

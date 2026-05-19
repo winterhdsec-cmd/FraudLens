@@ -501,14 +501,25 @@ const filteredGangs = computed(() => {
   return result
 })
 
-const features = ref([
-  { name: '诈骗话术成熟度', confidence: 92, color: '#ef4444', desc: '话术模板标准化程度' },
-  { name: '资金分散程度', confidence: 85, color: '#f59e0b', desc: '资金流转层级数量' },
-  { name: '成员关联密度', confidence: 78, color: '#00d4ff', desc: '团伙成员社交关系' },
-  { name: '跨区域作案特征', confidence: 88, color: '#8b5cf6', desc: '跨省跨境作案能力' },
-  { name: '技术手段先进性', confidence: 73, color: '#10b981', desc: '反侦察技术水平' },
-  { name: '受害者画像精准度', confidence: 89, color: '#ec4899', desc: '目标人群定位能力' }
-])
+const features = computed(() => {
+  if (!gangs.value.length) return [
+    { name: '诈骗话术成熟度', confidence: 92, color: '#ef4444', desc: '话术模板标准化程度' },
+    { name: '资金分散程度', confidence: 85, color: '#f59e0b', desc: '资金流转层级数量' },
+    { name: '成员关联密度', confidence: 78, color: '#00d4ff', desc: '团伙成员社交关系' },
+    { name: '跨区域作案特征', confidence: 88, color: '#8b5cf6', desc: '跨省跨境作案能力' },
+    { name: '技术手段先进性', confidence: 73, color: '#10b981', desc: '反侦察技术水平' },
+    { name: '受害者画像精准度', confidence: 89, color: '#ec4899', desc: '目标人群定位能力' }
+  ]
+  const avgScore = Math.round(gangs.value.reduce((s, g) => s + (g.score || 0), 0) / gangs.value.length)
+  return [
+    { name: '诈骗话术成熟度', confidence: Math.min(avgScore + 10, 98), color: '#ef4444', desc: `基于${gangs.value.length}个团伙的话术分析` },
+    { name: '团伙关联强度', confidence: Math.min(Math.round(gangs.value.length * 15), 95), color: '#f59e0b', desc: '团伙间案件交叉关联程度' },
+    { name: '资金网络复杂度', confidence: Math.min(avgScore + 5, 92), color: '#00d4ff', desc: '资金流转层级与账户数量' },
+    { name: '跨区域作案特征', confidence: Math.min(avgScore, 90), color: '#8b5cf6', desc: '跨省跨境作案能力评估' },
+    { name: '技术手段先进性', confidence: Math.min(avgScore - 5, 85), color: '#10b981', desc: '反侦察与伪装技术水平' },
+    { name: '受害者画像精准度', confidence: Math.min(avgScore + 8, 95), color: '#ec4899', desc: '目标人群定位与话术匹配' }
+  ]
+})
 
 const relationNodes = ref([
   { id: 1, type: 'gang', icon: '👥', label: '团伙A', style: { left: '50%', top: '25%' } },
@@ -549,12 +560,46 @@ const defaultMethodFlow = [
 
 const defaultKeywords = ['冒充客服', '征信诈骗', '安全账户', '转账验证']
 
-const caseTypeStats = ref([
-  { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
-  { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
-  { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
-  { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
-])
+const caseTypeStats = computed(() => {
+  const typeMap = {}
+  cases.value.forEach(c => {
+    const t = c.type || c.scam_type || '其他'
+    typeMap[t] = (typeMap[t] || 0) + 1
+  })
+  const entries = Object.entries(typeMap)
+  if (!entries.length) return [
+    { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
+    { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
+    { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
+    { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
+  ]
+  const total = entries.reduce((s, [, v]) => s + v, 0)
+  const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
+  return entries.map(([name, count], i) => ({
+    name, count,
+    percent: Math.round(count / total * 100),
+    color: colors[i % colors.length]
+  }))
+})
+
+const semanticFingerprints = computed(() => {
+  if (!cases.value.length) return []
+  const types = {}
+  cases.value.forEach(c => {
+    const t = c.type || c.scam_type || '其他'
+    if (!types[t]) types[t] = { type: t, count: 0, totalAmount: 0, keywords: new Set() }
+    types[t].count++
+    types[t].totalAmount += parseFloat(c.amount_value || c.amount || 0)
+    ;(c.keywords || []).forEach(k => types[t].keywords.add(k))
+  })
+  return Object.values(types).map(t => ({
+    type: t.type,
+    count: t.count,
+    totalAmount: t.totalAmount,
+    keywords: [...t.keywords].slice(0, 8),
+    signature: `${t.type}类诈骗，关键词特征：${[...t.keywords].slice(0,5).join('、')}`
+  }))
+})
 
 const regionStats = ref([
   { name: '广东', count: 25, percent: 30 },
@@ -909,8 +954,12 @@ const startApiAnalysis = () => {
 }
 
 const generateReport = () => {
-  if (!reportConfig.value.gangId) {
+  if (reportConfig.value.type === 'gang' && !reportConfig.value.gangId) {
     ElMessage.warning('请先选择一个团伙')
+    return
+  }
+  if (reportConfig.value.type === 'case' && !selectedCase.value) {
+    ElMessage.warning('请先选择一个案件')
     return
   }
   generatingReport.value = true
@@ -1070,11 +1119,11 @@ const initDashboardCharts = () => {
       dashboardBarChart.setOption({
         backgroundColor: 'transparent',
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        grid: { left: '3%', right: '4%', bottom: '18%', containLabel: true },
         xAxis: {
           type: 'category', data: barNames,
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-          axisLabel: { color: '#94a3b8' }
+          axisLabel: { color: '#94a3b8', rotate: 15, interval: 0 }
         },
         yAxis: {
           type: 'value',
@@ -1104,12 +1153,12 @@ const initDashboardCharts = () => {
           data: ['涉案金额', '案件数量'],
           textStyle: { color: '#94a3b8' }
         },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        grid: { left: '3%', right: '4%', bottom: '8%', containLabel: true },
         xAxis: {
           type: 'category', boundaryGap: false,
           data: trendData.map(d => d.month),
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-          axisLabel: { color: '#94a3b8' }
+          axisLabel: { color: '#94a3b8', rotate: 15 }
         },
         yAxis: {
           type: 'value',
@@ -1342,11 +1391,11 @@ const initCharts = () => {
       lineChart.setOption({
         backgroundColor: 'transparent',
         tooltip: { trigger: 'axis' },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        grid: { left: '3%', right: '4%', bottom: '8%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false,
           data: lineData.map(d => d.month),
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-          axisLabel: { color: '#94a3b8' } },
+          axisLabel: { color: '#94a3b8', rotate: 15 } },
         yAxis: { type: 'value',
           axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
           axisLabel: { color: '#94a3b8' },
@@ -1466,7 +1515,7 @@ const appState = {
   features, relationNodes, relationLines,
   caseEvidence, investigationSteps,
   defaultMethodFlow, defaultKeywords,
-  caseTypeStats, regionStats,
+  caseTypeStats, regionStats, semanticFingerprints,
   gangIcons, formatAmount
 }
 provide('appState', appState)

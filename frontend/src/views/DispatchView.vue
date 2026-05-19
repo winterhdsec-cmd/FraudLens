@@ -49,10 +49,13 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch,
   signDispatch, showCompleteDispatch
 } = state
+
+onMounted(() => loadDispatchOrders())
 </script>

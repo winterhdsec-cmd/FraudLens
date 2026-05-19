@@ -308,10 +308,15 @@ async def lifespan(app: FastAPI):
         orphan_cases = [c for c in _all_cases if c.case_id not in existing_gang_case]
         if orphan_cases:
             created = 0
+            name_counters = {}
             for c in orphan_cases:
+                base = c.scam_type or '未知类型'
+                name_counters[base] = name_counters.get(base, 0) + 1
+                victim_name = c.victim_name or c.title or ''
+                unique_name = f'{base}案{name_counters[base]}-{victim_name[:6]}' if victim_name else f'{base}案{name_counters[base]}'
                 solo_gang = Gang(
                     gang_id=f'SOLO_{c.case_id}',
-                    gang_name=f'独立案件 - {c.scam_type or "未知类型"}',
+                    gang_name=unique_name,
                     risk_level=c.risk_level or 'C',
                     risk_label={'HIGH': '高风险', 'MEDIUM': '中风险', 'LOW': '低风险', 'UNKNOWN': '未知'}.get(c.risk_level, '低风险'),
                     risk_type={'HIGH': 'danger', 'MEDIUM': 'warning', 'LOW': 'info', 'UNKNOWN': 'info'}.get(c.risk_level, 'info'),

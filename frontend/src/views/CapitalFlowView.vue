@@ -44,10 +44,13 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, capitalFlows, flowGraphData, flowSearchCaseId, gangs, loadFlowData, selectedGang,
   addFlowRecord
 } = state
+
+onMounted(() => loadFlowData())
 </script>

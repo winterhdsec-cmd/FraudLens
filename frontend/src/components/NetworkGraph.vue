@@ -268,7 +268,7 @@ onUnmounted(() => { if (network) network.destroy() })
 }
 .status-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
 .graph-controls { display: flex; gap: 8px; }
-.graph-canvas { flex: 1; min-height: 600px; height: 600px; background: rgba(10,14,26,0.8); }
+.graph-canvas { flex: 1; height: 700px; min-height: 700px; background: rgba(10,14,26,0.8); }
 .graph-legend {
   display: flex; justify-content: center; gap: 24px;
   padding: 10px; background: rgba(15,23,42,0.85);

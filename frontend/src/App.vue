@@ -133,7 +133,7 @@ const {
 </script>
 
 <style scoped>
-.police-system-layout { display: flex; height: 100vh; width: 100vw; background: var(--bg-primary); position: relative; overflow: hidden; }
+.police-system-layout { display: flex; height: 100vh; width: 100vw; background: var(--bg-primary); position: relative; }
 .sidebar { width: 240px; min-width: 240px; height: 100vh; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; z-index: 10; }
 .logo-area { padding: 24px 20px 16px; text-align: center; border-bottom: 1px solid var(--border-primary); }
 .logo-icon-wrapper { position: relative; width: 52px; height: 52px; margin: 0 auto 12px; }

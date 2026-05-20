@@ -266,11 +266,18 @@ button {
 }
 
 /* 文本域 */
+.el-textarea {
+  --el-input-bg-color: transparent !important;
+}
+.el-textarea__wrapper {
+  background: rgba(10, 14, 26, 0.4) !important;
+  box-shadow: none !important;
+}
 .el-textarea__inner {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: transparent !important;
   border: 1px solid var(--border-primary) !important;
   border-radius: var(--radius-md) !important;
-  color: var(--text-primary) !important;
+  color: #e2e8f0 !important;
 }
 
 .el-textarea__inner:hover {

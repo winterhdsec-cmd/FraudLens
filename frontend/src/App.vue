@@ -122,6 +122,14 @@ import NetworkGraph from './components/NetworkGraph.vue'
 
 const appState = useFraudLens()
 provide('appState', appState)
+
+const {
+  store, activeMenu, loading,
+  showProgress, showResult, progressPercent, progressMessage, resultStats,
+  loginForm, loginLoading, loginError,
+  handleLogin, handleLogout, handleMenuSelect,
+  getParticleStyle, goToResults
+} = appState
 </script>
 
 <style scoped>

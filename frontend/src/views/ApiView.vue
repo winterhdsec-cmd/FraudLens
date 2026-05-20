@@ -217,3 +217,42 @@ const {
   loading, hasApiData
 } = state
 </script>
+
+<style scoped>
+.api-sources-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.api-source-card { padding: 20px; cursor: pointer; transition: all 0.3s ease; }
+.api-source-card:hover { border-color: var(--border-secondary); transform: translateY(-2px); }
+.api-source-card.active { border-color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0,198,255,0.15); }
+.source-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.source-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.source-icon.bank { background: rgba(245,158,11,0.15); }
+.source-icon.police { background: rgba(0,212,255,0.15); }
+.source-icon.antiFraud { background: rgba(139,92,246,0.15); }
+.source-info { flex: 1; }
+.source-name { font-size: 15px; color: var(--text-primary); font-weight: 500; }
+.source-status { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.source-status .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background: var(--text-muted); }
+.source-status .status-dot.active { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.source-content { margin-bottom: 12px; }
+.source-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.5; }
+.source-features { display: flex; flex-direction: column; gap: 4px; }
+.feature-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.feature-icon { font-size: 12px; }
+.source-stats { display: flex; gap: 16px; margin-bottom: 12px; padding: 10px 0; border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); }
+.stat-item { text-align: center; flex: 1; }
+.stat-item .stat-value { font-size: 16px; font-weight: 700; color: var(--accent-cyan); }
+.stat-item .stat-label { font-size: 11px; color: var(--text-muted); }
+.source-actions { display: flex; gap: 8px; }
+.api-data-preview { padding: 16px; margin-bottom: 20px; }
+.preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.preview-icon { font-size: 16px; }
+.preview-title { font-size: 14px; color: var(--text-primary); font-weight: 500; flex: 1; }
+.preview-table { margin-bottom: 12px; }
+.connection-status { display: flex; align-items: center; gap: 8px; }
+.connection-status .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.connection-status .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--text-muted); }
+.connection-status .status-dot.active { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.6); }
+.action-bar { display: flex; justify-content: center; margin-top: 24px; }
+.analyze-btn { min-width: 220px; height: 48px; font-size: 16px; }
+.btn-icon { margin-right: 6px; }
+</style>

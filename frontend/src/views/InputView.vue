@@ -128,3 +128,36 @@ const {
   hasTime, inputText, loadDemo, loading, startAnalysis, textLineCount
 } = state
 </script>
+
+<style scoped>
+.input-container { display: grid; grid-template-columns: 1fr 260px; gap: 20px; }
+.input-main { padding: 0; display: flex; flex-direction: column; }
+.input-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-primary); }
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 8px; }
+.toolbar-icon { font-size: 16px; }
+.toolbar-title { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+.input-area { padding: 0; flex: 1; }
+.input-area :deep(.el-textarea__inner) { border: none !important; border-radius: 0 !important; background: transparent !important; min-height: 400px; font-size: 14px; line-height: 1.7; padding: 16px 18px; }
+.input-footer { padding: 12px 18px; border-top: 1px solid var(--border-primary); }
+.format-tips { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.tip-icon { flex-shrink: 0; }
+.input-sidebar { display: flex; flex-direction: column; gap: 16px; }
+.sidebar-card { padding: 0; }
+.sidebar-card .card-header { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border-primary); background: rgba(0,0,0,0.15); }
+.card-icon { font-size: 14px; }
+.card-title { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+.card-content { padding: 14px 16px; }
+.preview-item { margin-bottom: 8px; }
+.preview-label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+.preview-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.preview-empty { text-align: center; padding: 24px 0; }
+.preview-empty .empty-icon { display: block; font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
+.preview-empty .empty-text { font-size: 12px; color: var(--text-muted); }
+.checklist { display: flex; flex-direction: column; gap: 8px; }
+.check-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(0,198,255,0.08); border-radius: 8px; font-size: 13px; color: var(--text-muted); transition: all 0.3s ease; }
+.check-item.active { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981; }
+.check-icon { flex-shrink: 0; }
+.action-bar { display: flex; justify-content: center; margin-top: 24px; }
+.analyze-btn { min-width: 220px; height: 48px; font-size: 16px; }
+.btn-icon { margin-right: 6px; }
+</style>

@@ -13,27 +13,13 @@
       </div>
       <div class="graph-controls">
         <el-button size="small" @click="fitView">适应屏幕</el-button>
-        <el-button size="small" @click="togglePhysics">
-          {{ physicsEnabled ? '暂停布局' : '恢复布局' }}
-        </el-button>
+        <el-button size="small" @click="togglePhysics">{{ physicsEnabled ? '暂停布局' : '恢复布局' }}</el-button>
         <el-button size="small" type="primary" @click="exportGraph">导出</el-button>
         <el-button size="small" @click="clusterAll" :disabled="!props.gangs.length">聚合</el-button>
         <el-button size="small" @click="expandAll" :disabled="!props.gangs.length">展开</el-button>
       </div>
     </div>
     <div class="graph-canvas" ref="containerRef"></div>
-    <div class="graph-legend" v-show="graphMode === 'gang'">
-      <div class="legend-item"><span class="dot s"></span>S级团伙</div>
-      <div class="legend-item"><span class="dot a"></span>A级团伙</div>
-      <div class="legend-item"><span class="dot b"></span>B级团伙</div>
-      <div class="legend-item"><span class="dot c"></span>案件</div>
-      <div class="legend-item"><span class="dot money"></span>资金流向</div>
-    </div>
-    <div class="graph-legend" v-show="graphMode === 'flow'">
-      <div class="legend-item"><span class="dot money"></span>转出账户</div>
-      <div class="legend-item"><span class="dot target"></span>转入账户</div>
-      <div class="legend-item"><span class="dot flow"></span>资金流向</div>
-    </div>
   </div>
 </template>
 
@@ -92,34 +78,34 @@ function buildGangGraph() {
       label: shortName,
       title: '<b>' + (gang.gang_name || '团伙') + '</b><br>威胁等级: ' + tl + '<br>案件数: ' + (gang.total_cases || 0) + '<br>金额: ' + (gang.total_amount_involved || '-'),
       shape: 'dot',
-      size: tl === 'S' ? 28 : tl === 'A' ? 24 : 20,
+      size: tl === 'S' ? 24 : tl === 'A' ? 20 : 18,
       color: colors,
-      font: { color: '#e2e8f0', size: 10, face: 'sans-serif', strokeWidth: 2, strokeColor: '#0a0e1a' },
+      font: { color: '#e2e8f0', size: 9, face: 'sans-serif', strokeWidth: 2, strokeColor: '#0a0e1a' },
       borderWidth: 2,
-      shadow: { enabled: true, size: 8, color: colors.background + '55' },
+      shadow: { enabled: true, size: 6, color: colors.background + '44' },
       group: 'gang',
       gangData: gang
     })
 
     const cases = gang.related_cases || []
-    cases.forEach((c, ci) => {
+    cases.slice(0, 3).forEach((c, ci) => {
       const caseId = 'case_' + nodeId + '_' + ci
       nodes.add({
         id: caseId,
-        label: 'C' + String(ci + 1).padStart(3, '0'),
+        label: '',
         title: '<b>案件 ' + c.case_id + '</b><br>受害人: ' + (c.victim || '未知') + '<br>金额: ' + (c.amount || '-'),
         shape: 'dot',
-        size: 18,
+        size: 8,
         color: NODE_COLORS.C,
-        font: { color: '#94a3b8', size: 10, face: 'sans-serif' },
+        font: { color: '#94a3b8', size: 8 },
         group: 'case'
       })
       edges.add({
         id: 'e_' + nodeId + '_' + caseId,
         from: nodeId,
         to: caseId,
-        color: { color: 'rgba(0,198,255,0.5)', highlight: '#00c6ff' },
-        width: 2,
+        color: { color: 'rgba(0,198,255,0.3)', highlight: '#00c6ff' },
+        width: 1,
         smooth: { type: 'curvedCW', roundness: 0.1 }
       })
     })
@@ -128,23 +114,32 @@ function buildGangGraph() {
   const options = {
     physics: physicsEnabled.value ? {
       solver: 'forceAtlas2Based',
-      forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.008, springLength: 200, springConstant: 0.04, damping: 0.5 },
-      stabilization: { iterations: 150, updateInterval: 25 }
+      forceAtlas2Based: { gravitationalConstant: -200, centralGravity: 0.005, springLength: 150, springConstant: 0.03, damping: 0.5 },
+      stabilization: { iterations: 100, updateInterval: 50 }
     } : false,
     edges: { smooth: { type: 'continuous' } },
-    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true },
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true, selectable: true },
     groups: {
       gang: { shape: 'dot' },
-      case: { shape: 'dot', size: 15 }
-    }
+      case: { shape: 'dot' }
+    },
+    configure: { filter: function (option, path) { return false }, showButton: false }
   }
 
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
 
+  let fitAttempts = 0
   network.once('stabilizationIterationsDone', () => {
-    network.fit({ animation: true })
+    network.fit({ animation: true, minZoomLevel: 0.3 })
   })
+  network.on('stabilized', () => {
+    if (fitAttempts < 1) {
+      network.fit({ animation: true, minZoomLevel: 0.3 })
+      fitAttempts++
+    }
+  })
+  network.on('resize', () => { network.fit({ minZoomLevel: 0.3 }) })
 
   network.on('click', (params) => {
     if (params.nodes.length) {
@@ -168,11 +163,13 @@ function buildGangGraph() {
 function clusterAll() {
   if (!network) return
   network.clustering.clusterByConnection(2)
+  setTimeout(() => network.fit({ animation: true }), 100)
 }
 
 function expandAll() {
   if (!network) return
   network.clustering.openAllClusters()
+  setTimeout(() => network.fit({ animation: true }), 100)
 }
 
 function buildFlowGraph() {
@@ -213,21 +210,25 @@ function buildFlowGraph() {
   const options = {
     physics: {
       solver: 'barnesHut',
-      barnesHut: { gravitationalConstant: -200, centralGravity: 0.01, springLength: 150 },
-      stabilization: { iterations: 80 }
+      barnesHut: { gravitationalConstant: -300, centralGravity: 0.008, springLength: 120 },
+      stabilization: { iterations: 60, updateInterval: 50 }
     },
     edges: { smooth: true },
-    interaction: { hover: true, tooltipDelay: 200, dragNodes: true }
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, navigationButtons: true }
   }
 
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
+  network.once('stabilizationIterationsDone', () => {
+    network.fit({ animation: true })
+  })
 }
 
-function fitView() { if (network) network.fit() }
+function fitView() { if (network) network.fit({ animation: true }) }
 function togglePhysics() {
   physicsEnabled.value = !physicsEnabled.value
   if (network) network.setOptions({ physics: physicsEnabled.value })
+  if (physicsEnabled.value) setTimeout(() => network.fit({ animation: true }), 500)
 }
 function exportGraph() {
   if (containerRef.value) {
@@ -241,7 +242,7 @@ function exportGraph() {
   }
 }
 
-onMounted(() => { nextTick(buildGangGraph) })
+onMounted(() => { nextTick(() => { buildGangGraph() }) })
 onUnmounted(() => { if (network) network.destroy() })
 </script>
 
@@ -254,37 +255,21 @@ onUnmounted(() => { if (network) network.destroy() })
 }
 .graph-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 20px;
+  padding: 10px 16px;
   background: rgba(15,23,42,0.8);
   border-bottom: 1px solid rgba(0,198,255,0.2);
-  gap: 12px; flex-wrap: wrap;
+  gap: 8px; flex-wrap: wrap;
 }
-.engine-status { display: flex; align-items: center; gap: 8px; }
+.engine-status { display: flex; align-items: center; gap: 6px; }
 .status-dot {
-  width: 10px; height: 10px; border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   background: #00c6ff;
-  box-shadow: 0 0 15px #00c6ff;
+  box-shadow: 0 0 10px #00c6ff;
   animation: pulse 2s ease-in-out infinite;
 }
-.status-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
-.graph-controls { display: flex; gap: 8px; }
-.graph-canvas { flex: 1; height: 700px; min-height: 700px; background: rgba(10,14,26,0.8); }
-.graph-legend {
-  display: flex; justify-content: center; gap: 24px;
-  padding: 10px; background: rgba(15,23,42,0.85);
-  border-top: 1px solid rgba(0,198,255,0.2);
-}
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
-.dot {
-  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
-}
-.dot.s { background: #ff3860; box-shadow: 0 0 6px #ff3860; }
-.dot.a { background: #ffd700; box-shadow: 0 0 6px #ffd700; }
-.dot.b { background: #ff9800; box-shadow: 0 0 6px #ff9800; }
-.dot.c { background: #00c6ff; box-shadow: 0 0 6px #00c6ff; }
-.dot.money { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-.dot.target { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
-.dot.flow { background: transparent; border: 2px solid #f59e0b; width: 8px; height: 8px; }
+.status-text { font-size: 12px; color: #94a3b8; font-weight: 500; }
+.graph-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.graph-canvas { flex: 1; height: 800px; min-height: 800px; background: rgba(10,14,26,0.8); }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.9); }

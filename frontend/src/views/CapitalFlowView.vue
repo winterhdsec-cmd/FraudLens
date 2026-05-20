@@ -19,7 +19,7 @@
       </div>
     </div>
     <template v-else>
-      <div class="network-container tech-card" style="height:500px">
+      <div class="network-container tech-card" style="height:400px;min-height:400px">
         <NetworkGraph :gangs="[]" :selectedGang="null" :flowData="flowGraphData" />
       </div>
       <el-table :data="capitalFlows" style="width:100%;margin-top:12px" stripe size="small" max-height="300">

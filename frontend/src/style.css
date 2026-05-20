@@ -774,9 +774,10 @@ button {
   margin-right: 6px;
 }
 
-/* 网络容器 — overflow必须visible,容器足够大给vis-network */
+/* 网络容器 — 占满可视区域,不再用固定px */
 .network-container {
-  min-height: 1250px;
+  height: calc(100vh - 280px);
+  min-height: 400px;
   overflow: visible !important;
 }
 

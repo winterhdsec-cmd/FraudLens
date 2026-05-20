@@ -87,6 +87,7 @@ class Case(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     case_id = db.Column(db.String(32), unique=True, nullable=False, index=True)
+    number = db.Column(db.Integer, default=0)
     session_id = db.Column(db.String(64), db.ForeignKey('analysis_sessions.session_id'), nullable=True)
     title = db.Column(db.String(200), default='')
     scam_type = db.Column(db.String(100), default='')
@@ -128,6 +129,7 @@ class Gang(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     gang_id = db.Column(db.String(32), unique=True, nullable=False, index=True)
+    number = db.Column(db.Integer, default=0)
     session_id = db.Column(db.String(64), db.ForeignKey('analysis_sessions.session_id'), nullable=True)
     gang_name = db.Column(db.String(100), default='未命名团伙')
     risk_level = db.Column(db.String(10), default='C')

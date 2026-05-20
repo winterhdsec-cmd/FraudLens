@@ -266,6 +266,7 @@ def _case_to_dict(c):
         return None
     return {
         'case_id': c.case_id,
+        'number': c.number or 0,
         'title': c.title,
         'scam_type': c.scam_type,
         'risk_level': c.risk_level,
@@ -314,6 +315,7 @@ def _gang_to_dict(g):
 
     return {
         'gang_id': g.gang_id,
+        'number': g.number or 0,
         'gang_name': g.gang_name,
         'risk_level': g.risk_level,
         'risk_label': g.risk_label,

@@ -20,6 +20,19 @@
       </div>
     </div>
     <div class="graph-canvas" ref="containerRef"></div>
+    <div class="graph-legend" v-if="graphMode === 'gang'">
+      <div class="legend-item"><span class="dot s"></span>S级团伙</div>
+      <div class="legend-item"><span class="dot a"></span>A级团伙</div>
+      <div class="legend-item"><span class="dot b"></span>B级团伙</div>
+      <div class="legend-item"><span class="dot c"></span>C级团伙</div>
+      <div class="legend-item"><span class="dot case"></span>案件</div>
+      <div class="legend-item"><span class="dot money"></span>资金流向</div>
+    </div>
+    <div class="graph-legend" v-if="graphMode === 'flow'">
+      <div class="legend-item"><span class="dot money"></span>转出账户</div>
+      <div class="legend-item"><span class="dot target"></span>转入账户</div>
+      <div class="legend-item"><span class="dot flow"></span>资金流向</div>
+    </div>
   </div>
 </template>
 
@@ -63,14 +76,14 @@ function buildGangGraph() {
 
   nodes.clear(); edges.clear()
 
-  const displayGangs = props.gangs.slice(0, 20)
+  const allCaseIds = new Set()
 
-  displayGangs.forEach((gang, idx) => {
+  props.gangs.forEach((gang, idx) => {
     const tl = gang.riskLevel || gang.threat_level || 'C'
     const nodeId = 'gang_' + (gang.gang_id || idx)
     const colors = NODE_COLORS[tl] || NODE_COLORS.C
-    const shortName = (gang.gang_name || '团伙' + (idx + 1)).length > 8
-      ? (gang.gang_name || '团伙' + (idx + 1)).slice(0, 7) + '…'
+    const shortName = (gang.gang_name || '团伙' + (idx + 1)).length > 10
+      ? (gang.gang_name || '团伙' + (idx + 1)).slice(0, 9) + '…'
       : (gang.gang_name || '团伙' + (idx + 1))
 
     nodes.add({
@@ -78,68 +91,104 @@ function buildGangGraph() {
       label: shortName,
       title: '<b>' + (gang.gang_name || '团伙') + '</b><br>威胁等级: ' + tl + '<br>案件数: ' + (gang.total_cases || 0) + '<br>金额: ' + (gang.total_amount_involved || '-'),
       shape: 'dot',
-      size: tl === 'S' ? 24 : tl === 'A' ? 20 : 18,
+      size: tl === 'S' ? 32 : tl === 'A' ? 26 : 22,
       color: colors,
-      font: { color: '#e2e8f0', size: 9, face: 'sans-serif', strokeWidth: 2, strokeColor: '#0a0e1a' },
+      font: { color: '#e2e8f0', size: 10, face: 'sans-serif', strokeWidth: 2, strokeColor: '#0a0e1a' },
       borderWidth: 2,
-      shadow: { enabled: true, size: 6, color: colors.background + '44' },
+      shadow: { enabled: true, size: 8, color: colors.background + '55' },
       group: 'gang',
       gangData: gang
     })
 
     const cases = gang.related_cases || []
-    cases.slice(0, 3).forEach((c, ci) => {
-      const caseId = 'case_' + nodeId + '_' + ci
-      nodes.add({
-        id: caseId,
-        label: '',
-        title: '<b>案件 ' + c.case_id + '</b><br>受害人: ' + (c.victim || '未知') + '<br>金额: ' + (c.amount || '-'),
-        shape: 'dot',
-        size: 8,
-        color: NODE_COLORS.C,
-        font: { color: '#94a3b8', size: 8 },
-        group: 'case'
-      })
-      edges.add({
-        id: 'e_' + nodeId + '_' + caseId,
-        from: nodeId,
-        to: caseId,
-        color: { color: 'rgba(0,198,255,0.3)', highlight: '#00c6ff' },
-        width: 1,
-        smooth: { type: 'curvedCW', roundness: 0.1 }
-      })
+    cases.forEach((c, ci) => {
+      const caseId = 'case_' + (c.case_id || (nodeId + '_' + ci))
+      const exists = nodes.get(caseId)
+      if (!exists) {
+        allCaseIds.add(caseId)
+        nodes.add({
+          id: caseId,
+          label: (c.case_id || '案' + String(ci + 1)).slice(-6),
+          title: '<b>案件 ' + (c.case_id || '') + '</b><br>受害人: ' + (c.victim || '未知') + '<br>金额: ' + (c.amount || '-'),
+          shape: 'square',
+          size: 14,
+          color: { background: 'rgba(0,198,255,0.25)', border: 'rgba(0,198,255,0.6)', highlight: { background: 'rgba(0,198,255,0.4)', border: '#00c6ff' } },
+          font: { color: '#94a3b8', size: 9, face: 'sans-serif' },
+          group: 'case'
+        })
+      }
+      const edgeId = 'e_' + nodeId + '_' + caseId
+      if (!edges.get(edgeId)) {
+        edges.add({
+          id: edgeId,
+          from: nodeId,
+          to: caseId,
+          label: c.amount || (c.amount_value ? '¥' + c.amount_value : ''),
+          color: { color: 'rgba(0,198,255,0.4)', highlight: '#00c6ff' },
+          width: 1.5,
+          font: { color: 'rgba(0,198,255,0.7)', size: 9, align: 'middle', strokeWidth: 2, strokeColor: '#0a0e1a' },
+          smooth: { type: 'curvedCW', roundness: 0.15 }
+        })
+      }
     })
   })
+
+  const gangNodes = props.gangs.map((g, idx) => 'gang_' + (g.gang_id || idx))
+  for (let i = 0; i < gangNodes.length; i++) {
+    for (let j = i + 1; j < gangNodes.length; j++) {
+      const g1 = props.gangs[i]
+      const g2 = props.gangs[j]
+      const c1 = (g1.related_cases || []).map(c => c.case_id).filter(Boolean)
+      const c2 = (g2.related_cases || []).map(c => c.case_id).filter(Boolean)
+      const shared = c1.filter(c => c2.includes(c))
+      if (shared.length > 0) {
+        const edgeId = 'cross_' + i + '_' + j
+        if (!edges.get(edgeId)) {
+          edges.add({
+            id: edgeId,
+            from: gangNodes[i],
+            to: gangNodes[j],
+            label: shared.length + '案关联',
+            color: { color: 'rgba(245,158,11,0.3)', highlight: '#f59e0b' },
+            width: 1 + shared.length * 0.5,
+            font: { color: 'rgba(245,158,11,0.6)', size: 8, align: 'middle', strokeWidth: 2, strokeColor: '#0a0e1a' },
+            dashes: true,
+            smooth: { type: 'curvedCW', roundness: 0.2 }
+          })
+        }
+      }
+    }
+  }
 
   const options = {
     physics: physicsEnabled.value ? {
       solver: 'forceAtlas2Based',
-      forceAtlas2Based: { gravitationalConstant: -200, centralGravity: 0.005, springLength: 150, springConstant: 0.03, damping: 0.5 },
-      stabilization: { iterations: 100, updateInterval: 50 }
+      forceAtlas2Based: { gravitationalConstant: -300, centralGravity: 0.003, springLength: 180, springConstant: 0.02, damping: 0.4 },
+      stabilization: { iterations: 200, updateInterval: 25 }
     } : false,
     edges: { smooth: { type: 'continuous' } },
-    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true, selectable: true },
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true, selectable: true, keyboard: true },
     groups: {
-      gang: { shape: 'dot' },
-      case: { shape: 'dot' }
+      gang: { shape: 'dot', size: 22 },
+      case: { shape: 'square', size: 14 }
     },
-    configure: { filter: function (option, path) { return false }, showButton: false }
+    configure: { filter: () => false, showButton: false }
   }
 
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
 
-  let fitAttempts = 0
+  let fitCount = 0
   network.once('stabilizationIterationsDone', () => {
-    network.fit({ animation: true, minZoomLevel: 0.3 })
+    network.fit({ animation: true })
   })
   network.on('stabilized', () => {
-    if (fitAttempts < 1) {
-      network.fit({ animation: true, minZoomLevel: 0.3 })
-      fitAttempts++
+    if (fitCount < 1) {
+      network.fit({ animation: true })
+      fitCount++
     }
   })
-  network.on('resize', () => { network.fit({ minZoomLevel: 0.3 }) })
+  network.on('resize', () => { network.fit() })
 
   network.on('click', (params) => {
     if (params.nodes.length) {
@@ -155,7 +204,7 @@ function clusterAll() {
   if (!network) return
   try {
     network.clustering.clusterByConnection(2)
-    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 150)
+    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 200)
   } catch(e) {}
 }
 
@@ -163,7 +212,7 @@ function expandAll() {
   if (!network) return
   try {
     network.clustering.openAllClusters()
-    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 150)
+    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 200)
   } catch(e) {}
 }
 
@@ -203,20 +252,14 @@ function buildFlowGraph() {
   })
 
   const options = {
-    physics: {
-      solver: 'barnesHut',
-      barnesHut: { gravitationalConstant: -300, centralGravity: 0.008, springLength: 120 },
-      stabilization: { iterations: 60, updateInterval: 50 }
-    },
+    physics: { solver: 'barnesHut', barnesHut: { gravitationalConstant: -300, centralGravity: 0.008, springLength: 120 }, stabilization: { iterations: 60, updateInterval: 50 } },
     edges: { smooth: true },
     interaction: { hover: true, tooltipDelay: 200, dragNodes: true, navigationButtons: true }
   }
 
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
-  network.once('stabilizationIterationsDone', () => {
-    network.fit({ animation: true })
-  })
+  network.once('stabilizationIterationsDone', () => { network.fit({ animation: true }) })
 }
 
 function fitView() { if (network) network.fit({ animation: true }) }
@@ -265,6 +308,24 @@ onUnmounted(() => { if (network) network.destroy() })
 .status-text { font-size: 12px; color: #94a3b8; font-weight: 500; }
 .graph-controls { display: flex; gap: 6px; flex-wrap: wrap; }
 .graph-canvas { flex: 1; min-height: 0; background: rgba(10,14,26,0.8); }
+.graph-legend {
+  display: flex; justify-content: center; gap: 20px;
+  padding: 10px 16px; background: rgba(15,23,42,0.85);
+  border-top: 1px solid rgba(0,198,255,0.2);
+  flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+}
+.dot.s { background: #ff3860; box-shadow: 0 0 6px #ff3860; }
+.dot.a { background: #ffd700; box-shadow: 0 0 6px #ffd700; }
+.dot.b { background: #ff9800; box-shadow: 0 0 6px #ff9800; }
+.dot.c { background: #00c6ff; box-shadow: 0 0 6px #00c6ff; }
+.dot.case { background: rgba(0,198,255,0.25); border: 2px solid rgba(0,198,255,0.6); width: 8px; height: 8px; border-radius: 2px; }
+.dot.money { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.dot.target { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.dot.flow { background: transparent; border: 2px solid #f59e0b; width: 6px; height: 6px; }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.9); }

@@ -112,8 +112,8 @@
               </div>
 
               <div class="profile-footer">
-                <el-button size="small" @click="selectGang(gang); router.push({ name: 'case-detail' })">
-                  <span>🔍</span> 查看详情
+                <el-button size="small" @click="selectGang(gang); router.push({ name: 'details' })">
+                  <span>🔍</span> 深度分析
                 </el-button>
                 <el-button size="small" type="primary" @click="selectGang(gang); router.push({ name: 'report', query: { gangId: gang.id } })">
                   <span>📄</span> 生成报告

@@ -143,6 +143,10 @@ function buildGangGraph() {
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
 
+  network.once('stabilizationIterationsDone', () => {
+    network.fit({ animation: true })
+  })
+
   network.on('click', (params) => {
     if (params.nodes.length) {
       const node = nodes.get(params.nodes[0])

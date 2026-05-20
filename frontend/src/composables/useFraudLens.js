@@ -353,7 +353,7 @@ export function useFraudLens() {
 
   const viewGangDetail = (gang) => {
     selectGang(gang)
-    router.push({ name: 'groups' })
+    router.push({ name: 'details' })
   }
 
   const viewCaseDetail = (caseItem) => {

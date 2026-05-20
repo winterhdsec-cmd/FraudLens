@@ -1208,8 +1208,8 @@ button {
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px;
+  gap: 16px;
+  padding: 22px 24px;
 }
 .stat-icon-wrapper {
   width: 48px;

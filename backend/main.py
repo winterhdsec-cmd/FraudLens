@@ -89,8 +89,16 @@ async def lifespan(app: FastAPI):
                 db.session.add(record)
             db.session.commit()
             logger.info(f"演示预警数据已注入: {len(demo_alerts_data)} 条")
+            from tools.redis_utils import alert_store_set
+            for record in AlertRecord.query.all():
+                alert_store_set(record.id, record.to_dict())
+            logger.info("预警数据已同步到 Redis")
         else:
             logger.info(f"预警数据已存在: {AlertRecord.query.count()} 条")
+            from tools.redis_utils import alert_store_set
+            for record in AlertRecord.query.all():
+                alert_store_set(record.id, record.to_dict())
+            logger.info("预警数据已同步到 Redis")
     except Exception as e:
         logger.warning(f"预警数据注入跳过: {e}")
 

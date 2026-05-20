@@ -646,8 +646,35 @@ export function useFraudLens() {
     ElMessage.success('正在准备打印...')
   }
 
-  const downloadReport = () => {
-    ElMessage.success('报告下载中...')
+  const downloadReport = async () => {
+    ElMessage.success('正在生成下载文件...')
+    if (reportConfig.value.type === 'gang' && reportConfig.value.gangId) {
+      const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
+      if (gang) {
+        const fmt = reportConfig.value.format === 'pdf' ? 'pdf' : 'docx'
+        try {
+          const r = await api.get('/api/reports/gang/' + gang.gang_id, { params: { format: fmt } })
+          if (r.data.success && r.data.file_path) {
+            const a = document.createElement('a')
+            a.href = 'http://localhost:5003' + r.data.file_path
+            a.download = gang.gang_name + '_报告.' + fmt
+            a.click()
+            ElMessage.success('下载已启动')
+          }
+        } catch (e) {
+          ElMessage.warning('后端报告接口未就绪，使用前端预览下载')
+          const canvas = document.querySelector('.report-document')
+          if (canvas) {
+            html2canvas(canvas).then(c => {
+              const a = document.createElement('a')
+              a.download = '报告.png'
+              a.href = c.toDataURL()
+              a.click()
+            })
+          }
+        }
+      }
+    }
   }
 
   const loadDashboard = async () => {
@@ -881,10 +908,8 @@ export function useFraudLens() {
     if (!flowSearchCaseId.value) return
     try {
       const r = await api.get('/api/capital/graph/' + flowSearchCaseId.value)
-      flowGraphData.value = r.data
-    } catch (e) {
-      console.error('loadFlowGraph:', e)
-    }
+      flowGraphData.value = r.data.graph || r.data.data || null
+    } catch (e) { console.error('loadFlowGraph:', e) }
   }
   const loadFlowData = async () => {
     await loadCapitalFlows()

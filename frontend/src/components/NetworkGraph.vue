@@ -149,27 +149,22 @@ function buildGangGraph() {
       }
     }
   })
-
-  network.on('zoom', () => {
-    const scale = network.getScale()
-    if (scale < 0.4) {
-      network.clustering.clusterByConnection(2)
-    } else {
-      network.clustering.openAllClusters()
-    }
-  })
 }
 
 function clusterAll() {
   if (!network) return
-  network.clustering.clusterByConnection(2)
-  setTimeout(() => network.fit({ animation: true }), 100)
+  try {
+    network.clustering.clusterByConnection(2)
+    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 150)
+  } catch(e) {}
 }
 
 function expandAll() {
   if (!network) return
-  network.clustering.openAllClusters()
-  setTimeout(() => network.fit({ animation: true }), 100)
+  try {
+    network.clustering.openAllClusters()
+    setTimeout(() => { try { network.fit({ animation: true }) } catch(e) {} }, 150)
+  } catch(e) {}
 }
 
 function buildFlowGraph() {
@@ -269,7 +264,7 @@ onUnmounted(() => { if (network) network.destroy() })
 }
 .status-text { font-size: 12px; color: #94a3b8; font-weight: 500; }
 .graph-controls { display: flex; gap: 6px; flex-wrap: wrap; }
-.graph-canvas { flex: 1; height: 800px; min-height: 800px; background: rgba(10,14,26,0.8); }
+.graph-canvas { flex: 1; height: 1200px; min-height: 1200px; background: rgba(10,14,26,0.8); }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.9); }

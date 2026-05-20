@@ -41,6 +41,17 @@
   --gradient-secondary: linear-gradient(135deg, #0f1525 0%, #1a2744 100%);
   --gradient-accent: linear-gradient(90deg, rgba(0, 198, 255, 0.1) 0%, rgba(0, 198, 255, 0.05) 100%);
 
+  /* Element Plus 主题变量覆盖 */
+  --el-color-primary: #00d4ff;
+  --el-color-primary-light-3: #33ddff;
+  --el-color-primary-light-5: #66e6ff;
+  --el-color-primary-dark-2: #00aace;
+  --el-fill-color-blank: rgba(10, 14, 26, 0.4) !important;
+  --el-fill-color: rgba(10, 14, 26, 0.4) !important;
+  --el-input-bg-color: rgba(10, 14, 26, 0.4) !important;
+  --el-bg-color: #0a0e1a;
+  --el-bg-color-overlay: #141828;
+
   /* 圆角 */
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -765,7 +776,7 @@ button {
 
 /* 网络容器 — overflow必须visible,容器足够大给vis-network */
 .network-container {
-  min-height: 850px;
+  min-height: 1250px;
   overflow: visible !important;
 }
 
@@ -1069,35 +1080,35 @@ button {
 /* ====== 深度分析页面 ====== */
 .analysis-dashboard { display: flex; flex-direction: column; gap: 16px; }
 .analysis-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.analysis-card { padding: 16px; }
+.analysis-card { padding: 10px; }
 .analysis-card.full-width { grid-column: 1 / -1; }
-.analysis-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-primary); }
+.analysis-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border-primary); }
 .analysis-icon { font-size: 16px; }
 .analysis-title { font-size: 14px; color: var(--text-primary); font-weight: 600; }
 .analysis-subtitle { font-size: 10px; color: var(--accent-cyan); margin-left: auto; }
 .flow-badge { font-size: 9px; padding: 1px 6px; background: rgba(0,198,255,0.15); border-radius: 4px; color: var(--accent-cyan); margin-left: auto; }
-.flow-chart { margin-bottom: 10px; }
-.flow-path { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px 0; flex-wrap: nowrap; overflow-x: auto; }
-.flow-stage { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
-.stage-node { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; position: relative; }
+.flow-chart { margin-bottom: 6px; }
+.flow-path { display: flex; align-items: center; justify-content: center; gap: 2px; padding: 6px 0; flex-wrap: nowrap; overflow-x: auto; }
+.flow-stage { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; }
+.stage-node { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; position: relative; }
 .stage-node.source { background: rgba(239,68,68,0.2); border: 2px solid rgba(239,68,68,0.4); }
 .stage-node.gang { background: rgba(245,158,11,0.2); border: 2px solid rgba(245,158,11,0.4); }
 .stage-node.middle { background: rgba(139,92,246,0.2); border: 2px solid rgba(139,92,246,0.4); }
 .stage-node.target { background: rgba(0,212,255,0.2); border: 2px solid rgba(0,212,255,0.4); }
 .node-glow { display: none; }
 .node-icon { position: relative; z-index: 1; }
-.stage-label { font-size: 10px; color: var(--text-primary); font-weight: 500; }
-.stage-desc { font-size: 9px; color: var(--text-muted); }
-.flow-connector { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; min-width: 40px; }
-.connector-line { width: 24px; height: 2px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
-.connector-arrow { width: 0; height: 0; border-left: 5px solid var(--accent-cyan); border-top: 3px solid transparent; border-bottom: 3px solid transparent; }
-.connector-label { font-size: 9px; color: var(--text-muted); }
-.flow-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
-.metric-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; }
-.metric-icon { font-size: 16px; }
-.metric-info { display: flex; flex-direction: column; gap: 1px; }
-.metric-label { font-size: 10px; color: var(--text-muted); }
-.metric-value { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.stage-label { font-size: 9px; color: var(--text-primary); font-weight: 500; }
+.stage-desc { font-size: 8px; color: var(--text-muted); }
+.flow-connector { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; min-width: 24px; }
+.connector-line { width: 14px; height: 1px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
+.connector-arrow { width: 0; height: 0; border-left: 4px solid var(--accent-cyan); border-top: 2px solid transparent; border-bottom: 2px solid transparent; }
+.connector-label { font-size: 8px; color: var(--text-muted); }
+.flow-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; }
+.metric-item { display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 4px; }
+.metric-icon { font-size: 14px; }
+.metric-info { display: flex; flex-direction: column; gap: 0; }
+.metric-label { font-size: 9px; color: var(--text-muted); }
+.metric-value { font-size: 12px; font-weight: 700; color: var(--text-primary); }
 .metric-value.danger { color: var(--accent-red); }
 .metric-value.warning { color: var(--accent-orange); }
 .feature-grid { display: flex; flex-direction: column; gap: 8px; }

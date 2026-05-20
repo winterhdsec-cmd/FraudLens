@@ -18,76 +18,104 @@
       </div>
     </div>
 
-    <div class="upload-container">
-      <div class="upload-main tech-card">
-        <div class="upload-toolbar">
-          <div class="toolbar-left">
-            <span class="toolbar-icon">📂</span>
-            <span class="toolbar-title">文件上传区</span>
+    <div class="upload-layout">
+      <div class="upload-main-card tech-card">
+        <div class="upload-dropzone">
+          <el-upload
+            :before-upload="handleBeforeUpload"
+            :show-file-list="false"
+            accept="image/*,.txt,.csv,.docx"
+            class="upload-area"
+            drag
+            multiple
+          >
+            <div class="upload-content">
+              <div class="upload-icon-ring">
+                <span class="upload-big-icon">📤</span>
+              </div>
+              <div class="upload-title">拖拽文件到此处</div>
+              <div class="upload-subtitle">或 <span class="upload-link">点击选择文件</span></div>
+              <div class="upload-hints">
+                <span class="uh-item">📷 图片 JPG/PNG</span>
+                <span class="uh-divider">|</span>
+                <span class="uh-item">📄 文档 TXT/CSV</span>
+                <span class="uh-divider">|</span>
+                <span class="uh-item">📝 Word DOCX</span>
+              </div>
+              <div class="upload-limit">单文件最大 10MB</div>
+            </div>
+          </el-upload>
+        </div>
+
+        <div class="upload-features">
+          <div class="uf-item">
+            <span class="uf-icon">🔍</span>
+            <div class="uf-info">
+              <span class="uf-title">OCR 文字识别</span>
+              <span class="uf-desc">自动提取图片中的文字</span>
+            </div>
+          </div>
+          <div class="uf-divider"></div>
+          <div class="uf-item">
+            <span class="uf-icon">🤖</span>
+            <div class="uf-info">
+              <span class="uf-title">AI 研判分析</span>
+              <span class="uf-desc">提取内容自动进入研判</span>
+            </div>
+          </div>
+          <div class="uf-divider"></div>
+          <div class="uf-item">
+            <span class="uf-icon">📊</span>
+            <div class="uf-info">
+              <span class="uf-title">结构化输出</span>
+              <span class="uf-desc">自动归类案件要素</span>
+            </div>
           </div>
         </div>
-        <el-upload
-          :before-upload="handleBeforeUpload"
-          :show-file-list="false"
-          accept="image/*,.txt,.csv,.docx"
-          class="upload-area"
-          drag
-          multiple
-        >
-          <div class="upload-content">
-            <div class="upload-icon-wrapper">
-              <i class="el-icon-upload upload-icon"></i>
-            </div>
-            <div class="upload-text">将文件拖到此处，或<span class="highlight">点击上传</span></div>
-            <div class="upload-hint">支持图片(JPG/PNG)、文本(TXT/CSV)、Word(DOCX)，单文件最大 10MB</div>
-            <div class="upload-formats">
-              <span class="format-tag">📷 聊天截图</span>
-              <span class="format-tag">📄 警情文档</span>
-              <span class="format-tag">📝 转账凭证</span>
-              <span class="format-tag">📋 报案笔录</span>
-            </div>
-          </div>
-        </el-upload>
       </div>
 
-      <div class="upload-preview" v-if="uploadedFiles.length">
-        <div class="preview-header">
-          <span class="preview-title">已上传文件 ({{ uploadedFiles.length }})</span>
-          <el-button size="small" @click="clearImages">清空全部</el-button>
-        </div>
-        <div class="preview-grid">
-          <div v-for="(item, idx) in uploadedFiles" :key="idx" class="preview-item">
-            <img v-if="item.type === 'image'" :src="item.url" alt="预览" />
-            <div v-else class="file-icon-wrapper">
-              <span class="file-icon">{{ item.type === 'docx' ? '📄' : '📝' }}</span>
-              <span class="file-type-label">{{ item.name.split('.').pop().toUpperCase() }}</span>
+      <div class="upload-side">
+        <div v-if="uploadedFiles.length" class="uploaded-list">
+          <div class="ul-header">
+            <span class="ul-title">已上传文件 ({{ uploadedFiles.length }})</span>
+            <el-button size="small" text @click="clearImages" style="color:var(--accent-red)">清空全部</el-button>
+          </div>
+          <div class="ul-grid">
+            <div v-for="(item, idx) in uploadedFiles" :key="idx" class="ul-card">
+              <div class="ul-preview">
+                <img v-if="item.type === 'image'" :src="item.url" alt="preview" />
+                <div v-else class="ul-file-icon">
+                  <span class="ulf-icon">{{ item.type === 'docx' ? '📄' : '📝' }}</span>
+                  <span class="ulf-ext">{{ item.name.split('.').pop().toUpperCase() }}</span>
+                </div>
+              </div>
+              <div class="ul-meta">
+                <span class="ul-name">{{ item.name }}</span>
+                <span class="ul-type-badge">{{ item.type === 'image' ? '图片' : item.type === 'docx' ? '文档' : '文本' }}</span>
+              </div>
+              <button class="ul-remove" @click="removeImage(idx)">✕</button>
             </div>
-            <div class="preview-overlay">
-              <span class="preview-name">{{ item.name }}</span>
-              <el-button size="small" type="danger" @click="removeImage(idx)">删除</el-button>
-            </div>
-            <div class="preview-badge">{{ item.type === 'image' ? '图片' : item.type === 'docx' ? '文档' : '文本' }}</div>
           </div>
         </div>
-      </div>
 
-      <div class="upload-tips tech-card" v-if="!uploadedFiles.length">
-        <div class="tip-header">
-          <span class="tip-icon">💡</span>
-          <span class="tip-title">上传提示</span>
-        </div>
-        <div class="tip-content">
-          <div class="tip-item">
-            <span class="tip-num">1</span>
-            <span class="tip-text">上传聊天截图或警情文档，系统自动提取文字</span>
+        <div v-else class="upload-tips-card tech-card">
+          <div class="ut-header">
+            <span class="ut-icon">💡</span>
+            <span class="ut-title">上传提示</span>
           </div>
-          <div class="tip-item">
-            <span class="tip-num">2</span>
-            <span class="tip-text">图片使用 OCR 识别，文档自动解析文字内容</span>
-          </div>
-          <div class="tip-item">
-            <span class="tip-num">3</span>
-            <span class="tip-text">提取的文字自动进入 AI 研判分析流程</span>
+          <div class="ut-list">
+            <div class="ut-item">
+              <span class="ut-num">1</span>
+              <span>上传聊天截图或警情文档，系统自动提取文字</span>
+            </div>
+            <div class="ut-item">
+              <span class="ut-num">2</span>
+              <span>图片使用 OCR 识别，文档自动解析文字内容</span>
+            </div>
+            <div class="ut-item">
+              <span class="ut-num">3</span>
+              <span>提取的文字自动进入 AI 研判分析流程</span>
+            </div>
           </div>
         </div>
       </div>
@@ -117,3 +145,104 @@ const {
   uploadedImages: uploadedFiles
 } = state
 </script>
+
+<style scoped>
+.upload-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+.upload-main-card { padding: 0; }
+.upload-dropzone { padding: 32px; }
+.upload-dropzone :deep(.el-upload-dragger) {
+  width: 100%; padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.03) 0%, rgba(0,132,255,0.06) 100%) !important;
+  border: 2px dashed rgba(0,198,255,0.25) !important;
+  border-radius: 16px !important;
+  transition: all 0.3s ease !important;
+}
+.upload-dropzone :deep(.el-upload-dragger:hover) {
+  border-color: var(--accent-cyan) !important;
+  background: linear-gradient(135deg, rgba(0,198,255,0.06) 0%, rgba(0,132,255,0.1) 100%) !important;
+  box-shadow: 0 0 30px rgba(0,198,255,0.15) !important;
+  transform: translateY(-2px);
+}
+.upload-content { text-align: center; }
+.upload-icon-ring {
+  width: 72px; height: 72px; margin: 0 auto 16px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.15), rgba(0,132,255,0.1));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(0,198,255,0.2);
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+.upload-big-icon { font-size: 32px; }
+.upload-title { font-size: 17px; color: var(--text-primary); font-weight: 600; margin-bottom: 6px; }
+.upload-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.upload-link { color: var(--accent-cyan); font-weight: 500; cursor: pointer; }
+.upload-hints { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 8px; }
+.uh-item { font-size: 12px; color: var(--text-muted); }
+.uh-divider { font-size: 12px; color: rgba(255,255,255,0.1); }
+.upload-limit { font-size: 11px; color: rgba(255,255,255,0.2); }
+.upload-features {
+  display: flex; align-items: center;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-primary);
+  background: rgba(0,0,0,0.15);
+  gap: 0;
+}
+.uf-item { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: center; }
+.uf-icon { font-size: 18px; }
+.uf-info { display: flex; flex-direction: column; gap: 1px; }
+.uf-title { font-size: 12px; color: var(--text-primary); font-weight: 500; }
+.uf-desc { font-size: 10px; color: var(--text-muted); }
+.uf-divider { width: 1px; height: 30px; background: var(--border-primary); }
+
+.upload-side { display: flex; flex-direction: column; gap: 16px; }
+.uploaded-list { background: var(--bg-card); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 16px; }
+.ul-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ul-title { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+.ul-grid { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+.ul-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(0,198,255,0.08);
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.ul-card:hover { border-color: rgba(0,198,255,0.2); background: rgba(0,0,0,0.3); }
+.ul-preview { width: 40px; height: 40px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+.ul-preview img { width: 100%; height: 100%; object-fit: cover; }
+.ul-file-icon { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,198,255,0.05); border-radius: 6px; }
+.ulf-icon { font-size: 16px; line-height: 1; }
+.ulf-ext { font-size: 7px; color: var(--text-muted); margin-top: 1px; }
+.ul-meta { flex: 1; min-width: 0; }
+.ul-name { font-size: 12px; color: var(--text-primary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ul-type-badge { font-size: 9px; padding: 1px 6px; background: rgba(0,198,255,0.1); border-radius: 3px; color: var(--accent-cyan); }
+.ul-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: none; background: rgba(239,68,68,0.2);
+  color: var(--accent-red); font-size: 10px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+  line-height: 1;
+}
+.ul-card:hover .ul-remove { opacity: 1; }
+
+.upload-tips-card { padding: 0; }
+.ut-header { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border-primary); }
+.ut-icon { font-size: 16px; }
+.ut-title { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+.ut-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ut-item { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.ut-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0,198,255,0.1); color: var(--accent-cyan);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.2); }
+  50% { box-shadow: 0 0 0 12px rgba(0,198,255,0); }
+}
+</style>

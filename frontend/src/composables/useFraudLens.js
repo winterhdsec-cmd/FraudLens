@@ -904,16 +904,17 @@ export function useFraudLens() {
       console.error('loadCapitalFlows:', e)
     }
   }
-  const loadFlowGraph = async () => {
-    if (!flowSearchCaseId.value) return
+  const loadFlowGraph = async (forcedCaseId) => {
+    const cid = forcedCaseId || flowSearchCaseId.value || (capitalFlows.value.length > 0 ? capitalFlows.value[0].case_id : '')
+    if (!cid) return
     try {
-      const r = await api.get('/api/capital/graph/' + flowSearchCaseId.value)
+      const r = await api.get('/api/capital/graph/' + cid)
       flowGraphData.value = r.data.graph || r.data.data || null
     } catch (e) { console.error('loadFlowGraph:', e) }
   }
-  const loadFlowData = async () => {
+  const loadFlowData = async (forcedCaseId) => {
     await loadCapitalFlows()
-    await loadFlowGraph()
+    await loadFlowGraph(forcedCaseId)
   }
   const addFlowRecord = (row) => {
     ElMessage.info('追加资金流向功能：' + row.source_account + ' → ' + row.target_account)

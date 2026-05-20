@@ -242,7 +242,7 @@ onUnmounted(() => { if (network) network.destroy() })
   width: 100%; height: 100%;
   display: flex; flex-direction: column;
   background: rgba(10,14,26,0.5);
-  border-radius: 12px; overflow: hidden;
+  border-radius: 12px;
 }
 .graph-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -260,7 +260,7 @@ onUnmounted(() => { if (network) network.destroy() })
 }
 .status-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
 .graph-controls { display: flex; gap: 8px; }
-.graph-canvas { flex: 1; min-height: 350px; background: rgba(10,14,26,0.8); }
+.graph-canvas { flex: 1; min-height: 500px; height: 500px; background: rgba(10,14,26,0.8); }
 .graph-legend {
   display: flex; justify-content: center; gap: 24px;
   padding: 10px; background: rgba(15,23,42,0.85);

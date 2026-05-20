@@ -137,7 +137,7 @@ const {
 .toolbar-icon { font-size: 16px; }
 .toolbar-title { font-size: 14px; color: var(--text-primary); font-weight: 500; }
 .input-area { padding: 0; flex: 1; }
-.input-area :deep(.el-textarea__inner) { border: none !important; border-radius: 0 !important; background: rgba(0,0,0,0.3) !important; color: #e2e8f0 !important; min-height: 400px; font-size: 14px; line-height: 1.8; padding: 16px 18px; resize: vertical; }
+.input-area :deep(.el-textarea__inner) { border: none !important; border-radius: 0 !important; color: #e2e8f0 !important; min-height: 400px; font-size: 14px; line-height: 1.8; padding: 16px 18px; resize: vertical; }
 .input-area :deep(.el-textarea__inner::placeholder) { color: #64748b !important; }
 .input-area :deep(.el-textarea__inner:focus) { background: rgba(0,0,0,0.4) !important; box-shadow: inset 0 0 20px rgba(0,198,255,0.05) !important; }
 .input-footer { padding: 12px 18px; border-top: 1px solid var(--border-primary); }

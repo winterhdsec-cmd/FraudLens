@@ -128,12 +128,11 @@ function buildGangGraph() {
   const options = {
     physics: physicsEnabled.value ? {
       solver: 'forceAtlas2Based',
-      forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 180, springConstant: 0.02, damping: 0.4 },
-      stabilization: { iterations: 100 }
+      forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.008, springLength: 200, springConstant: 0.04, damping: 0.5 },
+      stabilization: { iterations: 150, updateInterval: 25 }
     } : false,
-    edges: { smooth: true },
-    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true },
-    // DListener: true },
+    edges: { smooth: { type: 'continuous' } },
+    interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true },
     groups: {
       gang: { shape: 'dot' },
       case: { shape: 'dot', size: 15 }
@@ -269,7 +268,7 @@ onUnmounted(() => { if (network) network.destroy() })
 }
 .status-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
 .graph-controls { display: flex; gap: 8px; }
-.graph-canvas { flex: 1; min-height: 500px; height: 500px; background: rgba(10,14,26,0.8); }
+.graph-canvas { flex: 1; min-height: 600px; height: 600px; background: rgba(10,14,26,0.8); }
 .graph-legend {
   display: flex; justify-content: center; gap: 24px;
   padding: 10px; background: rgba(15,23,42,0.85);

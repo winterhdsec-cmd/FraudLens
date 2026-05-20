@@ -79,18 +79,9 @@
                     </div>
                     <div class="doc-title">{{ getReportTitle() }}</div>
                     <div class="doc-meta">
-                      <div class="meta-item">
-                        <span class="meta-label">报告编号：</span>
-                        <span class="meta-value">RPT-{{ Date.now().toString().slice(-8) }}</span>
-                      </div>
-                      <div class="meta-item">
-                        <span class="meta-label">生成时间：</span>
-                        <span class="meta-value">{{ new Date().toLocaleString() }}</span>
-                      </div>
-                      <div class="meta-item">
-                        <span class="meta-label">密级：</span>
-                        <span class="meta-value secret">机密</span>
-                      </div>
+                      <div class="meta-item"><span class="meta-label">报告编号：</span><span>RPT-{{ Date.now().toString().slice(-8) }}</span></div>
+                      <div class="meta-item"><span class="meta-label">生成时间：</span><span>{{ new Date().toLocaleString() }}</span></div>
+                      <div class="meta-item"><span class="meta-label">密级：</span><span class="meta-secret">机密</span></div>
                     </div>
                   </div>
 
@@ -155,10 +146,10 @@
                       <div class="section-title">二、作案时间线</div>
                       <div class="section-body">
                         <div class="doc-timeline">
-                          <div v-for="(event, idx) in reportConfig.type === 'case' ? [] : (getGangById(reportConfig.gangId)?.timeline || [])" :key="idx" class="doc-timeline-item">
-                            <span class="doc-time">{{ event.date }}</span>
-                            <span class="doc-event">{{ event.title }}</span>
-                            <span class="doc-desc">{{ event.desc }}</span>
+                          <div v-for="(item, idx) in reportConfig.type === 'case' ? [] : (getGangById(reportConfig.gangId)?.timeline || [])" :key="idx" class="doc-timeline-item">
+                            <span class="doc-time">{{ item.date }}</span>
+                            <span class="doc-event">{{ item.title }}</span>
+                            <span class="doc-desc">{{ item.desc }}</span>
                           </div>
                           <div v-if="reportConfig.type === 'case' && selectedCase?.description" class="doc-timeline-item">
                             <span class="doc-time">{{ selectedCase.date || '-' }}</span>
@@ -185,19 +176,19 @@
                         <div class="suggestion-list">
                           <div class="suggestion-item">
                             <span class="suggestion-num">1</span>
-                            <span class="suggestion-text">建议立即对涉案账户进行止付冻结，防止资金进一步转移</span>
+                            <span>建议立即对涉案账户进行止付冻结，防止资金进一步转移</span>
                           </div>
                           <div class="suggestion-item">
                             <span class="suggestion-num">2</span>
-                            <span class="suggestion-text">协调银行调取完整交易流水，追踪资金去向</span>
+                            <span>协调银行调取完整交易流水，追踪资金去向</span>
                           </div>
                           <div class="suggestion-item">
                             <span class="suggestion-num">3</span>
-                            <span class="suggestion-text">对团伙成员实施布控，择机收网</span>
+                            <span>对团伙成员实施布控，择机收网</span>
                           </div>
                           <div class="suggestion-item">
                             <span class="suggestion-num">4</span>
-                            <span class="suggestion-text">联系境外执法机构，开展国际协作</span>
+                            <span>联系境外执法机构，开展国际协作</span>
                           </div>
                         </div>
                       </div>

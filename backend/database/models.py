@@ -217,3 +217,30 @@ class EvidenceItem(db.Model):
     content = db.Column(Text, default='')
     status = db.Column(db.String(20), default='待验证')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AlertRecord(db.Model):
+    __tablename__ = 'alert_records'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    alert_type = db.Column(db.String(32), nullable=False)
+    case_id = db.Column(db.String(32), nullable=False)
+    matched_case_id = db.Column(db.String(32), nullable=False)
+    matched_entities = db.Column(JSON, default=list)
+    confidence = db.Column(db.Float, default=0.0)
+    resolved = db.Column(db.Boolean, default=False)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'alert_type': self.alert_type,
+            'case_id': self.case_id,
+            'matched_case_id': self.matched_case_id,
+            'matched_entities': self.matched_entities,
+            'confidence': self.confidence,
+            'resolved': self.resolved,
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

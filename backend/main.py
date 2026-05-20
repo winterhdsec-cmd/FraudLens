@@ -19,24 +19,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 
-import jwt as pyjwt
-
 from flask import Flask as _Flask
 from dotenv import load_dotenv
 
-# 加载 key.env
 dotenv_path = os.path.join(os.path.dirname(__file__), 'key.env')
 load_dotenv(dotenv_path)
 
 from database import db, init_db
-from database.crud import (
-    get_all_cases, get_case_by_id,
-    get_all_gangs, get_gang_by_id,
-    get_sessions, get_session_detail,
-    search_cases, delete_session,
-    get_case_stats, update_case_status, _case_to_dict
-)
-from database.auth import log_operation as _flask_log_operation
 from tools.response import logger
 
 DB_USER = os.getenv("DB_USER", "root")
@@ -46,186 +35,19 @@ DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
 DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 
-# ---------- Global Flask App (pushed once, keeps Flask-SQLAlchemy working) ----------
 _flask_app = _Flask(__name__)
 _flask_app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
 _flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 init_db(_flask_app)
 _flask_app.app_context().push()
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fraudlens-jwt-secret-key-2024")
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
-_TOKEN_BLACKLIST: set = set()
 
-USE_CELERY = os.getenv("USE_CELERY", "auto").lower()
-if USE_CELERY == "auto":
-    try:
-        import redis as _redis_check
-        r = _redis_check.Redis(host='localhost', port=6379, socket_connect_timeout=1)
-        r.ping()
-        r.close()
-        from celery_app import celery_app as _celery_app_check
-        insp = _celery_app_check.control.inspect()
-        workers = insp.ping()
-        if workers:
-            USE_CELERY = True
-            logger.info("Redis + Celery Worker 已检测到，启用异步模式")
-        else:
-            USE_CELERY = False
-            logger.info("Redis 已检测到但无 Celery Worker 运行，使用同步模式")
-    except Exception:
-        USE_CELERY = False
-        logger.info("Redis 未检测到，使用同步模式")
-elif USE_CELERY == "true":
-    USE_CELERY = True
-else:
-    USE_CELERY = False
-
-# ---------- JWT Helpers ----------
-def create_token(user_id: Any, extra_claims: Optional[Dict[str, Any]] = None, expires_delta: Optional[timedelta] = None) -> str:
-    if expires_delta is None:
-        expires_delta = timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    payload = {
-        'sub': str(user_id),
-        'iat': datetime.utcnow(),
-        'exp': datetime.utcnow() + expires_delta,
-        'type': 'access'
-    }
-    if extra_claims:
-        payload.update(extra_claims)
-    return pyjwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-def create_refresh_token(user_id: Any) -> str:
-    payload = {
-        'sub': str(user_id),
-        'iat': datetime.utcnow(),
-        'exp': datetime.utcnow() + timedelta(days=7),
-        'type': 'refresh'
-    }
-    return pyjwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
-    try:
-        payload = pyjwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        jti = payload.get('jti', token[-16:])
-        if jti in _TOKEN_BLACKLIST:
-            return None
-        return payload
-    except pyjwt.ExpiredSignatureError:
-        return None
-    except pyjwt.InvalidTokenError:
-        return None
-
-# ---------- Auth Dependencies ----------
-def get_token_from_header(request: Request) -> Optional[str]:
-    auth = request.headers.get('Authorization', '')
-    if auth.startswith('Bearer '):
-        return auth[7:]
-    return None
-
-def get_current_user(request: Request) -> Dict[str, Any]:
-    token = get_token_from_header(request)
-    if not token:
-        raise HTTPException(status_code=401, detail="未提供认证令牌")
-    payload = decode_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="令牌无效或已过期")
-    from database.models import User
-    user = User.query.get(int(payload['sub']))
-    if not user:
-        raise HTTPException(status_code=401, detail="用户不存在")
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="账号已被禁用")
-    return user.to_dict()
-
-def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
-    token = get_token_from_header(request)
-    if not token:
-        return None
-    payload = decode_token(token)
-    if not payload:
-        return None
-    return payload
-
-# ---------- Operation Log helper ----------
-def log_operation(user_id: int, username: str, action: str, target_type: str = '', target_id: str = '', detail: Any = None, ip_address: str = ''):
-    from database.models import OperationLog
-    log = OperationLog(
-        user_id=user_id,
-        username=username,
-        action=action,
-        target_type=target_type,
-        target_id=target_id,
-        detail=detail or {},
-        ip_address=ip_address
-    )
-    db.session.add(log)
-    db.session.commit()
-
-# ---------- Progress Tracking ----------
-progress_store: Dict[str, List[Dict[str, Any]]] = {}
-progress_locks: Dict[str, threading.Lock] = {}
-
-class ProgressAdapter:
-    def __init__(self, session_id: str):
-        self.session_id = session_id
-        if session_id not in progress_store:
-            progress_store[session_id] = []
-        if session_id not in progress_locks:
-            progress_locks[session_id] = threading.Lock()
-
-    def emit(self, event: str, data: Dict[str, Any], room: Optional[str] = None):
-        lock = progress_locks.get(self.session_id)
-        entry = {'event': event, 'data': data, 'ts': time.time()}
-        if lock:
-            with lock:
-                progress_store[self.session_id].append(entry)
-        else:
-            progress_store[self.session_id].append(entry)
-        if USE_CELERY:
-            try:
-                import redis as _redis
-                r = _redis.Redis(host='localhost', port=6379, db=0)
-                r.publish(f'progress:{self.session_id}', json.dumps(entry, default=str))
-                r.close()
-            except Exception:
-                pass
-
-# ---------- Pydantic Models ----------
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class RegisterRequest(BaseModel):
-    username: str
-    password: str
-    display_name: str = ''
-    role: str = 'police'
-    department: str = ''
-    phone: str = ''
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-class MergeConfirmRequest(BaseModel):
-    case_id_a: str
-    case_id_b: str
-    gang_id: str
-
-class AnalyzeRequest(BaseModel):
-    messages: list = []
-    platform_data: dict = {}
-    session_id: Optional[str] = None
-
-# ---------- Lifespan ----------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     logger.info("AI 反诈研判官系统 v3.0 (FastAPI) 启动")
     logger.info("=" * 60)
     from database.models import User
-    # 注册P1模型
     from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -242,33 +64,39 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"反诈引擎初始化失败: {e}")
         fraud_engine = None
-    logger.info(f"USE_CELERY={USE_CELERY}")
     logger.info(f"数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
     logger.info("=" * 60)
-    # 注入演示预警数据
-    try:
-        import database.alert as _alert_mod
-        now = datetime.utcnow()
-        demo_alerts_data = [
-            ('phone_match', 'FC20260519001', 'FC20260519002', ['138****1234', '139****5678'], 0.85),
-            ('bank_match', 'FC20260519007', 'FC20260519003', ['6222****1234'], 0.72),
-            ('phone_match', 'FC20260519008', 'FC20260519009', ['150****9012'], 0.68),
-            ('app_match', 'FC20260519010', 'FC20260519011', ['腾讯会议', '瞩目'], 0.91),
-            ('ip_match', 'FC20260519014', 'FC20260519015', ['192.168.1.*'], 0.63),
-            ('bank_match', 'FC20260519019', 'FC20260519020', ['6217****5678', '6228****9012'], 0.78),
-            ('phone_match', 'FC20260519022', 'FC20260519023', ['137****7890'], 0.71),
-            ('app_match', 'FC20260519004', 'FC20260519005', ['腾讯会议'], 0.80),
-        ]
-        for at, cid, mcid, entities, conf in demo_alerts_data:
-            a = _alert_mod.Alert(_alert_mod._next_id, at, cid, mcid, entities, conf, created_at=now)
-            _alert_mod._alerts.append(a)
-            _alert_mod._next_id += 1
-        logger.info(f"演示预警数据已注入: {len(_alert_mod._alerts)} 条")
 
-        # 注入P1演示数据
-        from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
-        from database.models import Case as _Case
+    try:
+        from database.models import AlertRecord
+        if AlertRecord.query.count() == 0:
+            now = datetime.utcnow()
+            demo_alerts_data = [
+                ('phone_match', 'FC20260519001', 'FC20260519002', ['138****1234', '139****5678'], 0.85),
+                ('bank_match', 'FC20260519007', 'FC20260519003', ['6222****1234'], 0.72),
+                ('phone_match', 'FC20260519008', 'FC20260519009', ['150****9012'], 0.68),
+                ('app_match', 'FC20260519010', 'FC20260519011', ['腾讯会议', '瞩目'], 0.91),
+                ('ip_match', 'FC20260519014', 'FC20260519015', ['192.168.1.*'], 0.63),
+                ('bank_match', 'FC20260519019', 'FC20260519020', ['6217****5678', '6228****9012'], 0.78),
+                ('phone_match', 'FC20260519022', 'FC20260519023', ['137****7890'], 0.71),
+                ('app_match', 'FC20260519004', 'FC20260519005', ['腾讯会议'], 0.80),
+            ]
+            for at, cid, mcid, entities, conf in demo_alerts_data:
+                record = AlertRecord(
+                    alert_type=at, case_id=cid, matched_case_id=mcid,
+                    matched_entities=entities, confidence=conf, created_at=now
+                )
+                db.session.add(record)
+            db.session.commit()
+            logger.info(f"演示预警数据已注入: {len(demo_alerts_data)} 条")
+        else:
+            logger.info(f"预警数据已存在: {AlertRecord.query.count()} 条")
+    except Exception as e:
+        logger.warning(f"预警数据注入跳过: {e}")
+
+    try:
         import random
+        from database.models import Case as _Case
         _all_cases = _Case.query.all()
         if CapitalFlow.query.count() <= 2:
             for i in range(min(8, len(_all_cases))):
@@ -300,7 +128,7 @@ async def lifespan(app: FastAPI):
             db.session.commit()
             logger.info("重点人员数据已注入")
     except Exception as e:
-        logger.warning(f"演示数据注入跳过: {e}")
+        logger.warning(f"P1演示数据注入跳过: {e}")
 
     try:
         from database.models import Gang, GangCaseRelation
@@ -342,12 +170,9 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("服务关闭")
 
-# ---------- App ----------
+
 app = FastAPI(title="FraudLens AI 反诈研判官系统", version="3.0", lifespan=lifespan)
 
-# 挂载P1路由
-
-# 挂载 P1 路由 (资金流向/派单/重点人员)
 from database.p1_routes import router as p1_router
 app.include_router(p1_router)
 
@@ -359,7 +184,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------- Global Exception Handler ----------
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
@@ -375,742 +200,35 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         content={"success": False, "error": exc.detail}
     )
 
-# ========== Auth Routes ==========
+from routes.auth import router as auth_router
+from routes.cases import router as cases_router
+from routes.gangs import router as gangs_router
+from routes.sessions import router as sessions_router
+from routes.alerts import router as alerts_router
+from routes.dashboard import router as dashboard_router
+from routes.searches import router as searches_router
+from routes.reports import router as reports_router
+from routes.merges import router as merges_router
+from routes.files import router as files_router
+from routes.system import router as system_router
 
-@app.post('/api/auth/login')
-async def api_login(data: LoginRequest, request: Request):
-    try:
-        from database.models import User
-        user = User.query.filter_by(username=data.username).first()
-        if not user or not user.check_password(data.password):
-            raise HTTPException(status_code=401, detail="用户名或密码错误")
-        if not user.is_active:
-            raise HTTPException(status_code=403, detail="账号已被禁用")
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-        access_token = create_token(
-            user.id,
-            extra_claims={
-                'username': user.username,
-                'role': user.role,
-                'display_name': user.display_name
-            }
-        )
-        refresh_token = create_refresh_token(user.id)
-        ip = request.client.host if request.client else ''
-        log_operation(user.id, user.username, 'login', ip_address=ip)
-        return {
-            "success": True,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "user": user.to_dict()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.post('/api/auth/register')
-async def api_register(data: RegisterRequest, request: Request):
-    try:
-        if not data.username or not data.password:
-            raise HTTPException(status_code=400, detail="用户名和密码不能为空")
-        if len(data.password) < 6:
-            raise HTTPException(status_code=400, detail="密码长度至少6位")
-        from database.models import User
-        if User.query.filter_by(username=data.username).first():
-            raise HTTPException(status_code=409, detail="用户名已存在")
-        user = User(
-            username=data.username,
-            display_name=data.display_name or data.username,
-            role=data.role,
-            department=data.department,
-            phone=data.phone
-        )
-        user.set_password(data.password)
-        db.session.add(user)
-        db.session.commit()
-        ip = request.client.host if request.client else ''
-        log_operation(user.id, user.username, 'register', ip_address=ip)
-        return JSONResponse(status_code=201, content={
-            "success": True, "message": "注册成功", "user": user.to_dict()
-        })
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/auth/me')
-async def api_get_me(current_user: dict = Depends(get_current_user)):
-    from database.models import User
-    user = User.query.get(current_user['id'])
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    return {"success": True, "user": user.to_dict()}
-
-@app.post('/api/auth/logout')
-async def api_logout(request: Request):
-    token = get_token_from_header(request)
-    if token:
-        payload = decode_token(token)
-        if payload:
-            jti = payload.get('jti', token[-16:])
-            _TOKEN_BLACKLIST.add(jti)
-    return {"success": True, "message": "已退出登录"}
-
-@app.get('/api/auth/users')
-async def api_list_users(current_user: dict = Depends(get_current_user)):
-    from database.models import User
-    users = User.query.order_by(User.created_at.desc()).all()
-    return {"success": True, "users": [u.to_dict() for u in users]}
-
-@app.get('/api/auth/logs')
-async def api_get_auth_logs(current_user: dict = Depends(get_current_user)):
-    from database.models import OperationLog
-    logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(100).all()
-    return {
-        "success": True,
-        "logs": [{
-            'id': l.id,
-            'username': l.username,
-            'action': l.action,
-            'target': f"{l.target_type}/{l.target_id}",
-            'detail': l.detail,
-            'ip_address': l.ip_address,
-            'created_at': l.created_at.isoformat() if l.created_at else None
-        } for l in logs]
-    }
-
-@app.post('/api/auth/refresh')
-async def api_refresh(data: RefreshRequest):
-    token = data.refresh_token
-    payload = decode_token(token)
-    if not payload or payload.get('type') != 'refresh':
-        raise HTTPException(status_code=401, detail="无效的刷新令牌")
-    user_id = int(payload['sub'])
-    from database.models import User
-    user = User.query.get(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    access_token = create_token(
-        user.id,
-        extra_claims={
-            'username': user.username,
-            'role': user.role,
-            'display_name': user.display_name
-        }
-    )
-    return {"success": True, "access_token": access_token}
-
-@app.put('/api/auth/change-password')
-async def api_change_password(request: Request, current_user: dict = Depends(get_current_user)):
-    try:
-        body = await request.json()
-        old_pw = body.get('old_password', '')
-        new_pw = body.get('new_password', '')
-        if not old_pw or not new_pw:
-            raise HTTPException(status_code=400, detail="请提供旧密码和新密码")
-        if len(new_pw) < 6:
-            raise HTTPException(status_code=400, detail="新密码至少6位")
-        from database.models import User
-        user = User.query.get(current_user['id'])
-        if not user or not user.check_password(old_pw):
-            raise HTTPException(status_code=403, detail="旧密码错误")
-        user.set_password(new_pw)
-        db.session.commit()
-        return {"success": True, "message": "密码已修改"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.put('/api/admin/users/{user_id}')
-@app.delete('/api/admin/users/{user_id}')
-async def api_admin_user(user_id: int, request: Request, current_user: dict = Depends(get_current_user)):
-    try:
-        if current_user.get('role') != 'admin':
-            raise HTTPException(status_code=403, detail="无权限")
-        from database.models import User
-        target = User.query.get(user_id)
-        if not target:
-            raise HTTPException(status_code=404, detail="用户不存在")
-        if request.method == 'PUT':
-            body = await request.json()
-            if 'role' in body:
-                target.role = body['role']
-            if 'is_active' in body:
-                target.is_active = body['is_active']
-            if 'display_name' in body:
-                target.display_name = body['display_name']
-            if 'department' in body:
-                target.department = body['department']
-            if 'phone' in body:
-                target.phone = body['phone']
-            db.session.commit()
-            return {"success": True, "user": target.to_dict()}
-        db.session.delete(target)
-        db.session.commit()
-        return {"success": True, "message": "用户已删除"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== File Text Extraction ==========
-
-@app.post('/api/extract-text')
-async def api_extract_text(file: UploadFile = File(...)):
-    try:
-        filename = file.filename or ''
-        ext = os.path.splitext(filename)[1].lower()
-        content = await file.read()
-
-        text = ''
-        if ext == '.txt':
-            text = content.decode('utf-8', errors='ignore')
-        elif ext == '.csv':
-            text = content.decode('utf-8', errors='ignore')
-        elif ext == '.docx':
-            import io
-            from docx import Document
-            doc = Document(io.BytesIO(content))
-            text = '\n'.join(p.text for p in doc.paragraphs)
-        else:
-            return JSONResponse(status_code=400, content={"success": False, "error": f"不支持的文件格式: {ext}"})
-
-        return {"success": True, "text": text, "filename": filename}
-    except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== OCR ==========
-
-@app.post('/api/ocr')
-async def api_ocr(file: UploadFile = File(...)):
-    try:
-        from tools.ocr import ocr_image
-        content = await file.read()
-        text = ocr_image(content)
-        return {"success": True, "text": text, "filename": file.filename}
-    except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Agent Analysis ==========
-
-@app.post('/agent-analyze')
-async def api_agent_analyze(data: AnalyzeRequest, request: Request):
-    try:
-        raw_messages = data.messages
-        platform_data = data.platform_data
-        session_id = data.session_id or str(uuid.uuid4())
-        if not raw_messages and not platform_data:
-            raise HTTPException(status_code=400, detail="没有收到消息内容或平台数据")
-        if USE_CELERY:
-            from tasks import run_analysis_task
-            task = run_analysis_task.delay(raw_messages, session_id)
-            return {
-                "success": True,
-                "task_id": task.id,
-                "session_id": session_id,
-                "message": "分析任务已提交到队列"
-            }
-        logger.info("=" * 60)
-        logger.info("反诈研判官Agent启动智能研判流程 (同步模式)...")
-        logger.info(f"会话ID: {session_id}")
-        logger.info("=" * 60)
-        from agents.chief_agent import ChiefAgent
-        from agents.base import AgentConfig, AgentContext
-        LLM_REQUEST_TIMEOUT = 30
-        llm_analyze = None
-        llm_triage = None
-        try:
-            from langchain_community.llms import Tongyi
-            from agents.llm_wrapper import wrap_llm
-            raw_analyze = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
-            raw_triage = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
-            llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
-            llm_triage = wrap_llm(raw_triage, max_concurrent=3)
-        except ImportError:
-            logger.warning("使用模拟模式 (langchain不可用)")
-        progress_adapter = ProgressAdapter(session_id)
-        progress_adapter.emit('analysis_progress', {
-            'stage': 'init', 'stage_name': '初始化', 'status': 'running',
-            'progress': 0, 'progress_percent': 0, 'message': '初始化分析引擎'
-        })
-        chief_agent = ChiefAgent(
-            AgentConfig(agent_id="ChiefAgent"),
-            llm_analyze,
-            llm_triage,
-            socketio=progress_adapter,
-            session_id=session_id,
-            persist=True
-        )
-        context = AgentContext(session_id=session_id, trace_id=str(uuid.uuid4()))
-        result = chief_agent.process({
-            'messages': raw_messages,
-            'platform_data': platform_data
-        }, context)
-        progress_adapter.emit('analysis_complete', {
-            'success': result.get('success'),
-            'total_cases': result.get('total_cases', 0),
-            'total_gangs': len(result.get('gangs', [])),
-            'trace_id': context.trace_id
-        })
-        logger.info("=" * 60)
-        logger.info("智能研判完成！")
-        logger.info("=" * 60)
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/tasks/{task_id}')
-async def api_get_task(task_id: str):
-    try:
-        if not USE_CELERY:
-            return JSONResponse(status_code=400, content={
-                "success": False, "error": "Celery模式未启用"
-            })
-        from celery.result import AsyncResult
-        from celery_app import celery_app
-        task_result = AsyncResult(task_id, app=celery_app)
-        if task_result.failed():
-            return {"success": False, "task_id": task_id, "status": "FAILURE", "error": str(task_result.result)}
-        elif task_result.successful():
-            return {"success": True, "task_id": task_id, "status": "SUCCESS", "result": task_result.result}
-        else:
-            meta = task_result.info or {}
-            return {"success": True, "task_id": task_id, "status": task_result.state, "meta": meta}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== WebSocket Progress ==========
-
-@app.websocket('/ws/{session_id}')
-async def websocket_progress(websocket: WebSocket, session_id: str):
-    await websocket.accept()
-    await websocket.send_json({"type": "connected", "session_id": session_id})
-    last_index = 0
-    try:
-        if USE_CELERY:
-            try:
-                import redis as _redis
-                r = _redis.Redis(host='localhost', port=6379, db=0)
-                pubsub = r.pubsub()
-                pubsub.subscribe(f'progress:{session_id}')
-                while True:
-                    message = pubsub.get_message(timeout=1.0)
-                    if message and message['type'] == 'message':
-                        data = json.loads(message['data'])
-                        await websocket.send_json(data)
-                    await asyncio.sleep(0.1)
-            except Exception:
-                pass
-        else:
-            while True:
-                lock = progress_locks.get(session_id)
-                store = progress_store.get(session_id, [])
-                new_items = []
-                if lock:
-                    with lock:
-                        if last_index < len(store):
-                            new_items = store[last_index:]
-                            last_index = len(store)
-                else:
-                    if last_index < len(store):
-                        new_items = store[last_index:]
-                        last_index = len(store)
-                for item in new_items:
-                    try:
-                        await websocket.send_json(item)
-                    except Exception:
-                        pass
-                await asyncio.sleep(0.5)
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        logger.error(f"WebSocket错误 ({session_id}): {e}")
-    finally:
-        progress_store.pop(session_id, None)
-        progress_locks.pop(session_id, None)
-
-# ========== Health ==========
-
-@app.get('/health')
-async def health_check():
-    db_ok = False
-    try:
-        from database.models import Case
-        Case.query.first()
-        db_ok = True
-    except Exception:
-        pass
-    return {
-        "status": "healthy",
-        "service": "AI反诈研判官系统",
-        "version": "3.0",
-        "database": "connected" if db_ok else "disconnected",
-        "agent_status": "active",
-        "websocket_enabled": True
-    }
-
-# ========== CRUD: Cases ==========
-
-@app.get('/api/cases')
-async def api_get_cases():
-    try:
-        cases = get_all_cases()
-        return {"success": True, "cases": cases, "total": len(cases)}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/cases/stats')
-async def api_case_stats():
-    try:
-        stats = get_case_stats()
-        return {"success": True, "stats": stats}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/cases/{case_id}')
-async def api_get_case(case_id: str):
-    try:
-        case = get_case_by_id(case_id)
-        if case:
-            return {"success": True, "case": case}
-        return JSONResponse(status_code=404, content={"success": False, "error": "案件不存在"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.put('/api/cases/{case_id}/status')
-async def api_update_case_status(case_id: str, request: Request, current_user: dict = Depends(get_current_user)):
-    try:
-        body = await request.json()
-        new_status = body.get('status', '')
-        if not new_status:
-            raise HTTPException(status_code=400, detail="缺少状态参数")
-        result = update_case_status(case_id, new_status)
-        ip = request.client.host if request.client else ''
-        log_operation(current_user['id'], current_user.get('username', ''),
-                      'update_status', 'case', case_id, {'new_status': new_status}, ip_address=ip)
-        return {"success": True, "case": result}
-    except HTTPException:
-        raise
-    except ValueError as e:
-        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== CRUD: Gangs ==========
-
-@app.get('/api/gangs')
-async def api_get_gangs():
-    try:
-        gangs = get_all_gangs()
-        return {"success": True, "gangs": gangs, "total": len(gangs)}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/gangs/{gang_id}')
-async def api_get_gang(gang_id: str):
-    try:
-        gang = get_gang_by_id(gang_id)
-        if gang:
-            return {"success": True, "gang": gang}
-        return JSONResponse(status_code=404, content={"success": False, "error": "团伙不存在"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Sessions ==========
-
-@app.get('/api/sessions')
-async def api_get_sessions():
-    try:
-        sessions = get_sessions()
-        return {"success": True, "sessions": sessions}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/sessions/{session_id}')
-async def api_get_session_detail(session_id: str):
-    try:
-        detail = get_session_detail(session_id)
-        if detail:
-            return {"success": True, **detail}
-        return JSONResponse(status_code=404, content={"success": False, "error": "会话不存在"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.delete('/api/sessions/{session_id}')
-async def api_delete_session(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
-    try:
-        ip = request.client.host if request.client else ''
-        log_operation(current_user['id'], current_user.get('username', ''),
-                      'delete_session', 'session', session_id, ip_address=ip)
-        delete_session(session_id)
-        return {"success": True, "message": "删除成功"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Search ==========
-
-@app.get('/api/search')
-async def api_search(q: str = Query('', alias='q')):
-    try:
-        if not q:
-            return {"success": True, "cases": []}
-        cases = search_cases(q)
-        return {"success": True, "cases": cases, "total": len(cases)}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/search/advanced')
-async def api_advanced_search(type: str = Query('', alias='type'), value: str = Query('', alias='value')):
-    try:
-        if not type or not value:
-            raise HTTPException(status_code=400, detail="请指定搜索类型和关键词")
-        from database.models import Case
-        cases = Case.query.order_by(Case.created_at.desc()).all()
-        results = []
-        for c in cases:
-            entities = c.extracted_entities or {}
-            if type == 'phone' and value in str(entities.get('phone_numbers', [])):
-                results.append(c)
-            elif type == 'bank' and value in str(entities.get('bank_accounts', [])):
-                results.append(c)
-            elif type == 'ip' and value in str(entities.get('ips', entities.get('ip_addresses', []))):
-                results.append(c)
-            elif type == 'app' and value in str(entities.get('app_names', [])):
-                results.append(c)
-        return {"success": True, "cases": [_case_to_dict(c) for c in results], "total": len(results)}
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Dashboard ==========
-
-@app.get('/api/dashboard')
-async def api_dashboard():
-    try:
-        from database.dashboard import get_dashboard_data
-        data = get_dashboard_data()
-        return {"success": True, "data": data}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/dashboard/trend')
-async def api_dashboard_trend():
-    try:
-        from database.dashboard import get_dashboard_data
-        data = get_dashboard_data()
-        return {"success": True, "trend": data['trend_data']}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/dashboard/latest-session')
-async def api_latest_session():
-    try:
-        sessions = get_sessions()
-        if sessions:
-            sid = sessions[0]['session_id']
-            detail = get_session_detail(sid)
-            if detail:
-                return {"success": True, **detail}
-        return {"success": True, "session": None, "cases": [], "gangs": []}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========= = Alerts ==========
-
-@app.get('/api/alerts')
-async def api_get_alerts():
-    try:
-        from database.alert import alert_engine
-        alerts = alert_engine.get_active_alerts()
-        return {"success": True, "alerts": alerts, "total": len(alerts)}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.post('/api/alerts/{alert_id}/resolve')
-async def api_resolve_alert(alert_id: int):
-    try:
-        from database.alert import alert_engine
-        result = alert_engine.resolve_alert(alert_id)
-        if result:
-            return {"success": True, "message": "警报已解决"}
-        return JSONResponse(status_code=404, content={"success": False, "error": "警报不存在"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.post('/api/alerts/check')
-async def api_check_alerts():
-    try:
-        from database.alert import alert_engine
-        cases = get_all_cases()
-        if not cases:
-            return {"success": True, "alerts": []}
-        latest = cases[0]
-        alerts = alert_engine.check_new_case(latest)
-        return {"success": True, "alerts": alerts}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Merges ==========
-
-@app.post('/api/merges/suggest')
-async def api_suggest_merges(current_user: dict = Depends(get_current_user)):
-    try:
-        from database.merge import suggest_merges
-        cases = get_all_cases()
-        suggestions = suggest_merges(cases)
-        return {
-            "success": True,
-            "suggestions": [{
-                'id': s.id,
-                'case_id_a': s.case_id_a,
-                'case_id_b': s.case_id_b,
-                'similarity': s.similarity,
-                'reason': s.reason
-            } for s in suggestions],
-            "total": len(suggestions)
-        }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.post('/api/merges/confirm')
-async def api_confirm_merge(data: MergeConfirmRequest, request: Request, current_user: dict = Depends(get_current_user)):
-    try:
-        from database.merge import confirm_merge
-        confirm_merge(data.case_id_a, data.case_id_b, data.gang_id, current_user['id'])
-        ip = request.client.host if request.client else ''
-        log_operation(current_user['id'], current_user.get('username', ''),
-                      'confirm_merge', 'merge', f"{data.case_id_a}+{data.case_id_b}", ip_address=ip)
-        return {"success": True, "message": "合并成功"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/merges/pending')
-async def api_pending_merges(current_user: dict = Depends(get_current_user)):
-    try:
-        from database.merge import get_pending_merges
-        suggestions = get_pending_merges()
-        return {"success": True, "suggestions": suggestions}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Reports ==========
-
-@app.get('/api/reports/case/{case_id}')
-async def api_case_report(case_id: str, format: str = Query('pdf', alias='format')):
-    try:
-        from database.report import generate_case_report, export_case_docx
-        filepath = export_case_docx(case_id) if format == 'docx' else generate_case_report(case_id)
-        filename = os.path.basename(filepath)
-        return {"success": True, "file_path": f"/api/reports/download/{filename}"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/reports/gang/{gang_id}')
-async def api_gang_report(gang_id: str):
-    try:
-        from database.report import generate_gang_report
-        filepath = generate_gang_report(gang_id)
-        filename = os.path.basename(filepath)
-        return {"success": True, "file_path": f"/api/reports/download/{filename}"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.get('/api/reports/download/{filename}')
-async def api_download_report(filename: str):
-    try:
-        reports_dir = os.path.join(os.path.dirname(__file__), 'reports')
-        filepath = os.path.join(reports_dir, filename)
-        if not os.path.exists(filepath):
-            return JSONResponse(status_code=404, content={"success": False, "error": "文件不存在"})
-        return FileResponse(filepath, filename=filename)
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Import ==========
-
-@app.post('/api/import/csv')
-async def api_import_csv(file: UploadFile = File(...)):
-    try:
-        from database.importer import import_from_csv
-        import tempfile
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
-        content = await file.read()
-        tmp.write(content)
-        tmp.close()
-        result = import_from_csv(tmp.name)
-        os.unlink(tmp.name)
-        return {"success": True, **result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-@app.post('/api/import/excel')
-async def api_import_excel(file: UploadFile = File(...)):
-    try:
-        from database.importer import import_from_excel
-        import tempfile
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
-        content = await file.read()
-        tmp.write(content)
-        tmp.close()
-        result = import_from_excel(tmp.name)
-        os.unlink(tmp.name)
-        return {"success": True, **result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Logs ==========
-
-@app.get('/api/logs')
-async def api_public_logs():
-    try:
-        from database.models import OperationLog
-        logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(50).all()
-        return {
-            "success": True,
-            "logs": [{
-                'id': l.id, 'username': l.username, 'action': l.action,
-                'target': f"{l.target_type}/{l.target_id}",
-                'created_at': l.created_at.isoformat() if l.created_at else None
-            } for l in logs]
-        }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-# ========== Network Data ==========
-
-@app.get('/api/network-data')
-async def api_network_data():
-    return {
-        "success": True,
-        "message": "此接口需要基于会话或数据库实现完整功能",
-        "sample_data": {
-            "nodes": [
-                {"id": "GANG_001", "name": "示例团伙", "type": "gang", "value": 50000},
-                {"id": "CASE_001", "name": "示例案件", "type": "case", "value": 15000, "gang_id": "GANG_001"}
-            ],
-            "links": [
-                {"source": "GANG_001", "target": "CASE_001", "value": 15000}
-            ]
-        }
-    }
-
-# ========== Entry Point ==========
+app.include_router(auth_router)
+app.include_router(cases_router)
+app.include_router(gangs_router)
+app.include_router(sessions_router)
+app.include_router(alerts_router)
+app.include_router(dashboard_router)
+app.include_router(searches_router)
+app.include_router(reports_router)
+app.include_router(merges_router)
+app.include_router(files_router)
+app.include_router(system_router)
 
 if __name__ == '__main__':
     import uvicorn
     logger.info("=" * 60)
     logger.info("AI 反诈研判官系统 v3.0 (FastAPI)")
     logger.info("=" * 60)
-    logger.info("可用接口:")
     logger.info("   POST /agent-analyze   (智能研判分析)")
     logger.info("   GET  /health          (健康检查)")
     logger.info("   GET  /api/cases       (案件列表)")

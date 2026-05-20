@@ -24,6 +24,12 @@ export function useFraudLens() {
 
   const activeMenu = computed(() => route.name || 'input')
   const loading = ref(false)
+  const showProgress = ref(false)
+  const showResult = ref(false)
+  const progressPercent = ref(0)
+  const progressMessage = ref('正在初始化...')
+  const resultStats = ref({ cases: 0, gangs: 0, time: '0s' })
+  const analysisStartTime = ref(0)
   const inputText = ref('')
   const uploadedImages = ref([])
   const gangs = ref([])
@@ -252,12 +258,27 @@ export function useFraudLens() {
 
   const defaultKeywords = ['冒充客服', '征信诈骗', '安全账户', '转账验证']
 
-  const caseTypeStats = ref([
-    { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
-    { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
-    { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
-    { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
-  ])
+  const caseTypeStats = computed(() => {
+    const typeMap = {}
+    cases.value.forEach(c => {
+      const t = c.type || c.scam_type || '其他'
+      typeMap[t] = (typeMap[t] || 0) + 1
+    })
+    const entries = Object.entries(typeMap)
+    if (!entries.length) return [
+      { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
+      { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
+      { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
+      { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
+    ]
+    const total = entries.reduce((s, [, v]) => s + v, 0)
+    const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
+    return entries.map(([name, count], i) => ({
+      name, count,
+      percent: Math.round(count / total * 100),
+      color: colors[i % colors.length]
+    }))
+  })
 
   const regionStats = ref([
     { name: '广东', count: 25, percent: 30 },
@@ -266,6 +287,17 @@ export function useFraudLens() {
     { name: '北京', count: 12, percent: 14 },
     { name: '上海', count: 10, percent: 12 }
   ])
+
+  const semanticFingerprints = computed(() => {
+    if (!cases.value.length) return []
+    const types = {}
+    cases.value.forEach(c => {
+      const t = c.type || c.scam_type || '其他'
+      if (!types[t]) types[t] = { type: t, count: 0, totalAmount: 0, keywords: new Set() }
+      types[t].count++
+    })
+    return Object.values(types)
+  })
 
   const getParticleStyle = (i) => {
     const size = Math.random() * 4 + 2
@@ -366,23 +398,32 @@ export function useFraudLens() {
 
   const handleBeforeUpload = (file) => {
     const isImage = file.type.startsWith('image/')
+    const isText = file.type === 'text/plain' || file.name.endsWith('.csv')
+    const isDocx = file.name.endsWith('.docx')
     const isLt10M = file.size / 1024 / 1024 < 10
-    if (!isImage) {
-      ElMessage.error('只能上传图片文件')
+    if (!isImage && !isText && !isDocx) {
+      ElMessage.error('仅支持图片(JPG/PNG)、文本文件(TXT/CSV)或Word文档(DOCX)')
       return false
     }
     if (!isLt10M) {
-      ElMessage.error('图片大小不能超过 10MB')
+      ElMessage.error('文件大小不能超过 10MB')
       return false
     }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      uploadedImages.value.push({
-        url: e.target.result,
-        name: file.name
-      })
+    if (isText) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        uploadedImages.value.push({ url: '', name: file.name, type: 'text', content: e.target.result, _file: file })
+      }
+      reader.readAsText(file)
+    } else if (isImage) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        uploadedImages.value.push({ url: e.target.result, name: file.name, type: 'image', content: '', _file: file })
+      }
+      reader.readAsDataURL(file)
+    } else {
+      uploadedImages.value.push({ url: '', name: file.name, type: 'docx', content: '', _file: file })
     }
-    reader.readAsDataURL(file)
     return false
   }
 
@@ -404,18 +445,35 @@ export function useFraudLens() {
     const messages = [{ role: 'user', content: inputText.value }]
 
     try {
+      analysisStartTime.value = Date.now()
+      showProgress.value = true
+      progressPercent.value = 0
+      progressMessage.value = '正在初始化分析引擎...'
       connectSocket(sessionId, {
         onProgress: (data) => {
-          console.log('分析进度:', data)
+          const pct = data.progress_percent || data.progress || 0
+          progressPercent.value = Math.min(pct, 99)
+          progressMessage.value = data.message || data.stage_name || '分析中...'
         },
         onComplete: (data) => {
-          console.log('分析完成:', data)
+          progressPercent.value = 100
+          progressMessage.value = '分析完成'
         }
       })
 
       const response = await apiStartAnalysis(messages, sessionId)
 
       if (response.success) {
+        if (response.task_id) {
+          progressMessage.value = '分析任务已提交到队列，请稍后查看总览页'
+          progressPercent.value = 100
+          setTimeout(() => {
+            showProgress.value = false
+            ElMessage.success('分析任务已提交，可前往案件总览查看结果')
+            router.push({ name: 'overview' })
+          }, 2000)
+          return
+        }
         gangs.value = (response.gangs || []).map((g, idx) => ({
           id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
           name: g.gang_name || '未知团伙',
@@ -474,16 +532,38 @@ export function useFraudLens() {
 
         selectedCase.value = cases.value[0] || null
         const gangCount = response.gangs?.length || 0
-        ElMessage.success(`AI 研判完成！已识别出 ${gangCount} 个涉案团伙`)
+        showProgress.value = false
+        const elapsed = Math.round((Date.now() - analysisStartTime.value) / 1000)
+        resultStats.value = { cases: cases.value.length, gangs: gangCount, time: elapsed > 0 ? elapsed + 's' : '< 1s' }
+        showResult.value = true
         router.push({ name: 'overview' })
       } else {
+        showProgress.value = false
         ElMessage.error('分析失败: ' + (response.message || '服务器返回异常'))
       }
     } catch (err) {
+      showProgress.value = false
       ElMessage.error('分析请求异常: ' + (err.message || '网络错误'))
     } finally {
       loading.value = false
     }
+  }
+
+  const goToResults = () => {
+    showResult.value = false
+    router.push({ name: 'overview' })
+  }
+
+  const getCaseGang = (caseId) => {
+    return gangs.value.find(g => {
+      if (!g.id && !g.gang_id) return false
+      return g.caseIds?.includes(caseId) || g.case_ids?.includes(caseId)
+    })
+  }
+
+  const getCaseTitle = (caseId) => {
+    const c = cases.value.find(c => (c.id === caseId || c.case_id === caseId))
+    return c ? c.title : '未知案件'
   }
 
   const startImageAnalysis = () => {
@@ -978,21 +1058,74 @@ export function useFraudLens() {
     }
   })
 
-  onMounted(() => {
-    console.log('反诈情报分析系统已启动')
+  onMounted(async () => {
+    const routeName = route.name
+    if (routeName === 'dashboard') loadDashboard()
+    if (routeName === 'alerts') loadAlerts()
+    try {
+      const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
+      if (casesRes.success) {
+        const caseData = casesRes.cases || casesRes.data || []
+        cases.value = caseData.map(c => ({
+          id: c.case_id, case_id: c.case_id,
+          title: c.title || (c.victim || c.victim_name || '当事人') + '被诈骗案',
+          amount: c.amount, amount_value: c.amount_value || 0,
+          scam_type: c.scam_type || '', type: c.scam_type || '',
+          status: c.status || '已立案', risk_level: c.risk_level || '',
+          victimName: c.victim || c.victim_name || '',
+          victimGender: c.victim_gender || '', victimAge: c.victim_age || '',
+          victimPhone: c.victim_phone || '', victimJob: c.victim_job || '',
+          victimAddress: c.victim_address || '',
+          description: c.description || '',
+          keywords: Array.isArray(c.keywords) ? c.keywords : [],
+          date: c.created_at || ''
+        }))
+      }
+      if (gangsRes.success) {
+        const gangData = gangsRes.gangs || gangsRes.data || []
+        gangs.value = gangData.map((g, idx) => ({
+          id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+          gang_id: g.gang_id || '',
+          name: g.gang_name || '未知团伙',
+          gang_name: g.gang_name || '',
+          icon: gangIcons[idx % gangIcons.length],
+          riskLevel: g.risk_level || 'B',
+          risk_label: g.risk_label || '',
+          amount: formatAmount(g.total_amount_involved || g.total_amount),
+          total_amount_involved: g.total_amount_involved || g.total_amount || '',
+          total_cases: g.total_cases || 0, cases: g.total_cases || 0,
+          tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
+          members: [], score: g.comprehensive_score || 0,
+          comprehensive_score: g.comprehensive_score || 0,
+          confidence: g.confidence || 0,
+          member_count_estimate: g.member_count_estimate || '',
+          tech_level: g.tech_level || '', script_type: g.script_type || '',
+          description: g.description || '',
+          fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
+          related_cases: Array.isArray(g.related_cases) ? g.related_cases : [],
+          updateTime: '刚刚'
+        }))
+      }
+    } catch (e) {
+      console.warn('加载初始数据失败:', e)
+    }
+    if (routeName === 'overview' && gangs.value.length) {
+      nextTick(() => initCharts())
+    }
   })
 
   return {
     store,
     activeMenu,
     loading,
+    showProgress, showResult, progressPercent, progressMessage, resultStats,
     inputText,
     uploadedImages,
     gangs,
     cases,
     selectedGang,
     selectedCase,
- viewMode,
+    viewMode,
     gangSearchKeyword,
     riskFilter,
     detailTab,
@@ -1032,10 +1165,7 @@ export function useFraudLens() {
     successRate,
     textLineCount,
     extractedKeywords,
-    hasTime,
-    hasAmount,
-    hasPhone,
-    hasMethod,
+    hasTime, hasAmount, hasPhone, hasMethod,
     connectedSources,
     hasApiData,
     filteredGangs,
@@ -1048,6 +1178,9 @@ export function useFraudLens() {
     defaultKeywords,
     caseTypeStats,
     regionStats,
+    semanticFingerprints,
+    gangIcons,
+    formatAmount,
     navigateTo,
     getParticleStyle,
     getRiskType,
@@ -1068,6 +1201,9 @@ export function useFraudLens() {
     handleLogin,
     handleLogout,
     startAnalysis,
+    goToResults,
+    getCaseGang,
+    getCaseTitle,
     startImageAnalysis,
     toggleApiSource,
     syncApiData,

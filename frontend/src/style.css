@@ -755,8 +755,8 @@ button {
 
 /* 网络容器 */
 .network-container {
-  min-height: 400px;
-  overflow: hidden;
+  min-height: 500px;
+  overflow: visible;
 }
 
 /* 通用卡片布局 */
@@ -979,7 +979,7 @@ button {
 .profile-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-primary); }
 
 /* ====== 总览视图图表 ====== */
-.overview-charts { margin-bottom: 20px; }
+.overview-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .gangs-section { margin-bottom: 20px; }
 .view-toggle { margin-bottom: 12px; }
 .section-sub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -1197,3 +1197,65 @@ button {
 
 /* ====== 详情页扩展样式 ====== */
 .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ====== 统计概览(总览页+看板页) ====== */
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+}
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.stat-icon-wrapper.danger { background: rgba(239,68,68,0.15); }
+.stat-icon-wrapper.warning { background: rgba(245,158,11,0.15); }
+.stat-icon-wrapper.success { background: rgba(16,185,129,0.15); }
+.stat-icon-wrapper.info { background: rgba(0,212,255,0.15); }
+.stat-content { flex: 1; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.stat-trend { font-size: 11px; margin-top: 4px; color: var(--text-muted); }
+.stat-trend.up { color: #10b981; }
+.stat-icon { font-size: 22px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.stats-card { padding: 20px; text-align: center; }
+
+/* ====== 图表卡片(看板页) ====== */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { padding: 16px; }
+.chart-title { font-size: 14px; color: var(--text-primary); font-weight: 500; margin-bottom: 12px; }
+.chart-container { width: 100%; height: 260px; }
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.chart-content {
+  width: 100%;
+  height: 260px;
+}
+
+/* ====== 总览-案件表格 ====== */
+.cases-section { margin-top: 20px; }
+.cases-table { margin-bottom: 16px; }
+
+/* ====== 最近案件区块 ====== */
+.recent-cases-section { margin-top: 20px; }
+
+/* ====== 团伙标签 ====== */
+.gang-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }

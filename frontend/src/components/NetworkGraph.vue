@@ -68,7 +68,7 @@ const NODE_COLORS = {
   S: { background: '#ff3860', border: '#ff6b8a', highlight: { background: '#ff1744', border: '#ff5252' } },
   A: { background: '#ffd700', border: '#ffe047', highlight: { background: '#ffc107', border: '#ffd54f' } },
   B: { background: '#ff9800', border: '#ffb74d', highlight: { background: '#f57c00', border: '#ff9800' } },
-  C: { background: '#00c6ff', border: '#4dd0e8cff', highlight: { background: '#0091ea', border: '#40c4ff' } },
+  C: { background: '#00c6ff', border: '#00a0d4', highlight: { background: '#0091ea', border: '#40c4ff' } },
   money: { background: '#f59e0b', border: '#fbbf24', highlight: { background: '#d97706', border: '#f59e0b' } }
 }
 
@@ -77,21 +77,26 @@ function buildGangGraph() {
 
   nodes.clear(); edges.clear()
 
-  props.gangs.forEach((gang, idx) => {
+  const displayGangs = props.gangs.slice(0, 20)
+
+  displayGangs.forEach((gang, idx) => {
     const tl = gang.riskLevel || gang.threat_level || 'C'
     const nodeId = 'gang_' + (gang.gang_id || idx)
     const colors = NODE_COLORS[tl] || NODE_COLORS.C
+    const shortName = (gang.gang_name || '团伙' + (idx + 1)).length > 8
+      ? (gang.gang_name || '团伙' + (idx + 1)).slice(0, 7) + '…'
+      : (gang.gang_name || '团伙' + (idx + 1))
 
     nodes.add({
       id: nodeId,
-      label: gang.gang_name || '团伙' + (idx + 1),
+      label: shortName,
       title: '<b>' + (gang.gang_name || '团伙') + '</b><br>威胁等级: ' + tl + '<br>案件数: ' + (gang.total_cases || 0) + '<br>金额: ' + (gang.total_amount_involved || '-'),
       shape: 'dot',
-      size: tl === 'S' ? 35 : tl === 'A' ? 30 : 25,
+      size: tl === 'S' ? 28 : tl === 'A' ? 24 : 20,
       color: colors,
-      font: { color: '#e2e8f0', size: 12, face: 'sans-serif' },
+      font: { color: '#e2e8f0', size: 10, face: 'sans-serif', strokeWidth: 2, strokeColor: '#0a0e1a' },
       borderWidth: 2,
-      shadow: { enabled: true, size: 10, color: colors.background + '66' },
+      shadow: { enabled: true, size: 8, color: colors.background + '55' },
       group: 'gang',
       gangData: gang
     })

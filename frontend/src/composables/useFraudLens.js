@@ -1076,7 +1076,8 @@ export function useFraudLens() {
     })
   }
 
-  watch(() => route.name, (newVal) => {
+  watch(() => route.name, (newVal, oldVal) => {
+    if (newVal === oldVal) return
     if (newVal === 'overview' && gangs.value.length) {
       nextTick(() => initCharts())
     }

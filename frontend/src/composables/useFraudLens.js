@@ -293,8 +293,12 @@ export function useFraudLens() {
     const types = {}
     cases.value.forEach(c => {
       const t = c.type || c.scam_type || '其他'
-      if (!types[t]) types[t] = { type: t, count: 0, totalAmount: 0, keywords: new Set() }
+      if (!types[t]) types[t] = { type: t, count: 0, totalAmount: 0, keywords: [] }
       types[t].count++
+      types[t].totalAmount += Math.abs(c.amount_value || 0)
+      if (c.keywords && Array.isArray(c.keywords)) {
+        types[t].keywords = [...new Set([...types[t].keywords, ...c.keywords])].slice(0, 6)
+      }
     })
     return Object.values(types)
   })
@@ -1229,6 +1233,7 @@ export function useFraudLens() {
     handleResolveAlert,
     getAlertType,
     getConfidenceColor,
-    viewCaseFromDashboard
+    viewCaseFromDashboard,
+    initCharts
   }
 }

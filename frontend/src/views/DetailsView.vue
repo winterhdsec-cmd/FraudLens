@@ -93,21 +93,21 @@
                       <div class="metric-icon">📊</div>
                       <div class="metric-info">
                         <span class="metric-label">中转层级</span>
-                        <span class="metric-value">3-5层</span>
+                        <span class="metric-value">{{ flowMetrics.max_level || 3 }}层</span>
                       </div>
                     </div>
                     <div class="metric-item">
                       <div class="metric-icon">🌏</div>
                       <div class="metric-info">
                         <span class="metric-label">境外流向</span>
-                        <span class="metric-value warning">85%</span>
+                        <span class="metric-value warning">{{ flowMetrics.overseas_pct ?? 85 }}%</span>
                       </div>
                     </div>
                     <div class="metric-item">
                       <div class="metric-icon">🏦</div>
                       <div class="metric-info">
                         <span class="metric-label">涉案账户</span>
-                        <span class="metric-value">23个</span>
+                        <span class="metric-value">{{ flowMetrics.total_accounts || 23 }}个</span>
                       </div>
                     </div>
                   </div>
@@ -332,7 +332,7 @@ const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, caseTypeStats, features, gangs, getFeatureIcon, regionStats, relationLines,
-  relationNodes, semanticFingerprints, totalAmount, totalAmountFormatted
+  relationNodes, semanticFingerprints, totalAmount, totalAmountFormatted, flowMetrics
 } = state
 </script>
 

@@ -12,6 +12,7 @@ from database.p1_crud import (
     search_key_persons_by_phone_or_account, delete_key_person,
     collision_check
 )
+from database import db
 
 router = APIRouter()
 
@@ -98,6 +99,32 @@ async def api_capital_flow_graph(case_id: str):
         return {'success': True, 'graph': graph}
     except Exception as e:
         return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@router.get('/api/capital/stats')
+async def api_capital_flow_stats():
+    try:
+        from database.p1_models import CapitalFlow
+        from sqlalchemy import func
+        total_amount = db.session.query(func.sum(CapitalFlow.amount)).scalar() or 0
+        total_accounts = db.session.query(func.count(func.distinct(CapitalFlow.source_account))).scalar() or 0
+        max_level = db.session.query(func.max(CapitalFlow.level)).scalar() or 0
+        overseas_count = db.session.query(func.count(CapitalFlow.id)).filter(CapitalFlow.annotation.ilike('%境外%')).scalar() or 0
+        total_flows = db.session.query(func.count(CapitalFlow.id)).scalar() or 0
+        overseas_pct = round(overseas_count / total_flows * 100) if total_flows > 0 else 0
+        return {
+            'success': True,
+            'stats': {
+                'total_amount': round(total_amount, 2),
+                'total_accounts': total_accounts,
+                'max_level': max_level,
+                'overseas_pct': overseas_pct,
+                'total_flows': total_flows
+            }
+        }
+    except Exception as e:
+        from fastapi.responses import JSONResponse as _JR
+        return _JR(status_code=500, content={'success': False, 'error': str(e)})
 
 
 # ========== Dispatch Routes ==========

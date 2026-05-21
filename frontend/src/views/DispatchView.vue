@@ -45,6 +45,22 @@
               <p class="empty-desc">预警生成后，系统将自动创建派单并分配到辖区</p>
             </div>
           </div>
+
+          <el-dialog v-model="showFeedbackDialog" title="完成派单" width="480px" class="feedback-dialog">
+            <div class="feedback-form">
+              <label class="feedback-label">处置反馈内容</label>
+              <textarea
+                v-model="feedbackForm.text"
+                rows="5"
+                placeholder="请描述处置情况..."
+                class="native-feedback-textarea"
+              ></textarea>
+            </div>
+            <template #footer>
+              <el-button @click="showFeedbackDialog = false">取消</el-button>
+              <el-button type="primary" @click="submitFeedback">提交反馈</el-button>
+            </template>
+          </el-dialog>
         </div>
 </template>
 
@@ -54,8 +70,38 @@ import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch,
-  signDispatch, showCompleteDispatch
+  signDispatch, showCompleteDispatch, showFeedbackDialog, feedbackForm, submitFeedback
 } = state
 
 onMounted(() => loadDispatchOrders())
 </script>
+
+<style scoped>
+.native-feedback-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(10, 14, 26, 0.6);
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.native-feedback-textarea::placeholder {
+  color: #475569;
+}
+.native-feedback-textarea:focus {
+  border-color: rgba(0, 198, 255, 0.5);
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.15);
+}
+.feedback-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+</style>

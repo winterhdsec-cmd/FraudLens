@@ -247,6 +247,11 @@ export async function getActiveAlerts() {
   return response.data
 }
 
+export async function fetchCapitalFlowStats() {
+  const response = await api.get('/api/capital/stats')
+  return response.data
+}
+
 export async function resolveAlert(alertId) {
   const response = await api.post(`/api/alerts/${alertId}/resolve`)
   return response.data

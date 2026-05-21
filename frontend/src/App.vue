@@ -20,8 +20,9 @@
             <el-input v-model="loginForm.password" type="password" placeholder="密码" size="large" class="login-input" show-password @keyup.enter="handleLogin" />
           </div>
           <div v-if="loginError" class="login-error">{{ loginError }}</div>
+          <el-progress v-if="loginLoading" :percentage="loginProgress" :stroke-width="4" color="#00d4ff" :show-text="false" style="margin-bottom:12px" />
           <el-button class="login-btn" type="primary" size="large" :loading="loginLoading" @click="handleLogin">
-            <span>{{ loginLoading ? '验证中...' : '登 录' }}</span>
+            <span>{{ loginLoading ? '正在加载研判模型...' : '登 录' }}</span>
           </el-button>
         </div>
         <div class="login-footer">
@@ -126,7 +127,7 @@ provide('appState', appState)
 const {
   store, activeMenu, loading,
   showProgress, showResult, progressPercent, progressMessage, resultStats,
-  loginForm, loginLoading, loginError,
+  loginForm, loginLoading, loginError, loginProgress,
   handleLogin, handleLogout, handleMenuSelect,
   getParticleStyle, goToResults
 } = appState

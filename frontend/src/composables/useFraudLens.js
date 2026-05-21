@@ -13,9 +13,11 @@ import api, {
   login as apiLogin,
   getDashboardData,
   getActiveAlerts,
+  fetchCapitalFlowStats,
   resolveAlert,
   importCSV,
-  importExcel
+  importExcel,
+  searchCases
 } from '../api.js'
 
 export function useFraudLens() {
@@ -59,13 +61,24 @@ export function useFraudLens() {
   const flowSearchCaseId = ref('')
   const capitalFlows = ref([])
   const flowGraphData = ref(null)
+  const flowMetrics = ref({
+    total_accounts: 0,
+    max_level: 3,
+    overseas_pct: 85,
+    total_flows: 0
+  })
   const dispatchOrders = ref([])
   const dispatchStatusFilter = ref('')
   const showCreateDispatch = ref(false)
+  const showFeedbackDialog = ref(false)
+  const feedbackForm = ref({ dispatchId: null, text: '' })
   const keyPersons = ref([])
   const personSearch = ref('')
   const personTypeFilter = ref('')
   const showCreatePerson = ref(false)
+  const searchQuery = ref('')
+  const searchResults = ref([])
+  const searchLoading = ref(false)
 
   const dashboardData = ref({
     total_cases: null,
@@ -969,6 +982,21 @@ export function useFraudLens() {
     await loadCapitalFlows()
     await loadFlowGraph(forcedCaseId)
   }
+  const loadFlowMetrics = async () => {
+    try {
+      const r = await fetchCapitalFlowStats()
+      if (r.success && r.stats) {
+        flowMetrics.value = {
+          total_accounts: r.stats.total_accounts || 0,
+          max_level: r.stats.max_level || 3,
+          overseas_pct: r.stats.overseas_pct ?? 85,
+          total_flows: r.stats.total_flows || 0
+        }
+      }
+    } catch (e) {
+      console.error('loadFlowMetrics:', e)
+    }
+  }
   const addFlowRecord = (row) => {
     ElMessage.info('追加资金流向功能：' + row.source_account + ' → ' + row.target_account)
   }
@@ -977,7 +1005,7 @@ export function useFraudLens() {
     try {
       const params = dispatchStatusFilter.value ? { status: dispatchStatusFilter.value } : {}
       const r = await api.get('/api/dispatch/list', { params })
-      dispatchOrders.value = r.data.dispatch_orders || r.data.data || []
+      dispatchOrders.value = r.data.orders || r.data.dispatch_orders || r.data.data || []
     } catch (e) {
       console.error('loadDispatchOrders:', e)
     }
@@ -992,11 +1020,21 @@ export function useFraudLens() {
     }
   }
   const showCompleteDispatch = (row) => {
-    ElMessageBox.prompt('处置反馈内容', '完成派单', { inputType: 'textarea', inputPlaceholder: '请描述处置情况...' })
-      .then(async ({ value }) => {
-      const r = await api.put('/api/dispatch/' + row.id + '/complete', { feedback: value })
-      if (r.data.success) { ElMessage.success('已完成'); await loadDispatchOrders() }
-    }).catch(() => {})
+    feedbackForm.value = { dispatchId: row.id, text: '' }
+    showFeedbackDialog.value = true
+  }
+  const submitFeedback = async () => {
+    if (!feedbackForm.value.text.trim()) {
+      ElMessage.warning('请输入处置反馈内容')
+      return
+    }
+    try {
+      const r = await api.put('/api/dispatch/' + feedbackForm.value.dispatchId + '/complete', { feedback: feedbackForm.value.text })
+      if (r.data.success) { ElMessage.success('已完成'); showFeedbackDialog.value = false; await loadDispatchOrders() }
+      else ElMessage.error(r.data.error || '操作失败')
+    } catch (e) {
+      ElMessage.error('操作异常: ' + (e.message || ''))
+    }
   }
 
   const loadKeyPersons = async () => {
@@ -1017,6 +1055,50 @@ export function useFraudLens() {
     } catch (e) {
       ElMessage.error('移除失败')
     }
+  }
+
+  const handleSearchInput = async (query) => {
+    searchQuery.value = query
+    if (!query || query.trim().length < 1) {
+      searchResults.value = []
+      return
+    }
+    searchLoading.value = true
+    try {
+      const r = await searchCases(query.trim())
+      if (r.success) {
+        searchResults.value = (r.cases || []).slice(0, 8)
+      }
+    } catch (e) {
+      console.error('搜索失败:', e)
+    } finally {
+      searchLoading.value = false
+    }
+  }
+
+  const handleSearchSelect = (caseItem) => {
+    searchQuery.value = ''
+    searchResults.value = []
+    selectedCase.value = {
+      id: caseItem.case_id,
+      title: caseItem.title,
+      amount: caseItem.amount || '',
+      status: caseItem.status || '已立案',
+      date: caseItem.created_at || '',
+      description: caseItem.ai_report || caseItem.description || '',
+      victimName: caseItem.victim || '',
+      victimPhone: caseItem.victim_phone || '',
+      victimAge: caseItem.victim_age || '',
+      victimGender: caseItem.victim_gender || '',
+      victimJob: caseItem.victim_job || '',
+      victimAddress: caseItem.victim_address || '',
+      type: caseItem.scam_type || '',
+      risk_level: caseItem.risk_level || '',
+      keywords: caseItem.keywords || [],
+      amount_value: caseItem.amount_value || 0,
+      created_at: caseItem.created_at || ''
+    }
+    router.push({ name: 'case-detail' })
   }
 
   const handleResolveAlert = async (alertId) => {
@@ -1146,6 +1228,7 @@ export function useFraudLens() {
     const routeName = route.name
     if (routeName === 'dashboard') loadDashboard()
     if (routeName === 'alerts') loadAlerts()
+    loadFlowMetrics()
     try {
       const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
       if (casesRes.success) {
@@ -1179,7 +1262,13 @@ export function useFraudLens() {
           total_amount_involved: g.total_amount_involved || g.total_amount || '',
           total_cases: g.total_cases || 0, cases: g.total_cases || 0,
           tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
-          members: [], score: g.comprehensive_score || 0,
+          members: Array.isArray(g.network_nodes) ? g.network_nodes.slice(0, 6).map((n, i) => ({
+            id: i + 1,
+            name: n.label || n.id || n.name || ('成员' + (i + 1)),
+            icon: '👤',
+            role: n.role || n.type || '成员'
+          })) : [],
+          score: g.comprehensive_score || 0,
           comprehensive_score: g.comprehensive_score || 0,
           confidence: g.confidence || 0,
           member_count_estimate: g.member_count_estimate || '',
@@ -1219,13 +1308,19 @@ export function useFraudLens() {
     flowSearchCaseId,
     capitalFlows,
     flowGraphData,
+    flowMetrics,
     dispatchOrders,
     dispatchStatusFilter,
     showCreateDispatch,
+    showFeedbackDialog,
+    feedbackForm,
     keyPersons,
     personSearch,
     personTypeFilter,
     showCreatePerson,
+    searchQuery,
+    searchResults,
+    searchLoading,
     dashboardData,
     dashboardLoading,
     alerts,
@@ -1305,12 +1400,16 @@ export function useFraudLens() {
     loadCapitalFlows,
     loadFlowGraph,
     loadFlowData,
+    loadFlowMetrics,
     addFlowRecord,
     loadDispatchOrders,
     signDispatch,
     showCompleteDispatch,
+    submitFeedback,
     loadKeyPersons,
     deleteKeyPerson,
+    handleSearchInput,
+    handleSearchSelect,
     handleResolveAlert,
     getAlertType,
     getConfidenceColor,

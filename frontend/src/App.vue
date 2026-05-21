@@ -111,13 +111,39 @@
       </div>
     </aside>
     <main class="main-content" v-loading="loading" element-loading-text="AI 正在进行深度研判分析...">
+      <div class="search-bar" v-if="store.isLoggedIn">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索案件编号、受害人、诈骗类型..."
+            size="default"
+            @input="handleSearchDebounced"
+            @blur="onSearchBlur"
+            class="global-search-input"
+          >
+            <template #suffix>
+              <span v-if="searchLoading" class="search-loading">⏳</span>
+            </template>
+          </el-input>
+          <div v-if="searchResults.length" class="search-dropdown">
+            <div v-for="item in searchResults" :key="item.case_id" class="search-result-item" @mousedown.prevent="handleSearchSelect(item)">
+              <span class="search-result-id">{{ item.case_id }}</span>
+              <span class="search-result-title">{{ item.title }}</span>
+              <span class="search-result-type">
+                <el-tag size="small" type="info">{{ item.scam_type || '其他' }}</el-tag>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="content-wrapper"><RouterView /></div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { provide } from 'vue'
+import { provide, ref } from 'vue'
 import { useFraudLens } from './composables/useFraudLens.js'
 import NetworkGraph from './components/NetworkGraph.vue'
 
@@ -129,8 +155,19 @@ const {
   showProgress, showResult, progressPercent, progressMessage, resultStats,
   loginForm, loginLoading, loginError, loginProgress,
   handleLogin, handleLogout, handleMenuSelect,
-  getParticleStyle, goToResults
+  getParticleStyle, goToResults,
+  searchQuery, searchResults, searchLoading,
+  handleSearchInput, handleSearchSelect
 } = appState
+
+let searchTimer = null
+const handleSearchDebounced = (val) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => handleSearchInput(val), 300)
+}
+const onSearchBlur = () => {
+  setTimeout(() => { searchResults.value = [] }, 200)
+}
 </script>
 
 <style scoped>
@@ -166,6 +203,22 @@ const {
 .logout-area { margin-top: 8px; }
 .logout-btn { width: 100%; border-color: rgba(239, 68, 68, 0.3) !important; color: var(--accent-red) !important; font-size: 12px; }
 .main-content { flex: 1; height: 100vh; overflow-y: auto; position: relative; z-index: 1; }
+.search-bar { padding: 12px 20px 0; }
+.search-wrapper { position: relative; max-width: 500px; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 14px; }
+.global-search-input :deep(.el-input__wrapper) { padding-left: 36px; background: rgba(10, 14, 26, 0.6) !important; border: 1px solid rgba(0, 198, 255, 0.2); border-radius: 8px; }
+.global-search-input :deep(.el-input__wrapper:hover) { border-color: rgba(0, 198, 255, 0.4); }
+.global-search-input :deep(.el-input__wrapper.is-focus) { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 198, 255, 0.15); }
+.global-search-input :deep(.el-input__inner) { color: #e2e8f0; }
+.global-search-input :deep(.el-input__inner::placeholder) { color: #64748b; }
+.search-loading { font-size: 12px; }
+.search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid rgba(0, 198, 255, 0.3); border-radius: 0 0 8px 8px; max-height: 320px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.search-result-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(0, 198, 255, 0.06); transition: background 0.15s; }
+.search-result-item:hover { background: rgba(0, 198, 255, 0.08); }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-id { font-size: 11px; color: var(--accent-cyan); background: rgba(0, 198, 255, 0.1); padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+.search-result-title { flex: 1; font-size: 13px; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result-type { flex-shrink: 0; }
 .content-wrapper { padding: 20px; max-width: 1600px; margin: 0 auto; }
 .login-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: var(--bg-primary); }
 .login-container { width: 400px; padding: 40px; text-align: center; }

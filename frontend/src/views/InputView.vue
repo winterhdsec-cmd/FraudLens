@@ -39,13 +39,18 @@
                 </div>
               </div>
               <div class="input-area">
-                <el-input
-                  v-model="inputText"
-                  type="textarea"
-                  :rows="16"
-                  placeholder="请粘贴聊天记录、报警文本或涉案信息...&#10;&#10;支持格式：&#10;• 聊天记录截图转文字&#10;• 报警笔录&#10;• 涉案资金流水描述&#10;• 诈骗话术文本"
-                  class="dark-textarea"
-                ></el-input>
+                <textarea
+                v-model="inputText"
+                :rows="16"
+                placeholder="请粘贴聊天记录、报警文本或涉案信息...
+
+支持格式：
+• 聊天记录截图转文字
+• 报警笔录
+• 涉案资金流水描述
+• 诈骗话术文本"
+                class="native-textarea"
+              ></textarea>
               </div>
               <div class="input-footer">
                 <div class="format-tips">
@@ -137,11 +142,9 @@ const {
 .toolbar-icon { font-size: 16px; }
 .toolbar-title { font-size: 14px; color: var(--text-primary); font-weight: 500; }
 .input-area { padding: 0; flex: 1; }
-.input-area :deep(.el-textarea) { --el-input-bg-color: rgba(10,14,26,0.6) !important; --el-fill-color-blank: rgba(10,14,26,0.6) !important; }
-.input-area :deep(.el-textarea__wrapper) { background: rgba(10,14,26,0.6) !important; border: none !important; border-radius: 0 !important; }
-.input-area :deep(.el-textarea__inner) { border: none !important; border-radius: 0 !important; background: transparent !important; color: #e2e8f0 !important; min-height: 400px; font-size: 14px; line-height: 1.8; padding: 16px 18px; resize: vertical; }
-.input-area :deep(.el-textarea__inner::placeholder) { color: #64748b !important; }
-.input-area :deep(.el-textarea__inner:focus) { box-shadow: inset 0 0 20px rgba(0,198,255,0.05) !important; }
+.native-textarea { width: 100%; min-height: 400px; padding: 16px 18px; background: rgba(10,14,26,0.6); border: none; border-radius: 0; color: #e2e8f0; font-size: 14px; line-height: 1.8; resize: vertical; outline: none; box-sizing: border-box; }
+.native-textarea::placeholder { color: #475569; }
+.native-textarea:focus { background: rgba(10,14,26,0.7); box-shadow: inset 0 0 20px rgba(0,198,255,0.05); }
 .input-footer { padding: 12px 18px; border-top: 1px solid var(--border-primary); }
 .format-tips { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .tip-icon { flex-shrink: 0; }

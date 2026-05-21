@@ -108,25 +108,36 @@ export function useFraudLens() {
   const loginLoading = ref(false)
   const loginError = ref('')
 
+  const loginProgress = ref(0)
+  let loginProgressTimer = null
+
   const handleLogin = async () => {
     if (!loginForm.value.username.trim() || !loginForm.value.password.trim()) {
       loginError.value = '请输入用户名和密码'
       return
     }
     loginLoading.value = true
+    loginProgress.value = 0
     loginError.value = ''
+    loginProgressTimer = setInterval(() => {
+      if (loginProgress.value < 85) loginProgress.value += Math.random() * 3
+    }, 600)
     try {
       const data = await apiLogin(loginForm.value.username, loginForm.value.password)
       if (data.success) {
-        store.login(data.user || { username: loginForm.value.username }, data.token)
-        loginForm.value = { username: '', password: '' }
-        ElMessage.success('登录成功')
+        loginProgress.value = 100
+        setTimeout(() => {
+          store.login(data.user || { username: loginForm.value.username }, data.token)
+          loginForm.value = { username: '', password: '' }
+          ElMessage.success('登录成功')
+        }, 300)
       } else {
         loginError.value = data.message || '登录失败，请重试'
       }
     } catch (err) {
       loginError.value = err.response?.data?.message || err.message || '登录失败，请检查网络连接'
     } finally {
+      clearInterval(loginProgressTimer)
       loginLoading.value = false
     }
   }
@@ -210,44 +221,79 @@ export function useFraudLens() {
     router.push({ name })
   }
 
-  const features = ref([
-    { name: '诈骗话术成熟度', confidence: 92, color: '#ef4444', desc: '话术模板标准化程度' },
-    { name: '资金分散程度', confidence: 85, color: '#f59e0b', desc: '资金流转层级数量' },
-    { name: '成员关联密度', confidence: 78, color: '#00d4ff', desc: '团伙成员社交关系' },
-    { name: '跨区域作案特征', confidence: 88, color: '#8b5cf6', desc: '跨省跨境作案能力' },
-    { name: '技术手段先进性', confidence: 73, color: '#10b981', desc: '反侦察技术水平' },
-    { name: '受害者画像精准度', confidence: 89, color: '#ec4899', desc: '目标人群定位能力' }
-  ])
+  const features = computed(() => {
+    if (!gangs.value.length) return []
+    const colors = ['#ef4444', '#f59e0b', '#00d4ff', '#8b5cf6', '#10b981', '#ec4899']
+    const names = ['诈骗话术成熟度', '资金分散程度', '成员关联密度', '跨区域作案特征', '技术手段先进性', '受害者画像精准度']
+    return names.map((name, i) => {
+      const gang = gangs.value[i % gangs.value.length]
+      const base = gang.comprehensive_score || gang.confidence || 50
+      return {
+        name,
+        confidence: Math.min(99, Math.max(40, base + (i * 5) - 10)),
+        color: colors[i],
+        desc: ['话术模板标准化程度', '资金流转层级数量', '团伙成员社交关系', '跨省跨境作案能力', '反侦察技术水平', '目标人群定位能力'][i]
+      }
+    })
+  })
 
-  const relationNodes = ref([
-    { id: 1, type: 'gang', icon: '👥', label: '团伙A', style: { left: '50%', top: '25%' } },
-    { id: 2, type: 'case', icon: '📋', label: '案件1', style: { left: '25%', top: '45%' } },
-    { id: 3, type: 'case', icon: '📋', label: '案件2', style: { left: '75%', top: '45%' } },
-    { id: 4, type: 'money', icon: '💰', label: '资金', style: { left: '35%', top: '70%' } },
-    { id: 5, type: 'money', icon: '💰', label: '资金', style: { left: '65%', top: '70%' } }
-  ])
-  const relationLines = ref([
-    { id: 1, x1: '50%', y1: '25%', x2: '25%', y2: '45%' },
-    { id: 2, x1: '50%', y1: '25%', x2: '75%', y2: '45%' },
-    { id: 3, x1: '25%', y1: '45%', x2: '35%', y2: '70%' },
-    { id: 4, x1: '75%', y1: '45%', x2: '65%', y2: '70%' }
-  ])
+  const relationNodes = computed(() => {
+    if (!gangs.value.length) return []
+    const nodes = []
+    const posX = ['50%', '25%', '75%', '35%', '65%']
+    const posY = ['25%', '45%', '45%', '70%', '70%']
+    const types = ['gang', 'case', 'case', 'money', 'money']
+    const icons = ['👥', '📋', '📋', '💰', '💰']
+    const labels = [gangs.value[0]?.gang_name || '团伙', '案件关联', '案件关联', '资金流向', '资金流向']
+    for (let i = 0; i < Math.min(5, gangs.value.length + 2); i++) {
+      nodes.push({
+        id: i + 1,
+        type: types[i] || 'gang',
+        icon: icons[i] || '👥',
+        label: i === 0 ? (gangs.value[0]?.gang_name || '团伙') : labels[i],
+        style: { left: posX[i] || '50%', top: posY[i] || '50%' }
+      })
+    }
+    return nodes
+  })
 
-  const caseEvidence = ref([
-    { icon: '📱', name: '通话记录', status: '已验证' },
-    { icon: '💳', name: '转账凭证', status: '已验证' },
-    { icon: '📧', name: '聊天记录', status: '已验证' },
-    { icon: '🖥️', name: '涉案设备', status: '核实中' }
-  ])
+  const relationLines = computed(() => {
+    if (!relationNodes.value.length) return []
+    return [
+      { id: 1, x1: '50%', y1: '25%', x2: '25%', y2: '45%' },
+      { id: 2, x1: '50%', y1: '25%', x2: '75%', y2: '45%' },
+      { id: 3, x1: '25%', y1: '45%', x2: '35%', y2: '70%' },
+      { id: 4, x1: '75%', y1: '45%', x2: '65%', y2: '70%' }
+    ]
+  })
 
-  const investigationSteps = ref([
-    { date: '2024-03-15', title: '案件受理', description: '受害人报案，记录案情经过', status: '已完成', completed: true, current: false },
-    { date: '2024-03-16', title: '初步调查', description: '调取银行流水、通话记录', status: '已完成', completed: true, current: false },
-    { date: '2024-03-18', title: '案件分析', description: 'AI研判分析，关联涉案团伙', status: '已完成', completed: true, current: false },
-    { date: '2024-03-20', title: '资金追踪', description: '追踪资金流向，冻结涉案账户', status: '进行中', completed: false, current: true },
-    { date: '', title: '抓捕行动', description: '根据线索实施抓捕', status: '待进行', completed: false, current: false },
-    { date: '', title: '案件结案', description: '移送审查起诉', status: '待进行', completed: false, current: false }
-  ])
+  const caseEvidence = computed(() => {
+    if (!selectedCase.value) return []
+    return [
+      { icon: '📱', name: '通话记录' + (selectedCase.value.victim_phone ? '(' + selectedCase.value.victim_phone.slice(0, 3) + '****' + selectedCase.value.victim_phone.slice(-4) + ')' : ''), status: '已验证' },
+      { icon: '💳', name: '转账凭证(' + (selectedCase.value.amount || '待核实') + ')', status: '已验证' },
+      { icon: '📧', name: '聊天记录' + (selectedCase.value.keywords?.length ? '(' + selectedCase.value.keywords.slice(0, 2).join('/') + ')' : ''), status: '已验证' },
+      { icon: '🖥️', name: '涉案设备', status: '核实中' }
+    ]
+  })
+
+  const investigationSteps = computed(() => {
+    if (!selectedCase.value) return []
+    const steps = []
+    const created = selectedCase.value.created_at || null
+    if (created) {
+      const d = new Date(created)
+      steps.push({ date: d.toISOString().slice(0, 10), title: '案件受理', description: '系统录入案件，AI自动研判', status: '已完成', completed: true, current: false })
+      const d2 = new Date(d.getTime() + 86400000)
+      steps.push({ date: d2.toISOString().slice(0, 10), title: 'AI研判分析', description: '自动提取涉案要素，关联团伙', status: '已完成', completed: true, current: false })
+      const d3 = new Date(d2.getTime() + 86400000)
+      steps.push({ date: d3.toISOString().slice(0, 10), title: '资金追踪', description: '追踪资金流向，分析链路', status: selectedCase.value.status === '侦办中' ? '进行中' : '已完成', completed: selectedCase.value.status !== '侦办中', current: selectedCase.value.status === '侦办中' })
+      steps.push({ date: '', title: '案件结案', description: '移送审查起诉', status: '待进行', completed: false, current: false })
+    } else {
+      steps.push({ date: new Date().toISOString().slice(0, 10), title: '案件受理', description: '等待完善案件信息', status: '待进行', completed: false, current: true })
+    }
+    return steps
+  })
 
   const defaultMethodFlow = [
     { title: '获取信任', desc: '冒充客服，准确报出受害人信息' },
@@ -265,12 +311,7 @@ export function useFraudLens() {
       typeMap[t] = (typeMap[t] || 0) + 1
     })
     const entries = Object.entries(typeMap)
-    if (!entries.length) return [
-      { name: '冒充客服诈骗', count: 45, percent: 35, color: '#ef4444' },
-      { name: '刷单返利诈骗', count: 32, percent: 25, color: '#f59e0b' },
-      { name: '贷款诈骗', count: 28, percent: 22, color: '#8b5cf6' },
-      { name: '投资理财诈骗', count: 23, percent: 18, color: '#00d4ff' }
-    ]
+    if (!entries.length) return []
     const total = entries.reduce((s, [, v]) => s + v, 0)
     const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
     return entries.map(([name, count], i) => ({
@@ -280,13 +321,25 @@ export function useFraudLens() {
     }))
   })
 
-  const regionStats = ref([
-    { name: '广东', count: 25, percent: 30 },
-    { name: '浙江', count: 18, percent: 22 },
-    { name: '江苏', count: 15, percent: 18 },
-    { name: '北京', count: 12, percent: 14 },
-    { name: '上海', count: 10, percent: 12 }
-  ])
+  const regionStats = computed(() => {
+    const regionMap = {}
+    cases.value.forEach(c => {
+      const addr = c.victim_address || c.description || ''
+      let region = '其他'
+      const knownRegions = ['广东','浙江','江苏','北京','上海','福建','四川','湖北','湖南','山东','河南']
+      for (const r of knownRegions) {
+        if (addr.includes(r)) { region = r; break }
+      }
+      regionMap[region] = (regionMap[region] || 0) + 1
+    })
+    const entries = Object.entries(regionMap)
+    if (!entries.length) return []
+    const total = entries.reduce((s, [, v]) => s + v, 0)
+    return entries.sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({
+      name, count,
+      percent: Math.round(count / total * 100)
+    }))
+  })
 
   const semanticFingerprints = computed(() => {
     if (!cases.value.length) return []
@@ -1187,6 +1240,7 @@ export function useFraudLens() {
     loginForm,
     loginLoading,
     loginError,
+    loginProgress,
     apiSources,
     apiDataPreview,
     pieChartRef,

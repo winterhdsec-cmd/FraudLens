@@ -1,11 +1,5 @@
 <template>
 <div class="view-section">
-          <div class="breadcrumb">
-            <el-breadcrumb>
-              <el-breadcrumb-item :to="{ path: '/overview' }">案件总览</el-breadcrumb-item>
-              <el-breadcrumb-item v-if="selectedCase">{{ selectedCase.title }}</el-breadcrumb-item>
-            </el-breadcrumb>
-          </div>
           <div v-if="!selectedCase" class="empty-state" style="margin-top: 60px;">
             <div class="empty-content">
               <div class="empty-icon">🔍</div>
@@ -29,7 +23,7 @@
 
           <div class="case-detail-content">
             <div class="detail-main">
-              <div class="case-header-card tech-card">
+              <div class="case-header-card">
                 <div class="case-header-top">
                   <div class="case-icon-wrapper">
                     <span class="case-icon">🔍</span>
@@ -46,7 +40,7 @@
                       </span>
                       <span class="meta-item">
                         <span class="meta-icon">📅</span>
-                        立案时间：{{ selectedCase.date || '2024-03-20' }}
+                        立案时间：{{ selectedCase.date || '—' }}
                       </span>
                     </div>
                   </div>
@@ -66,11 +60,11 @@
                     <span class="header-stat-label">受害人数</span>
                   </div>
                   <div class="header-stat">
-                    <span class="header-stat-value">{{ selectedCase.region || '广东省' }}</span>
+                    <span class="header-stat-value">{{ selectedCase.region || '—' }}</span>
                     <span class="header-stat-label">案发地区</span>
                   </div>
                   <div class="header-stat">
-                    <span class="header-stat-value">{{ selectedCase.type || '冒充客服' }}</span>
+                    <span class="header-stat-value">{{ selectedCase.type || '—' }}</span>
                     <span class="header-stat-label">案件类型</span>
                   </div>
                 </div>
@@ -79,7 +73,7 @@
               <div class="detail-tabs">
                 <el-tabs v-model="detailTab">
                   <el-tab-pane label="案件概述" name="overview">
-                    <div class="timeline-section tech-card">
+                    <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">📝 AI 研判结论</h4>
@@ -111,27 +105,27 @@
                           <div class="info-grid">
                             <div class="info-item">
                               <span class="info-label">姓名</span>
-                              <span class="info-value">{{ selectedCase.victimName || '王女士' }}</span>
+                              <span class="info-value">{{ selectedCase.victimName || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">性别</span>
-                              <span class="info-value">{{ selectedCase.victimGender || '女' }}</span>
+                              <span class="info-value">{{ selectedCase.victimGender || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">年龄</span>
-                              <span class="info-value">{{ selectedCase.victimAge || '32' }}岁</span>
+                              <span class="info-value">{{ selectedCase.victimAge ? selectedCase.victimAge + '岁' : '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">联系方式</span>
-                              <span class="info-value">{{ selectedCase.victimPhone || '138****5678' }}</span>
+                              <span class="info-value">{{ selectedCase.victimPhone || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">职业</span>
-                              <span class="info-value">{{ selectedCase.victimJob || '公司职员' }}</span>
+                              <span class="info-value">{{ selectedCase.victimJob || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">户籍地址</span>
-                              <span class="info-value">{{ selectedCase.victimAddress || '广东省深圳市' }}</span>
+                              <span class="info-value">{{ selectedCase.victimAddress || '—' }}</span>
                             </div>
                           </div>
                         </div>
@@ -140,19 +134,19 @@
                           <div class="info-grid">
                             <div class="info-item">
                               <span class="info-label">诈骗号码</span>
-                              <span class="info-value danger">{{ selectedCase.scamPhone || '0755-8888****' }}</span>
+                              <span class="info-value danger">{{ selectedCase.scamPhone || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">归属地</span>
-                              <span class="info-value">{{ selectedCase.phoneLocation || '广东深圳' }}</span>
+                              <span class="info-value">{{ selectedCase.phoneLocation || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">诈骗网址</span>
-                              <span class="info-value danger">{{ selectedCase.scamUrl || 'jd-security.com' }}</span>
+                              <span class="info-value danger">{{ selectedCase.scamUrl || '—' }}</span>
                             </div>
                             <div class="info-item">
                               <span class="info-label">IP地址</span>
-                              <span class="info-value">{{ selectedCase.ipAddress || '192.168.***.***' }}</span>
+                              <span class="info-value">{{ selectedCase.ipAddress || '—' }}</span>
                             </div>
                           </div>
                         </div>
@@ -160,7 +154,7 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="资金流向" name="money">
-                    <div class="money-section tech-card">
+                    <div class="money-section">
                       <div class="money-header">
                         <span class="money-icon">💰</span>
                         <span class="money-title">资金流向追踪</span>
@@ -218,7 +212,7 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="调查进展" name="progress">
-                    <div class="method-section tech-card">
+                    <div class="method-section">
                       <div class="method-header">
                         <span class="method-icon">📊</span>
                         <span class="method-title">案件调查进展</span>
@@ -242,15 +236,15 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="行为特征" name="behavior">
-                    <div class="timeline-section tech-card">
+                    <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">🎯 行为特征分析</h4>
                           <div class="info-grid">
-                            <div class="info-item"><span class="info-label">作案时段</span><span class="info-value">工作日 9:00-17:00</span></div>
-                            <div class="info-item"><span class="info-label">目标群体</span><span class="info-value">25-45岁女性为主</span></div>
-                            <div class="info-item"><span class="info-label">作案工具</span><span class="info-value">社交软件+远程控制APP</span></div>
-                            <div class="info-item"><span class="info-label">沟通方式</span><span class="info-value">电话诱导+即时通讯</span></div>
+                            <div class="info-item"><span class="info-label">作案时段</span><span class="info-value">{{ selectedCase.peakHours || '—' }}</span></div>
+                            <div class="info-item"><span class="info-label">目标群体</span><span class="info-value">{{ selectedCase.targetGroup || '—' }}</span></div>
+                            <div class="info-item"><span class="info-label">作案工具</span><span class="info-value">{{ selectedCase.tools || '—' }}</span></div>
+                            <div class="info-item"><span class="info-label">沟通方式</span><span class="info-value">{{ selectedCase.commMethod || '—' }}</span></div>
                           </div>
                         </div>
                         <div class="overview-section">
@@ -263,7 +257,7 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="关联关系" name="relation">
-                    <div class="timeline-section tech-card">
+                    <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">🔗 关联案件</h4>
@@ -280,7 +274,7 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="风险评估" name="risk">
-                    <div class="timeline-section tech-card">
+                    <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">⚠️ 风险等级评估</h4>
@@ -295,16 +289,19 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="处置建议" name="suggestion">
-                    <div class="timeline-section tech-card">
+                    <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">📋 建议处置措施</h4>
                           <div class="suggestion-list">
-                            <div class="suggestion-item"><span class="suggestion-icon">1️⃣</span><span>立即启动紧急止付，冻结涉案账户</span></div>
-                            <div class="suggestion-item"><span class="suggestion-icon">2️⃣</span><span>调取银行流水，追踪资金流向</span></div>
-                            <div class="suggestion-item"><span class="suggestion-icon">3️⃣</span><span>提取通讯记录，溯源诈骗号码</span></div>
-                            <div class="suggestion-item"><span class="suggestion-icon">4️⃣</span><span>固定电子证据，制作询问笔录</span></div>
-                            <div class="suggestion-item"><span class="suggestion-icon">5️⃣</span><span>串并关联案件，锁定犯罪团伙</span></div>
+                            <div class="suggestion-item" v-if="parsedReport.partA">
+                              <span class="suggestion-icon">📋</span>
+                              <span>根据AI研判结论，系统已自动生成处置建议。请结合实际情况制定具体措施。</span>
+                            </div>
+                            <div class="suggestion-item" v-for="(item, idx) in (selectedCase.suggestions || defaultSuggestions)" :key="idx">
+                              <span class="suggestion-icon">{{ ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣'][idx] }}</span>
+                              <span>{{ item }}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -315,7 +312,7 @@
             </div>
 
             <div class="detail-sidebar">
-              <div class="sidebar-section tech-card">
+              <div class="sidebar-section">
                 <div class="section-title-bar">
                   <span class="section-icon">📋</span>
                   <span class="section-title-text">证据材料</span>
@@ -335,7 +332,7 @@
                 </div>
               </div>
 
-              <div class="sidebar-section tech-card">
+              <div class="sidebar-section">
                 <div class="section-title-bar">
                   <span class="section-icon">🕵️</span>
                   <span class="section-title-text">办案民警</span>
@@ -344,21 +341,21 @@
                   <div class="member-item">
                     <span class="member-avatar">👮</span>
                     <div class="member-info">
-                      <span class="member-name">张警官</span>
+                      <span class="member-name">张警官 <span style="font-size:10px;color:#94a3b8">(演示)</span></span>
                       <span class="member-role">主办民警</span>
                     </div>
                   </div>
                   <div class="member-item">
                     <span class="member-avatar">👮</span>
                     <div class="member-info">
-                      <span class="member-name">李警官</span>
+                      <span class="member-name">李警官 <span style="font-size:10px;color:#94a3b8">(演示)</span></span>
                       <span class="member-role">协办民警</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="sidebar-section tech-card">
+              <div class="sidebar-section">
                 <div class="section-title-bar">
                   <span class="section-icon">🔗</span>
                   <span class="section-title-text">关联团伙</span>
@@ -386,102 +383,573 @@ const {
   activeMenu, caseEvidence, detailTab, gangs, getGangById, investigationSteps,
   parsedReport, selectGang, selectedCase, viewRelatedGang
 } = state
+const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '调取银行流水，追踪资金流向', '提取通讯记录，追踪诈骗号码', '固定电子证据，制作询问笔录', '串并关联案件，锁定犯罪团伙']
 </script>
 
 <style scoped>
 .case-detail-content { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
 .detail-main { display: flex; flex-direction: column; gap: 16px; }
-.breadcrumb { margin-bottom: 16px; }
-.case-header-card { padding: 20px; }
-.case-header-top { display: flex; gap: 16px; align-items: flex-start; }
-.case-icon-wrapper { width: 52px; height: 52px; border-radius: 12px; background: rgba(0,198,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+
+/* ====== 案件头卡片 ====== */
+.case-header-card {
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(20,35,60,0.85));
+  border: 1px solid rgba(0,198,255,0.15);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: all 0.4s ease;
+}
+.case-header-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), var(--accent-blue), var(--accent-purple), transparent);
+  opacity: 0.8;
+}
+.case-header-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(0,198,255,0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+.case-header-card:hover {
+  border-color: rgba(0,198,255,0.3);
+  box-shadow: 0 0 30px rgba(0,198,255,0.08);
+  transform: translateY(-1px);
+}
+.case-header-top {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+.case-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.25), rgba(0,132,255,0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,198,255,0.3);
+  box-shadow: 0 0 20px rgba(0,198,255,0.1);
+  transition: all 0.3s ease;
+}
+.case-header-card:hover .case-icon-wrapper {
+  box-shadow: 0 0 30px rgba(0,198,255,0.2);
+  transform: scale(1.05);
+}
 .case-header-info { flex: 1; }
-.case-title { font-size: 18px; color: #e2e8f0; font-weight: 600; margin: 0 0 6px; }
-.case-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.meta-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #94a3b8; }
-.meta-icon { font-size: 12px; }
+.case-title {
+  font-size: 22px;
+  color: #e2e8f0;
+  font-weight: 700;
+  margin: 0 0 8px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 20px rgba(0,198,255,0.1);
+}
+.case-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
+.meta-icon { font-size: 13px; }
 .case-header-actions { flex-shrink: 0; }
-.case-header-stats { display: flex; gap: 24px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(0,198,255,0.1); }
-.header-stat { text-align: center; }
-.header-stat-value { display: block; font-size: 20px; font-weight: 700; color: var(--accent-cyan); }
-.header-stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+.case-header-stats {
+  display: flex;
+  gap: 0;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0,198,255,0.1);
+  position: relative;
+  z-index: 1;
+}
+.header-stat {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  padding: 8px 0;
+  transition: all 0.3s ease;
+}
+.header-stat:hover { transform: translateY(-2px); }
+.header-stat:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(0,198,255,0.2), transparent);
+}
+.header-stat-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 16px rgba(0,198,255,0.25);
+  transition: all 0.3s ease;
+}
+.header-stat:hover .header-stat-value {
+  text-shadow: 0 0 28px rgba(0,198,255,0.4);
+}
+.header-stat-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 3px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* ====== 标签页 ====== */
 .detail-tabs { margin-top: 0; }
-.detail-tabs :deep(.el-tabs__header) { margin: 0 0 16px; border-bottom: 1px solid rgba(0,198,255,0.1); }
-.detail-tabs :deep(.el-tabs__item) { color: #94a3b8 !important; font-size: 13px; }
-.detail-tabs :deep(.el-tabs__item.is-active) { color: var(--accent-cyan) !important; }
-.timeline-section { padding: 20px; }
-.case-overview { display: flex; flex-direction: column; gap: 20px; }
+.detail-tabs :deep(.el-tabs__header) {
+  margin: 0 0 18px;
+  border-bottom: 1px solid rgba(0,198,255,0.08);
+  background: transparent;
+}
+.detail-tabs :deep(.el-tabs__active-bar) {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+  height: 2.5px;
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+.detail-tabs :deep(.el-tabs__item) {
+  color: #64748b !important;
+  font-size: 13px;
+  transition: all 0.3s;
+  padding: 0 18px;
+  height: 40px;
+  line-height: 40px;
+  letter-spacing: 0.3px;
+}
+.detail-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--accent-cyan) !important;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(0,198,255,0.15);
+}
+.detail-tabs :deep(.el-tabs__item:hover) {
+  color: #cbd5e1 !important;
+}
+.detail-tabs :deep(.el-tabs__nav-wrap::after) {
+  background: rgba(0,198,255,0.06);
+}
+
+/* ====== 通用卡片区块 ====== */
+.timeline-section, .money-section, .method-section {
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(18,28,50,0.6));
+  border: 1px solid rgba(0,198,255,0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+.timeline-section:hover, .money-section:hover, .method-section:hover {
+  border-color: rgba(0,198,255,0.2);
+  box-shadow: 0 0 28px rgba(0,198,255,0.06);
+  transform: translateY(-1px);
+}
+
+.case-overview { display: flex; flex-direction: column; gap: 24px; }
 .overview-section { }
-.overview-title { font-size: 14px; color: #e2e8f0; font-weight: 600; margin: 0 0 12px; }
-.overview-content { font-size: 13px; color: #94a3b8; line-height: 1.8; margin: 0; }
-.info-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
-.info-item { display: flex; flex-direction: column; padding: 10px 14px; background: rgba(0,0,0,0.15); border-radius: 8px; }
-.info-label { font-size: 11px; color: #94a3b8; }
-.info-value { font-size: 14px; color: #e2e8f0; font-weight: 500; }
+
+.overview-title {
+  font-size: 15px;
+  color: #e2e8f0;
+  font-weight: 600;
+  margin: 0 0 14px;
+  border-left: 3px solid var(--accent-cyan);
+  padding-left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.3px;
+}
+.overview-content {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.9;
+  margin: 0;
+  padding: 16px 18px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 8px;
+  border: 1px solid rgba(0,198,255,0.04);
+}
+
+/* ====== 信息网格 ====== */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(0,198,255,0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.info-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--accent-cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.info-item:hover {
+  background: rgba(0,0,0,0.3);
+  border-color: rgba(0,198,255,0.18);
+  transform: translateX(2px);
+}
+.info-item:hover::before { opacity: 0.6; }
+.info-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.info-value {
+  font-size: 14px;
+  color: #e2e8f0;
+  font-weight: 500;
+  text-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
 .info-value.danger { color: #ef4444; }
-.report-line { font-size: 13px; color: #94a3b8; line-height: 1.8; padding: 2px 0; }
-.report-heading { font-size: 15px; color: var(--accent-cyan); font-weight: 600; }
-.report-bullet { color: #e2e8f0; }
-.report-section-title { color: var(--accent-cyan); font-weight: 600; }
-.report-part-b { margin-top: 12px; }
-.report-json-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; }
-.report-json-item { display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(0,0,0,0.1); border-radius: 4px; font-size: 12px; }
-.report-json-key { color: #94a3b8; }
+
+/* ====== AI报告样式 ====== */
+.report-line {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.9;
+  padding: 3px 0;
+  transition: all 0.2s;
+}
+.report-line:hover { color: #cbd5e1; }
+.report-heading {
+  font-size: 16px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+  margin: 10px 0 6px;
+  text-shadow: 0 0 10px rgba(0,198,255,0.1);
+}
+.report-bullet { color: #e2e8f0; font-weight: 500; }
+.report-section-title {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.report-part-a {
+  padding: 16px 18px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 10px;
+  border: 1px solid rgba(0,198,255,0.05);
+}
+.report-part-b { margin-top: 16px; }
+.report-json-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.report-json-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  transition: all 0.3s;
+  border: 1px solid rgba(0,198,255,0.04);
+}
+.report-json-item:hover {
+  background: rgba(0,198,255,0.05);
+  border-color: rgba(0,198,255,0.12);
+}
+.report-json-key { color: #64748b; }
 .report-json-value { color: #e2e8f0; font-weight: 500; }
-.money-section { padding: 20px; }
-.money-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.money-icon { font-size: 18px; }
-.money-title { font-size: 15px; color: #e2e8f0; font-weight: 600; }
-.flow-diagram { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 20px 0; flex-wrap: wrap; }
-.flow-node { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; border-radius: 10px; min-width: 80px; }
-.flow-node.source { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); }
-.flow-node.gang { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); }
-.flow-node.middle { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25); }
-.flow-node.target { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.25); }
-.flow-node .node-icon { font-size: 22px; }
-.flow-node .node-label { font-size: 12px; color: #e2e8f0; font-weight: 500; }
+
+/* ====== 资金流向图 ====== */
+.money-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  border-left: 3px solid #f59e0b;
+  padding-left: 12px;
+}
+.money-icon { font-size: 20px; }
+.money-title { font-size: 15px; color: #e2e8f0; font-weight: 600; letter-spacing: 0.3px; }
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 0;
+  flex-wrap: wrap;
+}
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 24px;
+  border-radius: 12px;
+  min-width: 100px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.flow-node:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.flow-node.source {
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.flow-node.source:hover { border-color: rgba(239,68,68,0.5); box-shadow: 0 8px 24px rgba(239,68,68,0.15); }
+.flow-node.gang {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05));
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.flow-node.gang:hover { border-color: rgba(245,158,11,0.5); box-shadow: 0 8px 24px rgba(245,158,11,0.15); }
+.flow-node.middle {
+  background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05));
+  border: 1px solid rgba(139,92,246,0.3);
+}
+.flow-node.middle:hover { border-color: rgba(139,92,246,0.5); box-shadow: 0 8px 24px rgba(139,92,246,0.15); }
+.flow-node.target {
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05));
+  border: 1px solid rgba(0,212,255,0.3);
+}
+.flow-node.target:hover { border-color: rgba(0,212,255,0.5); box-shadow: 0 8px 24px rgba(0,212,255,0.15); }
+.flow-node .node-icon { font-size: 26px; }
+.flow-node .node-label { font-size: 13px; color: #e2e8f0; font-weight: 600; }
 .flow-node .node-amount { font-size: 11px; color: #94a3b8; }
-.flow-arrow { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 18px; color: var(--accent-cyan); }
-.arrow-label { font-size: 10px; color: #94a3b8; }
-.money-stats { display: flex; gap: 16px; justify-content: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,198,255,0.1); }
-.money-stat { text-align: center; }
-.ms-label { font-size: 11px; color: #94a3b8; display: block; }
-.ms-value { font-size: 16px; font-weight: 700; color: var(--accent-cyan); }
-.method-section { padding: 20px; }
-.method-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.method-icon { font-size: 18px; }
-.method-title { font-size: 15px; color: #e2e8f0; font-weight: 600; }
-.investigation-timeline { display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 20px; }
-.timeline-item { display: flex; gap: 14px; position: relative; padding-bottom: 20px; }
-.timeline-marker { display: flex; flex-direction: column; align-items: center; width: 14px; flex-shrink: 0; }
-.timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: #334155; border: 2px solid #475569; }
-.timeline-dot.completed { background: #10b981; border-color: #34d399; }
-.timeline-dot.current { background: var(--accent-cyan); border-color: #38bdf8; box-shadow: 0 0 8px rgba(0,198,255,0.4); }
-.timeline-line { width: 2px; flex: 1; background: rgba(0,198,255,0.1); margin-top: 4px; }
-.timeline-content { flex: 1; }
-.timeline-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.timeline-date { font-size: 11px; color: #94a3b8; }
-.timeline-title { font-size: 13px; color: #e2e8f0; font-weight: 500; }
-.timeline-desc { font-size: 12px; color: #94a3b8; line-height: 1.5; margin-top: 2px; }
-.tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 22px;
+  color: var(--accent-cyan);
+  animation: flow-arrow-pulse 2s ease-in-out infinite;
+}
+@keyframes flow-arrow-pulse {
+  0%, 100% { opacity: 0.7; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(4px); }
+}
+.flow-arrow:nth-child(4) { animation-delay: 0.3s; }
+.flow-arrow:nth-child(6) { animation-delay: 0.6s; }
+.flow-arrow:nth-child(8) { animation-delay: 0.9s; }
+.arrow-label { font-size: 10px; color: #64748b; }
+
+.money-stats {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0,198,255,0.08);
+}
+.money-stat { text-align: center; padding: 8px 16px; background: rgba(0,0,0,0.1); border-radius: 8px; transition: all 0.3s; }
+.money-stat:hover { background: rgba(0,0,0,0.2); transform: translateY(-1px); }
+.ms-label { font-size: 11px; color: #64748b; display: block; margin-bottom: 4px; }
+.ms-value { font-size: 18px; font-weight: 700; color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0,198,255,0.15); }
+
+/* ====== 调查进展时间线 ====== */
+.method-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  border-left: 3px solid #8b5cf6;
+  padding-left: 12px;
+}
+.method-icon { font-size: 20px; }
+.method-title { font-size: 15px; color: #e2e8f0; font-weight: 600; letter-spacing: 0.3px; }
+
+.investigation-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 24px;
+}
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 24px;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+.timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 2.5px solid #475569;
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+.timeline-dot.completed {
+  background: #10b981;
+  border-color: #34d399;
+  box-shadow: 0 0 12px rgba(16,185,129,0.35);
+}
+.timeline-dot.current {
+  background: var(--accent-cyan);
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(0,198,255,0.45);
+  animation: tl-pulse 2s ease-in-out infinite;
+}
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(to bottom, rgba(0,198,255,0.15), rgba(0,198,255,0.04));
+  margin-top: 4px;
+}
+.timeline-content { flex: 1; padding-top: 0; }
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.timeline-date { font-size: 11px; color: #64748b; letter-spacing: 0.3px; }
+.timeline-title { font-size: 14px; color: #e2e8f0; font-weight: 600; margin-bottom: 4px; }
+.timeline-desc { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+
+/* ====== 标签云 ====== */
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ====== 处置建议 ====== */
 .suggestion-list { display: flex; flex-direction: column; gap: 12px; }
-.suggestion-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0,198,255,0.03); border-radius: 6px; border-left: 3px solid #00d4ff; color: #e2e8f0; font-size: 14px; }
-.suggestion-icon { font-size: 18px; }
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(0,198,255,0.03);
+  border-radius: 8px;
+  border-left: 3px solid #00d4ff;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.6;
+  transition: all 0.3s;
+}
+.suggestion-item:hover {
+  background: rgba(0,198,255,0.07);
+  transform: translateX(3px);
+  box-shadow: 0 2px 12px rgba(0,198,255,0.06);
+}
+.suggestion-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ====== 侧边栏 ====== */
 .detail-sidebar { display: flex; flex-direction: column; gap: 16px; }
-.sidebar-section { padding: 16px; }
-.section-title-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,198,255,0.1); }
-.section-icon { font-size: 14px; }
-.section-title-text { font-size: 13px; color: #e2e8f0; font-weight: 500; }
-.evidence-list { display: flex; flex-direction: column; gap: 8px; }
-.evidence-item { display: flex; gap: 10px; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 6px; align-items: center; }
-.evidence-icon { font-size: 18px; }
+.sidebar-section {
+  padding: 18px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(18,28,50,0.6));
+  border: 1px solid rgba(0,198,255,0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+.sidebar-section:hover {
+  border-color: rgba(0,198,255,0.2);
+  box-shadow: 0 0 22px rgba(0,198,255,0.05);
+  transform: translateY(-1px);
+}
+.sidebar-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,198,255,0.3), transparent);
+  opacity: 0.5;
+}
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0,198,255,0.08);
+}
+.section-icon { font-size: 15px; }
+.section-title-text { font-size: 14px; color: #e2e8f0; font-weight: 600; letter-spacing: 0.3px; }
+
+.evidence-list { display: flex; flex-direction: column; gap: 10px; }
+.evidence-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  align-items: center;
+  transition: all 0.3s;
+  border: 1px solid rgba(0,198,255,0.04);
+}
+.evidence-item:hover {
+  background: rgba(0,0,0,0.35);
+  border-color: rgba(0,198,255,0.15);
+  transform: translateX(2px);
+}
+.evidence-icon { font-size: 20px; width: 28px; text-align: center; }
 .evidence-info { flex: 1; }
-.evidence-name { font-size: 12px; color: #e2e8f0; }
-.evidence-meta { margin-top: 2px; }
-.member-list { display: flex; flex-direction: column; gap: 8px; }
-.member-item { display: flex; gap: 10px; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 6px; align-items: center; }
-.member-avatar { font-size: 20px; }
+.evidence-name { font-size: 13px; color: #e2e8f0; font-weight: 500; }
+.evidence-meta { margin-top: 3px; }
+
+.member-list { display: flex; flex-direction: column; gap: 10px; }
+.member-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  align-items: center;
+  transition: all 0.3s;
+  border: 1px solid rgba(0,198,255,0.04);
+}
+.member-item:hover {
+  background: rgba(0,0,0,0.35);
+  border-color: rgba(0,198,255,0.15);
+  transform: translateX(2px);
+}
+.member-avatar { font-size: 22px; }
 .member-info { flex: 1; }
-.member-name { font-size: 13px; color: #e2e8f0; }
-.member-role { font-size: 11px; color: #94a3b8; }
+.member-name { font-size: 13px; color: #e2e8f0; font-weight: 500; }
+.member-role { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+@keyframes tl-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(0,198,255,0.3); }
+  50% { box-shadow: 0 0 22px rgba(0,198,255,0.6); }
+}
 </style>

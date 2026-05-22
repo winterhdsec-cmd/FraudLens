@@ -72,7 +72,11 @@
             :loading="resolvingAlert === alert.id"
             @click="handleResolveAlert(alert.id)"
             :disabled="alert.resolved"
-          ><span>✅</span> 处置</el-button>
+          >处置</el-button>
+          <el-button
+            size="small"
+            @click="state.showCreateDispatch = true"
+          >一键派单</el-button>
         </div>
       </div>
 
@@ -317,6 +321,8 @@ const formatTime = (t) => {
   flex-shrink: 0;
   margin-left: 16px;
   padding-top: 2px;
+  display: flex;
+  gap: 8px;
 }
 
 .card-title-row {
@@ -445,5 +451,23 @@ const formatTime = (t) => {
   font-size: 12px;
   color: var(--accent-cyan);
   font-weight: 500;
+}
+.alert-card.collapsed {
+  max-height: 100px;
+  overflow: hidden;
+}
+.expand-all-btn {
+  font-size: 13px;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: none;
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  padding: 4px 14px;
+  border-radius: 6px;
+}
+.expand-all-btn:hover {
+  background: rgba(0, 198, 255, 0.08);
+  border-color: var(--accent-cyan);
 }
 </style>

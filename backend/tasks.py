@@ -39,14 +39,18 @@ def run_analysis_task(self, messages, session_id):
         from agents.chief_agent import ChiefAgent
         from agents.base import AgentConfig, AgentContext
 
-        api_key = os.getenv("DASHSCOPE_API_KEY", "mock-key")
+        api_key = os.getenv("DEEPSEEK_API_KEY", "mock-key")
         LLM_REQUEST_TIMEOUT = 30
 
         try:
-            from langchain_community.llms import Tongyi
+            from langchain_community.chat_models import ChatOpenAI
             from agents.llm_wrapper import wrap_llm
-            raw_analyze = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
-            raw_triage = Tongyi(model_name="deepseek-v4-flash", temperature=0.1, request_timeout=120)
+            base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+            model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+            raw_analyze = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
+                                      api_key=api_key, base_url=base_url)
+            raw_triage = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
+                                    api_key=api_key, base_url=base_url)
             llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
             llm_triage = wrap_llm(raw_triage, max_concurrent=3)
         except ImportError:

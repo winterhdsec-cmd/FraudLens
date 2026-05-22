@@ -111,7 +111,7 @@ async function loadUsers() {
     const r = await api.get('/api/auth/users')
     userList.value = r.data.users || []
   } catch (e) {
-    console.error(e)
+    console.warn('用户列表API不可用')
   }
 }
 
@@ -120,7 +120,7 @@ async function loadLogs() {
     const data = await getOperationLogs()
     logList.value = data.logs || []
   } catch (e) {
-    console.error(e)
+    console.warn('操作日志API不可用')
   }
 }
 

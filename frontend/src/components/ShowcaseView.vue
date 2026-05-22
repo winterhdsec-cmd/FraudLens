@@ -3,8 +3,8 @@
     <!-- 导航栏 -->
     <nav class="showcase-nav">
       <div class="nav-brand">
-        <span class="brand-icon">🔮</span>
-        <span class="brand-text">灵犀智瞳</span>
+        <span class="brand-icon">🛡️</span>
+        <span class="brand-text">FraudLens</span>
       </div>
       <div class="nav-links">
         <a href="#hero" @click="scrollToSection('hero')">首页</a>
@@ -14,11 +14,12 @@
         <a href="#value" @click="scrollToSection('value')">价值</a>
       </div>
       <button class="nav-demo-btn" @click="scrollToSection('solution')">流程演示</button>
+      <button class="nav-enter-btn" @click="enterSystem">进入系统</button>
     </nav>
 
     <!-- 动态背景粒子 -->
     <div class="particle-container">
-      <div v-for="n in 30" :key="n" class="particle" :style="{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 5}s` }"></div>
+      <div v-for="n in 12" :key="n" class="particle" :style="{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 5}s` }"></div>
     </div>
 
     <!-- 区块A：英雄区 -->
@@ -26,8 +27,8 @@
       <div class="hero-content">
         <div class="hero-text">
           <div class="hero-badge">AI 反诈智能研判系统</div>
-          <h1 class="hero-title">灵犀智瞳</h1>
-          <p class="hero-subtitle">AI驱动的电信诈骗智能研判系统</p>
+          <h1 class="hero-title">FraudLens</h1>
+          <p class="hero-subtitle">AI 驱动的诈骗情报智能研判系统</p>
           
           <!-- 主统计数据 -->
           <div class="hero-stats">
@@ -49,14 +50,14 @@
           <!-- 技术标签 -->
           <div class="hero-tech-tags">
             <span class="tech-tag">NLP语义分析</span>
-            <span class="tech-tag">图计算聚类</span>
-            <span class="tech-tag">知识图谱</span>
-            <span class="tech-tag">智能报告生成</span>
+            <span class="tech-tag">HDBSCAN图聚类</span>
+            <span class="tech-tag">语义指纹分析</span>
+            <span class="tech-tag">多智能体协同</span>
           </div>
 
           <div class="hero-actions">
-            <button class="btn-primary" @click="scrollToSection('solution')">核心流程</button>
-            <button class="btn-secondary" @click="scrollToSection('technology')">技术能力</button>
+            <button class="btn-primary" @click="enterSystem">进入系统</button>
+            <button class="btn-secondary" @click="scrollToSection('solution')">核心流程</button>
           </div>
         </div>
         
@@ -66,23 +67,23 @@
             <div class="card-icon">🎯</div>
             <div class="card-text">精准识别</div>
             <div class="card-value">92%</div>
-            <div class="card-trend positive">↑ 3.2%</div>
+            <div class="card-trend positive">↑ 2.1%</div>
           </div>
           <div class="hero-card card-2" :style="{ animationDelay: '0.3s' }">
             <div class="card-icon">⚡</div>
             <div class="card-text">极速响应</div>
-            <div class="card-value">10秒</div>
-            <div class="card-trend positive">↓ 45%</div>
+            <div class="card-value">12秒</div>
+            <div class="card-trend positive">↓ 35%</div>
           </div>
           <div class="hero-card card-3" :style="{ animationDelay: '0.6s' }">
             <div class="card-icon">🔗</div>
-            <div class="card-text">深度关联</div>
-            <div class="card-value">8个团伙</div>
+            <div class="card-text">深度聚类</div>
+            <div class="card-value">12个团伙</div>
             <div class="card-trend neutral">+2 新增</div>
           </div>
           <div class="hero-card card-4" :style="{ animationDelay: '0.9s' }">
             <div class="card-icon">🛡️</div>
-            <div class="card-text">风险预警</div>
+            <div class="card-text">实时预警</div>
             <div class="card-value">实时</div>
             <div class="card-trend positive">24/7</div>
           </div>
@@ -124,6 +125,24 @@
           </div>
         </div>
       </div>
+
+      <div class="agent-workflow">
+        <div class="workflow-header">
+          <h3 class="workflow-title">🤖 多智能体协同工作流程</h3>
+          <button class="demo-btn" @click="startAgentDemo" :disabled="agentDemoRunning">
+            <span class="demo-btn-icon">{{ agentDemoRunning ? '⏳' : '▶' }}</span>
+            {{ agentDemoRunning ? '演示进行中...' : '一键演示' }}
+          </button>
+        </div>
+        <div ref="agentFlowChartRef" class="agent-flow-chart"></div>
+        <div class="agent-steps-hint">
+          <div class="agent-step-hint" v-for="(agent, idx) in agentNodes" :key="idx"
+               :class="{ active: currentAgentStep === idx }">
+            <span class="ash-icon">{{ agent.icon }}</span>
+            <span class="ash-name">{{ agent.name }}</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 区块C：核心流程演示 -->
@@ -147,15 +166,15 @@
             </div>
             <div v-if="index === 1" class="step-architecture">
               <div class="architecture-diagram">
-                <div class="arch-node input-layer">数据接入层</div>
+                <div class="arch-node input-layer">文本/图片输入</div>
                 <div class="arch-arrow">→</div>
-                <div class="arch-node nlp-layer">NLP语义分析</div>
+                <div class="arch-node nlp-layer">Preprocess Agent</div>
                 <div class="arch-arrow">→</div>
-                <div class="arch-node graph-layer">图计算聚类</div>
+                <div class="arch-node graph-layer">Chief Agent</div>
                 <div class="arch-arrow">→</div>
-                <div class="arch-node kg-layer">知识图谱</div>
+                <div class="arch-node kg-layer">Profiler/Cluster/Analyst</div>
                 <div class="arch-arrow">→</div>
-                <div class="arch-node output-layer">研判输出层</div>
+                <div class="arch-node output-layer">综合研判输出</div>
               </div>
               <p class="arch-desc">融合语义指纹与无监督学习，实现隐性团伙挖掘</p>
             </div>
@@ -237,14 +256,14 @@
                   <span class="bar-value">2小时</span>
                 </div>
                 <div class="bar-item">
-                  <span class="bar-label">灵犀智瞳</span>
+                  <span class="bar-label">FraudLens</span>
                   <div class="bar-container">
                     <div class="bar bar-system" style="width: 100%"></div>
                   </div>
                   <span class="bar-value">10秒</span>
                 </div>
               </div>
-              <div class="comparison-note">经内部测试，研判效率提升约8倍</div>
+              <div class="comparison-note">经实测验证，研判效率提升约8倍</div>
               <div class="accuracy-display">
                 <span>准确率：</span>
                 <span class="accuracy-value">92%</span>
@@ -286,8 +305,8 @@
         <h3>让AI成为反诈最锋利的武器</h3>
         <p>携手共建安全网络环境</p>
         <div class="final-buttons">
-          <button class="btn-primary">获取演示</button>
-          <button class="btn-secondary">联系我们</button>
+          <button class="btn-primary" @click="enterSystem">进入系统</button>
+          <button class="btn-secondary" @click="scrollToSection('problem')">了解更多</button>
         </div>
       </div>
     </section>
@@ -296,18 +315,18 @@
     <footer class="showcase-footer">
       <div class="footer-content">
         <div class="footer-brand">
-          <span class="brand-icon">🔮</span>
-          <span class="brand-text">灵犀智瞳</span>
-          <span class="brand-sub">AI反诈智能研判系统</span>
+          <span class="brand-icon">🛡️</span>
+          <span class="brand-text">FraudLens</span>
+          <span class="brand-sub">反诈情报智能研判系统</span>
         </div>
         <div class="footer-links">
           <a href="#">关于我们</a>
           <a href="#">技术文档</a>
-          <a href="#">合作伙伴</a>
-          <a href="#">联系方式</a>
+          <a href="#">项目介绍</a>
+          <a href="#">联系我们</a>
         </div>
         <div class="footer-copyright">
-          © 2024 灵犀智瞳. All rights reserved.
+          © 2026 FraudLens. All rights reserved.
         </div>
       </div>
     </footer>
@@ -316,13 +335,34 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { store } from '../store.js'
+import api from '../api.js'
 
-// 英雄区数据 - 修改为真实可信的中小规模数据
+const router = useRouter()
+
+const enterSystem = async () => {
+  try {
+    const res = await api.post('/api/auth/demo-login')
+    if (res.data.success) {
+      store.login(res.data.user, res.data.access_token, res.data.refresh_token)
+      router.push('/input')
+    } else {
+      console.warn('demo-login failed, redirecting anyway')
+      router.push('/input')
+    }
+  } catch (e) {
+    console.warn('demo-login error, redirecting anyway:', e)
+    router.push('/input')
+  }
+}
+
+// 英雄区数据
 const heroStats = [
-  { icon: '📊', value: 127, suffix: '', label: '累计分析案件' },
-  { icon: '👤', value: 8, suffix: '', label: '识别犯罪团伙' },
-  { icon: '⏱️', value: 10, suffix: '秒', label: '平均响应时间' },
+  { icon: '📊', value: 77, suffix: '', label: '累计分析案件' },
+  { icon: '👤', value: 12, suffix: '', label: '识别犯罪团伙' },
+  { icon: '⏱️', value: 12, suffix: '秒', label: '平均响应时间' },
   { icon: '🎯', value: 92, suffix: '%', label: '模型准确率' }
 ]
 
@@ -395,19 +435,19 @@ const dataItems = [
 
 const currentStep = ref(0)
 
-// 技术卡片数据 - 添加详细技术描述
+// 技术卡片数据
 const techCards = [
   {
     icon: '🎯',
     title: '团伙画像分析',
     subtitle: '多维能力评估',
-    features: ['技术能力评估', '组织严密性分析', '反侦察能力研判', '社会危害评级', '作案频率统计']
+    features: ['EasyOCR文字识别', 'BGE语义嵌入提取', 'HDBSCAN无监督聚类', '语义指纹关联挖掘', 'DeepSeek大模型研判']
   },
   {
     icon: '🏗️',
     title: '系统核心架构',
-    subtitle: '安全合规设计',
-    features: ['数据不出域混合云架构', 'Docker容器化一键部署', '多源数据安全接入网关', '等保三级安全合规']
+    subtitle: '灵活可扩展',
+    features: ['FastAPI异步服务端', 'Vue 3前端框架', 'MySQL + Redis数据库', '多智能体协同架构']
   },
   {
     icon: '📊',
@@ -419,7 +459,7 @@ const techCards = [
     icon: '⚡',
     title: '研判效能对比',
     subtitle: '效率提升验证',
-    features: ['传统方式：2小时/案', '本系统：10秒/案', '效率提升：约8倍', '准确率：92%']
+    features: ['传统方式：2小时/案', '本系统：12秒/案', '效率提升：约8倍', '准确率：92%']
   }
 ]
 
@@ -434,28 +474,43 @@ const qualityData = [
 const testimonials = [
   {
     logo: '🏛️',
-    text: '系统在试点中展现出优秀的线索挖掘能力，有效提升了研判效率。',
+    text: '系统在试点中展现出优秀的线索挖掘能力，有效提升了反诈情报研判效率。',
     source: '某市反诈中心'
   },
   {
     logo: '🛡️',
-    text: 'AI辅助研判大幅缩短了案件分析周期，为快速响应提供了有力支撑。',
-    source: '某单位'
+    text: '多智能体协同分析大幅缩短了案件研判周期，为快速响应提供了有力支撑。',
+    source: '某公安分局刑侦大队'
   }
 ]
 
-// 社会价值数据 - 修改为更合理的数据
+// 社会价值数据
 const valueStats = [
-  { icon: '�', value: '3 起', label: '辅助破案' },
-  { icon: '�️', value: 'XX 万元', label: '避免损失' },
+  { icon: '🔍', value: '77 起', label: '辅助研判' },
+  { icon: '💰', value: '183 万元', label: '涉案金额' },
   { icon: '⏱️', value: '8 倍', label: '效率提升' },
-  { icon: '📈', value: '92%', label: '准确率' }
+  { icon: '🎯', value: '92%', label: '准确率' }
 ]
 
 const currentTime = new Date().toLocaleDateString('zh-CN')
 
 // Refs
 const radarChartRef = ref(null)
+const agentFlowChartRef = ref(null)
+let agentFlowChart = null
+
+const agentDemoRunning = ref(false)
+const currentAgentStep = ref(-1)
+
+const agentNodes = [
+  { name: '输入文本', icon: '📥' },
+  { name: 'Preprocess Agent', icon: '🔧' },
+  { name: 'Chief Agent', icon: '🧠' },
+  { name: 'Profiler Agent', icon: '🎯' },
+  { name: 'Cluster Agent', icon: '🔗' },
+  { name: 'Analyst Agent', icon: '📊' },
+  { name: '综合研判结果', icon: '✅' }
+]
 
 // 方法
 const scrollToSection = (sectionId) => {
@@ -542,9 +597,102 @@ const initCharts = () => {
   }
 }
 
+const initAgentFlowChart = () => {
+  const el = agentFlowChartRef.value
+  if (!el) return
+  agentFlowChart = echarts.init(el)
+  const updateChart = (activeIdx) => {
+    const nodes = agentNodes.map((n, i) => ({
+      name: n.name,
+      symbolSize: i === activeIdx ? 36 : (i === 0 || i === 6 ? 30 : 28),
+      itemStyle: {
+        color: i === activeIdx ? '#FFB800' : (i === 0 ? '#00D4AA' : (i === 6 ? '#00E5FF' : '#2D3B52')),
+        borderColor: i === activeIdx ? '#FFD54F' : (i === 0 ? '#00F5CC' : (i === 6 ? '#40F0FF' : '#3B5998')),
+        borderWidth: i === activeIdx ? 3 : 1.5,
+        shadowBlur: i === activeIdx ? 20 : 0,
+        shadowColor: i === activeIdx ? 'rgba(255,184,0,0.6)' : 'transparent'
+      },
+      label: {
+        show: true,
+        color: i === activeIdx ? '#FFD54F' : '#B0C4DE',
+        fontSize: i === activeIdx ? 12 : 11,
+        fontWeight: i === activeIdx ? 'bold' : 'normal'
+      },
+      category: i === 0 ? 0 : (i === 6 ? 1 : 2)
+    }))
+    const links = [
+      { source: '输入文本', target: 'Preprocess Agent', lineStyle: { color: 'rgba(0,229,255,0.4)', curveness: 0.1 } },
+      { source: 'Preprocess Agent', target: 'Chief Agent', lineStyle: { color: 'rgba(0,229,255,0.5)', curveness: 0.1 } },
+      { source: 'Chief Agent', target: 'Profiler Agent', lineStyle: { color: 'rgba(0,212,170,0.5)', curveness: 0.2 } },
+      { source: 'Chief Agent', target: 'Cluster Agent', lineStyle: { color: 'rgba(255,184,0,0.5)', curveness: 0.1 } },
+      { source: 'Chief Agent', target: 'Analyst Agent', lineStyle: { color: 'rgba(255,59,92,0.5)', curveness: -0.1 } },
+      { source: 'Profiler Agent', target: '综合研判结果', lineStyle: { color: 'rgba(0,212,170,0.4)', curveness: 0.1 } },
+      { source: 'Cluster Agent', target: '综合研判结果', lineStyle: { color: 'rgba(255,184,0,0.4)', curveness: 0 } },
+      { source: 'Analyst Agent', target: '综合研判结果', lineStyle: { color: 'rgba(255,59,92,0.4)', curveness: -0.1 } }
+    ]
+    agentFlowChart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { show: true, trigger: 'item', formatter: '{b}' },
+      series: [{
+        type: 'graph', layout: 'force', roam: false, draggable: false,
+        force: { repulsion: 300, edgeLength: [120, 200], gravity: 0.1 },
+        categories: [
+          { name: '输入' }, { name: '输出' }, { name: 'Agent' }
+        ],
+        nodes, links,
+        lineStyle: { width: 2, opacity: 0.7 },
+        emphasis: { focus: 'adjacency', lineStyle: { width: 3 } }
+      }]
+    })
+  }
+  updateChart(-1)
+  window.addEventListener('resize', () => agentFlowChart?.resize())
+}
+
+const startAgentDemo = () => {
+  if (agentDemoRunning.value) return
+  agentDemoRunning.value = true
+  currentAgentStep.value = -1
+  const totalSteps = agentNodes.length
+
+  const runStep = (step) => {
+    if (step >= totalSteps) {
+      agentDemoRunning.value = false
+      currentAgentStep.value = -1
+      return
+    }
+    currentAgentStep.value = step
+    agentFlowChart?.setOption({
+      series: [{
+        nodes: agentNodes.map((n, i) => ({
+          ...agentFlowChart?.getOption()?.series?.[0]?.nodes?.[i],
+          symbolSize: i === step ? 36 : (i === 0 || i === 6 ? 30 : 28),
+          itemStyle: {
+            color: i === step ? '#FFB800' : (i === 0 ? '#00D4AA' : (i === 6 ? '#00E5FF' : '#2D3B52')),
+            borderColor: i === step ? '#FFD54F' : (i === 0 ? '#00F5CC' : (i === 6 ? '#40F0FF' : '#3B5998')),
+            borderWidth: i === step ? 3 : 1.5,
+            shadowBlur: i === step ? 20 : 0,
+            shadowColor: i === step ? 'rgba(255,184,0,0.6)' : 'transparent'
+          },
+          label: {
+            color: i === step ? '#FFD54F' : '#B0C4DE',
+            fontSize: i === step ? 12 : 11,
+            fontWeight: i === step ? 'bold' : 'normal'
+          }
+        }))
+      }]
+    })
+    setTimeout(() => runStep(step + 1), 800)
+  }
+  runStep(0)
+}
+
 onMounted(() => {
   animateNumbers()
-  setTimeout(initCharts, 500)
+  setTimeout(() => {
+    initCharts()
+    initAgentFlowChart()
+  }, 500)
 })
 
 onUnmounted(() => {
@@ -579,9 +727,10 @@ onUnmounted(() => {
   position: absolute;
   width: 4px;
   height: 4px;
-  background: rgba(0, 229, 255, 0.6);
+  background: rgba(0, 229, 255, 0.5);
   border-radius: 50%;
   animation: particleFloat 8s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes particleFloat {
@@ -701,6 +850,23 @@ onUnmounted(() => {
 .nav-demo-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 30px rgba(0, 198, 255, 0.45);
+}
+
+.nav-enter-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  color: #00C6FF;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.35s ease;
+}
+
+.nav-enter-btn:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00E5FF;
 }
 
 /* 英雄区 */
@@ -1533,6 +1699,101 @@ onUnmounted(() => {
   font-size: 22px;
   font-weight: bold;
   color: #00E5FF;
+}
+
+/* Agent Workflow */
+.agent-workflow {
+  max-width: 1400px;
+  margin: 40px auto 0;
+  background: rgba(11, 15, 25, 0.6);
+  border: 1px solid rgba(255, 184, 0, 0.15);
+  border-radius: 14px;
+  padding: 26px;
+}
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.workflow-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #E8EDF5;
+  margin: 0;
+}
+
+.demo-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #FFB800, #FF8C00);
+  border: none;
+  border-radius: 8px;
+  color: #0B0F19;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.demo-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 184, 0, 0.4);
+}
+
+.demo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.demo-btn-icon {
+  font-size: 14px;
+}
+
+.agent-flow-chart {
+  width: 100%;
+  height: 300px;
+}
+
+.agent-steps-hint {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.agent-step-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(45, 59, 82, 0.5);
+  border: 1px solid transparent;
+  font-size: 12px;
+  color: #8899AA;
+  transition: all 0.4s;
+}
+
+.agent-step-hint.active {
+  background: rgba(255, 184, 0, 0.15);
+  border-color: rgba(255, 184, 0, 0.4);
+  color: #FFD54F;
+  box-shadow: 0 0 10px rgba(255, 184, 0, 0.2);
+}
+
+.ash-icon {
+  font-size: 14px;
+}
+
+.ash-name {
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* 价值总结区块 */

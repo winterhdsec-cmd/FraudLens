@@ -67,6 +67,7 @@ from agents.base import AgentContext, AgentConfig
 # 初始化Flask应用
 app = Flask(__name__)
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
 
 # 数据库配置
 DB_USER = os.getenv("DB_USER", "root")
@@ -76,9 +77,19 @@ DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'connect_args': {'charset': 'utf8mb4'},
+    'pool_pre_ping': True,
+    'pool_recycle': 3600
+}
 
 # 初始化数据库
 init_db(app)
+
+with app.app_context():
+    db.session.execute(db.text("SET NAMES utf8mb4"))
+    db.session.execute(db.text("SET CHARACTER SET utf8mb4"))
+    db.session.execute(db.text("SET character_set_connection=utf8mb4"))
 
 # 初始化认证
 from database.auth import init_auth, register_routes, log_operation
@@ -104,9 +115,9 @@ socketio = SocketIO(app, cors_allowed_origins="http://localhost:5173", async_mod
 active_sessions = {}
 
 # 配置参数
-api_key = os.getenv("DASHSCOPE_API_KEY", "mock-key")
+api_key = os.getenv("DEEPSEEK_API_KEY", "mock-key")
 if not api_key or api_key == "":
-    print("⚠️ 警告：未找到 DASHSCOPE_API_KEY 环境变量，将使用模拟模式")
+    print("⚠️ 警告：未找到 DEEPSEEK_API_KEY 环境变量，将使用模拟模式")
 
 # 超时配置
 LLM_REQUEST_TIMEOUT = 30
@@ -117,17 +128,14 @@ MAX_WORKERS = 5
 llm_analyze = None
 llm_triage = None
 try:
-    llm_analyze = Tongyi(
-        model_name="qwen-max",
-        temperature=0.1,
-        request_timeout=LLM_REQUEST_TIMEOUT
-    )
-    llm_triage = Tongyi(
-        model_name="qwen-turbo",
-        temperature=0.1,
-        request_timeout=LLM_REQUEST_TIMEOUT
-    )
-    print(f"✅ 双模型初始化成功！(Timeout: {LLM_REQUEST_TIMEOUT}s, Workers: {MAX_WORKERS})")
+    from langchain_community.chat_models import ChatOpenAI
+    base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    llm_analyze = ChatOpenAI(model=model, temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT,
+                              api_key=api_key, base_url=base_url)
+    llm_triage = ChatOpenAI(model=model, temperature=0.1, request_timeout=LLM_REQUEST_TIMEOUT,
+                             api_key=api_key, base_url=base_url)
+    print(f"✅ DeepSeek 模型初始化成功！(Timeout: {LLM_REQUEST_TIMEOUT}s, Workers: {MAX_WORKERS})")
 except Exception as e:
     print(f"⚠️ 模型初始化警告：{e}，将使用模拟模式")
 

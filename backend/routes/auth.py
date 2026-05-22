@@ -51,6 +51,44 @@ async def api_login(data: LoginRequest, request: Request):
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
+@router.post('/demo-login')
+async def api_demo_login(request: Request):
+    try:
+        from database.models import User
+        demo_user = User.query.filter_by(username='admin').first()
+        if not demo_user:
+            demo_user = User(
+                username='admin',
+                display_name='系统管理员',
+                role='admin',
+                department='反诈中心'
+            )
+            demo_user.set_password('admin123')
+            db.session.add(demo_user)
+            db.session.commit()
+        demo_user.last_login = datetime.utcnow()
+        db.session.commit()
+        access_token = create_token(
+            demo_user.id,
+            extra_claims={
+                'username': demo_user.username,
+                'role': demo_user.role,
+                'display_name': demo_user.display_name
+            }
+        )
+        refresh_token = create_refresh_token(demo_user.id)
+        ip = request.client.host if request.client else ''
+        log_operation(demo_user.id, demo_user.username, 'login', ip_address=ip)
+        return {
+            "success": True,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": demo_user.to_dict()
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
 @router.post('/register')
 async def api_register(data: RegisterRequest, request: Request):
     try:

@@ -18,6 +18,11 @@
             </div>
           </div>
 
+          <div class="api-notice-banner">
+            <span class="notice-icon">ℹ️</span>
+            <span>当前为演示模式，数据源均采用模拟数据。正式部署后可对接真实银行风控、110报警平台及反诈中心API。</span>
+          </div>
+
           <div class="api-sources-grid">
             <div class="api-source-card tech-card" :class="{ active: apiSources.bank.connected }">
               <div class="source-header">
@@ -29,6 +34,7 @@
                     <span>{{ apiSources.bank.connected ? '已连接' : '未连接' }}</span>
                   </div>
                 </div>
+                <span class="sim-badge">🚧 模拟接入</span>
                 <el-switch v-model="apiSources.bank.connected" @change="toggleApiSource('bank')" />
               </div>
               <div class="source-content">
@@ -78,6 +84,7 @@
                     <span>{{ apiSources.police.connected ? '已连接' : '未连接' }}</span>
                   </div>
                 </div>
+                <span class="sim-badge">🚧 模拟接入</span>
                 <el-switch v-model="apiSources.police.connected" @change="toggleApiSource('police')" />
               </div>
               <div class="source-content">
@@ -127,6 +134,7 @@
                     <span>{{ apiSources.antiFraud.connected ? '已连接' : '未连接' }}</span>
                   </div>
                 </div>
+                <span class="sim-badge">🚧 模拟接入</span>
                 <el-switch v-model="apiSources.antiFraud.connected" @change="toggleApiSource('antiFraud')" />
               </div>
               <div class="source-content">
@@ -249,6 +257,9 @@ const {
 .preview-title { font-size: 14px; color: var(--text-primary); font-weight: 500; flex: 1; }
 .preview-table { margin-bottom: 12px; }
 .connection-status { display: flex; align-items: center; gap: 8px; }
+.api-notice-banner { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; margin-bottom: 16px; font-size: 12px; color: #fbbf24; }
+.notice-icon { font-size: 16px; flex-shrink: 0; }
+.sim-badge { font-size: 10px; padding: 2px 8px; background: rgba(251,191,36,0.15); color: #fbbf24; border-radius: 4px; border: 1px solid rgba(251,191,36,0.3); white-space: nowrap; }
 .connection-status .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
 .connection-status .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--text-muted); }
 .connection-status .status-dot.active { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.6); }

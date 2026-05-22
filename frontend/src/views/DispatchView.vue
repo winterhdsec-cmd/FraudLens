@@ -30,10 +30,12 @@
               <el-table-column prop="dispatch_time" label="派单时间" width="160" />
               <el-table-column prop="sign_time" label="签收时间" width="160" />
               <el-table-column prop="feedback" label="处置反馈" min-width="200" show-overflow-tooltip />
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{row}">
-                  <el-button v-if="row.status==='pending'" size="small" type="primary" @click="signDispatch(row.id)">签收</el-button>
-                  <el-button v-if="row.status==='signed'" size="small" @click="showCompleteDispatch(row)">完成反馈</el-button>
+                  <div style="display:flex;gap:8px">
+                    <el-button v-if="row.status==='pending'" size="small" type="primary" @click="signDispatch(row.id)">签收</el-button>
+                    <el-button v-if="row.status==='signed'" size="small" type="success" @click="showCompleteDispatch(row)">完成反馈</el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
@@ -77,6 +79,20 @@ onMounted(() => loadDispatchOrders())
 </script>
 
 <style scoped>
+.dispatch-list .el-table .cell {
+  position: relative;
+}
+
+.dispatch-list .el-table tr td:first-child .cell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+}
+
 .native-feedback-textarea {
   width: 100%;
   padding: 12px 14px;
@@ -103,5 +119,17 @@ onMounted(() => loadDispatchOrders())
   margin-bottom: 8px;
   font-size: 13px;
   color: #94a3b8;
+}
+
+.feedback-form {
+  position: relative;
+}
+
+.char-count {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 </style>

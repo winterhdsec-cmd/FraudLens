@@ -287,11 +287,18 @@ const router = useRouter()
 const state = useAppState()
 const {
   features, gangs, getFeatureIcon, caseTypeStats,
-  regionStats, semanticFingerprints, relationNodes, flowMetrics
+  regionStats, semanticFingerprints, relationNodes, flowMetrics,
+  selectedGang
 } = state
 
 const selectedGangId = ref(null)
 const isMoneyFlowCollapsed = ref(false)
+
+watch(selectedGang, (g) => {
+  if (g && (g.id || g.gang_id)) {
+    selectedGangId.value = g.id || g.gang_id
+  }
+}, { immediate: true })
 
 const currentGang = computed(() => {
   if (!selectedGangId.value || !gangs.value.length) return null

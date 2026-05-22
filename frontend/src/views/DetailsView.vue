@@ -288,7 +288,7 @@ const state = useAppState()
 const {
   features, gangs, getFeatureIcon, caseTypeStats,
   regionStats, semanticFingerprints, relationNodes, flowMetrics,
-  selectedGang
+  selectedGang, selectedCase
 } = state
 
 const selectedGangId = ref(null)
@@ -299,6 +299,10 @@ watch(selectedGang, (g) => {
     selectedGangId.value = g.id || g.gang_id
   }
 }, { immediate: true })
+
+watch(selectedCase, () => {
+  selectedGangId.value = null
+})
 
 const currentGang = computed(() => {
   if (!selectedGangId.value || !gangs.value.length) return null

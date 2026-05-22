@@ -1118,9 +1118,11 @@ export function useFraudLens() {
     }, 300)
   }
 
-  const handleSearchSelect = (caseItem) => {
+  const handleSearchSelect = async (caseItem) => {
     searchQuery.value = ''
     searchResults.value = []
+    selectedGang.value = null
+    await reloadCasesAndGangs()
     selectedCase.value = {
       id: caseItem.case_id,
       title: caseItem.title,
@@ -1259,24 +1261,7 @@ export function useFraudLens() {
     })
   }
 
-  watch(() => route.name, (newVal, oldVal) => {
-    if (newVal === oldVal) return
-    if (newVal === 'overview' && gangs.value.length) {
-      nextTick(() => initCharts())
-    }
-    if (newVal === 'dashboard') {
-      loadDashboard()
-    }
-    if (newVal === 'alerts') {
-      loadAlerts()
-    }
-  })
-
-  onMounted(async () => {
-    const routeName = route.name
-    if (routeName === 'dashboard') loadDashboard()
-    if (routeName === 'alerts') loadAlerts()
-    loadFlowMetrics()
+  const reloadCasesAndGangs = async () => {
     try {
       const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
       if (casesRes.success) {
@@ -1328,8 +1313,32 @@ export function useFraudLens() {
         }))
       }
     } catch (e) {
-      console.warn('加载初始数据失败:', e)
+      console.warn('刷新数据失败:', e)
     }
+  }
+
+  watch(() => route.name, (newVal, oldVal) => {
+    if (newVal === oldVal) return
+    if (newVal === 'overview' && gangs.value.length) {
+      nextTick(() => initCharts())
+    }
+    if (newVal === 'dashboard') {
+      loadDashboard()
+    }
+    if (newVal === 'alerts') {
+      loadAlerts()
+    }
+    if (newVal === 'details') {
+      reloadCasesAndGangs()
+    }
+  })
+
+  onMounted(async () => {
+    const routeName = route.name
+    if (routeName === 'dashboard') loadDashboard()
+    if (routeName === 'alerts') loadAlerts()
+    loadFlowMetrics()
+    await reloadCasesAndGangs()
     if (store.isLoggedIn && cases.value.length === 0) {
       try {
         await ElMessageBox.confirm(

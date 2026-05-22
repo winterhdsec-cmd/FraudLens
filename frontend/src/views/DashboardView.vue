@@ -45,7 +45,7 @@
                 <span class="stat-icon">💰</span>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ dashboardData.total_amount ?? '-' }}</div>
+                <div class="stat-value">{{ dashboardData.total_amount_formatted ?? dashboardData.total_amount ?? '-' }}</div>
                 <div class="stat-label">涉案金额</div>
                 <div class="stat-trend">
                   <span>累计金额</span>
@@ -96,41 +96,52 @@
             </div>
           </div>
 
-          <div class="recent-cases-section" v-if="dashboardData.recent_cases?.length">
-            <div class="section-sub-header">
-              <h3 class="sub-title">
-                <span class="sub-icon">📋</span>
-                最新案件
-              </h3>
+          <template v-if="dashboardData.recent_cases?.length">
+            <div class="recent-cases-section">
+              <div class="section-sub-header">
+                <h3 class="sub-title">
+                  <span class="sub-icon">📋</span>
+                  最新案件
+                </h3>
+              </div>
+              <div class="cases-table tech-card">
+                <el-table :data="dashboardData.recent_cases" style="width: 100%" @row-click="viewCaseFromDashboard" :highlight-current-row="true">
+                  <el-table-column prop="case_id" label="案件编号" width="100" />
+                  <el-table-column prop="title" label="案件名称" />
+                  <el-table-column prop="scam_type" label="案件类型" width="100">
+                    <template #default="scope">
+                      <el-tag type="info" size="small">{{ scope.row.scam_type }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="amount" label="涉案金额" width="120" />
+                  <el-table-column prop="status" label="案件状态" width="100">
+                    <template #default="scope">
+                      <el-tag :type="scope.row.status === '已立案' ? 'warning' : scope.row.status === '侦办中' ? 'primary' : 'success'" size="small">
+                        {{ scope.row.status }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="created_at" label="立案时间" width="120" />
+                  <el-table-column label="操作" width="100">
+                    <template #default="scope">
+                      <el-button size="small" type="primary" @click="viewCaseFromDashboard(scope.row)">
+                        查看
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
             </div>
-            <div class="cases-table tech-card">
-              <el-table :data="dashboardData.recent_cases" style="width: 100%" @row-click="viewCaseFromDashboard" :highlight-current-row="true">
-                <el-table-column prop="case_id" label="案件编号" width="100" />
-                <el-table-column prop="title" label="案件名称" />
-                <el-table-column prop="scam_type" label="案件类型" width="100">
-                  <template #default="scope">
-                    <el-tag type="info" size="small">{{ scope.row.scam_type }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="amount" label="涉案金额" width="120" />
-                <el-table-column prop="status" label="案件状态" width="100">
-                  <template #default="scope">
-                    <el-tag :type="scope.row.status === '已立案' ? 'warning' : scope.row.status === '侦办中' ? 'primary' : 'success'" size="small">
-                      {{ scope.row.status }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="created_at" label="立案时间" width="120" />
-                <el-table-column label="操作" width="100">
-                  <template #default="scope">
-                    <el-button size="small" type="primary" @click="viewCaseFromDashboard(scope.row)">
-                      查看
-                    </el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+
+            <div class="data-source-bar">
+              <span class="ds-icon">ℹ️</span>
+              <span class="ds-text">数据来源：{{ dashboardData.data_source || '系统实时计算' }}</span>
+              <span class="ds-separator">|</span>
+              <span class="ds-text">更新频率：{{ dashboardData.data_update_frequency || '实时' }}</span>
+              <span class="ds-separator">|</span>
+              <span class="ds-text">更新时间：{{ dashboardData.data_updated_at ? formatTimestamp(dashboardData.data_updated_at) : '-' }}</span>
             </div>
-          </div>
+          </template>
 
           <div v-else-if="!dashboardLoading" class="empty-state">
             <div class="empty-content">
@@ -155,4 +166,57 @@ const {
   dashboardRiskChartRef, dashboardStatusChartRef, dashboardTrendChartRef, gangs, loadDashboard, loading,
   viewCaseFromDashboard
 } = state
+
+const formatTimestamp = (ts) => {
+  if (!ts) return '-'
+  const d = new Date(ts)
+  return d.toLocaleString('zh-CN', { hour12: false })
+}
 </script>
+
+<style scoped>
+.stat-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,198,255,0.12);
+}
+.stat-value {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+.chart-header {
+  border-left: 3px solid var(--accent-cyan);
+  padding-left: 12px;
+}
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+.empty-title {
+  font-size: 20px;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 400px;
+}
+.data-source-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin-top: 16px; background: rgba(0,0,0,0.15); border: 1px solid rgba(0,198,255,0.08); border-radius: 8px; font-size: 12px; color: var(--text-muted); }
+.ds-icon { font-size: 14px; }
+.ds-text { }
+.ds-separator { opacity: 0.3; }
+</style>

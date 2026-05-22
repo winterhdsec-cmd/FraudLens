@@ -164,6 +164,16 @@ export async function updateCaseStatus(caseId, status) {
   return response.data
 }
 
+export async function deleteCase(caseId) {
+  const response = await api.delete(`/api/cases/${caseId}`)
+  return response.data
+}
+
+export async function updateCase(caseId, data) {
+  const response = await api.put(`/api/cases/${caseId}`, data)
+  return response.data
+}
+
 // ========== Gangs ==========
 export async function fetchGangs() {
   const response = await api.get('/api/gangs')
@@ -249,6 +259,11 @@ export async function getActiveAlerts() {
 
 export async function fetchCapitalFlowStats() {
   const response = await api.get('/api/capital/stats')
+  return response.data
+}
+
+export async function seedData() {
+  const response = await api.post('/api/seed')
   return response.data
 }
 

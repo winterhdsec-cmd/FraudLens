@@ -1,6 +1,6 @@
 <template>
   <div class="police-system-layout">
-    <div v-if="!store.isLoggedIn" class="login-overlay">
+    <div v-if="!store.isLoggedIn && !isFullPage" class="login-overlay">
       <div class="login-container tech-card">
         <div class="login-header">
           <div class="login-logo-wrapper">
@@ -26,15 +26,15 @@
           </el-button>
         </div>
         <div class="login-footer">
-          <span class="login-footer-text">智能研判平台 v2.0</span>
+          <span class="login-footer-text">智能研判平台 v3.0</span>
         </div>
       </div>
     </div>
-    <div class="particle-bg">
-      <div v-for="i in 60" :key="i" class="particle" :style="getParticleStyle(i)"></div>
+    <div class="particle-bg" v-if="!isFullPage">
+      <div v-for="i in 15" :key="i" class="particle" :style="getParticleStyle(i)"></div>
     </div>
-    <div class="grid-overlay"></div>
-    <div class="scan-line"></div>
+    <div class="grid-overlay" v-if="!isFullPage"></div>
+    <div class="scan-line" v-if="!isFullPage"></div>
 
     <el-dialog v-model="showProgress" :close-on-click-modal="false" :show-close="false" width="420px" class="progress-dialog">
       <div class="progress-body">
@@ -62,7 +62,7 @@
       </template>
     </el-dialog>
 
-    <aside class="sidebar">
+    <aside class="sidebar" v-if="!isFullPage">
       <div class="logo-area">
         <div class="logo-icon-wrapper"><div class="logo-ring"></div><div class="logo-icon">🛡️</div></div>
         <h2>反诈情报分析</h2>
@@ -77,7 +77,7 @@
         </div>
         <div class="menu-group"><div class="menu-group-title">系统总览</div>
           <el-menu-item index="dashboard"><template #title><div class="menu-item-content"><span class="menu-icon">📊</span><span class="menu-text">数据看板</span></div></template></el-menu-item>
-          <el-menu-item index="alerts"><template #title><div class="menu-item-content"><span class="menu-icon">🔔</span><span class="menu-text">预警中心</span></div></template></el-menu-item>
+          <el-menu-item index="alerts" @click="navigateTo('alerts')"><template #title><div class="menu-item-content"><span class="menu-icon">🔔</span><span class="menu-text">预警中心</span><span v-if="unresolvedAlertCount > 0" class="menu-badge">{{ unresolvedAlertCount > 99 ? '99+' : unresolvedAlertCount }}</span></div></template></el-menu-item>
         </div>
         <div class="menu-group"><div class="menu-group-title">研判分析</div>
           <el-menu-item index="overview"><template #title><div class="menu-item-content"><span class="menu-icon">📊</span><span class="menu-text">案件总览</span></div></template></el-menu-item>
@@ -100,7 +100,7 @@
         </div>
       </el-menu>
       <div class="system-status">
-        <div class="status-row"><div class="status-indicator"><div class="status-dot"></div><span>系统运行正常</span></div><div class="version">v2.0</div></div>
+        <div class="status-row"><div class="status-indicator"><div class="status-dot"></div><span>系统运行正常</span></div><div class="version">v3.0</div></div>
         <div class="status-details">
           <div class="status-item"><span class="status-label">AI引擎</span><span class="status-value online">在线</span></div>
           <div class="status-item"><span class="status-label">数据库</span><span class="status-value online">已连接</span></div>
@@ -110,8 +110,8 @@
         </div>
       </div>
     </aside>
-    <main class="main-content" v-loading="loading" element-loading-text="AI 正在进行深度研判分析...">
-      <div class="search-bar" v-if="store.isLoggedIn">
+    <main class="main-content" :class="{ 'main-full': isFullPage }" v-loading="loading" element-loading-text="AI 正在进行深度研判分析...">
+      <div class="search-bar" v-if="store.isLoggedIn && !isFullPage">
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
           <el-input
@@ -143,9 +143,13 @@
 </template>
 
 <script setup>
-import { provide, ref } from 'vue'
+import { provide, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useFraudLens } from './composables/useFraudLens.js'
 import NetworkGraph from './components/NetworkGraph.vue'
+
+const route = useRoute()
+const isFullPage = computed(() => route.meta?.fullPage)
 
 const appState = useFraudLens()
 provide('appState', appState)
@@ -157,7 +161,8 @@ const {
   handleLogin, handleLogout, handleMenuSelect,
   getParticleStyle, goToResults,
   searchQuery, searchResults, searchLoading,
-  handleSearchInput, handleSearchSelect
+  handleSearchInput, handleSearchSelect,
+  navigateTo, unresolvedAlertCount
 } = appState
 
 let searchTimer = null
@@ -172,35 +177,37 @@ const onSearchBlur = () => {
 
 <style scoped>
 .police-system-layout { display: flex; height: 100vh; width: 100vw; background: var(--bg-primary); position: relative; }
-.sidebar { width: 240px; min-width: 240px; height: 100vh; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; z-index: 10; }
-.logo-area { padding: 24px 20px 16px; text-align: center; border-bottom: 1px solid var(--border-primary); }
+.sidebar { width: 240px; min-width: 240px; height: 100vh; background: linear-gradient(180deg, #0f1525 0%, #1a1f2e 100%); border-right: 1px solid rgba(0, 198, 255, 0.12); box-shadow: inset -1px 0 0 rgba(0, 198, 255, 0.1); display: flex; flex-direction: column; overflow-y: auto; z-index: 10; }
+.logo-area { padding: 24px 20px 16px; text-align: center; border-bottom: 1px solid rgba(0, 198, 255, 0.1); }
 .logo-icon-wrapper { position: relative; width: 52px; height: 52px; margin: 0 auto 12px; }
-.logo-ring { position: absolute; inset: -4px; border: 2px solid var(--accent-cyan); border-radius: 50%; animation: spin 4s linear infinite; opacity: 0.5; }
+.logo-ring { position: absolute; inset: -4px; border: 2px solid var(--accent-cyan); border-radius: 50%; animation: spin 8s linear infinite; opacity: 0.5; will-change: transform; }
 .logo-icon { position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: var(--gradient-primary); border-radius: 50%; }
 .logo-area h2 { font-size: 16px; color: var(--text-primary); margin: 0; font-weight: 600; }
 .sub-title { font-size: 10px; color: var(--text-muted); letter-spacing: 3px; display: block; margin-top: 2px; }
 .logo-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 2px 10px; background: rgba(0, 198, 255, 0.1); border: 1px solid rgba(0, 198, 255, 0.2); border-radius: 10px; font-size: 11px; color: var(--accent-cyan); }
-.badge-dot { width: 5px; height: 5px; background: var(--accent-cyan); border-radius: 50%; animation: pulse 2s infinite; }
+.badge-dot { width: 5px; height: 5px; background: var(--accent-cyan); border-radius: 50%; animation: pulse 3s infinite; }
 .side-menu { flex: 1; background: transparent; border: none; padding: 8px 0; }
-.menu-group { margin: 4px 0; }
-.menu-group-title { padding: 8px 20px 4px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.side-menu .el-menu-item { height: 40px; line-height: 40px; color: var(--text-secondary) !important; background: transparent !important; border: none; margin: 1px 8px; border-radius: 8px; }
-.side-menu .el-menu-item:hover { background: rgba(0, 198, 255, 0.08) !important; color: var(--text-primary) !important; }
-.side-menu .el-menu-item.is-active { background: rgba(0, 198, 255, 0.15) !important; color: var(--accent-cyan) !important; }
-.menu-item-content { display: flex; align-items: center; gap: 10px; }
-.menu-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.menu-group { margin: 6px 0; position: relative; }
+.menu-group + .menu-group::before { content: ''; display: block; height: 1px; margin: 4px 12px; background: rgba(0, 198, 255, 0.06); }
+.menu-group-title { padding: 10px 20px 4px; font-size: 11px; color: rgba(0, 212, 255, 0.5); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+.side-menu .el-menu-item { height: 42px; line-height: 42px; color: var(--text-secondary) !important; background: transparent !important; border: none; margin: 1px 8px; border-radius: 8px; padding-left: 16px !important; transition: all 0.25s ease; }
+.side-menu .el-menu-item:hover { background: rgba(0, 198, 255, 0.1) !important; color: #ffffff !important; border-left: 2px solid rgba(0, 198, 255, 0.4); }
+.side-menu .el-menu-item.is-active { background: linear-gradient(90deg, rgba(0, 198, 255, 0.2) 0%, rgba(0, 198, 255, 0.02) 100%) !important; color: #ffffff !important; border-left: 3px solid var(--accent-cyan) !important; box-shadow: 0 0 12px rgba(0, 198, 255, 0.1); }
+.menu-item-content { display: flex; align-items: center; gap: 12px; }
+.menu-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
 .menu-text { font-size: 13px; }
-.system-status { padding: 16px 20px; border-top: 1px solid var(--border-primary); }
-.status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.menu-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; background: #ef4444; color: white; font-size: 11px; font-weight: 700; border-radius: 9px; margin-left: auto; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+.system-status { padding: 14px 16px; border-top: 1px solid rgba(0, 198, 255, 0.1); background: rgba(0, 0, 0, 0.15); }
+.status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-.status-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
-.version { font-size: 11px; color: var(--text-muted); }
-.status-details { display: flex; flex-direction: column; gap: 4px; }
-.status-item { display: flex; justify-content: space-between; font-size: 12px; }
+.status-dot { width: 7px; height: 7px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7); }
+.version { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', 'Consolas', monospace; letter-spacing: 1px; }
+.status-details { display: flex; flex-direction: column; gap: 5px; }
+.status-item { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
 .status-label { color: var(--text-muted); }
 .status-value { color: var(--text-secondary); }
 .status-value.online { color: #10b981; }
-.logout-area { margin-top: 8px; }
+.logout-area { margin-top: 10px; }
 .logout-btn { width: 100%; border-color: rgba(239, 68, 68, 0.3) !important; color: var(--accent-red) !important; font-size: 12px; }
 .main-content { flex: 1; height: 100vh; overflow-y: auto; position: relative; z-index: 1; }
 .search-bar { padding: 12px 20px 0; }
@@ -220,6 +227,7 @@ const onSearchBlur = () => {
 .search-result-title { flex: 1; font-size: 13px; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .search-result-type { flex-shrink: 0; }
 .content-wrapper { padding: 20px; max-width: 1600px; margin: 0 auto; }
+.main-full .content-wrapper { padding: 0; max-width: none; margin: 0; }
 .login-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: var(--bg-primary); }
 .login-container { width: 400px; padding: 40px; text-align: center; }
 .login-header { margin-bottom: 32px; }
@@ -237,7 +245,7 @@ const onSearchBlur = () => {
 .login-footer { margin-top: 24px; }
 .login-footer-text { font-size: 12px; color: var(--text-muted); }
 .particle-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-.particle { position: absolute; background: var(--accent-cyan); border-radius: 50%; opacity: 0.15; animation: float linear infinite; }
+.particle { position: absolute; background: var(--accent-cyan); border-radius: 50%; opacity: 0.08; animation: float linear infinite; will-change: transform; }
 .grid-overlay { position: fixed; inset: 0; background-image: linear-gradient(rgba(0,198,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,198,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
 .scan-line { position: fixed; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent); opacity: 0.15; z-index: 0; animation: scan 4s ease-in-out infinite; pointer-events: none; }
 :deep(.progress-dialog .el-dialog) { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-xl); }

@@ -51,7 +51,8 @@ const props = defineProps({
   gangs: { type: Array, default: () => [] },
   selectedGang: { type: Object, default: null },
   flowData: { type: Object, default: null },
-  searchKeyword: { type: String, default: '' }
+  searchKeyword: { type: String, default: '' },
+  cases: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['select', 'update:searchKeyword'])
@@ -79,8 +80,11 @@ const NODE_COLORS = {
 }
 
 function buildGangGraph() {
-  if (!containerRef.value || !props.gangs.length) return
+  if (!containerRef.value) return
   nodes.clear(); edges.clear()
+
+  const gangCaseIds = new Set()
+  const caseGangMap = {}
 
   props.gangs.forEach((gang, idx) => {
     const tl = gang.riskLevel || gang.threat_level || 'C'
@@ -105,22 +109,40 @@ function buildGangGraph() {
     })
 
     const cases = gang.related_cases || []
+    cases.forEach((c) => {
+      const cid = c.case_id || ''
+      if (cid) {
+        gangCaseIds.add(cid)
+        if (!caseGangMap[cid]) caseGangMap[cid] = []
+        caseGangMap[cid].push(nodeId)
+      }
+    })
+  })
+
+  const addCaseNode = (c, caseId) => {
+    const cNum = c.number || ''
+    const nodeLabel = cNum ? '案' + cNum : (caseId || '').slice(-6)
+    nodes.add({
+      id: caseId,
+      label: nodeLabel,
+      title: '<b>案件 ' + (caseId || '') + '</b><br>编号: ' + cNum + '<br>受害人: ' + (c.victim || c.victim_name || '未知') + '<br>类型: ' + (c.scam_type || c.type || '-') + '<br>金额: ' + (c.amount || '-'),
+      shape: 'dot',
+      size: 14,
+      color: { background: 'rgba(0,198,255,0.3)', border: 'rgba(0,198,255,0.7)', highlight: { background: 'rgba(0,198,255,0.5)', border: '#00c6ff' } },
+      font: { color: '#94a3b8', size: 9, face: 'sans-serif', strokeWidth: 1, strokeColor: '#0a0e1a' },
+      group: 'case',
+      searchText: (caseId || '') + ' ' + (c.victim || c.victim_name || '') + ' ' + cNum + ' ' + (c.scam_type || c.type || '')
+    })
+  }
+
+  props.gangs.forEach((gang, idx) => {
+    const nodeId = 'gang_' + (gang.gang_id || idx)
+    const cases = gang.related_cases || []
     cases.forEach((c, ci) => {
       const caseId = 'case_' + (c.case_id || (nodeId + '_' + ci))
       const exists = nodes.get(caseId)
       if (!exists) {
-        const cNum = c.number || ''
-        nodes.add({
-          id: caseId,
-          label: cNum ? '案' + cNum : (c.case_id || '').slice(-6),
-          title: '<b>案件 ' + (c.case_id || '') + '</b><br>编号: ' + cNum + '<br>受害人: ' + (c.victim || '未知') + '<br>金额: ' + (c.amount || '-'),
-          shape: 'dot',
-          size: 14,
-          color: { background: 'rgba(0,198,255,0.3)', border: 'rgba(0,198,255,0.7)', highlight: { background: 'rgba(0,198,255,0.5)', border: '#00c6ff' } },
-          font: { color: '#94a3b8', size: 9, face: 'sans-serif' },
-          group: 'case',
-          searchText: (c.case_id || '') + ' ' + (c.victim || '') + ' ' + cNum
-        })
+        addCaseNode(c, caseId)
       }
       const edgeId = 'e_' + nodeId + '_' + caseId
       if (!edges.get(edgeId)) {
@@ -134,6 +156,14 @@ function buildGangGraph() {
         })
       }
     })
+  })
+
+  props.cases.forEach((c) => {
+    const caseId = 'case_' + (c.case_id || '')
+    const exists = nodes.get(caseId)
+    if (!exists) {
+      addCaseNode(c, caseId)
+    }
   })
 
   const gangNodes = props.gangs.map((g, idx) => 'gang_' + (g.gang_id || idx))
@@ -162,8 +192,8 @@ function buildGangGraph() {
   const options = {
     physics: physicsEnabled.value ? {
       solver: 'forceAtlas2Based',
-      forceAtlas2Based: { gravitationalConstant: -300, centralGravity: 0.003, springLength: 180, springConstant: 0.02, damping: 0.4 },
-      stabilization: { iterations: 200, updateInterval: 25 }
+      forceAtlas2Based: { gravitationalConstant: -200, centralGravity: 0.003, springLength: 150, springConstant: 0.02, damping: 0.4 },
+      stabilization: { iterations: 60, updateInterval: 50, fit: true }
     } : false,
     edges: { smooth: { type: 'continuous' } },
     interaction: { hover: true, tooltipDelay: 200, dragNodes: true, dragView: true, zoomView: true, navigationButtons: true, selectable: true, keyboard: true },
@@ -242,10 +272,10 @@ function buildFlowGraph() {
       color: { color: 'rgba(245,158,11,0.6)', highlight: '#f59e0b' }, width: 2 + Math.min(Math.floor(e.amount || 0) / 50000, 5),
       arrows: { to: { enabled: true, scaleFactor: 0.8 } }, font: { color: '#f59e0b', size: 10, align: 'middle' }, smooth: { type: 'curvedCW', roundness: 0.2 } })
   })
-  const options = { physics: { solver: 'barnesHut', barnesHut: { gravitationalConstant: -300, centralGravity: 0.008, springLength: 120 }, stabilization: { iterations: 60, updateInterval: 50 } }, edges: { smooth: true }, interaction: { hover: true, tooltipDelay: 200, dragNodes: true, navigationButtons: true } }
+  const options = { physics: { solver: 'barnesHut', barnesHut: { gravitationalConstant: -200, centralGravity: 0.005, springLength: 100 }, stabilization: { iterations: 40, updateInterval: 50 } }, edges: { smooth: true }, interaction: { hover: true, tooltipDelay: 200, dragNodes: true, navigationButtons: true } }
   if (network) network.destroy()
   network = new Network(containerRef.value, { nodes, edges }, options)
-  network.once('stabilizationIterationsDone', () => { network.fit({ animation: true }) })
+  network.once('stabilizationIterationsDone', () => { network.fit({ animation: true }); network.setOptions({ physics: false }) })
 }
 
 function fitView() { if (network) network.fit({ animation: true }) }

@@ -19,7 +19,7 @@
     </div>
   </div>
   <div v-if="gangs.length" class="network-container tech-card">
-    <NetworkGraph :gangs="gangs" :selectedGang="selectedGang" v-model:searchKeyword="networkSearchKeyword" @select="onNetworkSelect" />
+    <NetworkGraph :gangs="gangs" :cases="cases" :selectedGang="selectedGang" v-model:searchKeyword="networkSearchKeyword" @select="onNetworkSelect" />
   </div>
   <div v-else class="empty-state">
     <div class="empty-content">

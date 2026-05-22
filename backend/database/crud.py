@@ -264,21 +264,31 @@ def delete_session(session_id):
 def _case_to_dict(c):
     if not c:
         return None
+    created_str = c.created_at.isoformat() if c.created_at else None
+    date_str = c.created_at.isoformat()[:10] if c.created_at else None
     return {
         'case_id': c.case_id,
+        'id': c.case_id,
         'number': c.number or 0,
         'title': c.title,
         'scam_type': c.scam_type,
+        'type': c.scam_type,
+        'scam_subtype': c.scam_subtype,
         'risk_level': c.risk_level,
         'risk_label': c.risk_label,
         'risk_type': c.risk_type,
         'risk_score': c.risk_score,
         'victim': c.victim_name,
+        'victimName': c.victim_name,
+        'victim_name': c.victim_name,
         'victim_gender': c.victim_gender,
         'victim_age': c.victim_age,
         'victim_phone': c.victim_phone,
+        'victimPhone': c.victim_phone,
         'victim_job': c.victim_job,
+        'victimJob': c.victim_job,
         'victim_address': c.victim_address,
+        'victimAddress': c.victim_address,
         'amount': c.amount,
         'amount_value': c.amount_value,
         'description': c.description,
@@ -293,7 +303,8 @@ def _case_to_dict(c):
         'time_range': c.time_range,
         'warning': c.warning,
         'is_error': c.is_error,
-        'created_at': c.created_at.isoformat() if c.created_at else None
+        'date': date_str,
+        'created_at': created_str
     }
 
 
@@ -315,10 +326,14 @@ def _gang_to_dict(g):
 
     return {
         'gang_id': g.gang_id,
+        'id': g.gang_id,
         'number': g.number or 0,
         'gang_name': g.gang_name,
+        'name': g.gang_name,
         'risk_level': g.risk_level,
+        'riskLevel': g.risk_level,
         'risk_label': g.risk_label,
+        'riskLabel': g.risk_label,
         'risk_type': g.risk_type,
         'threat_level': g.threat_level,
         'comprehensive_score': g.comprehensive_score,
@@ -327,7 +342,11 @@ def _gang_to_dict(g):
         'tech_level': g.tech_level,
         'script_type': g.script_type,
         'total_cases': g.total_cases,
+        'cases': g.total_cases,
         'total_amount_involved': g.total_amount,
+        'total_amount': g.total_amount,
+        'amount': g.total_amount,
+        'total_amount_value': g.total_amount_value,
         'description': g.description,
         'fingerprint': g.fingerprint if g.fingerprint else [],
         'enhanced_fingerprint': g.enhanced_fingerprint if g.enhanced_fingerprint else [],
@@ -350,6 +369,35 @@ VALID_STATUS_TRANSITIONS = {
     '侦办中': ['已结案'],
     '已结案': [],
 }
+
+
+def update_case(case_id, data):
+    with transactional():
+        case = Case.query.filter_by(case_id=case_id).first()
+        if not case:
+            raise ValueError(f'Case {case_id} not found')
+
+        allowed_fields = {
+            'title', 'victim_name', 'victim_gender', 'victim_age',
+            'victim_phone', 'victim_address', 'victim_job',
+            'scam_type', 'amount', 'description', 'status',
+            'risk_level', 'risk_label'
+        }
+        for key, value in data.items():
+            if key in allowed_fields and value is not None:
+                setattr(case, key, value)
+
+        if 'amount' in data:
+            import re
+            amount_str = data['amount']
+            match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
+            if match:
+                num = float(match.group(1))
+                if '万' in amount_str:
+                    num *= 10000
+                case.amount_value = num
+
+        return _case_to_dict(case)
 
 
 def update_case_status(case_id, new_status):
@@ -410,3 +458,125 @@ def get_case_stats():
         'top_scam_types': scam_type_stats,
         'recent_cases': recent,
     }
+
+
+def generate_case_number():
+    today = datetime.now().strftime('%Y%m%d')
+    prefix = f'ALT{today}'
+    latest = Case.query.filter(Case.case_id.like(f'{prefix}%')).order_by(Case.case_id.desc()).first()
+    if latest:
+        seq = int(latest.case_id[-3:]) + 1
+    else:
+        seq = 1
+    return f'{prefix}{seq:03d}'
+
+
+def create_case(data):
+    with transactional():
+        case_id = generate_case_number()
+
+        amount_str = data.get('amount', '0')
+        amount_value = 0.0
+        import re
+        match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
+        if match:
+            num = float(match.group(1))
+            if '万' in amount_str:
+                num *= 10000
+            amount_value = num
+
+        scam_type = data.get('scam_type', '')
+        victim_name = data.get('victim_name', '')
+
+        case = Case(
+            case_id=case_id,
+            title=data.get('title', ''),
+            victim_name=victim_name,
+            victim_gender=data.get('victim_gender', ''),
+            victim_age=data.get('victim_age', ''),
+            victim_phone=data.get('victim_phone', ''),
+            victim_address=data.get('victim_address', ''),
+            victim_job=data.get('victim_job', ''),
+            scam_type=scam_type,
+            amount=amount_str,
+            amount_value=amount_value,
+            description=data.get('description', ''),
+            status='待分析',
+            source='手动录入'
+        )
+        db.session.add(case)
+        db.session.flush()
+
+        try:
+            from .p1_models import CapitalFlow, DispatchOrder, AlertRecord
+            import random
+
+            source_accounts = ['6222****1234', '6217****5678', '6228****9012']
+            target_accounts = ['6214****3456', '6221****7890', '6230****2345']
+            banks = ['工商银行', '建设银行', '农业银行', '中国银行', '招商银行']
+            annotations = ['境内转账', '第三方支付', '境内转账']
+
+            num_flows = random.randint(3, 5)
+            for i in range(num_flows):
+                flow = CapitalFlow(
+                    case_id=case_id,
+                    source_account=random.choice(source_accounts),
+                    target_account=random.choice(target_accounts),
+                    bank_name=random.choice(banks),
+                    amount=round(random.uniform(amount_value * 0.1, amount_value * 0.5), 2) if amount_value > 0 else round(random.uniform(1000, 50000), 2),
+                    direction='out' if i % 3 != 0 else 'in',
+                    level=random.randint(1, 3),
+                    annotation=random.choice(annotations)
+                )
+                db.session.add(flow)
+
+            dispatch = DispatchOrder(
+                case_id=case_id,
+                title=f'预警派单-{scam_type or "未知类型"}',
+                content=f'系统预警{scam_type or "未知"}案件，涉案金额{amount_str}，请及时处置',
+                status='pending',
+                priority='中',
+                district=data.get('victim_address', '')[:15] if victim_name else '',
+                assignee='系统自动派单'
+            )
+            db.session.add(dispatch)
+
+            alert = AlertRecord(
+                alert_type='case_match',
+                case_id=case_id,
+                matched_case_id=case_id,
+                title=f'新案件预警-{scam_type or "未知类型"}',
+                content=f'新录入{scam_type or "未知"}案件，涉案金额{amount_str}，受害人{victim_name}',
+                status='未处理',
+                confidence=0.85,
+                matched_entities=[victim_name] if victim_name else []
+            )
+            db.session.add(alert)
+
+        except ImportError:
+            pass
+
+        return _case_to_dict(case)
+
+
+def delete_case(case_id):
+    with transactional():
+        case = Case.query.filter_by(case_id=case_id).first()
+        if not case:
+            raise ValueError(f'Case {case_id} not found')
+        case.status = '已删除'
+        return True
+
+
+def search_cases_enhanced(query):
+    if not query:
+        return []
+    cases = Case.query.filter(
+        db.or_(
+            Case.case_id.ilike(f'{query}%'),
+            Case.title.ilike(f'%{query}%'),
+            Case.victim_name.ilike(f'%{query}%'),
+            Case.scam_type.ilike(f'%{query}%')
+        )
+    ).order_by(Case.created_at.desc()).all()
+    return [_case_to_dict(c) for c in cases]

@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import { useRouter, useRoute } from 'vue-router'
@@ -11,12 +11,14 @@ import api, {
   connectSocket,
   disconnectSocket,
   login as apiLogin,
+  ocrImage,
   getDashboardData,
   getActiveAlerts,
   fetchCapitalFlowStats,
   resolveAlert,
   importCSV,
   importExcel,
+  seedData,
   searchCases
 } from '../api.js'
 
@@ -63,8 +65,8 @@ export function useFraudLens() {
   const flowGraphData = ref(null)
   const flowMetrics = ref({
     total_accounts: 0,
-    max_level: 3,
-    overseas_pct: 85,
+    max_level: 0,
+    overseas_pct: 0,
     total_flows: 0
   })
   const dispatchOrders = ref([])
@@ -84,12 +86,16 @@ export function useFraudLens() {
     total_cases: null,
     total_gangs: null,
     total_amount: null,
+    total_amount_formatted: null,
     active_alerts: null,
     risk_distribution: [],
     status_distribution: [],
     top_scam_types: [],
     monthly_trend: [],
-    recent_cases: []
+    recent_cases: [],
+    data_source: '',
+    data_update_frequency: '',
+    data_updated_at: null
   })
   const dashboardLoading = ref(false)
 
@@ -161,9 +167,9 @@ export function useFraudLens() {
   }
 
   const apiSources = ref({
-    bank: { connected: false, records: 1256, lastSync: '10分钟前' },
-    police: { connected: false, records: 89, lastSync: '5分钟前' },
-    antiFraud: { connected: false, records: 3567, lastSync: '刚刚' }
+    bank: { connected: false, records: 0, lastSync: '' },
+    police: { connected: false, records: 0, lastSync: '' },
+    antiFraud: { connected: false, records: 0, lastSync: '' }
   })
   const apiDataPreview = ref([])
 
@@ -222,7 +228,7 @@ export function useFraudLens() {
   const filteredGangs = computed(() => {
     let result = gangs.value
     if (gangSearchKeyword.value) {
-      result = result.filter(g => g.name.includes(gangSearchKeyword.value))
+      result = result.filter(g => g.name?.includes(gangSearchKeyword.value))
     }
     if (riskFilter.value) {
       result = result.filter(g => g.riskLevel === riskFilter.value)
@@ -636,13 +642,73 @@ export function useFraudLens() {
     return c ? c.title : '未知案件'
   }
 
-  const startImageAnalysis = () => {
+  const startImageAnalysis = async () => {
+    if (!uploadedImages.value.length) {
+      ElMessage.warning('请先上传文件')
+      return
+    }
     loading.value = true
-    setTimeout(() => {
+    progressPercent.value = 0
+    progressMessage.value = '正在处理上传的文件...'
+    showProgress.value = true
+    try {
+      let allText = ''
+      const total = uploadedImages.value.length
+      for (let i = 0; i < total; i++) {
+        const item = uploadedImages.value[i]
+        progressPercent.value = Math.round(((i + 1) / total) * 50)
+        progressMessage.value = `正在处理第 ${i + 1}/${total} 个文件...`
+
+        if (item.type === 'image') {
+          try {
+            const res = await fetch(item.url)
+            const blob = await res.blob()
+            const file = new File([blob], item.name, { type: blob.type })
+            const ocrRes = await ocrImage(file)
+            if (ocrRes.success && ocrRes.text) {
+              allText += (allText ? '\n---\n' : '') + ocrRes.text
+            }
+          } catch (ocrErr) {
+            console.warn(`图片 OCR 识别失败:`, ocrErr)
+            ElMessage.warning(`"${item.name}" 文字识别失败，已跳过`)
+          }
+        } else if (item.type === 'text' && item.content) {
+          allText += (allText ? '\n---\n' : '') + item.content
+        } else if (item.type === 'docx') {
+          try {
+            const formData = new FormData()
+            formData.append('file', item._file)
+            const r = await api.post('/api/extract-text', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            if (r.data.success && r.data.text) {
+              allText += (allText ? '\n---\n' : '') + r.data.text
+            }
+          } catch (docxErr) {
+            console.warn(`文档解析失败:`, docxErr)
+            ElMessage.warning(`"${item.name}" 解析失败，已跳过`)
+          }
+        }
+      }
+
+      if (allText.trim()) {
+        progressPercent.value = 75
+        progressMessage.value = '文字提取完成，正在启动 AI 研判...'
+        inputText.value = allText
+        ElMessage.success(`文字提取完成，共 ${allText.length} 个字符，即将自动分析`)
+        setTimeout(() => startAnalysis(), 500)
+      } else {
+        progressPercent.value = 0
+        progressMessage.value = ''
+        showProgress.value = false
+        ElMessage.warning('未能提取到有效文字，请检查文件内容')
+        loading.value = false
+      }
+    } catch (e) {
+      showProgress.value = false
       loading.value = false
-      ElMessage.success('图片识别完成，已提取关键信息')
-      startAnalysis()
-    }, 2000)
+      ElMessage.error('文件处理失败: ' + (e.message || '未知错误'))
+    }
   }
 
   const toggleApiSource = (source) => {
@@ -722,22 +788,13 @@ export function useFraudLens() {
           const r = await api.get('/api/reports/gang/' + gang.gang_id, { params: { format: fmt } })
           if (r.data.success && r.data.file_path) {
             const a = document.createElement('a')
-            a.href = 'http://localhost:5003' + r.data.file_path
+            a.href = api.defaults.baseURL + r.data.file_path
             a.download = gang.gang_name + '_报告.' + fmt
             a.click()
             ElMessage.success('下载已启动')
           }
         } catch (e) {
-          ElMessage.warning('后端报告接口未就绪，使用前端预览下载')
-          const canvas = document.querySelector('.report-document')
-          if (canvas) {
-            html2canvas(canvas).then(c => {
-              const a = document.createElement('a')
-              a.download = '报告.png'
-              a.href = c.toDataURL()
-              a.click()
-            })
-          }
+          ElMessage.warning('报告下载接口暂不可用，请稍后重试')
         }
       }
     }
@@ -752,12 +809,16 @@ export function useFraudLens() {
           total_cases: data.total_cases ?? data.data?.total_cases ?? '-',
           total_gangs: data.total_gangs ?? data.data?.total_gangs ?? '-',
           total_amount: data.total_amount ?? data.data?.total_amount ?? '-',
+          total_amount_formatted: data.total_amount_formatted ?? data.data?.total_amount_formatted ?? '-',
           active_alerts: data.active_alerts ?? data.data?.active_alerts ?? '-',
           risk_distribution: data.risk_distribution ?? data.data?.risk_distribution ?? [],
           status_distribution: data.status_distribution ?? data.data?.status_distribution ?? [],
           top_scam_types: data.top_scam_types ?? data.data?.top_scam_types ?? [],
           monthly_trend: data.monthly_trend ?? data.data?.monthly_trend ?? [],
-          recent_cases: data.recent_cases ?? data.data?.recent_cases ?? []
+          recent_cases: data.recent_cases ?? data.data?.recent_cases ?? [],
+          data_source: data.data_source ?? data.data?.data_source ?? '',
+          data_update_frequency: data.data_update_frequency ?? data.data?.data_update_frequency ?? '',
+          data_updated_at: data.data_updated_at ?? data.data?.data_updated_at ?? ''
         }
         nextTick(() => initDashboardCharts())
       } else {
@@ -771,47 +832,13 @@ export function useFraudLens() {
   }
 
   const initDashboardCharts = () => {
-    const riskData = dashboardData.value.risk_distribution.length
-      ? dashboardData.value.risk_distribution
-      : [
-          { name: 'S级', value: 8, itemStyle: { color: '#ef4444' } },
-          { name: 'A级', value: 15, itemStyle: { color: '#f59e0b' } },
-          { name: 'B级', value: 22, itemStyle: { color: '#00d4ff' } },
-          { name: 'C级', value: 18, itemStyle: { color: '#10b981' } }
-        ]
-
-    const statusData = dashboardData.value.status_distribution.length
-      ? dashboardData.value.status_distribution
-      : [
-          { name: '已立案', value: 35, itemStyle: { color: '#f59e0b' } },
-          { name: '侦办中', value: 28, itemStyle: { color: '#00d4ff' } },
-          { name: '已结案', value: 15, itemStyle: { color: '#10b981' } },
-          { name: '待核查', value: 12, itemStyle: { color: '#8b5cf6' } }
-        ]
-
-    const barData = dashboardData.value.top_scam_types.length
-      ? dashboardData.value.top_scam_types
-      : [
-          { name: '冒充客服', count: 45 },
-          { name: '刷单返利', count: 32 },
-          { name: '贷款诈骗', count: 28 },
-          { name: '投资理财', count: 23 },
-          { name: '冒充公检法', count: 12 }
-        ]
-
-    const trendData = dashboardData.value.monthly_trend.length
-      ? dashboardData.value.monthly_trend
-      : [
-          { month: '1月', amount: 120, cases: 8 },
-          { month: '2月', amount: 182, cases: 12 },
-          { month: '3月', amount: 191, cases: 15 },
-          { month: '4月', amount: 234, cases: 18 },
-          { month: '5月', amount: 290, cases: 22 },
-          { month: '6月', amount: 330, cases: 25 }
-        ]
+    const riskData = dashboardData.value.risk_distribution
+    const statusData = dashboardData.value.status_distribution
+    const barData = dashboardData.value.top_scam_types
+    const trendData = dashboardData.value.monthly_trend
 
     nextTick(() => {
-      if (dashboardRiskChartRef.value) {
+      if (dashboardRiskChartRef.value && riskData.length) {
         if (dashboardRiskChart) dashboardRiskChart.dispose()
         dashboardRiskChart = echarts.init(dashboardRiskChartRef.value)
         dashboardRiskChart.setOption({
@@ -831,9 +858,12 @@ export function useFraudLens() {
           }]
         })
         dashboardRiskChart.resize()
+      } else if (dashboardRiskChart) {
+        dashboardRiskChart.dispose()
+        dashboardRiskChart = null
       }
 
-      if (dashboardStatusChartRef.value) {
+      if (dashboardStatusChartRef.value && statusData.length) {
         if (dashboardStatusChart) dashboardStatusChart.dispose()
         dashboardStatusChart = echarts.init(dashboardStatusChartRef.value)
         dashboardStatusChart.setOption({
@@ -853,9 +883,12 @@ export function useFraudLens() {
           }]
         })
         dashboardStatusChart.resize()
+      } else if (dashboardStatusChart) {
+        dashboardStatusChart.dispose()
+        dashboardStatusChart = null
       }
 
-      if (dashboardBarChartRef.value) {
+      if (dashboardBarChartRef.value && barData.length) {
         if (dashboardBarChart) dashboardBarChart.dispose()
         dashboardBarChart = echarts.init(dashboardBarChartRef.value)
         const barNames = barData.map(d => d.name)
@@ -864,31 +897,37 @@ export function useFraudLens() {
         dashboardBarChart.setOption({
           backgroundColor: 'transparent',
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-          grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+          grid: { left: '3%', right: '4%', bottom: '12%', containLabel: true },
           xAxis: {
             type: 'category', data: barNames,
             axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-            axisLabel: { color: '#94a3b8' }
+            axisLabel: { color: '#e2e8f0', fontSize: 11, fontWeight: 'bold', rotate: 20, interval: 0 }
           },
           yAxis: {
             type: 'value',
             axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
-            axisLabel: { color: '#94a3b8' },
+            axisLabel: { color: '#e2e8f0', fontSize: 11, fontWeight: 'bold' },
             splitLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.1)' } }
           },
           series: [{
             type: 'bar', barWidth: '60%',
             itemStyle: {
               color: (params) => colors[params.dataIndex % colors.length],
-              borderRadius: [4, 4, 0, 0]
+              borderRadius: [6, 6, 0, 0],
+              shadowBlur: 8,
+              shadowColor: 'rgba(0,198,255,0.2)'
             },
+            label: { show: true, position: 'top', color: '#e2e8f0', fontSize: 12, fontWeight: 'bold' },
             data: barCounts
           }]
         })
         dashboardBarChart.resize()
+      } else if (dashboardBarChart) {
+        dashboardBarChart.dispose()
+        dashboardBarChart = null
       }
 
-      if (dashboardTrendChartRef.value) {
+      if (dashboardTrendChartRef.value && trendData.length) {
         if (dashboardTrendChart) dashboardTrendChart.dispose()
         dashboardTrendChart = echarts.init(dashboardTrendChartRef.value)
         dashboardTrendChart.setOption({
@@ -941,6 +980,9 @@ export function useFraudLens() {
           ]
         })
         dashboardTrendChart.resize()
+      } else if (dashboardTrendChart) {
+        dashboardTrendChart.dispose()
+        dashboardTrendChart = null
       }
     })
   }
@@ -961,26 +1003,21 @@ export function useFraudLens() {
     }
   }
 
-  const loadCapitalFlows = async () => {
-    try {
-      const params = flowSearchCaseId.value ? { case_id: flowSearchCaseId.value } : {}
-      const r = await api.get('/api/capital/flows', { params })
-      capitalFlows.value = r.data.flows || r.data.data || []
-    } catch (e) {
-      console.error('loadCapitalFlows:', e)
-    }
-  }
-  const loadFlowGraph = async (forcedCaseId) => {
-    const cid = forcedCaseId || flowSearchCaseId.value || (capitalFlows.value.length > 0 ? capitalFlows.value[0].case_id : '')
+  const loadFlowData = async (forcedCaseId) => {
+    capitalFlows.value = []
+    flowGraphData.value = null
+    const cid = forcedCaseId || flowSearchCaseId.value
     if (!cid) return
     try {
-      const r = await api.get('/api/capital/graph/' + cid)
-      flowGraphData.value = r.data.graph || r.data.data || null
-    } catch (e) { console.error('loadFlowGraph:', e) }
-  }
-  const loadFlowData = async (forcedCaseId) => {
-    await loadCapitalFlows()
-    await loadFlowGraph(forcedCaseId)
+      const [flowsR, graphR] = await Promise.all([
+        api.get('/api/capital/flows', { params: { case_id: cid } }),
+        api.get('/api/capital/graph/' + cid)
+      ])
+      capitalFlows.value = flowsR.data.flows || flowsR.data.data || []
+      flowGraphData.value = graphR.data.graph || graphR.data.data || null
+    } catch (e) {
+      console.error('loadFlowData:', e)
+    }
   }
   const loadFlowMetrics = async () => {
     try {
@@ -988,8 +1025,8 @@ export function useFraudLens() {
       if (r.success && r.stats) {
         flowMetrics.value = {
           total_accounts: r.stats.total_accounts || 0,
-          max_level: r.stats.max_level || 3,
-          overseas_pct: r.stats.overseas_pct ?? 85,
+          max_level: r.stats.max_level || 0,
+          overseas_pct: r.stats.overseas_pct ?? 0,
           total_flows: r.stats.total_flows || 0
         }
       }
@@ -1057,23 +1094,28 @@ export function useFraudLens() {
     }
   }
 
+  let searchDebounceTimer = null
+
   const handleSearchInput = async (query) => {
     searchQuery.value = query
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
     if (!query || query.trim().length < 1) {
       searchResults.value = []
       return
     }
-    searchLoading.value = true
-    try {
-      const r = await searchCases(query.trim())
-      if (r.success) {
-        searchResults.value = (r.cases || []).slice(0, 8)
+    searchDebounceTimer = setTimeout(async () => {
+      searchLoading.value = true
+      try {
+        const r = await searchCases(query.trim())
+        if (r.success) {
+          searchResults.value = (r.cases || []).slice(0, 8)
+        }
+      } catch (e) {
+        console.error('搜索失败:', e)
+      } finally {
+        searchLoading.value = false
       }
-    } catch (e) {
-      console.error('搜索失败:', e)
-    } finally {
-      searchLoading.value = false
-    }
+    }, 300)
   }
 
   const handleSearchSelect = (caseItem) => {
@@ -1137,7 +1179,8 @@ export function useFraudLens() {
 
   const initCharts = () => {
     nextTick(() => {
-      if (pieChartRef.value) {
+      const typeStats = caseTypeStats.value
+      if (pieChartRef.value && typeStats.length) {
         if (pieChart) {
           pieChart.dispose()
         }
@@ -1147,29 +1190,31 @@ export function useFraudLens() {
           tooltip: { trigger: 'item', formatter: '{b}: {c}起 ({d}%)' },
           legend: {
             orient: 'vertical',
-            right: 10,
+            right: 5,
             top: 'center',
-            textStyle: { color: '#94a3b8' }
+            itemWidth: 12,
+            itemHeight: 12,
+            textStyle: { color: '#e2e8f0', fontSize: 11 },
+            pageTextStyle: { color: '#94a3b8' }
           },
           series: [{
             type: 'pie',
-            radius: ['40%', '70%'],
-            center: ['40%', '50%'],
+            radius: ['35%', '50%'],
+            center: ['25%', '50%'],
             avoidLabelOverlap: false,
-            itemStyle: { borderRadius: 8, borderColor: '#0a0e1a', borderWidth: 2 },
+            itemStyle: { borderRadius: 6, borderColor: '#0a0e1a', borderWidth: 2 },
             label: { show: false },
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
-            data: [
-              { value: 45, name: '冒充客服', itemStyle: { color: '#ef4444' } },
-              { value: 32, name: '刷单返利', itemStyle: { color: '#f59e0b' } },
-              { value: 28, name: '贷款诈骗', itemStyle: { color: '#8b5cf6' } },
-              { value: 23, name: '投资理财', itemStyle: { color: '#00d4ff' } }
-            ]
+            data: typeStats.map(s => ({ value: s.count, name: s.name, itemStyle: { color: s.color } }))
           }]
         })
         pieChart.resize()
+      } else if (pieChart) {
+        pieChart.dispose()
+        pieChart = null
       }
-      if (lineChartRef.value) {
+      const trend = dashboardData.value.monthly_trend
+      if (lineChartRef.value && trend.length) {
         if (lineChart) {
           lineChart.dispose()
         }
@@ -1181,7 +1226,7 @@ export function useFraudLens() {
           xAxis: {
             type: 'category',
             boundaryGap: false,
-            data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+            data: trend.map(d => d.month || d.label || ''),
             axisLine: { lineStyle: { color: 'rgba(0, 198, 255, 0.3)' } },
             axisLabel: { color: '#94a3b8' }
           },
@@ -1203,10 +1248,13 @@ export function useFraudLens() {
             },
             lineStyle: { color: '#00d4ff', width: 2 },
             itemStyle: { color: '#00d4ff' },
-            data: [120, 182, 191, 234, 290, 330]
+            data: trend.map(d => d.amount || 0)
           }]
         })
         lineChart.resize()
+      } else if (lineChart) {
+        lineChart.dispose()
+        lineChart = null
       }
     })
   }
@@ -1282,9 +1330,42 @@ export function useFraudLens() {
     } catch (e) {
       console.warn('加载初始数据失败:', e)
     }
+    if (store.isLoggedIn && cases.value.length === 0) {
+      try {
+        await ElMessageBox.confirm(
+          '系统尚未初始化数据，是否加载示例数据？',
+          '数据初始化',
+          { confirmButtonText: '加载示例数据', cancelButtonText: '暂不加载', type: 'info' }
+        )
+        const loadingMsg = ElMessage({ message: '正在生成示例数据...', type: 'info', duration: 0 })
+        try {
+          await seedData()
+          loadingMsg.close()
+          ElMessage.success('示例数据加载成功！即将刷新页面...')
+          setTimeout(() => window.location.reload(), 800)
+        } catch (seedErr) {
+          loadingMsg.close()
+          ElMessage.error('示例数据加载失败：' + (seedErr.response?.data?.detail || seedErr.message))
+        }
+      } catch (cancelErr) {
+        // user cancelled, do nothing
+      }
+    }
     if (routeName === 'overview' && gangs.value.length) {
       nextTick(() => initCharts())
     }
+  })
+
+  onUnmounted(() => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+    if (loginProgressTimer) clearInterval(loginProgressTimer)
+    if (dashboardRiskChart) { dashboardRiskChart.dispose(); dashboardRiskChart = null }
+    if (dashboardStatusChart) { dashboardStatusChart.dispose(); dashboardStatusChart = null }
+    if (dashboardBarChart) { dashboardBarChart.dispose(); dashboardBarChart = null }
+    if (dashboardTrendChart) { dashboardTrendChart.dispose(); dashboardTrendChart = null }
+    if (pieChart) { pieChart.dispose(); pieChart = null }
+    if (lineChart) { lineChart.dispose(); lineChart = null }
+    disconnectSocket()
   })
 
   return {
@@ -1326,6 +1407,7 @@ export function useFraudLens() {
     alerts,
     alertsLoading,
     resolvingAlert,
+    unresolvedAlertCount: computed(() => alerts.value.filter(a => !a.resolved).length),
     dashboardRiskChartRef,
     dashboardStatusChartRef,
     dashboardBarChartRef,
@@ -1397,8 +1479,6 @@ export function useFraudLens() {
     downloadReport,
     loadDashboard,
     loadAlerts,
-    loadCapitalFlows,
-    loadFlowGraph,
     loadFlowData,
     loadFlowMetrics,
     addFlowRecord,
@@ -1416,4 +1496,16 @@ export function useFraudLens() {
     viewCaseFromDashboard,
     initCharts
   }
+
+  const disposeAllCharts = () => {
+    [dashboardRiskChart, dashboardStatusChart, dashboardBarChart, dashboardTrendChart, pieChart, lineChart].forEach(c => {
+      if (c) { try { c.dispose() } catch (e) { /* ignore */ } }
+    })
+    dashboardRiskChart = dashboardStatusChart = dashboardBarChart = dashboardTrendChart = pieChart = lineChart = null
+  }
+
+  onUnmounted(() => {
+    disposeAllCharts()
+    if (loginProgressTimer) clearInterval(loginProgressTimer)
+  })
 }

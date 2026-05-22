@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import ShowcaseView from '../components/ShowcaseView.vue'
 import InputView from '../views/InputView.vue'
 import UploadView from '../views/UploadView.vue'
 import ApiView from '../views/ApiView.vue'
@@ -17,7 +18,7 @@ import AdminView from '../views/AdminView.vue'
 import StatusView from '../views/StatusView.vue'
 
 const routes = [
-  { path: '/', redirect: '/input' },
+  { path: '/', name: 'showcase', component: ShowcaseView, meta: { fullPage: true } },
   { path: '/input', name: 'input', component: InputView },
   { path: '/dashboard', name: 'dashboard', component: DashboardView },
   { path: '/alerts', name: 'alerts', component: AlertsView },

@@ -24,6 +24,8 @@ class RateLimitedLLM:
             t0 = time.time()
             try:
                 result = self._llm.invoke(prompt, **kwargs)
+                if hasattr(result, 'content'):
+                    result = result.content
                 elapsed = int((time.time() - t0) * 1000)
                 with self._lock:
                     self._stats['total'] += 1

@@ -92,6 +92,7 @@
               <div class="ul-meta">
                 <span class="ul-name">{{ item.name }}</span>
                 <span class="ul-type-badge">{{ item.type === 'image' ? '图片' : item.type === 'docx' ? '文档' : '文本' }}</span>
+                <span class="ul-size">{{ item._file?.size ? (item._file.size / 1024).toFixed(1) + ' KB' : '' }}</span>
               </div>
               <button class="ul-remove" @click="removeImage(idx)">✕</button>
             </div>
@@ -159,9 +160,11 @@ const {
 }
 .upload-dropzone :deep(.el-upload-dragger:hover) {
   border-color: var(--accent-cyan) !important;
+  border-style: solid !important;
   background: linear-gradient(135deg, rgba(0,198,255,0.06) 0%, rgba(0,132,255,0.1) 100%) !important;
   box-shadow: 0 0 30px rgba(0,198,255,0.15) !important;
   transform: translateY(-2px);
+  animation: border-flow 3s ease infinite;
 }
 .upload-content { text-align: center; }
 .upload-icon-ring {
@@ -217,6 +220,7 @@ const {
 .ul-meta { flex: 1; min-width: 0; }
 .ul-name { font-size: 12px; color: var(--text-primary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ul-type-badge { font-size: 9px; padding: 1px 6px; background: rgba(0,198,255,0.1); border-radius: 3px; color: var(--accent-cyan); }
+.ul-size { font-size: 10px; color: var(--text-muted); }
 .ul-remove {
   position: absolute; top: 4px; right: 4px;
   width: 18px; height: 18px; border-radius: 50%;
@@ -244,5 +248,11 @@ const {
 @keyframes pulse-ring {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.2); }
   50% { box-shadow: 0 0 0 12px rgba(0,198,255,0); }
+}
+
+@keyframes border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 </style>

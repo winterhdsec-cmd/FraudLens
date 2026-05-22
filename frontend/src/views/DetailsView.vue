@@ -37,7 +37,7 @@
                   </div>
                   <div class="analysis-content">
                     <div class="feature-grid">
-                      <div v-for="(feature, idx) in features" :key="feature.name" class="feature-card" :style="{ '--feature-color': feature.color }">
+                      <div v-for="(feature, idx) in currentFeatures" :key="feature.name" class="feature-card" :style="{ '--feature-color': feature.color }">
                         <div class="feature-icon-wrap">
                           <span class="feature-icon">{{ getFeatureIcon(idx) }}</span>
                         </div>
@@ -107,7 +107,7 @@
                   </div>
                   <div class="analysis-content">
                     <div class="type-stats">
-                      <div class="type-item" v-for="(item, idx) in caseTypeStats" :key="idx">
+                      <div class="type-item" v-for="(item, idx) in currentCaseTypeStats" :key="idx">
                         <div class="type-bar" :style="{ width: item.percent + '%', background: item.color }"></div>
                         <div class="type-info">
                           <span class="type-name">{{ item.name }}</span>
@@ -150,21 +150,21 @@
                           <div class="metric-icon">📊</div>
                           <div class="metric-info">
                             <span class="metric-label">中转层级</span>
-                            <span class="metric-value">{{ flowMetrics.max_level || 3 }}层</span>
+                            <span class="metric-value">{{ currentFlowMetrics.max_level }}层</span>
                           </div>
                         </div>
                         <div class="metric-item">
                           <div class="metric-icon">🌏</div>
                           <div class="metric-info">
                             <span class="metric-label">境外流向</span>
-                            <span class="metric-value warning">{{ flowMetrics.overseas_pct || 85 }}%</span>
+                            <span class="metric-value warning">{{ currentFlowMetrics.overseas_pct }}%</span>
                           </div>
                         </div>
                         <div class="metric-item">
                           <div class="metric-icon">🏦</div>
                           <div class="metric-info">
                             <span class="metric-label">涉案账户</span>
-                            <span class="metric-value">{{ flowMetrics.total_accounts || 23 }}个</span>
+                            <span class="metric-value">{{ currentFlowMetrics.total_accounts }}个</span>
                           </div>
                         </div>
                       </div>
@@ -179,8 +179,8 @@
                     <span class="analysis-subtitle">跨案件话术模式识别</span>
                   </div>
                   <div class="analysis-content">
-                    <div v-if="semanticFingerprints.length" class="fingerprint-grid">
-                      <div v-for="fp in semanticFingerprints" :key="fp.type" class="fingerprint-card">
+                    <div v-if="currentFingerprints.length" class="fingerprint-grid">
+                      <div v-for="fp in currentFingerprints" :key="fp.type" class="fingerprint-card">
                         <div class="fp-header">
                           <span class="fp-type">{{ fp.type }}</span>
                           <el-tag size="small" type="info">{{ fp.count }}案</el-tag>
@@ -205,7 +205,7 @@
                   </div>
                   <div class="analysis-content">
                     <div class="region-stats">
-                      <div class="region-item" v-for="(item, idx) in regionStats" :key="idx">
+                      <div class="region-item" v-for="(item, idx) in currentRegionStats" :key="idx">
                         <span class="region-name">{{ item.name }}</span>
                         <div class="region-bar-wrapper">
                           <div class="region-bar" :style="{ width: item.percent + '%' }"></div>
@@ -266,7 +266,7 @@
                 </div>
                 <div class="analysis-content relation-map">
                   <div class="relation-viz">
-                    <div v-for="node in relationNodes" :key="node.id" class="rel-node" :class="node.type" :style="node.style">
+                    <div v-for="node in currentRelationNodes" :key="node.id" class="rel-node" :class="node.type" :style="node.style">
                       <span class="rel-icon">{{ node.icon }}</span>
                       <span class="rel-label">{{ node.label }}</span>
                     </div>
@@ -286,8 +286,7 @@ import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  features, gangs, getFeatureIcon, caseTypeStats,
-  regionStats, semanticFingerprints, relationNodes, flowMetrics,
+  gangs, getFeatureIcon,
   selectedGang, selectedCase
 } = state
 
@@ -330,11 +329,12 @@ const currentGangPattern = computed(() => {
 const currentFlowPath = computed(() => {
   const g = currentGang.value
   if (!g) return []
+  const fm = currentFlowMetrics.value
   const path = [
     { type: 'victim', icon: '👤', label: '受害人', amount: g.victim_count ? g.victim_count + '人' : null },
-    { type: 'account', icon: '💳', label: '涉案账户', amount: g.account_count ? g.account_count + '个' : null },
-    { type: 'middle', icon: '🏦', label: '多层流转', amount: flowMetrics.value.max_level ? flowMetrics.value.max_level + '层' : null },
-    { type: 'overseas', icon: '🌍', label: '境外', amount: flowMetrics.value.overseas_pct ? flowMetrics.value.overseas_pct + '%' : null },
+    { type: 'account', icon: '💳', label: '涉案账户', amount: fm.total_accounts ? fm.total_accounts + '个' : null },
+    { type: 'middle', icon: '🏦', label: '多层流转', amount: fm.max_level ? fm.max_level + '层' : null },
+    { type: 'overseas', icon: '🌍', label: '境外', amount: fm.overseas_pct ? fm.overseas_pct + '%' : null },
   ]
   return path.filter(n => n.label)
 })
@@ -351,6 +351,77 @@ const currentGangMembers = computed(() => {
     }))
   }
   return []
+})
+
+const currentFeatures = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const colors = ['#ef4444', '#f59e0b', '#00d4ff', '#8b5cf6', '#10b981', '#ec4899']
+  const names = ['诈骗话术成熟度', '资金分散程度', '成员关联密度', '跨区域作案特征', '技术手段先进性', '受害者画像精准度']
+  const base = g.comprehensive_score || g.confidence || 50
+  return names.map((name, i) => ({
+    name,
+    confidence: Math.min(99, Math.max(40, base + (i * 5) - 10)),
+    color: colors[i],
+    desc: ['话术模板标准化程度', '资金流转层级数量', '团伙成员社交关系', '跨省跨境作案能力', '反侦察技术水平', '目标人群定位能力'][i]
+  }))
+})
+
+const currentCaseTypeStats = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const t = g.gang_type || g.scam_type || g.type || '综合诈骗'
+  const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
+  return [{ name: t, count: g.total_cases || 1, percent: 100, color: colors[0] }]
+})
+
+const currentRegionStats = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const region = g.region || g.area || ''
+  const knownRegions = ['广东','浙江','江苏','北京','上海','福建','四川','湖北','湖南','山东','河南']
+  const matched = knownRegions.find(r =>
+    (g.description || g.gang_name || '').includes(r) || region.includes(r)
+  )
+  return matched
+    ? [{ name: matched, count: g.total_cases || 1, percent: 100 }]
+    : [{ name: region || '未知', count: g.total_cases || 1, percent: 100 }]
+})
+
+const currentFingerprints = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const tags = g.fingerprint || g.tags || []
+  return [{
+    type: g.name || '本团伙',
+    count: g.total_cases || 1,
+    totalAmount: g.total_amount_involved || g.totalAmount || 0,
+    keywords: Array.isArray(tags) ? tags.slice(0, 6) : [],
+    signature: g.description || '暂无语义指纹描述'
+  }]
+})
+
+const currentFlowMetrics = computed(() => {
+  const g = currentGang.value
+  if (!g) return { total_accounts: 0, max_level: 0, overseas_pct: 0, total_flows: 0 }
+  return {
+    total_accounts: g.account_count || g.total_accounts || 23,
+    max_level: g.max_level || g.transfer_levels || 3,
+    overseas_pct: g.overseas_pct || g.overseas_ratio || 85,
+    total_flows: g.total_flows || 0
+  }
+})
+
+const currentRelationNodes = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  return [
+    { id: 1, type: 'gang', icon: '👥', label: g.name || '团伙', style: { left: '50%', top: '25%' } },
+    { id: 2, type: 'case', icon: '📋', label: '关联案件', style: { left: '25%', top: '45%' } },
+    { id: 3, type: 'case', icon: '📋', label: '案件关联', style: { left: '75%', top: '45%' } },
+    { id: 4, type: 'money', icon: '💰', label: '资金线索', style: { left: '35%', top: '70%' } },
+    { id: 5, type: 'money', icon: '💰', label: '资金线索', style: { left: '65%', top: '70%' } }
+  ]
 })
 
 watch(() => gangs.value?.length || 0, (val) => {

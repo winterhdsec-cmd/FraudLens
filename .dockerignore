@@ -15,7 +15,9 @@ backend/bge-large-zh-v1.5/
 backend/key.env
 backend/reports/
 
-frontend/
+frontend/node_modules/
+frontend/.env.local
+static/
 
 mysql-data/
 redis-data/

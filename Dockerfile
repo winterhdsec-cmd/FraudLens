@@ -14,7 +14,9 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn || \
+    pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com || \
+    pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 
 COPY backend/ .
 COPY --from=frontend-build /app/frontend/dist /app/static

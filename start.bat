@@ -25,7 +25,7 @@ if %errorlevel% neq 0 (
 )
 
 if not exist .env (
-    echo [1/5] Creating .env config file...
+    echo [1/6] Creating .env config file...
     copy .env.docker .env
     echo.
     echo [IMPORTANT] Please edit .env and fill in your DEEPSEEK_API_KEY
@@ -33,11 +33,44 @@ if not exist .env (
     notepad .env
     echo Config saved, continuing...
 ) else (
-    echo [1/5] .env already exists, skipping
+    echo [1/6] .env already exists, skipping
 )
 
 echo.
-echo [2/5] Building Docker image (first time may take a while)...
+echo [2/6] Building frontend...
+cd /d "%~dp0frontend"
+where npm >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] npm not found. Please install Node.js 18+
+    echo Download: https://nodejs.org/
+    pause
+    exit /b 1
+)
+if not exist node_modules (
+    echo Installing npm dependencies...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo [ERROR] npm install failed
+        pause
+        exit /b 1
+    )
+)
+echo Running npm run build...
+call npm run build
+if %errorlevel% neq 0 (
+    echo [ERROR] Frontend build failed
+    pause
+    exit /b 1
+)
+cd /d "%~dp0"
+
+echo.
+echo [3/6] Copying frontend dist to static...
+if exist "static" rmdir /s /q "static"
+xcopy /e /i /q "frontend\dist" "static" >nul
+
+echo.
+echo [4/6] Building Docker image...
 docker-compose build --no-cache backend
 if %errorlevel% neq 0 (
     echo [ERROR] Build failed
@@ -46,7 +79,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/5] Starting all services...
+echo [5/6] Starting all services...
 docker-compose up -d
 if %errorlevel% neq 0 (
     echo [ERROR] Start failed
@@ -55,11 +88,11 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [4/5] Waiting for services...
+echo Waiting for services...
 timeout /t 20 /nobreak >nul
 
 echo.
-echo [5/5] Checking BGE model...
+echo [6/6] Checking BGE model...
 if exist "backend\bge-large-zh-v1.5\pytorch_model.bin" (
     echo   BGE model found locally, copying to container...
     for /f "tokens=*" %%i in ('docker-compose ps -q backend 2^>nul') do (

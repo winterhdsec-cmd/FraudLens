@@ -2,8 +2,16 @@
 import sys, os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from sqlalchemy import create_engine, text, inspect
+from dotenv import load_dotenv
 
-DB_URI = 'mysql+pymysql://root:20051223@localhost:3306/fraudlens?charset=utf8mb4'
+load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
+
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "fraudlens")
+DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 
 engine = create_engine(DB_URI)
 with engine.connect() as conn:

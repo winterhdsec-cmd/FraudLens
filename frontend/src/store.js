@@ -1,30 +1,54 @@
 import { reactive } from 'vue'
 
-const savedToken = localStorage.getItem('fraudlens_token')
-const savedUser = localStorage.getItem('fraudlens_user')
-const savedRefreshToken = localStorage.getItem('fraudlens_refresh')
+const STORAGE_KEYS = {
+  token: 'fraudlens_token',
+  user: 'fraudlens_user',
+  refresh: 'fraudlens_refresh'
+}
+
+function loadSavedUser() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.user)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    localStorage.removeItem(STORAGE_KEYS.user)
+    return null
+  }
+}
+
+function isValidToken(val) {
+  return typeof val === 'string' && val.length > 0
+}
 
 export const store = reactive({
-  user: savedUser ? JSON.parse(savedUser) : null,
-  token: savedToken || null,
-  refreshToken: savedRefreshToken || null,
-  isLoggedIn: !!savedToken,
+  user: loadSavedUser(),
+  token: localStorage.getItem(STORAGE_KEYS.token) || null,
+  refreshToken: localStorage.getItem(STORAGE_KEYS.refresh) || null,
+  isLoggedIn: !!localStorage.getItem(STORAGE_KEYS.token),
   login(user, token, refreshToken) {
+    if (!isValidToken(token)) {
+      console.warn('[store] login failed: invalid token')
+      return
+    }
+    if (!user || typeof user !== 'object') {
+      console.warn('[store] login failed: invalid user object')
+      return
+    }
     this.user = user
     this.token = token
-    this.refreshToken = refreshToken || null
+    this.refreshToken = isValidToken(refreshToken) ? refreshToken : null
     this.isLoggedIn = true
-    localStorage.setItem('fraudlens_token', token)
-    localStorage.setItem('fraudlens_user', JSON.stringify(user))
-    if (refreshToken) localStorage.setItem('fraudlens_refresh', refreshToken)
+    localStorage.setItem(STORAGE_KEYS.token, token)
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user))
+    if (this.refreshToken) {
+      localStorage.setItem(STORAGE_KEYS.refresh, this.refreshToken)
+    }
   },
   logout() {
     this.user = null
     this.token = null
     this.refreshToken = null
     this.isLoggedIn = false
-    localStorage.removeItem('fraudlens_token')
-    localStorage.removeItem('fraudlens_user')
-    localStorage.removeItem('fraudlens_refresh')
+    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k))
   }
 })

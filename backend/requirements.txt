@@ -1,0 +1,53 @@
+# FraudLens 后端依赖
+# ====================
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+flask>=2.3.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.0
+flask-jwt-extended>=4.5.0
+
+# Database
+sqlalchemy>=2.0.0
+pymysql>=1.1.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Task Queue & Cache
+celery>=5.3.0
+redis>=5.0.0
+
+# LLM / AI
+langchain>=0.1.0
+langchain-community>=0.0.10
+openai>=1.0.0
+
+# OCR & 文档解析
+easyocr>=1.7.0
+Pillow>=10.0.0
+pypdfium2>=4.29.0
+python-docx>=1.0.0
+
+# NLP & 语义向量
+numpy>=1.24.0
+torch>=2.1.0
+transformers>=4.36.0
+scikit-learn>=1.3.0
+hdbscan>=0.8.33
+umap-learn>=0.5.0
+scipy>=1.11.0
+
+# 文档生成
+openpyxl>=3.1.0
+
+# WebSocket & HTTP
+websockets>=12.0
+httpx>=0.25.0
+
+# WSGI 工具 (密码哈希等)
+werkzeug>=3.0.0

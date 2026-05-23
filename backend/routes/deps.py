@@ -33,7 +33,7 @@ USE_CELERY = os.getenv("USE_CELERY", "auto").lower()
 if USE_CELERY == "auto":
     try:
         import redis as _redis_check
-        r = _redis_check.Redis(host='localhost', port=6379, socket_connect_timeout=1)
+        r = _redis_check.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, socket_connect_timeout=1)
         r.ping()
         r.close()
         from celery_app import celery_app as _celery_app_check
@@ -194,7 +194,7 @@ class ProgressAdapter:
         if USE_CELERY:
             try:
                 import redis as _redis
-                r = _redis.Redis(host='localhost', port=6379, db=0)
+                r = _redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
                 r.publish(f'progress:{self.session_id}', json.dumps(entry, default=str))
                 r.close()
             except Exception:

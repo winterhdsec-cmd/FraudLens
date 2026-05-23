@@ -24,7 +24,7 @@
           <el-upload
             :before-upload="handleBeforeUpload"
             :show-file-list="false"
-            accept="image/*,.txt,.csv,.docx"
+            accept="image/*,.txt,.csv,.docx,.pdf"
             class="upload-area"
             drag
             multiple
@@ -41,6 +41,8 @@
                 <span class="uh-item">📄 文档 TXT/CSV</span>
                 <span class="uh-divider">|</span>
                 <span class="uh-item">📝 Word DOCX</span>
+                <span class="uh-divider">|</span>
+                <span class="uh-item">📑 PDF 文档</span>
               </div>
               <div class="upload-limit">单文件最大 10MB</div>
             </div>
@@ -57,20 +59,38 @@
           </div>
           <div class="uf-divider"></div>
           <div class="uf-item">
+            <span class="uf-icon">🧠</span>
+            <div class="uf-info">
+              <span class="uf-title">多模态视觉理解</span>
+              <span class="uf-desc">复杂截图/表格直接交给AI</span>
+            </div>
+          </div>
+          <div class="uf-divider"></div>
+          <div class="uf-item">
             <span class="uf-icon">🤖</span>
             <div class="uf-info">
               <span class="uf-title">AI 研判分析</span>
               <span class="uf-desc">提取内容自动进入研判</span>
             </div>
           </div>
-          <div class="uf-divider"></div>
-          <div class="uf-item">
-            <span class="uf-icon">📊</span>
-            <div class="uf-info">
-              <span class="uf-title">结构化输出</span>
-              <span class="uf-desc">自动归类案件要素</span>
-            </div>
-          </div>
+        </div>
+
+        <div class="mode-selector">
+          <span class="mode-label">图片分析模式：</span>
+          <el-radio-group v-model="analyzeMode" size="small">
+            <el-radio-button value="auto">
+              <span class="mode-opt">🤖 智能选择</span>
+            </el-radio-button>
+            <el-radio-button value="ocr">
+              <span class="mode-opt">📝 快速OCR</span>
+            </el-radio-button>
+            <el-radio-button value="vision">
+              <span class="mode-opt">🧠 多模态理解</span>
+            </el-radio-button>
+          </el-radio-group>
+          <span class="mode-hint" v-if="analyzeMode === 'auto'">自动判断：简单文字用OCR，复杂截图用视觉模型</span>
+          <span class="mode-hint" v-else-if="analyzeMode === 'ocr'">始终使用 OCR 识别图片文字（速度快）</span>
+          <span class="mode-hint" v-else>始终使用多模态大模型理解图片（理解力强）</span>
         </div>
       </div>
 
@@ -85,13 +105,13 @@
               <div class="ul-preview">
                 <img v-if="item.type === 'image'" :src="item.url" alt="preview" />
                 <div v-else class="ul-file-icon">
-                  <span class="ulf-icon">{{ item.type === 'docx' ? '📄' : '📝' }}</span>
+                  <span class="ulf-icon">{{ item.type === 'pdf' ? '📑' : '📄' }}</span>
                   <span class="ulf-ext">{{ item.name.split('.').pop().toUpperCase() }}</span>
                 </div>
               </div>
               <div class="ul-meta">
                 <span class="ul-name">{{ item.name }}</span>
-                <span class="ul-type-badge">{{ item.type === 'image' ? '图片' : item.type === 'docx' ? '文档' : '文本' }}</span>
+                <span class="ul-type-badge">{{ item.type === 'image' ? '图片' : item.type === 'docx' ? '文档' : item.type === 'pdf' ? 'PDF' : '文本' }}</span>
                 <span class="ul-size">{{ item._file?.size ? (item._file.size / 1024).toFixed(1) + ' KB' : '' }}</span>
               </div>
               <button class="ul-remove" @click="removeImage(idx)">✕</button>
@@ -129,7 +149,7 @@
         size="large"
         :loading="loading"
         :disabled="!uploadedFiles.length"
-        @click="startImageAnalysis"
+        @click="runAnalysis"
       >
         <span class="btn-icon">🔍</span>
         <span>{{ loading ? 'AI 正在处理文件...' : '开始识别分析' }}</span>
@@ -139,12 +159,17 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, clearImages, handleBeforeUpload, loading, removeImage, startImageAnalysis,
   uploadedImages: uploadedFiles
 } = state
+const analyzeMode = ref('auto')
+const runAnalysis = () => {
+  startImageAnalysis(analyzeMode.value)
+}
 </script>
 
 <style scoped>
@@ -255,4 +280,33 @@ const {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+.mode-selector {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-primary);
+  background: rgba(0,0,0,0.1);
+}
+.mode-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.mode-opt { font-size: 12px; }
+.mode-selector :deep(.el-radio-group) { gap: 0; }
+.mode-selector :deep(.el-radio-button__inner) {
+  background: rgba(0,0,0,0.3);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+  padding: 5px 14px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.mode-selector :deep(.el-radio-button__inner:hover) {
+  color: var(--text-primary);
+  border-color: rgba(0,198,255,0.3);
+}
+.mode-selector :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  background: linear-gradient(135deg, rgba(0,198,255,0.2), rgba(0,132,255,0.15));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: none;
+}
+.mode-hint { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 180px; }
 </style>

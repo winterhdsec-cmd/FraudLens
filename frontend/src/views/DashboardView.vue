@@ -158,9 +158,7 @@
 
 <script setup>
 import { useAppState } from '../composables/useAppState.js'
-import { useRouter } from 'vue-router'
 const state = useAppState()
-const router = useRouter()
 const {
   activeMenu, alerts, cases, dashboardBarChartRef, dashboardData, dashboardLoading,
   dashboardRiskChartRef, dashboardStatusChartRef, dashboardTrendChartRef, gangs, loadDashboard, loading,
@@ -176,20 +174,61 @@ const formatTimestamp = (ts) => {
 
 <style scoped>
 .stat-card {
-  transition: all 0.3s ease;
+  padding: 22px 24px;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  opacity: 0.6;
+  transition: opacity 0.35s ease;
+}
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #00d4ff, #38bdf8); }
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,198,255,0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,198,255,0.12);
 }
+.stat-card:hover::before { opacity: 1; }
 .stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
   font-family: 'JetBrains Mono', 'Consolas', monospace;
+  letter-spacing: -0.5px;
+}
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.stat-trend { font-size: 11px; margin-top: 4px; color: var(--text-muted); }
+.stat-trend.up { color: #10b981; }
+
+.chart-card {
+  padding: 18px;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+.chart-card:hover {
+  border-color: rgba(0,198,255,0.2);
+  box-shadow: 0 0 30px rgba(0,198,255,0.05);
+  transform: translateY(-2px);
 }
 .chart-header {
   border-left: 3px solid var(--accent-cyan);
   padding-left: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.chart-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -200,23 +239,30 @@ const formatTimestamp = (ts) => {
   align-items: center;
   gap: 16px;
 }
-.empty-icon {
-  font-size: 64px;
-  opacity: 0.5;
-}
-.empty-title {
-  font-size: 20px;
-  color: var(--text-primary);
-  font-weight: 600;
-  margin: 0;
-}
-.empty-desc {
-  font-size: 14px;
+.empty-icon { font-size: 64px; opacity: 0.5; }
+.empty-title { font-size: 20px; color: var(--text-primary); font-weight: 600; margin: 0; }
+.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 400px; }
+.data-source-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  margin-top: 16px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(0,198,255,0.08);
+  border-radius: 10px;
+  font-size: 12px;
   color: var(--text-muted);
-  max-width: 400px;
+  transition: border-color 0.3s ease;
 }
-.data-source-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin-top: 16px; background: rgba(0,0,0,0.15); border: 1px solid rgba(0,198,255,0.08); border-radius: 8px; font-size: 12px; color: var(--text-muted); }
+.data-source-bar:hover {
+  border-color: rgba(0,198,255,0.15);
+}
 .ds-icon { font-size: 14px; }
 .ds-text { }
 .ds-separator { opacity: 0.3; }
+
+.recent-cases-section {
+  animation: fadeIn 0.5s ease;
+}
 </style>

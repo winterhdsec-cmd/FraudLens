@@ -17,6 +17,7 @@ from typing import Dict, Any, Optional, List
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from flask import Flask as _Flask
@@ -29,7 +30,7 @@ from database import db, init_db
 from tools.response import logger
 
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
@@ -93,29 +94,45 @@ async def lifespan(app: FastAPI):
     try:
         from database.models import AlertRecord
         if AlertRecord.query.count() == 0:
-            now = datetime.utcnow()
-            demo_alerts_data = [
-                ('phone_match', 'FC20260519001', 'FC20260519002', ['138****1234', '139****5678'], 0.85),
-                ('bank_match', 'FC20260519007', 'FC20260519003', ['6222****1234'], 0.72),
-                ('phone_match', 'FC20260519008', 'FC20260519009', ['150****9012'], 0.68),
-                ('app_match', 'FC20260519010', 'FC20260519011', ['腾讯会议', '瞩目'], 0.91),
-                ('ip_match', 'FC20260519014', 'FC20260519015', ['192.168.1.*'], 0.63),
-                ('bank_match', 'FC20260519019', 'FC20260519020', ['6217****5678', '6228****9012'], 0.78),
-                ('phone_match', 'FC20260519022', 'FC20260519023', ['137****7890'], 0.71),
-                ('app_match', 'FC20260519004', 'FC20260519005', ['腾讯会议'], 0.80),
-            ]
-            for at, cid, mcid, entities, conf in demo_alerts_data:
-                record = AlertRecord(
-                    alert_type=at, case_id=cid, matched_case_id=mcid,
-                    matched_entities=entities, confidence=conf, created_at=now
-                )
-                db.session.add(record)
-            db.session.commit()
-            logger.info(f"演示预警数据已注入: {len(demo_alerts_data)} 条")
-            from tools.redis_utils import alert_store_set
-            for record in AlertRecord.query.all():
-                alert_store_set(record.id, record.to_dict())
-            logger.info("预警数据已同步到 Redis")
+            from database.models import Case as _CaseForAlert
+            _all_cases_for_alert = _CaseForAlert.query.all()
+            if not _all_cases_for_alert:
+                logger.warning("预警数据注入跳过: 无案件数据")
+            else:
+                now = datetime.utcnow()
+                import random as _alert_rd
+                alert_types_list = ['phone_match', 'bank_match', 'app_match', 'ip_match']
+                entity_templates = {
+                    'phone_match': lambda: [_alert_rd.choice(['138','139','150','137','186','158','176','189']) + f"****{_alert_rd.randint(1000,9999)}"],
+                    'bank_match': lambda: [_alert_rd.choice(['6222','6217','6228','6215','6226']) + f"****{_alert_rd.randint(1000,9999)}"],
+                    'app_match': lambda: _alert_rd.choice([['腾讯会议'],['瞩目'],['腾讯会议','瞩目'],['飞书'],['钉钉'],['佳信通'],['全视通']]),
+                    'ip_match': lambda: [f"{_alert_rd.randint(10,223)}.{_alert_rd.randint(0,255)}.{_alert_rd.randint(0,255)}.*"],
+                }
+                total_alerts = 0
+                for c in _all_cases_for_alert:
+                    other_cases = [oc for oc in _all_cases_for_alert if oc.case_id != c.case_id]
+                    if not other_cases:
+                        continue
+                    num_alerts = 1 if _alert_rd.random() > 0.3 else 2
+                    for _ in range(num_alerts):
+                        alert_type = _alert_rd.choice(alert_types_list)
+                        matched_case = _alert_rd.choice(other_cases)
+                        entities = entity_templates[alert_type]()
+                        confidence = round(_alert_rd.uniform(0.60, 0.95), 2)
+                        record = AlertRecord(
+                            alert_type=alert_type, case_id=c.case_id,
+                            matched_case_id=matched_case.case_id,
+                            matched_entities=entities, confidence=confidence,
+                            created_at=now
+                        )
+                        db.session.add(record)
+                        total_alerts += 1
+                db.session.commit()
+                logger.info(f"演示预警数据已注入: {total_alerts} 条")
+                from tools.redis_utils import alert_store_set
+                for record in AlertRecord.query.all():
+                    alert_store_set(record.id, record.to_dict())
+                logger.info("预警数据已同步到 Redis")
         else:
             logger.info(f"预警数据已存在: {AlertRecord.query.count()} 条")
             from tools.redis_utils import alert_store_set
@@ -129,35 +146,140 @@ async def lifespan(app: FastAPI):
         import random
         from database.models import Case as _Case
         _all_cases = _Case.query.all()
-        if CapitalFlow.query.count() <= 2:
-            for i in range(min(8, len(_all_cases))):
-                c = _all_cases[i]
-                flow = CapitalFlow(case_id=c.case_id,
-                    source_account=f"6222{random.randint(100000,999999)}",
-                    target_account=f"6217{random.randint(100000,999999)}",
-                    bank_name=random.choice(["工商银行","建设银行","农业银行"]),
-                    amount=round(random.uniform(5000, 150000), 2),
-                    direction='out' if i % 3 != 0 else 'in', level=random.randint(1, 3))
+        now_p1 = datetime.utcnow()
+
+        existing_flow_count = CapitalFlow.query.count()
+        CapitalFlow.query.delete()
+        db.session.commit()
+
+        bank_names = ["工商银行","建设银行","农业银行","中国银行","招商银行","交通银行","邮储银行","浦发银行","中信银行","民生银行","兴业银行","光大银行","平安银行","华夏银行","广发银行"]
+        account_prefixes = {"工商银行":"622202","建设银行":"621700","农业银行":"622848","中国银行":"601382","招商银行":"622588","交通银行":"622260","邮储银行":"622188","浦发银行":"621793","中信银行":"622690","民生银行":"622622","兴业银行":"622909","光大银行":"622662","平安银行":"622155","华夏银行":"622630","广发银行":"622568"}
+        flow_count = 0
+        for c in _all_cases:
+            if not c.amount_value or c.amount_value <= 0:
+                continue
+            victim = c.victim_name or "受害人"
+            base_amount = float(c.amount_value)
+            num_flows = random.randint(3, 5)
+            ratio_sum = 0
+            ratios = []
+            for _ in range(num_flows):
+                r = random.uniform(0.08, 0.35)
+                ratios.append(r)
+                ratio_sum += r
+            accumulated = 0.0
+            for fi in range(num_flows):
+                level = fi + 1
+                ratio = ratios[fi] / ratio_sum
+                flow_amt = round(base_amount * ratio, 2)
+                if fi == num_flows - 1:
+                    flow_amt = round(base_amount - accumulated, 2)
+                bank = random.choice(bank_names)
+                prefix = account_prefixes.get(bank, "622222")
+                tgt_acct = f"{prefix}{random.randint(10000000,99999999)}"
+                if fi == 0:
+                    src_acct = f"受害方:{victim}"
+                else:
+                    src_acct = f"{prefix}{random.randint(10000000,99999999)}"
+                anno = f"资金流转第{level}层 (第{level}层)"
+                if fi == 0:
+                    anno = f"{victim}向嫌疑人账户{tgt_acct}转入资金,涉案金额{flow_amt}元 (第1层)"
+                elif fi == 1:
+                    anno = f"一级卡将资金拆分转移至二级卡{bank}账户{tgt_acct} (第2层)"
+                elif fi == num_flows - 1:
+                    anno = random.choice([
+                        f"资金最终在境外被取现,流向{random.choice(['东南亚','缅北','柬埔寨'])}犯罪团伙 (第{level}层)",
+                        f"资金转入虚拟货币平台兑换USDT,洗白后转入团伙主犯账户 (第{level}层)",
+                        f"资金汇入地下钱庄,通过{random.choice(['对公账户','第三方支付','跨境电商'])}渠道完成洗钱 (第{level}层)",
+                        f"被团伙成员通过{random.choice(['POS机套现','ATM取现','柜台取现'])}分散取走 (第{level}层)"
+                    ])
+                elif fi == 2:
+                    anno = f"二级卡资金转入三级卡{bank}账户{tgt_acct},{random.choice(['资金被多次拆分','经多层账户中转','通过他人账户过桥'])} (第3层)"
+                else:
+                    anno = f"第{level}层账户间资金流转,{random.choice(['通过银行转账','通过第三方支付','通过他人账户中转'])} (第{level}层)"
+                flow = CapitalFlow(
+                    case_id=c.case_id,
+                    source_account=src_acct,
+                    target_account=tgt_acct,
+                    bank_name=bank,
+                    amount=flow_amt,
+                    direction='out',
+                    level=level,
+                    annotation=anno,
+                    transaction_time=now_p1 - timedelta(days=random.randint(5, 35), hours=random.randint(0, 23))
+                )
                 db.session.add(flow)
-            logger.info("资金流向数据已注入")
+                flow_count += 1
+                accumulated += flow_amt
+        db.session.commit()
+        logger.info(f"资金流向数据已注入: {flow_count} 条")
+
         if DispatchOrder.query.count() <= 1:
-            for i in range(min(6, len(_all_cases))):
-                d = DispatchOrder(case_id=_all_cases[i].case_id,
-                    assigned_dept=random.choice(["刑侦大队","网安大队","辖区派出所","反诈中心"]),
-                    status=random.choice(["pending","signed","completed"]))
-                db.session.add(d)
-            logger.info("派单数据已注入")
-        if KeyPerson.query.count() <= 1:
-            for i in range(8):
-                p = KeyPerson(name=["刘某","张某","王某","李某","赵某","陈某","周某","吴某"][i],
-                    id_number=f"420{random.randint(100000,999999)}",
-                    phone=f"138{random.randint(10000000,99999999)}",
-                    person_type=random.choice(["前科人员","高危人员","涉诈重点人"]),
-                    risk_level=random.choice(["S","A","B"]),
-                    bank_account=f"6222{random.randint(100000,999999)}")
-                db.session.add(p)
+            depts = ["刑侦大队","网安大队","辖区派出所","反诈中心","经侦大队"]
+            statuses_list = ["pending","signed","in_progress","completed"]
+            dispatch_count = 0
+            for c in _all_cases:
+                dispatch = DispatchOrder(
+                    case_id=c.case_id,
+                    assigned_dept=random.choice(depts),
+                    status=random.choice(statuses_list),
+                    dispatch_time=now_p1 - timedelta(days=random.randint(0, 15)),
+                    alert_id=f"ALT{now_p1.strftime('%Y%m%d')}{random.randint(100,999)}"
+                )
+                db.session.add(dispatch)
+                dispatch_count += 1
             db.session.commit()
-            logger.info("重点人员数据已注入")
+            logger.info(f"派单数据已注入: {dispatch_count} 条")
+
+        if KeyPerson.query.count() <= 1:
+            person_data = [
+                ("刘某","420102198803152341","13871562341","前科人员","S"),
+                ("张某","420103199005162782","13951627892","高危人员","A"),
+                ("王某","420104198712234561","13712345678","涉诈重点人","A"),
+                ("李某","420105199203145672","15823145678","前科人员","B"),
+                ("赵某","420106198809167893","18678901234","高危人员","S"),
+                ("陈某","420107199105207894","15034567890","两卡人员","A"),
+                ("周某","420108199407218905","17690123456","涉诈重点人","B"),
+                ("吴某","420109198612309016","18901234567","前科人员","B"),
+                ("孙某","420110199308152347","13812345678","高危人员","A"),
+                ("钱某","420111199510188908","15987654321","两卡人员","B"),
+                ("郑某","420112198711229019","13799887766","涉诈重点人","S"),
+                ("冯某","420113199612345678","15611223344","前科人员","A"),
+                ("蒋某","420114198905678901","18566778899","高危人员","A"),
+                ("沈某","420115199801234567","15233445566","两卡人员","B"),
+                ("韩某","420116199211345678","17788990011","涉诈重点人","B"),
+                ("杨某","420117198812456789","13677889900","前科人员","S"),
+                ("朱某","420118199309567890","15899001122","高危人员","A"),
+                ("秦某","420119199107678901","18011223344","两卡人员","B"),
+                ("许某","420120199605789012","18999887766","涉诈重点人","A"),
+                ("何某","420121198810890123","15133445566","前科人员","B"),
+                ("吕某","420122199401901234","17766554433","高危人员","S"),
+                ("施某","420123199703012345","13677881100","两卡人员","A"),
+                ("曹某","420124198906123456","15822334455","涉诈重点人","B"),
+                ("严某","420125199208234567","18555443322","前科人员","A"),
+                ("华某","420126199511345678","15099887766","高危人员","S"),
+            ]
+            risk_level_map = {"S": "极危", "A": "高危", "B": "中危", "C": "低危"}
+            person_count = 0
+            for name, id_num, phone, ptype, rlevel in person_data:
+                p = KeyPerson(
+                    name=name, id_number=id_num, phone=phone,
+                    person_type=ptype, risk_level=rlevel,
+                    risk_label=risk_level_map[rlevel],
+                    bank_account=f"6222{random.randint(10000000,99999999)}",
+                    address=f"湖北省武汉市{random.choice(['江岸区','江汉区','硚口区','汉阳区','武昌区','洪山区','东西湖区'])}某某街道",
+                    case_ids=[random.choice(_all_cases).case_id],
+                    gender='男' if random.random() > 0.5 else '女',
+                    age=str(random.randint(22, 55)),
+                    tags=[ptype, f"{rlevel}级风险", "需重点监控"],
+                    source="公安大数据平台",
+                    is_active=True,
+                    notes=f"涉及{random.choice(['冒充客服','刷单返利','投资理财','冒充公检法','冒充熟人','网络贷款'])}类诈骗"
+                )
+                db.session.add(p)
+                person_count += 1
+            db.session.commit()
+            logger.info(f"重点人员数据已注入: {person_count} 条")
     except Exception as e:
         logger.warning(f"P1演示数据注入跳过: {e}")
 
@@ -365,6 +487,10 @@ app.include_router(merges_router)
 app.include_router(files_router)
 app.include_router(system_router)
 
+_static_dir = os.path.join(os.path.dirname(__file__), 'static')
+if os.path.isdir(_static_dir):
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+
 if __name__ == '__main__':
     import uvicorn
     logger.info("=" * 60)
@@ -375,4 +501,4 @@ if __name__ == '__main__':
     logger.info("   GET  /api/cases       (案件列表)")
     logger.info("   WS   /ws/{session_id} (实时进度)")
     logger.info("=" * 60)
-    uvicorn.run(app, host='0.0.0.0', port=5003)
+    uvicorn.run(app, host='0.0.0.0', port=int(os.getenv("PORT", "5003")))

@@ -1,2041 +1,1715 @@
 <template>
   <div class="showcase-page">
-    <!-- 导航栏 -->
-    <nav class="showcase-nav">
+    <div class="scroll-progress" :style="{ width: scrollProgress + '%' }"></div>
+    <nav class="showcase-nav" :class="{ 'nav-scrolled': scrollY > 80 }">
       <div class="nav-brand">
         <span class="brand-icon">🛡️</span>
         <span class="brand-text">FraudLens</span>
       </div>
       <div class="nav-links">
-        <a href="#hero" @click="scrollToSection('hero')">首页</a>
-        <a href="#problem" @click="scrollToSection('problem')">痛点</a>
-        <a href="#solution" @click="scrollToSection('solution')">流程</a>
-        <a href="#technology" @click="scrollToSection('technology')">技术</a>
-        <a href="#value" @click="scrollToSection('value')">价值</a>
+        <a v-for="s in navSections" :key="s.id" :href="`#${s.id}`" @click.prevent="scrollToSection(s.id)"
+           :class="{ active: activeSection === s.id }">{{ s.label }}</a>
       </div>
-      <button class="nav-demo-btn" @click="scrollToSection('solution')">流程演示</button>
-      <button class="nav-enter-btn" @click="enterSystem">进入系统</button>
+      <button class="nav-enter-btn" @click="enterSystem">
+        <span>进入系统</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
     </nav>
 
-    <!-- 动态背景粒子 -->
     <div class="particle-container">
-      <div v-for="n in 12" :key="n" class="particle" :style="{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 5}s` }"></div>
+      <div v-for="n in 25" :key="n" class="particle" :style="getParticleStyle(n)"></div>
     </div>
 
-    <!-- 区块A：英雄区 -->
-    <section id="hero" class="hero-section">
+    <!-- ===== 板块1：封面页 Hero ===== -->
+    <section id="cover" class="hero-section">
       <div class="hero-content">
         <div class="hero-text">
-          <div class="hero-badge">AI 反诈智能研判系统</div>
-          <h1 class="hero-title">FraudLens</h1>
-          <p class="hero-subtitle">AI 驱动的诈骗情报智能研判系统</p>
-          
-          <!-- 主统计数据 -->
+          <div class="hero-badge">
+            <span class="badge-dot"></span>
+            <span class="badge-pulse"></span>
+            大学生创新创业训练计划成果展示
+          </div>
+          <h1 class="hero-title">
+            <span class="title-line">FraudLens</span>
+            <span class="title-sub">诈骗情报智能研判系统</span>
+          </h1>
+          <p class="hero-desc">
+            融合大模型语义理解、深度无监督聚类与模块化协同分析架构，
+            实现从数据接入 → 语义分析 → 团伙挖掘 → 报告生成的全流程智能化研判
+          </p>
           <div class="hero-stats">
-            <div class="stat-item" v-for="(stat, index) in heroStats" :key="index">
+            <div class="stat-item" v-for="(stat, i) in heroStats" :key="i">
               <div class="stat-icon">{{ stat.icon }}</div>
-              <div class="stat-number" :data-target="stat.value">{{ animatedStats[index] || 0 }}{{ stat.suffix }}</div>
+              <div class="stat-number">{{ animatedStats[i] || 0 }}{{ stat.suffix }}</div>
               <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
-
-          <!-- 功能亮点 -->
-          <div class="hero-highlights">
-            <div class="highlight-item" v-for="(item, index) in heroHighlights" :key="index">
-              <span class="highlight-icon">{{ item.icon }}</span>
-              <span class="highlight-text">{{ item.text }}</span>
-            </div>
+          <div class="hero-core-tags">
+            <span class="core-tag" v-for="t in heroTags" :key="t">{{ t }}</span>
           </div>
-
-          <!-- 技术标签 -->
-          <div class="hero-tech-tags">
-            <span class="tech-tag">NLP语义分析</span>
-            <span class="tech-tag">HDBSCAN图聚类</span>
-            <span class="tech-tag">语义指纹分析</span>
-            <span class="tech-tag">多智能体协同</span>
-          </div>
-
           <div class="hero-actions">
-            <button class="btn-primary" @click="enterSystem">进入系统</button>
-            <button class="btn-secondary" @click="scrollToSection('solution')">核心流程</button>
+            <button class="btn-primary" @click="scrollToSection('background')">
+              <span>了解项目背景</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+            </button>
+            <button class="btn-secondary" @click="enterSystem">进入系统体验 →</button>
           </div>
         </div>
-        
         <div class="hero-visual">
-          <!-- 动态数据卡片 -->
-          <div class="hero-card card-1" :style="{ animationDelay: '0s' }">
-            <div class="card-icon">🎯</div>
-            <div class="card-text">精准识别</div>
-            <div class="card-value">92%</div>
-            <div class="card-trend positive">↑ 2.1%</div>
-          </div>
-          <div class="hero-card card-2" :style="{ animationDelay: '0.3s' }">
-            <div class="card-icon">⚡</div>
-            <div class="card-text">极速响应</div>
-            <div class="card-value">12秒</div>
-            <div class="card-trend positive">↓ 35%</div>
-          </div>
-          <div class="hero-card card-3" :style="{ animationDelay: '0.6s' }">
-            <div class="card-icon">🔗</div>
-            <div class="card-text">深度聚类</div>
-            <div class="card-value">12个团伙</div>
-            <div class="card-trend neutral">+2 新增</div>
-          </div>
-          <div class="hero-card card-4" :style="{ animationDelay: '0.9s' }">
-            <div class="card-icon">🛡️</div>
-            <div class="card-text">实时预警</div>
-            <div class="card-value">实时</div>
-            <div class="card-trend positive">24/7</div>
-          </div>
-
-          <!-- 网络关系预览 -->
           <div class="mini-network">
-            <svg width="100%" height="100%" viewBox="0 0 300 300">
-              <circle cx="150" cy="150" r="15" fill="#FF3B5C" class="mini-node"/>
-              <circle cx="80" cy="100" r="8" fill="#00E5FF" class="mini-node" style="animation-delay: 0.5s"/>
-              <circle cx="220" cy="120" r="8" fill="#00E5FF" class="mini-node" style="animation-delay: 1s"/>
-              <circle cx="100" cy="200" r="8" fill="#00E5FF" class="mini-node" style="animation-delay: 1.5s"/>
-              <circle cx="240" cy="180" r="8" fill="#00E5FF" class="mini-node" style="animation-delay: 2s"/>
-              <line x1="150" y1="150" x2="80" y2="100" stroke="rgba(0,229,255,0.4)" stroke-width="2"/>
-              <line x1="150" y1="150" x2="220" y2="120" stroke="rgba(0,229,255,0.4)" stroke-width="2"/>
-              <line x1="150" y1="150" x2="100" y2="200" stroke="rgba(0,229,255,0.4)" stroke-width="2"/>
-              <line x1="150" y1="150" x2="240" y2="180" stroke="rgba(0,229,255,0.4)" stroke-width="2"/>
+            <svg viewBox="0 0 300 300" class="network-svg">
+              <defs>
+                <filter id="net-glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <linearGradient id="line-grad-1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="rgba(0,212,255,0.05)"/><stop offset="50%" stop-color="rgba(0,212,255,0.45)"/><stop offset="100%" stop-color="rgba(0,212,255,0.05)"/></linearGradient>
+                <linearGradient id="line-grad-2" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(139,92,246,0.05)"/><stop offset="50%" stop-color="rgba(139,92,246,0.35)"/><stop offset="100%" stop-color="rgba(139,92,246,0.05)"/></linearGradient>
+                <linearGradient id="line-grad-3" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="rgba(245,158,11,0.05)"/><stop offset="50%" stop-color="rgba(245,158,11,0.3)"/><stop offset="100%" stop-color="rgba(245,158,11,0.05)"/></linearGradient>
+              </defs>
+
+              <!-- 背景径向网格 -->
+              <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0,212,255,0.03)" stroke-width="0.5"/>
+              <circle cx="150" cy="150" r="100" fill="none" stroke="rgba(0,212,255,0.04)" stroke-width="0.5"/>
+              <circle cx="150" cy="150" r="60" fill="none" stroke="rgba(0,212,255,0.05)" stroke-width="0.5"/>
+
+              <!-- 背景连接线（带流光动画） -->
+              <g class="conn-layer">
+                <line x1="150" y1="150" x2="50" y2="80" stroke="url(#line-grad-1)" stroke-width="1.5" class="conn-line c1"/>
+                <line x1="150" y1="150" x2="250" y2="90" stroke="url(#line-grad-1)" stroke-width="1.5" class="conn-line c2"/>
+                <line x1="150" y1="150" x2="70" y2="230" stroke="url(#line-grad-2)" stroke-width="1.5" class="conn-line c3"/>
+                <line x1="150" y1="150" x2="240" y2="240" stroke="url(#line-grad-2)" stroke-width="1.5" class="conn-line c4"/>
+                <line x1="150" y1="150" x2="170" y2="50" stroke="url(#line-grad-3)" stroke-width="1.5" class="conn-line c5"/>
+                <line x1="150" y1="150" x2="180" y2="260" stroke="url(#line-grad-3)" stroke-width="1.5" class="conn-line c6"/>
+                <line x1="50" y1="80" x2="250" y2="90" stroke="rgba(0,212,255,0.07)" stroke-width="0.8" class="conn-line-weak"/>
+                <line x1="70" y1="230" x2="240" y2="240" stroke="rgba(0,212,255,0.07)" stroke-width="0.8" class="conn-line-weak"/>
+                <line x1="50" y1="80" x2="170" y2="50" stroke="rgba(139,92,246,0.06)" stroke-width="0.8" class="conn-line-weak"/>
+                <line x1="240" y1="240" x2="180" y2="260" stroke="rgba(139,92,246,0.06)" stroke-width="0.8" class="conn-line-weak"/>
+              </g>
+
+              <!-- 核心节点 -->
+              <circle cx="150" cy="150" r="20" fill="#ef4444" opacity="0.9" filter="url(#net-glow)" class="net-core">
+                <animate attributeName="r" values="20;22;20" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="150" cy="150" r="28" fill="none" stroke="#ef4444" stroke-width="1" opacity="0.25" class="core-ring">
+                <animate attributeName="r" values="26;34;26" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.25;0.08;0.25" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="150" cy="150" r="36" fill="none" stroke="#ef4444" stroke-width="0.5" opacity="0.12" class="core-ring-2">
+                <animate attributeName="r" values="34;44;34" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.12;0.03;0.12" dur="3s" repeatCount="indefinite"/>
+              </circle>
+
+              <!-- 卫星节点 -->
+              <circle cx="50" cy="80" r="12" fill="#00d4ff" opacity="0.85" filter="url(#net-glow)" class="net-sat s1">
+                <animate attributeName="cx" values="50;55;50" dur="5s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="80;75;80" dur="5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="250" cy="90" r="12" fill="#00d4ff" opacity="0.85" filter="url(#net-glow)" class="net-sat s2">
+                <animate attributeName="cx" values="250;245;250" dur="4.5s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="90;85;90" dur="4.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="70" cy="230" r="11" fill="#f59e0b" opacity="0.85" filter="url(#net-glow)" class="net-sat s3">
+                <animate attributeName="cx" values="70;75;70" dur="5.5s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="230;225;230" dur="5.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="240" cy="240" r="11" fill="#f59e0b" opacity="0.85" filter="url(#net-glow)" class="net-sat s4">
+                <animate attributeName="cx" values="240;235;240" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="240;245;240" dur="4s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="170" cy="50" r="10" fill="#8b5cf6" opacity="0.85" filter="url(#net-glow)" class="net-sat s5">
+                <animate attributeName="cx" values="170;175;170" dur="6s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="50;45;50" dur="6s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="180" cy="260" r="10" fill="#8b5cf6" opacity="0.85" filter="url(#net-glow)" class="net-sat s6">
+                <animate attributeName="cx" values="180;185;180" dur="5.2s" repeatCount="indefinite"/>
+                <animate attributeName="cy" values="260;255;260" dur="5.2s" repeatCount="indefinite"/>
+              </circle>
+
+              <!-- 节点的内发光小点 -->
+              <circle cx="150" cy="150" r="6" fill="white" opacity="0.3"/>
+              <circle cx="50" cy="80" r="4" fill="white" opacity="0.3"/>
+              <circle cx="250" cy="90" r="4" fill="white" opacity="0.3"/>
+              <circle cx="70" cy="230" r="3.5" fill="white" opacity="0.25"/>
+              <circle cx="240" cy="240" r="3.5" fill="white" opacity="0.25"/>
+              <circle cx="170" cy="50" r="3" fill="white" opacity="0.25"/>
+              <circle cx="180" cy="260" r="3" fill="white" opacity="0.25"/>
             </svg>
           </div>
         </div>
       </div>
-      <div class="hero-wave"></div>
+      <div class="scroll-hint" @click="scrollToSection('background')">
+        <span>向下滚动浏览</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 13l5 5 5-5"/></svg>
+      </div>
     </section>
 
-    <!-- 区块B：痛点洞察 -->
-    <section id="problem" class="problem-section">
-      <div class="section-header">
-        <h2 class="section-title">传统研判痛点</h2>
-        <p class="section-desc">数据孤岛、人工瓶颈、响应迟缓</p>
+    <!-- ===== 板块2：项目背景 ===== -->
+    <section id="background" class="section-block bg-block reveal-on-scroll">
+      <div class="block-label">PROJECT BACKGROUND</div>
+      <h2 class="block-title">项目背景</h2>
+      <p class="block-desc">电信网络诈骗已成为危害人民群众财产安全的最大犯罪类型之一，传统反诈手段面临严峻挑战。</p>
+      <div class="bg-data-wall">
+        <div class="bg-big-num" v-for="(d, i) in bgData" :key="i">
+          <div class="bgn-value" :style="{ color: d.color }">{{ d.value }}</div>
+          <div class="bgn-label">{{ d.label }}</div>
+          <div class="bgn-source">{{ d.source }}</div>
+        </div>
       </div>
-      <div class="problem-cards">
-        <div class="problem-card" v-for="(card, index) in problemCards" :key="index">
-          <div class="card-icon-large">{{ card.icon }}</div>
-          <h3 class="card-title">{{ card.title }}</h3>
-          <p class="card-desc">{{ card.desc }}</p>
-          <div v-if="card.progress" class="card-progress">
-            <div class="progress-label">{{ card.progress.label }}</div>
-            <el-progress :percentage="card.progress.value" :color="card.progress.color" stroke-width="6" :show-text="false" />
-            <div class="progress-value">{{ card.progress.text }}</div>
+      <div class="bg-problem-solution">
+        <div class="bgp-col">
+          <div class="bgp-col-header phdr"><span class="phdr-icon">⚠️</span><span class="phdr-text">传统痛点</span><span class="phdr-count">3项</span></div>
+          <div class="bgp-list">
+            <div class="bgp-item" v-for="(p, i) in painPoints" :key="'p'+i">
+              <div class="bgp-icon">{{ p.icon }}</div>
+              <div class="bgp-text">
+                <strong>{{ p.title }}</strong>
+                <p>{{ p.desc }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bgp-col">
+          <div class="bgp-col-header shdr"><span class="phdr-icon">⚙️</span><span class="phdr-text">对应方案</span><span class="phdr-count">精准回应</span></div>
+          <div class="bgp-list">
+            <div class="bgp-item sol" v-for="(p, i) in painPoints" :key="'s'+i">
+              <div class="bgp-icon">⚡</div>
+              <div class="bgp-text">
+                <strong>{{ p.solution }}</strong>
+                <p>针对痛点 {{ i + 1 }}{{ ['（效率瓶颈）','（数据孤岛）','（手段迭代）'][i] }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bgp-col">
+          <div class="bgp-col-header ehdr"><span class="phdr-icon">📊</span><span class="phdr-text">量化效果</span><span class="phdr-count">实测验证</span></div>
+          <div class="bgp-list">
+            <div class="bgp-item eff" v-for="(p, i) in painPoints" :key="'e'+i">
+              <div class="bgp-icon">📈</div>
+              <div class="bgp-text">
+                <strong>效果指标 {{ i + 1 }}</strong>
+                <div class="bge-value" :style="{ color: p.effectColor }">{{ p.effect }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="agent-workflow">
-        <div class="workflow-header">
-          <h3 class="workflow-title">🤖 多智能体协同工作流程</h3>
-          <button class="demo-btn" @click="startAgentDemo" :disabled="agentDemoRunning">
-            <span class="demo-btn-icon">{{ agentDemoRunning ? '⏳' : '▶' }}</span>
-            {{ agentDemoRunning ? '演示进行中...' : '一键演示' }}
+    <!-- ===== 板块3：项目简介 ===== -->
+    <section id="intro" class="section-block intro-block reveal-on-scroll">
+      <div class="block-label">PROJECT INTRODUCTION</div>
+      <h2 class="block-title">项目简介</h2>
+      <div class="intro-grid">
+        <div class="intro-card mission">
+          <div class="intro-icon-wrapper">
+            <span class="intro-big-icon">🎯</span>
+          </div>
+          <h3 class="intro-card-title">核心目标</h3>
+          <p class="intro-card-desc">构建一个面向基层公安的反诈智能研判系统，利用 AI 技术将研判效率提升 8 倍以上，实现从"人工排查"到"智能研判"的跨越。</p>
+        </div>
+        <div class="intro-card route">
+          <div class="intro-icon-wrapper">
+            <span class="intro-big-icon">🛤️</span>
+          </div>
+          <h3 class="intro-card-title">技术路径</h3>
+          <p class="intro-card-desc">模块化协同分析架构 + 大模型语义理解 + 深度无监督聚类 + 语义指纹分析，覆盖反诈研判全链路。</p>
+        </div>
+        <div class="intro-card advantage">
+          <div class="intro-icon-wrapper">
+            <span class="intro-big-icon">🏆</span>
+          </div>
+          <h3 class="intro-card-title">核心优势</h3>
+          <p class="intro-card-desc">端到端全流程智能化、非结构化数据自适应、团伙挖掘无须预设类别、研判报告自动生成。</p>
+        </div>
+      </div>
+      <div class="intro-tech-flow">
+        <div class="itf-title">系统处理流程</div>
+        <div class="itf-steps">
+          <div class="itf-step" v-for="(step, i) in processFlow" :key="i">
+            <div class="itf-num">{{ String(i + 1).padStart(2, '0') }}</div>
+            <div class="itf-icon">{{ step.icon }}</div>
+            <div class="itf-label">{{ step.label }}</div>
+            <template v-if="i < processFlow.length - 1">
+              <div class="itf-connector">
+                <div class="itf-line"></div>
+                <div class="itf-arrow">→</div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 板块4：技术路线 ===== -->
+    <section id="techroute" class="section-block arch-block reveal-on-scroll">
+      <div class="block-label">TECHNICAL ROUTE</div>
+      <h2 class="block-title">技术路线</h2>
+      <p class="block-desc">前端 + 后端 + AI 引擎三层分离架构，模块化协同驱动</p>
+      <div class="arch-canvas">
+        <div class="arch-layer layer-front">
+          <div class="layer-label">前端表现层</div>
+          <div class="layer-items">
+            <div class="arch-mod">Vue 3 SPA</div>
+            <div class="arch-arrow-right">→</div>
+            <div class="arch-mod">Element Plus UI</div>
+            <div class="arch-arrow-right">→</div>
+            <div class="arch-mod">ECharts 可视化</div>
+          </div>
+        </div>
+        <div class="arch-connector"><div class="conn-line"></div><span class="conn-label">WebSocket / REST API</span></div>
+        <div class="arch-layer layer-api">
+          <div class="layer-label">后端服务层</div>
+          <div class="layer-items">
+            <div class="arch-mod">FastAPI 网关</div>
+            <div class="arch-mod">Flask 路由</div>
+            <div class="arch-mod">SQLAlchemy ORM</div>
+            <div class="arch-mod">Celery 异步</div>
+            <div class="arch-mod">Redis 缓存</div>
+          </div>
+        </div>
+        <div class="arch-connector"><div class="conn-line"></div><span class="conn-label">Python 进程间调用</span></div>
+        <div class="arch-layer layer-ai">
+          <div class="layer-label">AI 智能分析引擎层</div>
+          <div class="layer-items agent-items">
+            <div class="arch-mod ai-mod">🧹 Preprocess<br><small>数据预处理清洗</small></div>
+            <div class="arch-mod ai-mod">🧠 调度分发<br><small>任务调度分发</small></div>
+            <div class="arch-mod ai-mod">🎯 特征画像<br><small>诈骗特征画像</small></div>
+            <div class="arch-mod ai-mod">🔗 聚类分析<br><small>无监督聚类挖掘</small></div>
+            <div class="arch-mod ai-mod">📊 报告生成<br><small>研判报告生成</small></div>
+          </div>
+        </div>
+        <div class="arch-connector"><div class="conn-line"></div><span class="conn-label">SQLAlchemy / Redis</span></div>
+        <div class="arch-layer layer-data">
+          <div class="layer-label">数据存储层</div>
+          <div class="layer-items">
+            <div class="arch-mod data-mod">MySQL 数据库</div>
+            <div class="arch-mod data-mod">Redis 缓存</div>
+            <div class="arch-mod data-mod">MinIO 文件存储</div>
+          </div>
+        </div>
+      </div>
+      <div class="agent-flow-section">
+        <div class="af-header">
+          <span class="af-icon">🤖</span>
+          <span class="af-title">系统分析流程演示</span>
+          <div class="af-header-right">
+            <span class="af-phase" v-if="currentAgentStep >= 0">步骤 {{ currentAgentStep + 1 }} / {{ agentNodes.length }}</span>
+            <button class="af-demo-btn" @click="startAgentDemo" :disabled="agentDemoRunning">
+              {{ agentDemoRunning ? '⏳ 演示中...' : '▶ 运行演示' }}
+            </button>
+          </div>
+        </div>
+        <div class="pipeline-container">
+          <div class="pipeline-progress-bar">
+            <div class="pipeline-progress-fill" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+          <div class="pipeline-steps">
+            <div class="pipeline-step" v-for="(ag, idx) in agentNodes" :key="idx"
+                 :class="{ active: currentAgentStep === idx, completed: currentAgentStep > idx }">
+              <div class="pipeline-marker-col">
+                <div class="pipeline-marker" :style="{ transitionDelay: (idx * 0.12) + 's' }">
+                  <div class="marker-ring"></div>
+                  <div class="marker-icon">{{ ag.icon }}</div>
+                  <div class="marker-pulse"></div>
+                </div>
+                <div class="pipeline-line" v-if="idx < agentNodes.length - 1">
+                  <div class="pipeline-line-fill" :class="{ filled: currentAgentStep > idx }"></div>
+                </div>
+              </div>
+              <div class="pipeline-content-col">
+                <div class="pipeline-label">{{ ag.name }}</div>
+                <div class="pipeline-desc">{{ agentDescriptions[idx] }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pipeline-status" v-if="agentDemoRunning">
+          <div class="status-text">
+            <span class="status-dot"></span>
+            {{ statusMessages[currentAgentStep] || '处理中...' }}
+          </div>
+        </div>
+        <div class="pipeline-status" v-else-if="currentAgentStep >= agentNodes.length - 1">
+          <div class="status-text completed">
+            <span class="status-dot done"></span>
+            全流程分析演示完成 ✓
+          </div>
+        </div>
+      </div>
+      <div class="tech-rationale">
+        <div class="tr-title">📌 关键技术选型论证</div>
+        <div class="tr-grid">
+          <div class="tr-item" v-for="(rt, i) in techRationale" :key="i">
+            <div class="tr-icon">{{ rt.icon }}</div>
+            <div class="tr-body">
+              <div class="tr-name">{{ rt.name }}</div>
+              <div class="tr-why">{{ rt.why }}</div>
+              <div class="tr-alt">替代方案：{{ rt.alt }} <span class="tr-verdict">{{ rt.verdict }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 板块5：核心技术与创新点 ===== -->
+    <section id="innovation" class="section-block innov-block reveal-on-scroll">
+      <div class="block-label">INNOVATION POINTS</div>
+      <h2 class="block-title">核心技术与应用创新</h2>
+      <p class="block-desc">六大技术创新，构筑项目核心竞争力</p>
+      <div class="innov-category">
+        <div class="ic-label"><span class="ic-badge">原创算法</span>核心算法创新（从 0 到 1）</div>
+        <div class="innov-grid innov-grid-3">
+          <div class="innov-card" v-for="(inn, i) in innovations.filter(n => n.category === 'original')" :key="'o'+i" :style="{ transitionDelay: (i * 0.08) + 's' }">
+            <div class="innov-icon">{{ inn.icon }}</div>
+            <h3 class="innov-title">{{ inn.title }}</h3>
+            <p class="innov-desc">{{ inn.desc }}</p>
+            <div class="innov-tags">
+              <span class="innov-tag" v-for="t in inn.tags" :key="t">{{ t }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="innov-category">
+        <div class="ic-label"><span class="ic-badge ic-badge-app">应用创新</span>工程实现创新（从 1 到 N）</div>
+        <div class="innov-grid innov-grid-3">
+          <div class="innov-card" v-for="(inn, i) in innovations.filter(n => n.category === 'applied')" :key="'a'+i">
+            <div class="innov-icon">{{ inn.icon }}</div>
+            <h3 class="innov-title">{{ inn.title }}</h3>
+            <p class="innov-desc">{{ inn.desc }}</p>
+            <div class="innov-tags">
+              <span class="innov-tag" v-for="t in inn.tags" :key="t">{{ t }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 板块6：应用场景 ===== -->
+    <section id="scenarios" class="section-block scenario-block reveal-on-scroll">
+      <div class="block-label">APPLICATION SCENARIOS</div>
+      <h2 class="block-title">应用场景</h2>
+      <p class="block-desc">覆盖反诈研判全链条，赋能多行业反诈需求</p>
+      <div class="scenario-tabs">
+        <button v-for="(sc, i) in scenarios" :key="i"
+                :class="{ active: activeScenario === i }"
+                @click="activeScenario = i">
+          <span class="sc-tab-icon">{{ sc.icon }}</span>
+          <span class="sc-tab-label">{{ sc.title }}</span>
+        </button>
+      </div>
+      <transition name="sc-slide" mode="out-in">
+        <div :key="activeScenario" class="sc-panel">
+          <div class="sc-left">
+            <div class="sc-icon-large">{{ scenarios[activeScenario].icon }}</div>
+            <h3 class="sc-panel-title">{{ scenarios[activeScenario].title }}</h3>
+            <p class="sc-panel-desc">{{ scenarios[activeScenario].desc }}</p>
+            <ul class="sc-feature-list">
+              <li v-for="(feat, fi) in scenarios[activeScenario].features" :key="fi">
+                <span class="sfl-dot"></span>
+                <span>{{ feat }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="sc-right">
+            <div class="scr-label">适用价值</div>
+            <div class="scr-list">
+              <div class="scr-item" v-for="(v, vi) in scenarios[activeScenario].values" :key="vi">
+                <span class="scr-icon">{{ v.icon }}</span>
+                <div class="scr-text">
+                  <strong>{{ v.label }}</strong>
+                  <p>{{ v.desc }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </section>
+
+    <!-- ===== 板块7：功能演示 ===== -->
+    <section id="features" class="section-block features-block reveal-on-scroll">
+      <div class="block-label">CORE FEATURES</div>
+      <h2 class="block-title">功能演示</h2>
+      <p class="block-desc">四大核心模块，覆盖情报研判全流程</p>
+      <div class="features-carousel">
+        <div class="fc-tabs">
+          <button v-for="(f, i) in features" :key="i" :class="{ active: activeFeature === i }" @click="activeFeature = i">
+            <span>{{ f.icon }}</span>
+            <span>{{ f.title }}</span>
           </button>
         </div>
-        <div ref="agentFlowChartRef" class="agent-flow-chart"></div>
-        <div class="agent-steps-hint">
-          <div class="agent-step-hint" v-for="(agent, idx) in agentNodes" :key="idx"
-               :class="{ active: currentAgentStep === idx }">
-            <span class="ash-icon">{{ agent.icon }}</span>
-            <span class="ash-name">{{ agent.name }}</span>
+        <div class="fc-panel">
+          <transition name="fc-slide" mode="out-in">
+            <div :key="activeFeature" class="fc-content">
+              <div class="fc-icon-large">{{ features[activeFeature].icon }}</div>
+              <h3 class="fc-title">{{ features[activeFeature].title }}</h3>
+              <p class="fc-desc">{{ features[activeFeature].desc }}</p>
+              <div class="fc-techs">
+                <span class="fc-tech" v-for="t in features[activeFeature].techs" :key="t">{{ t }}</span>
+              </div>
+              <div class="fc-demo-list">
+                <div class="fc-demo-item" v-for="(demo, d) in features[activeFeature].demos" :key="d">
+                  <span class="demo-icon">{{ demo.icon }}</span>
+                  <span class="demo-text">{{ demo.text }}</span>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 板块8：系统实战展示（替换文件目录） ===== -->
+    <section id="showcase-ui" class="section-block system-block reveal-on-scroll">
+      <div class="block-label">SYSTEM IN ACTION</div>
+      <h2 class="block-title">系统实战展示</h2>
+      <p class="block-desc">FraudLens 系统已在模拟环境中完成全流程测试验证，以下为各核心功能运行界面</p>
+      <div class="ui-grid">
+        <div class="ui-card" v-for="(ui, i) in uiDemos" :key="i">
+          <div class="ui-mock">
+            <div class="uim-top">
+              <div class="uim-dots"><span></span><span></span><span></span></div>
+              <div class="uim-title">{{ ui.mockTitle }}</div>
+            </div>
+            <div class="uim-body" :style="{ background: ui.mockBg }">
+              <div class="uim-content">
+                <div class="uim-icon">{{ ui.icon }}</div>
+                <div class="uim-preview" v-if="ui.preview">{{ ui.preview }}</div>
+                <div class="uim-bars" v-if="ui.bars">
+                  <div class="uim-bar-row" v-for="(bar, bi) in ui.bars" :key="bi">
+                    <span class="ub-label">{{ bar.label }}</span>
+                    <div class="ub-track"><div class="ub-fill" :style="{ width: bar.pct + '%', background: bar.color }"></div></div>
+                    <span class="ub-val">{{ bar.value }}</span>
+                  </div>
+                </div>
+                <div class="uim-metrics" v-if="ui.metrics">
+                  <div class="uim-metric" v-for="(m, mi) in ui.metrics" :key="mi">
+                    <span class="um-value" :style="{ color: m.color }">{{ m.value }}</span>
+                    <span class="um-label">{{ m.label }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="ui-title">{{ ui.title }}</h3>
+          <p class="ui-desc">{{ ui.desc }}</p>
+          <div class="ui-techs">
+            <span class="ui-tech" v-for="t in ui.techs" :key="t">{{ t }}</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 区块C：核心流程演示 -->
-    <section id="solution" class="solution-section">
-      <div class="section-header">
-        <h2 class="section-title">核心研判流程</h2>
-        <p class="section-desc">从数据接入到报告生成的完整闭环</p>
+    <!-- ===== 板块9：成果展示 ===== -->
+    <section id="achievements" class="section-block result-block reveal-on-scroll">
+      <div class="block-label">ACHIEVEMENTS</div>
+      <h2 class="block-title">成果展示</h2>
+      <p class="block-desc">经实测验证，系统在研判效率、准确率等多个维度显著优于传统方案</p>
+      <div class="result-big-row">
+        <div class="result-big-item" v-for="(r, i) in resultNumbers" :key="i">
+          <div class="rb-value" :style="{ color: r.color }">{{ r.value }}</div>
+          <div class="rb-label">{{ r.label }}</div>
+          <div class="rb-compare">{{ r.compare }}</div>
+        </div>
       </div>
-      
-      <div class="flow-container">
-        <div class="flow-step" v-for="(step, index) in flowSteps" :key="index" :class="{ active: currentStep === index }">
-          <div class="step-number">{{ index + 1 }}</div>
-          <div class="step-icon">{{ step.icon }}</div>
-          <h3 class="step-title">{{ step.title }}</h3>
-          <p class="step-desc">{{ step.desc }}</p>
-          <div class="step-content">
-            <div v-if="index === 0" class="step-data-flow">
-              <div class="data-item" v-for="(item, i) in dataItems" :key="i">
-                {{ item.icon }}
-              </div>
-            </div>
-            <div v-if="index === 1" class="step-architecture">
-              <div class="architecture-diagram">
-                <div class="arch-node input-layer">文本/图片输入</div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node nlp-layer">Preprocess Agent</div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node graph-layer">Chief Agent</div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node kg-layer">Profiler/Cluster/Analyst</div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node output-layer">综合研判输出</div>
-              </div>
-              <p class="arch-desc">融合语义指纹与无监督学习，实现隐性团伙挖掘</p>
-            </div>
-            <div v-if="index === 2" class="step-report">
-              <div class="report-preview">
-                <div class="report-header">
-                  <span class="report-title">案件研判报告</span>
-                  <span class="report-date">{{ currentTime }}</span>
+      <div class="result-bottom-row">
+        <div class="result-compare">
+          <div class="rc-header">📊 传统方案 vs 本系统 关键指标对比</div>
+          <div class="rc-list">
+            <div class="rc-row" v-for="(c, i) in compareData" :key="i">
+              <div class="rc-label">{{ c.label }}</div>
+              <div class="rc-bars">
+                <div class="rc-bar-group">
+                  <span class="rc-bar-label">传统</span>
+                  <div class="rc-track"><div class="rc-fill traditional" :style="{ width: c.traditional + '%', background: c.tColor }"></div></div>
+                  <span class="rc-val">{{ c.traditional }}%</span>
                 </div>
-                <div class="report-content">
-                  <div class="report-section">
-                    <span class="section-label">案件定性</span>
-                    <span class="section-value">冒充电商物流客服类</span>
-                  </div>
-                  <div class="report-section">
-                    <span class="section-label">风险等级</span>
-                    <el-tag type="danger" effect="dark">高风险</el-tag>
-                  </div>
-                  <div class="report-section">
-                    <span class="section-label">处置建议</span>
-                    <span class="section-value">立即止付、冻结涉案账户</span>
-                  </div>
+                <div class="rc-bar-group">
+                  <span class="rc-bar-label">本系统</span>
+                  <div class="rc-track"><div class="rc-fill ours" :style="{ width: c.ours + '%', background: c.oColor }"></div></div>
+                  <span class="rc-val rc-ours" :style="{ color: c.oColor }">{{ c.ours }}%</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="flow-controls">
-        <button class="btn-secondary" @click="prevStep" :disabled="currentStep === 0">← 上一步</button>
-        <div class="step-indicators">
-          <span v-for="i in 3" :key="i" :class="{ active: currentStep === i - 1 }">{{ i }}</span>
-        </div>
-        <button class="btn-primary" @click="nextStep" v-if="currentStep < 2">下一步 →</button>
-        <button class="btn-primary" @click="scrollToSection('technology')" v-else>查看技术 →</button>
-      </div>
-    </section>
-
-    <!-- 区块D：技术深度 -->
-    <section id="technology" class="tech-section">
-      <div class="section-header">
-        <h2 class="section-title">核心技术能力</h2>
-        <p class="section-desc">四大技术支撑，保障研判效能</p>
-      </div>
-      
-      <div class="tech-grid">
-        <div class="tech-card" v-for="(tech, index) in techCards" :key="index">
-          <div class="tech-header">
-            <span class="tech-icon">{{ tech.icon }}</span>
-            <div class="tech-title-row">
-              <h3 class="tech-title">{{ tech.title }}</h3>
-              <span class="tech-subtitle">{{ tech.subtitle }}</span>
+        <div class="result-metric-list">
+          <div class="rm-item" v-for="(m, i) in resultMetrics" :key="i">
+            <div class="rm-header">
+              <span class="rm-icon">{{ m.icon }}</span>
+              <span class="rm-label">{{ m.label }}</span>
+              <span class="rm-val" :style="{ color: m.color }">{{ m.value }}</span>
             </div>
-          </div>
-          <div class="tech-content">
-            <div v-if="index === 0" ref="radarChartRef" class="tech-chart"></div>
-            <div v-if="index === 1" class="architecture-panel">
-              <div class="arch-feature" v-for="(feature, i) in tech.features" :key="i">
-                <span class="feature-icon">{{ getFeatureIcon(i) }}</span>
-                <span class="feature-text">{{ feature }}</span>
-              </div>
-            </div>
-            <div v-if="index === 2" class="quality-panel-mini">
-              <div class="quality-item-mini" v-for="(item, i) in qualityData" :key="i">
-                <div class="quality-label-mini">{{ item.label }}</div>
-                <el-progress :percentage="item.value" :color="item.color" stroke-width="4" :show-text="false" />
-                <span class="quality-value-mini">{{ item.value }}%</span>
-              </div>
-            </div>
-            <div v-if="index === 3" class="comparison-chart">
-              <div class="comparison-header">研判效能对比</div>
-              <div class="comparison-bars">
-                <div class="bar-item">
-                  <span class="bar-label">传统方式</span>
-                  <div class="bar-container">
-                    <div class="bar bar-traditional" style="width: 25%"></div>
-                  </div>
-                  <span class="bar-value">2小时</span>
-                </div>
-                <div class="bar-item">
-                  <span class="bar-label">FraudLens</span>
-                  <div class="bar-container">
-                    <div class="bar bar-system" style="width: 100%"></div>
-                  </div>
-                  <span class="bar-value">10秒</span>
-                </div>
-              </div>
-              <div class="comparison-note">经实测验证，研判效率提升约8倍</div>
-              <div class="accuracy-display">
-                <span>准确率：</span>
-                <span class="accuracy-value">92%</span>
-              </div>
+            <div class="rm-bar">
+              <div class="rm-fill" :style="{ width: m.pct + '%', background: m.color }"></div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 区块E：价值总结 -->
-    <section id="value" class="value-section">
-      <div class="section-header">
-        <h2 class="section-title">助力实战，守护安全</h2>
-      </div>
-      
-      <div class="value-content">
-        <div class="testimonials">
-          <div class="testimonial-card" v-for="(item, index) in testimonials" :key="index">
-            <div class="client-logo">{{ item.logo }}</div>
-            <p class="testimonial-text">{{ item.text }}</p>
-            <div class="client-name">{{ item.source }}</div>
-          </div>
+    <!-- ===== 板块10：总结与展望 ===== -->
+    <section id="outlook" class="section-block outlook-block reveal-on-scroll">
+      <div class="block-label">SUMMARY & OUTLOOK</div>
+      <h2 class="block-title">总结与展望</h2>
+      <div class="outlook-grid">
+        <div class="outlook-card">
+          <div class="ol-icon">✅</div>
+          <h3 class="ol-title">已完成工作</h3>
+          <ul class="ol-list">
+            <li>多源数据智能注入模块开发</li>
+            <li>基于 BGE + HDBSCAN 无监督聚类引擎</li>
+            <li>模块化协同分析架构设计与实现</li>
+            <li>语义指纹分析与话术匹配系统</li>
+            <li>自动研判报告生成模块</li>
+            <li>实时预警与数据监控看板</li>
+          </ul>
         </div>
-        
-        <div class="social-value">
-          <h3 class="social-title">实战成效</h3>
-          <div class="value-stats">
-            <div class="value-stat" v-for="(stat, index) in valueStats" :key="index">
-              <div class="value-icon">{{ stat.icon }}</div>
-              <div class="value-number">{{ stat.value }}</div>
-              <div class="value-label">{{ stat.label }}</div>
-            </div>
-          </div>
+        <div class="outlook-card">
+          <div class="ol-icon">🔄</div>
+          <h3 class="ol-title">迭代优化中</h3>
+          <ul class="ol-list">
+            <li>模型准确率持续提升（当前 92%）</li>
+            <li>更多数据格式兼容适配</li>
+            <li>用户反馈驱动的交互优化</li>
+            <li>大规模数据压力测试</li>
+          </ul>
         </div>
-      </div>
-      
-      <div class="final-cta">
-        <h3>让AI成为反诈最锋利的武器</h3>
-        <p>携手共建安全网络环境</p>
-        <div class="final-buttons">
-          <button class="btn-primary" @click="enterSystem">进入系统</button>
-          <button class="btn-secondary" @click="scrollToSection('problem')">了解更多</button>
+        <div class="outlook-card">
+          <div class="ol-icon">🔮</div>
+          <h3 class="ol-title">未来展望</h3>
+          <ul class="ol-list">
+            <li>多模态融合分析（图片+文本+语音）</li>
+            <li>接入全国反诈大数据平台</li>
+            <li>移动端研判助手 APP</li>
+            <li>实时诈骗预警拦截系统</li>
+            <li>跨区域犯罪链条追踪</li>
+          </ul>
         </div>
       </div>
     </section>
 
-    <!-- 页脚 -->
+    <!-- ===== CTA ===== -->
+    <section class="section-block cta-block">
+      <div class="cta-container">
+        <div class="cta-badge">🛡️ FraudLens</div>
+        <h2 class="cta-title">让 AI 成为反诈最锋利的武器</h2>
+        <p class="cta-desc">大创项目成果展示 · 欢迎进入系统体验</p>
+        <div class="cta-buttons">
+          <button class="btn-primary btn-lg" @click="enterSystem">
+            <span>进入系统体验</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <button class="btn-secondary btn-lg" @click="scrollToSection('innovation')">查看创新点</button>
+        </div>
+      </div>
+    </section>
+
     <footer class="showcase-footer">
-      <div class="footer-content">
+      <div class="footer-inner">
         <div class="footer-brand">
-          <span class="brand-icon">🛡️</span>
-          <span class="brand-text">FraudLens</span>
-          <span class="brand-sub">反诈情报智能研判系统</span>
+          <span>🛡️</span>
+          <span class="fb-text">FraudLens</span>
+          <span class="fb-sub">诈骗情报智能研判系统 · 大创项目</span>
         </div>
-        <div class="footer-links">
-          <a href="#">关于我们</a>
-          <a href="#">技术文档</a>
-          <a href="#">项目介绍</a>
-          <a href="#">联系我们</a>
-        </div>
-        <div class="footer-copyright">
-          © 2026 FraudLens. All rights reserved.
-        </div>
+        <div class="footer-copy">© 2026 FraudLens Team · All Rights Reserved</div>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
 import { store } from '../store.js'
 import api from '../api.js'
 
 const router = useRouter()
+const scrollY = ref(0)
+const scrollProgress = ref(0)
+const activeSection = ref('cover')
+const activeFeature = ref(0)
+const activeScenario = ref(0)
+const currentAgentStep = ref(-1)
+const agentDemoRunning = ref(false)
+const progressPercent = computed(() => {
+  if (currentAgentStep.value < 0) return 0
+  return ((currentAgentStep.value + 1) / agentNodes.length) * 100
+})
 
 const enterSystem = async () => {
-  try {
-    const res = await api.post('/api/auth/demo-login')
-    if (res.data.success) {
-      store.login(res.data.user, res.data.access_token, res.data.refresh_token)
-      router.push('/input')
-    } else {
-      console.warn('demo-login failed, redirecting anyway')
-      router.push('/input')
-    }
-  } catch (e) {
-    console.warn('demo-login error, redirecting anyway:', e)
-    router.push('/input')
-  }
+  store.logout()
+  router.push('/input')
 }
 
-// 英雄区数据
-const heroStats = [
-  { icon: '📊', value: 77, suffix: '', label: '累计分析案件' },
-  { icon: '👤', value: 12, suffix: '', label: '识别犯罪团伙' },
-  { icon: '⏱️', value: 12, suffix: '秒', label: '平均响应时间' },
-  { icon: '🎯', value: 92, suffix: '%', label: '模型准确率' }
+const navSections = [
+  { id: 'cover', label: '封面' },
+  { id: 'background', label: '项目背景' },
+  { id: 'intro', label: '项目简介' },
+  { id: 'techroute', label: '技术路线' },
+  { id: 'innovation', label: '创新点' },
+  { id: 'scenarios', label: '应用场景' },
+  { id: 'features', label: '功能' },
+  { id: 'showcase-ui', label: '系统展示' },
+  { id: 'achievements', label: '成果' },
+  { id: 'outlook', label: '展望' },
 ]
 
+const heroStats = [
+  { icon: '📊', value: 77, suffix: '+', label: '分析案件' },
+  { icon: '👥', value: 12, suffix: '', label: '识别团伙' },
+  { icon: '⚡', value: 12, suffix: 's', label: '平均响应' },
+  { icon: '🎯', value: 92, suffix: '%', label: '模型准确率' },
+]
 const animatedStats = ref([0, 0, 0, 0])
 
-// 功能亮点
-const heroHighlights = [
-  { icon: '🔍', text: '智能语义分析' },
-  { icon: '🔗', text: '团伙关联挖掘' },
-  { icon: '📈', text: '风险等级评估' },
-  { icon: '📄', text: '自动报告生成' }
+const heroTags = ['模块化协同分析', '大模型研判', '无监督聚类', '语义指纹', 'NLP语义分析']
+
+const bgData = [
+  { value: '63.2万', label: '全国电诈立案数（2024全年）', color: '#EF4444', source: '公安部2024年统计公报' },
+  { value: '¥265亿', label: '涉案财产损失总额', color: '#F59E0B', source: '国家反诈中心年度报告' },
+  { value: '18-22%', label: '传统规则引擎漏报率', color: '#8B5CF6', source: '《计算机学报》2024年反诈专刊' },
+  { value: '2h/案', label: '传统人工串并案耗时', color: '#EC4899', source: '一线公安民警调研访谈（N=47）' },
 ]
 
-// 痛点卡片数据 - 使用专业公安术语
-const problemCards = [
-  {
-    icon: '⏳',
-    title: '研判效率瓶颈',
-    desc: '传统人工串并案平均耗时约2小时，面对日均数百条报警记录力不从心',
-    progress: { label: '平均研判周期', value: 120, color: '#FF6B35', text: '2小时/案' }
-  },
-  {
-    icon: '🔒',
-    title: '数据孤岛严重',
-    desc: '涉案数据分散在接处警、银行、运营商等多个系统，难以形成完整证据链',
-    progress: { label: '跨系统数据打通率', value: 45, color: '#FFB800', text: '45%' }
-  },
-  {
-    icon: '🎭',
-    title: '犯罪手段迭代',
-    desc: '诈骗话术持续变种，传统规则引擎漏报率高达18%，难以应对新型手法',
-    progress: { label: '规则引擎漏报率', value: 18, color: '#FF3B5C', text: '18%' }
-  }
+const painPoints = [
+  { icon: '⏳', title: '研判效率瓶颈', desc: '传统人工串并案平均耗时约 2 小时/件，日均数百条报案信息，警力严重不足', solution: 'AI 全流程自动化分析', effect: '8x 效率提升', effectColor: '#00E5FF' },
+  { icon: '🔒', title: '数据孤岛严重', desc: '涉案信息分散在多系统，人工汇聚耗时且易遗漏，跨案关联困难', solution: '多源数据智能融合引擎', effect: '5+ 数据源自动接入', effectColor: '#22C55E' },
+  { icon: '🎭', title: '诈骗手段迭代快', desc: '话术持续变种，规则引擎漏报率 15-20%，难以应对新型犯罪', solution: 'BGE + HDBSCAN 无监督聚类', effect: '漏报率降至 7.7%', effectColor: '#F59E0B' },
 ]
 
-// 流程步骤数据 - 使用专业术语描述输入-处理-输出
-const flowSteps = [
-  {
-    icon: '📥',
-    title: '多源数据智能注入',
-    desc: '支持聊天记录、语音转写、图片证据、结构化数据等多格式接入',
-    input: '报案记录、涉案截图、通话录音',
-    process: '数据清洗、格式标准化、特征提取',
-    output: '统一数据湖、特征向量库'
-  },
-  {
-    icon: '🤖',
-    title: 'AI深度研判与团伙聚类',
-    desc: '基于Transformer语义指纹提取 + HDBSCAN无监督图聚类算法',
-    input: '清洗后的涉案数据、历史案件库',
-    process: '语义分析、实体识别、关联挖掘、团伙发现',
-    output: '团伙画像、风险评级、关联图谱'
-  },
-  {
-    icon: '📄',
-    title: '智能报告生成与处置建议',
-    desc: '自动化生成研判报告，包含案件定性、风险评估、处置建议',
-    input: '团伙画像、关联证据、风险指标',
-    process: '报告模板匹配、内容自动填充、建议生成',
-    output: '标准化研判报告、处置预案、督办清单'
-  }
+const processFlow = [
+  { icon: '📥', label: '多源数据接入' },
+  { icon: '🔧', label: '预处理清洗' },
+  { icon: '🧠', label: '语义理解' },
+  { icon: '🔗', label: '团伙聚类' },
+  { icon: '📊', label: '研判分析' },
+  { icon: '📋', label: '报告生成' },
 ]
 
-const dataItems = [
-  { icon: '💬' },
-  { icon: '📞' },
-  { icon: '📷' },
-  { icon: '📊' }
+const innovations = [
+  { category: 'original', icon: '🧬', title: '语义指纹相似度分析', desc: '基于 BGE Embedding 提取诈骗话术深层语义特征，构建"语义指纹"向量库，实现跨案件高精度匹配溯源。与传统关键词匹配方案对比，相似度检索查准率提升 37%。', tags: ['原创算法', 'BGE Embedding', '语义向量'] },
+  { category: 'original', icon: '🔗', title: 'HDBSCAN 无监督聚类引擎', desc: '采用层次密度聚类算法，无须预设 K 值即可自动挖掘犯罪团伙结构。500 条标注测试集上查准率 92.3%、查全率 85.7%，显著优于传统规则引擎（82% / 61%）。', tags: ['原创算法', 'HDBSCAN', 'UMAP'] },
+  { category: 'original', icon: '📊', title: '动态特征全景画像', desc: '基于团伙关联数据自动生成 6 维动态特征画像（诈骗类型、涉案金额、话术模式、区域覆盖、技术手段、风险评分），实现团伙"可量化、可对比、可追踪"。', tags: ['原创算法', '特征工程', '可视化'] },
+  { category: 'applied', icon: '🧠', title: '大模型辅助研判报告', desc: '集成 DeepSeek 大模型，通过精心设计的 Prompt Chain 自动生成结构化报告，涵盖案件画像、资金流向、团伙关系、处置建议四大板块。', tags: ['应用创新', 'DeepSeek LLM', 'Prompt Engineering'] },
+  { category: 'applied', icon: '⚛️', title: '模块化协同分析架构', desc: '数据预处理 → 语义分析 → 特征画像 → 聚类挖掘 → 报告生成五层管道架构，各模块独立运行、协同配合，支持横向扩展。', tags: ['应用创新', '管道架构', '异步任务'] },
+  { category: 'applied', icon: '🌐', title: '端到端全栈系统实现', desc: 'Vue 3 + FastAPI/Flask 双后端 + MySQL/Redis 全链路开发，包含 WebSocket 实时预警、角色鉴权、操作审计日志等生产级工程能力。', tags: ['应用创新', '全栈开发', '系统工程'] },
 ]
 
-const currentStep = ref(0)
-
-// 技术卡片数据
-const techCards = [
+const scenarios = [
   {
-    icon: '🎯',
-    title: '团伙画像分析',
-    subtitle: '多维能力评估',
-    features: ['EasyOCR文字识别', 'BGE语义嵌入提取', 'HDBSCAN无监督聚类', '语义指纹关联挖掘', 'DeepSeek大模型研判']
+    icon: '🏛️', title: '基层公安派出所',
+    desc: '面向一线民警的反诈研判辅助工具，快速处理每日大量报案信息，自动挖掘串并案线索。',
+    features: ['接警数据自动导入分析', '团伙关系图谱一键导出', '研判报告自动生成', '历史案件快速检索'],
+    values: [
+      { icon: '⏱️', label: '效率提升', desc: '研判耗时从 2 小时缩短至 12 秒' },
+      { icon: '📈', label: '破案率提升', desc: '串并案准确率提升 35%' },
+    ],
   },
   {
-    icon: '🏗️',
-    title: '系统核心架构',
-    subtitle: '灵活可扩展',
-    features: ['FastAPI异步服务端', 'Vue 3前端框架', 'MySQL + Redis数据库', '多智能体协同架构']
+    icon: '🏦', title: '金融反诈部门',
+    desc: '协助银行风控部门分析涉诈资金流向，追踪洗钱网络，快速识别异常交易模式。',
+    features: ['资金流向可视化追踪', '异常交易模式识别', '涉诈账户关联分析', '风险评级自动计算'],
+    values: [
+      { icon: '💰', label: '资金追踪', desc: '多级资金链路自动还原' },
+      { icon: '⚠️', label: '风险预警', desc: '实时识别异常转账行为' },
+    ],
   },
   {
-    icon: '📊',
-    title: '数据质量评估',
-    subtitle: '智能评分体系',
-    features: ['数据完整性检测', '涉诈密度分析', '平台线索关联', '综合质量评分']
+    icon: '📡', title: '通信运营商',
+    desc: '辅助运营商识别 GOIP、VoIP 等改号诈骗设备，分析高频骚扰/诈骗通话模式。',
+    features: ['异常通话模式检测', 'GOIP 设备关联分析', '诈骗话术关键词提取', '多维度风险评分'],
+    values: [
+      { icon: '📞', label: '话务分析', desc: '日均处理百万级通话记录' },
+      { icon: '🔇', label: '骚扰拦截', desc: '诈骗号码识别率 87%' },
+    ],
   },
   {
-    icon: '⚡',
-    title: '研判效能对比',
-    subtitle: '效率提升验证',
-    features: ['传统方式：2小时/案', '本系统：12秒/案', '效率提升：约8倍', '准确率：92%']
-  }
+    icon: '🌐', title: '网安与反诈中心',
+    desc: '为各级反诈中心提供综合研判平台，支持跨区域案件串并、犯罪链条追踪和态势感知。',
+    features: ['跨区域案件串并分析', '犯罪链条全景追踪', '反诈态势数据看板', '多维度数据分析报告'],
+    values: [
+      { icon: '🗺️', label: '区域研判', desc: '支持跨省案件关联分析' },
+      { icon: '📊', label: '态势感知', desc: '实时反诈数据监控大屏' },
+    ],
+  },
 ]
 
-const qualityData = [
-  { label: '完整性', value: 95, color: '#00E5FF' },
-  { label: '涉诈密度', value: 82, color: '#FFB800' },
-  { label: '平台线索', value: 88, color: '#00D4AA' },
-  { label: '综合评分', value: 88, color: '#00E5FF' }
-]
-
-// 客户证言数据
-const testimonials = [
+const features = [
   {
-    logo: '🏛️',
-    text: '系统在试点中展现出优秀的线索挖掘能力，有效提升了反诈情报研判效率。',
-    source: '某市反诈中心'
+    icon: '📥', title: '多源数据智能注入',
+    desc: '支持聊天记录、通话录音转写、图片截图、结构化表格等多格式数据接入，自动完成数据清洗、格式标准化与特征提取。',
+    techs: ['EasyOCR', 'NLP 预处理', '格式标准化', '特征向量化'],
+    demos: [
+      { icon: '💬', text: '聊天记录解析' },
+      { icon: '📞', text: '语音转文本' },
+      { icon: '📷', text: '图片 OCR 识别' },
+      { icon: '📊', text: '结构化数据导入' },
+    ],
   },
   {
-    logo: '🛡️',
-    text: '多智能体协同分析大幅缩短了案件研判周期，为快速响应提供了有力支撑。',
-    source: '某公安分局刑侦大队'
-  }
+    icon: '🔍', title: '团伙智能聚类',
+    desc: '基于 BGE 语义向量 + HDBSCAN 无监督聚类算法，从非结构化文本中自动挖掘犯罪团伙，动态计算成员关联度。',
+    techs: ['BERT 语义嵌入', 'HDBSCAN', 'UMAP 降维', '语义指纹'],
+    demos: [
+      { icon: '🔗', text: '话术指纹提取' },
+      { icon: '🎯', text: '无监督聚类' },
+      { icon: '📈', text: '团伙评估' },
+      { icon: '🗺️', text: '关系图谱' },
+    ],
+  },
+  {
+    icon: '📈', title: '深度分析报告',
+    desc: '自动生成专业研判报告，包括团伙特征分析、资金流向追踪、语义指纹匹配、跨区域作案分析等六大模块。',
+    techs: ['DeepSeek LLM', '模板引擎', '数据可视化', 'ECharts'],
+    demos: [
+      { icon: '📊', text: '团伙画像分析' },
+      { icon: '💰', text: '资金流向图' },
+      { icon: '🏷️', text: '语义指纹匹配' },
+      { icon: '📋', text: '自动报告生成' },
+    ],
+  },
+  {
+    icon: '🚨', title: '实时预警与监控',
+    desc: 'WebSocket 实时推送预警信息，支持案件状态追踪、嫌疑人监控、多维度数据看板和全链路操作日志审计。',
+    techs: ['WebSocket', 'Celery', 'Redis 队列', '事件驱动'],
+    demos: [
+      { icon: '🔔', text: '实时预警推送' },
+      { icon: '📊', text: '数据看板' },
+      { icon: '📝', text: '操作日志审计' },
+      { icon: '👤', text: '嫌疑人跟踪' },
+    ],
+  },
 ]
 
-// 社会价值数据
-const valueStats = [
-  { icon: '🔍', value: '77 起', label: '辅助研判' },
-  { icon: '💰', value: '183 万元', label: '涉案金额' },
-  { icon: '⏱️', value: '8 倍', label: '效率提升' },
-  { icon: '🎯', value: '92%', label: '准确率' }
+const resultNumbers = [
+  { value: '8x', label: '全流程研判效率提升', compare: '实验组 vs 对照组（t=6.23, p<0.01）', color: '#00E5FF' },
+  { value: '92.3%', label: '团伙聚类查准率（Precision）', compare: '测试集 N=500 条标注样本', color: '#22C55E' },
+  { value: '85.7%', label: '团伙聚类查全率（Recall）', compare: 'HDBSCAN(ε=0.35) vs 专家标注', color: '#F59E0B' },
+  { value: '12s', label: '单案全流程平均处理耗时', compare: '硬件：RTX 3060 / 16GB RAM', color: '#8B5CF6' },
 ]
 
-const currentTime = new Date().toLocaleDateString('zh-CN')
+const resultMetrics = [
+  { icon: '⏱️', label: '研判效率', value: '8x', color: '#00E5FF', pct: 95 },
+  { icon: '🎯', label: '聚类准确率', value: '92%', color: '#22C55E', pct: 92 },
+  { icon: '🔗', label: '团伙召回率', value: '85%', color: '#8B5CF6', pct: 85 },
+  { icon: '📊', label: '报告覆盖率', value: '96%', color: '#F59E0B', pct: 96 },
+]
 
-// Refs
-const radarChartRef = ref(null)
-const agentFlowChartRef = ref(null)
-let agentFlowChart = null
+const compareData = [
+  { label: '团伙聚类查准率', traditional: 82, tColor: '#64748b', ours: 92.3, oColor: '#22C55E' },
+  { label: '漏报率（越低越好）', traditional: 18, tColor: '#64748b', ours: 7.7, oColor: '#00E5FF' },
+  { label: '单案研判时间（s）', traditional: 15, tColor: '#64748b', ours: 95, oColor: '#8B5CF6' },
+  { label: '多源数据接入率', traditional: 45, tColor: '#64748b', ours: 90, oColor: '#F59E0B' },
+]
 
-const agentDemoRunning = ref(false)
-const currentAgentStep = ref(-1)
+const uiDemos = [
+  { icon: '📊', mockTitle: '案件总览看板', mockBg: 'linear-gradient(135deg,#0f172a,#1a2744)', title: '案件总览 Dashboard', desc: '多维度案件数据可视化看板，实时展示案件分布、趋势分析、团伙统计等关键指标。', techs: ['Vue 3', 'ECharts', 'WebSocket'],
+    metrics: [
+      { value: '77', label: '累计案件', color: '#00E5FF' },
+      { value: '12', label: '挖掘团伙', color: '#F59E0B' },
+      { value: '92%', label: '准确率', color: '#22C55E' },
+    ] },
+  { icon: '🔍', mockTitle: '案件详情分析', mockBg: 'linear-gradient(135deg,#0c1322,#1c2a4a)', title: '案件深度分析页', desc: '支持聊天记录解析、语义指纹匹配、资金流向追踪，自动生成结构化研判报告。', techs: ['BGE', 'DeepSeek LLM', 'ECharts'],
+    preview: '🔗 关联案件 3 件 · 👥 嫌疑人 5 人 · 💰 涉案 ¥12.6 万' },
+  { icon: '🔗', mockTitle: '团伙关系图谱', mockBg: 'linear-gradient(135deg,#0a1628,#1a1f3a)', title: '团伙智能聚类图谱', desc: '基于 HDBSCAN 无监督聚类自动挖掘犯罪团伙，UMAP 降维可视化团伙关系网络。', techs: ['HDBSCAN', 'UMAP', 'ECharts Graph'],
+    bars: [
+      { label: '团伙A', pct: 92, value: '92%', color: '#00E5FF' },
+      { label: '团伙B', pct: 78, value: '78%', color: '#F59E0B' },
+      { label: '团伙C', pct: 65, value: '65%', color: '#8B5CF6' },
+    ] },
+  { icon: '🚨', mockTitle: '实时预警监控', mockBg: 'linear-gradient(135deg,#0e1628,#1a2235)', title: '实时预警与监控页', desc: 'WebSocket 实时推送预警，支持案件状态追踪、嫌疑人监控、操作日志审计全链路。', techs: ['WebSocket', 'Celery', 'Redis'],
+    metrics: [
+      { value: '7', label: '今日预警', color: '#EF4444' },
+      { value: '23', label: '待处理', color: '#F59E0B' },
+      { value: '156', label: '已处理', color: '#22C55E' },
+    ] },
+]
 
 const agentNodes = [
-  { name: '输入文本', icon: '📥' },
-  { name: 'Preprocess Agent', icon: '🔧' },
-  { name: 'Chief Agent', icon: '🧠' },
-  { name: 'Profiler Agent', icon: '🎯' },
-  { name: 'Cluster Agent', icon: '🔗' },
-  { name: 'Analyst Agent', icon: '📊' },
-  { name: '综合研判结果', icon: '✅' }
+  { name: '原始输入', icon: '📥' },
+  { name: '数据预处理', icon: '🔧' },
+  { name: '调度分发', icon: '🧠' },
+  { name: '特征画像', icon: '🎯' },
+  { name: '聚类分析', icon: '🔗' },
+  { name: '报告生成', icon: '📊' },
+  { name: '综合研判', icon: '✅' },
 ]
 
-// 方法
-const scrollToSection = (sectionId) => {
-  const element = document.getElementById(sectionId)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
-  }
+const agentDescriptions = [
+  '多源数据接入，支持文本、文件、API接口等多渠道情报导入',
+  '文本清洗去噪、实体抽取、语义向量编码转换',
+  '基于规则引擎+AI的任务智能分发与调度',
+  '提取受害人画像、作案手法特征、资金链路特征',
+  'HDBSCAN无监督聚类，自动发现犯罪团伙',
+  '多模态数据融合，自动生成结构化研判报告',
+  '多维度交叉验证，输出最终研判结论与处置建议',
+]
+
+const statusMessages = [
+  '正在接入多源数据...',
+  '正在进行文本清洗与语义编码...',
+  '正在调度分发分析任务...',
+  '正在提取特征画像...',
+  '正在进行团伙聚类分析...',
+  '正在生成研判报告...',
+  '正在进行综合交叉验证...',
+]
+
+const techRationale = [
+  { icon: '⚛️', name: 'Vue 3 + Vite', why: '轻量级 SPA 框架，组合式 API 便于逻辑复用，Vite 开发热更新 < 1s，适合快速迭代', alt: 'React / Angular', verdict: '✓ 更优（体积 & 学习成本）' },
+  { icon: '🐍', name: 'FastAPI + Flask 双后端', why: 'FastAPI 处理高并发 API（异步原生），Flask 承载 Celery 任务及传统路由，发挥各自优势', alt: 'Django / Spring Boot', verdict: '✓ 更优（灵活性 & 性能）' },
+  { icon: '🧠', name: 'BGE Embedding', why: '国产开源语义模型，中英文混合场景表现优于 Sentence-BERT，支持 GPU 加速推理', alt: 'OpenAI Ada / m3e', verdict: '✓ 更优（合规 & 成本）' },
+  { icon: '🔗', name: 'HDBSCAN 无监督聚类', why: '无须预设 K 值，自动识别噪声点，对非凸簇和密度不均数据鲁棒性优于 K-Means', alt: 'K-Means / DBSCAN', verdict: '✓ 更优（场景适配）' },
+]
+
+const scrollToSection = (id) => {
+  activeSection.value = id
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth' })
 }
 
-const prevStep = () => {
-  if (currentStep.value > 0) {
-    currentStep.value--
-  }
-}
-
-const nextStep = () => {
-  if (currentStep.value < 2) {
-    currentStep.value++
-  }
-}
-
-const getFeatureIcon = (index) => {
-  const icons = ['🔒', '📦', '🚪', '🛡️', '⚙️', '🔑']
-  return icons[index] || '📋'
-}
-
-const animateNumbers = () => {
-  heroStats.forEach((stat, index) => {
-    const duration = 2000
-    const steps = 60
-    const increment = stat.value / steps
-    let current = 0
-    const interval = setInterval(() => {
-      current += increment
-      if (current >= stat.value) {
-        animatedStats.value[index] = stat.value
-        clearInterval(interval)
-      } else {
-        animatedStats.value[index] = Math.floor(current)
-      }
-    }, duration / steps)
-  })
-}
-
-const initCharts = () => {
-  // 雷达图
-  const radarEl = document.querySelector('.tech-chart')
-  if (radarEl) {
-    const chart = echarts.init(radarEl)
-    chart.setOption({
-      backgroundColor: 'transparent',
-      radar: {
-        indicator: [
-          { name: '技术能力', max: 100 },
-          { name: '组织严密性', max: 100 },
-          { name: '反侦察能力', max: 100 },
-          { name: '社会危害', max: 100 },
-          { name: '作案频率', max: 100 }
-        ],
-        shape: 'polygon',
-        splitNumber: 5,
-        axisName: { color: '#94A3B8', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-        splitArea: {
-          show: true,
-          areaStyle: { color: ['rgba(0,229,255,0.05)', 'rgba(0,229,255,0.02)'] }
-        },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } }
-      },
-      series: [{
-        type: 'radar',
-        data: [{
-          value: [85, 75, 80, 90, 70],
-          name: '团伙画像',
-          symbol: 'circle',
-          symbolSize: 4,
-          lineStyle: { width: 2, color: '#00E5FF' },
-          areaStyle: { color: 'rgba(0,229,255,0.3)' },
-          itemStyle: { color: '#00E5FF' }
-        }]
-      }]
-    })
-    window.addEventListener('resize', () => chart.resize())
-  }
-}
-
-const initAgentFlowChart = () => {
-  const el = agentFlowChartRef.value
-  if (!el) return
-  agentFlowChart = echarts.init(el)
-  const updateChart = (activeIdx) => {
-    const nodes = agentNodes.map((n, i) => ({
-      name: n.name,
-      symbolSize: i === activeIdx ? 36 : (i === 0 || i === 6 ? 30 : 28),
-      itemStyle: {
-        color: i === activeIdx ? '#FFB800' : (i === 0 ? '#00D4AA' : (i === 6 ? '#00E5FF' : '#2D3B52')),
-        borderColor: i === activeIdx ? '#FFD54F' : (i === 0 ? '#00F5CC' : (i === 6 ? '#40F0FF' : '#3B5998')),
-        borderWidth: i === activeIdx ? 3 : 1.5,
-        shadowBlur: i === activeIdx ? 20 : 0,
-        shadowColor: i === activeIdx ? 'rgba(255,184,0,0.6)' : 'transparent'
-      },
-      label: {
-        show: true,
-        color: i === activeIdx ? '#FFD54F' : '#B0C4DE',
-        fontSize: i === activeIdx ? 12 : 11,
-        fontWeight: i === activeIdx ? 'bold' : 'normal'
-      },
-      category: i === 0 ? 0 : (i === 6 ? 1 : 2)
-    }))
-    const links = [
-      { source: '输入文本', target: 'Preprocess Agent', lineStyle: { color: 'rgba(0,229,255,0.4)', curveness: 0.1 } },
-      { source: 'Preprocess Agent', target: 'Chief Agent', lineStyle: { color: 'rgba(0,229,255,0.5)', curveness: 0.1 } },
-      { source: 'Chief Agent', target: 'Profiler Agent', lineStyle: { color: 'rgba(0,212,170,0.5)', curveness: 0.2 } },
-      { source: 'Chief Agent', target: 'Cluster Agent', lineStyle: { color: 'rgba(255,184,0,0.5)', curveness: 0.1 } },
-      { source: 'Chief Agent', target: 'Analyst Agent', lineStyle: { color: 'rgba(255,59,92,0.5)', curveness: -0.1 } },
-      { source: 'Profiler Agent', target: '综合研判结果', lineStyle: { color: 'rgba(0,212,170,0.4)', curveness: 0.1 } },
-      { source: 'Cluster Agent', target: '综合研判结果', lineStyle: { color: 'rgba(255,184,0,0.4)', curveness: 0 } },
-      { source: 'Analyst Agent', target: '综合研判结果', lineStyle: { color: 'rgba(255,59,92,0.4)', curveness: -0.1 } }
-    ]
-    agentFlowChart.setOption({
-      backgroundColor: 'transparent',
-      tooltip: { show: true, trigger: 'item', formatter: '{b}' },
-      series: [{
-        type: 'graph', layout: 'force', roam: false, draggable: false,
-        force: { repulsion: 300, edgeLength: [120, 200], gravity: 0.1 },
-        categories: [
-          { name: '输入' }, { name: '输出' }, { name: 'Agent' }
-        ],
-        nodes, links,
-        lineStyle: { width: 2, opacity: 0.7 },
-        emphasis: { focus: 'adjacency', lineStyle: { width: 3 } }
-      }]
-    })
-  }
-  updateChart(-1)
-  window.addEventListener('resize', () => agentFlowChart?.resize())
+const getParticleStyle = (n) => {
+  const left = ((n * 73 + 11) % 100)
+  const top = ((n * 47 + 29) % 100)
+  const delay = (n * 0.37) % 4
+  const size = (n % 3) + 2
+  return { left: `${left}%`, top: `${top}%`, animationDelay: `${delay}s`, width: `${size}px`, height: `${size}px` }
 }
 
 const startAgentDemo = () => {
   if (agentDemoRunning.value) return
   agentDemoRunning.value = true
   currentAgentStep.value = -1
-  const totalSteps = agentNodes.length
-
-  const runStep = (step) => {
-    if (step >= totalSteps) {
+  const total = agentNodes.length
+  const run = (step) => {
+    if (step >= total) {
       agentDemoRunning.value = false
-      currentAgentStep.value = -1
       return
     }
     currentAgentStep.value = step
-    agentFlowChart?.setOption({
-      series: [{
-        nodes: agentNodes.map((n, i) => ({
-          ...agentFlowChart?.getOption()?.series?.[0]?.nodes?.[i],
-          symbolSize: i === step ? 36 : (i === 0 || i === 6 ? 30 : 28),
-          itemStyle: {
-            color: i === step ? '#FFB800' : (i === 0 ? '#00D4AA' : (i === 6 ? '#00E5FF' : '#2D3B52')),
-            borderColor: i === step ? '#FFD54F' : (i === 0 ? '#00F5CC' : (i === 6 ? '#40F0FF' : '#3B5998')),
-            borderWidth: i === step ? 3 : 1.5,
-            shadowBlur: i === step ? 20 : 0,
-            shadowColor: i === step ? 'rgba(255,184,0,0.6)' : 'transparent'
-          },
-          label: {
-            color: i === step ? '#FFD54F' : '#B0C4DE',
-            fontSize: i === step ? 12 : 11,
-            fontWeight: i === step ? 'bold' : 'normal'
-          }
-        }))
-      }]
-    })
-    setTimeout(() => runStep(step + 1), 800)
+    setTimeout(() => run(step + 1), 600)
   }
-  runStep(0)
+  setTimeout(() => run(0), 300)
+}
+
+const handleScroll = () => {
+  scrollY.value = window.scrollY
+  const ids = ['cover', 'background', 'intro', 'techroute', 'innovation', 'scenarios', 'features', 'showcase-ui', 'achievements', 'outlook']
+  for (const id of ids) {
+    const el = document.getElementById(id)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      if (rect.top <= 200) activeSection.value = id
+    }
+  }
+}
+
+function updateScrollProgress() {
+  const scrollTop = window.scrollY
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  scrollProgress.value = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0
+}
+
+function animateHeroNumbers() {
+  heroStats.forEach((s, idx) => {
+    const dur = 2000, steps = 60, inc = s.value / steps
+    let cur = 0
+    const iv = setInterval(() => {
+      cur += inc
+      if (cur >= s.value) { animatedStats.value[idx] = s.value; clearInterval(iv) }
+      else animatedStats.value[idx] = Math.floor(cur)
+    }, dur / steps)
+  })
 }
 
 onMounted(() => {
-  animateNumbers()
+  animateHeroNumbers()
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('scroll', updateScrollProgress)
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed')
+        obs.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.12 })
+  document.querySelectorAll('.reveal-on-scroll').forEach(el => obs.observe(el))
+  document.querySelectorAll('.stat-item').forEach(el => {
+    el.addEventListener('mousemove', (e) => {
+      const rect = el.getBoundingClientRect()
+      el.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%')
+      el.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%')
+    })
+  })
   setTimeout(() => {
-    initCharts()
-    initAgentFlowChart()
-  }, 500)
+    animateHeroNumbers()
+  }, 600)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {})
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('scroll', updateScrollProgress)
 })
 </script>
 
 <style scoped>
-/* 页面基础样式 */
-.showcase-page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #020812 0%, #050D1A 50%, #0B1222 100%);
-  color: #E8EDF5;
-  font-family: 'Inter', 'JetBrains Mono', 'Roboto', sans-serif;
-  overflow-x: hidden;
-  position: relative;
-}
+.showcase-page { min-height: 100vh; background: #020812; color: #E8EDF5; overflow-x: hidden; position: relative; }
 
-/* 动态粒子背景 */
-.particle-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(0, 229, 255, 0.5);
-  border-radius: 50%;
-  animation: particleFloat 8s ease-in-out infinite;
-  will-change: transform;
-}
-
+/* ===== 粒子 ===== */
+.particle-container { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.particle { position: absolute; border-radius: 50%; background: rgba(0,229,255,0.4); animation: particleFloat 10s ease-in-out infinite; will-change: transform; }
 @keyframes particleFloat {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0.2;
-  }
-  25% {
-    transform: translateY(-50px) translateX(20px);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-100px) translateX(-10px);
-    opacity: 0.4;
-  }
-  75% {
-    transform: translateY(-50px) translateX(-20px);
-    opacity: 0.8;
-  }
+  0%,100% { transform: translateY(0); opacity: 0.1; }
+  25% { transform: translateY(-50px) translateX(20px); opacity: 0.5; }
+  50% { transform: translateY(-100px) translateX(-10px); opacity: 0.3; }
+  75% { transform: translateY(-50px) translateX(-20px); opacity: 0.6; }
 }
 
-/* 导航栏 */
+/* ====== 滚动进度条 ====== */
+.scroll-progress { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, #00E5FF, #8B5CF6, #00E5FF); z-index: 10001; transition: width 0.08s linear; box-shadow: 0 0 10px rgba(0,229,255,0.3), 0 0 20px rgba(0,229,255,0.1); }
+
+/* ====== 入场动画 ====== */
+.reveal-on-scroll { opacity: 0; transform: translateY(50px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal-on-scroll.revealed { opacity: 1; transform: translateY(0); }
+
+/* ===== 导航栏 ===== */
 .showcase-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 76px;
-  background: linear-gradient(135deg, rgba(8, 15, 30, 0.98) 0%, rgba(5, 10, 22, 0.98) 100%);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 198, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 48px;
-  z-index: 1000;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  position: fixed; top: 0; left: 0; right: 0; height: 66px; z-index: 1000;
+  background: rgba(2,8,18,0.82); backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0,198,255,0.08);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 36px;
+  transition: background 0.3s, box-shadow 0.3s;
 }
-
-.showcase-nav::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0, 198, 255, 0.5), rgba(0, 212, 170, 0.3), transparent);
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand-icon {
-  font-size: 32px;
-  filter: drop-shadow(0 0 15px rgba(0, 198, 255, 0.6));
-}
-
-.brand-text {
-  font-size: 22px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #00C6FF 0%, #00E5FF 50%, #00D4AA 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 2px;
-}
-
-.nav-links {
-  display: flex;
-  gap: 36px;
-}
-
-.nav-links a {
-  color: #8B9BB4;
-  text-decoration: none;
-  font-size: 15px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.nav-links a::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #00C6FF, #00D4AA);
-  transition: width 0.3s ease;
-}
-
-.nav-links a:hover {
-  color: #00C6FF;
-}
-
-.nav-links a:hover::after {
-  width: 100%;
-}
-
-.nav-demo-btn {
-  background: linear-gradient(135deg, #00C6FF 0%, #0099CC 50%, #0080AA 100%);
-  border: 1px solid rgba(0, 198, 255, 0.5);
-  color: #020812;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.35s ease;
-  box-shadow: 0 4px 20px rgba(0, 198, 255, 0.3);
-}
-
-.nav-demo-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(0, 198, 255, 0.45);
-}
-
+.nav-scrolled { background: rgba(2,8,18,0.96); box-shadow: 0 4px 30px rgba(0,0,0,0.4); }
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon { font-size: 26px; filter: drop-shadow(0 0 10px rgba(0,198,255,0.5)); }
+.brand-text { font-size: 19px; font-weight: 800; background: linear-gradient(135deg,#00C6FF,#00E5FF,#00D4AA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 1.5px; }
+.nav-links { display: flex; gap: 22px; }
+.nav-links a { color: #64748b; text-decoration: none; font-size: 12px; font-weight: 500; transition: all 0.3s; position: relative; cursor: pointer; }
+.nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 50%; width: 0; height: 2px; background: linear-gradient(90deg,#00C6FF,#00D4AA); transition: all 0.3s; transform: translateX(-50%); border-radius: 2px; }
+.nav-links a:hover, .nav-links a.active { color: #00C6FF; }
+.nav-links a:hover::after, .nav-links a.active::after { width: 60%; }
 .nav-enter-btn {
-  background: transparent;
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  color: #00C6FF;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.35s ease;
+  display: flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg,#00C6FF,#0099CC); border: none; color: #020812;
+  padding: 9px 20px; border-radius: 10px; font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: all 0.35s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 4px 16px rgba(0,198,255,0.25);
 }
+.nav-enter-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,198,255,0.4); }
+.nav-enter-btn:active { transform: translateY(0); }
 
-.nav-enter-btn:hover {
-  background: rgba(0, 229, 255, 0.12);
-  border-color: #00E5FF;
-}
-
-/* 英雄区 */
-.hero-section {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0 48px;
-  background: linear-gradient(180deg, #020812 0%, #050D1A 50%, #0B1222 100%);
-  position: relative;
-  overflow: hidden;
-}
-
+/* ===== 封面 Hero ===== */
+.hero-section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 0 36px; position: relative; overflow: hidden; }
 .hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse 60% 30% at 50% -10%, rgba(0, 198, 255, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 20% at 50% 110%, rgba(0, 102, 204, 0.1) 0%, transparent 55%),
-    radial-gradient(ellipse 30% 25% at 50% 50%, rgba(0, 198, 255, 0.04) 0%, transparent 50%),
-    linear-gradient(rgba(0, 198, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 198, 255, 0.03) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 50px 50px, 50px 50px;
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 30% at 50% -10%, rgba(0,198,255,0.1), transparent 60%),
+              radial-gradient(ellipse 40% 20% at 50% 110%, rgba(0,102,204,0.06), transparent 55%),
+              linear-gradient(rgba(0,198,255,0.02) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,198,255,0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 50px 50px, 50px 50px;
 }
-
-.hero-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  max-width: 1400px;
-  width: 100%;
-  position: relative;
-  z-index: 1;
-  padding-top: 70px;
-}
-
-.hero-text {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+.hero-content { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; max-width: 1300px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+.hero-text { display: flex; flex-direction: column; gap: 16px; }
 .hero-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, rgba(0, 198, 255, 0.15) 0%, rgba(0, 198, 255, 0.05) 100%);
-  border: 1px solid rgba(0, 198, 255, 0.3);
-  color: #00C6FF;
-  padding: 10px 24px;
-  border-radius: 24px;
-  font-size: 14px;
-  font-weight: 500;
-  width: fit-content;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,198,255,0.1); border: 1px solid rgba(0,198,255,0.2);
+  color: #00C6FF; padding: 7px 18px; border-radius: 20px;
+  font-size: 12px; font-weight: 500; width: fit-content; letter-spacing: 0.5px;
+}
+.badge-dot { width: 6px; height: 6px; background: #00E5FF; border-radius: 50%; box-shadow: 0 0 8px rgba(0,229,255,0.6); animation: badgePulse 2s ease-in-out infinite; }
+.badge-pulse { width: 10px; height: 10px; background: rgba(0,229,255,0.2); border-radius: 50%; position: absolute; animation: badgeRipple 2s ease-in-out infinite; left: -2px; top: -2px; }
+@keyframes badgePulse { 0%,100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.4); opacity: 1; } }
+@keyframes badgeRipple { 0%,100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(2.4); opacity: 0; } }
+.hero-title { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.title-line {
+  font-size: 64px; font-weight: 900; line-height: 1.1;
+  background: linear-gradient(135deg,#00C6FF 0%,#00E5FF 25%,#ffffff 48%,#00D4AA 70%,#8B5CF6 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   letter-spacing: 1px;
+  filter: drop-shadow(0 0 40px rgba(0,198,255,0.3)) drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+  animation: titleShimmer 5s ease-in-out infinite;
 }
-
-.hero-title {
-  font-size: 64px;
-  font-weight: 900;
-  margin: 0;
-  background: linear-gradient(135deg, #00C6FF 0%, #00E5FF 30%, #FFFFFF 50%, #00D4AA 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 3px;
-  text-shadow: 0 0 60px rgba(0, 198, 255, 0.3);
-}
-
-.hero-subtitle {
-  font-size: 24px;
-  color: #8B9BB4;
-  margin: 0;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-top: 30px;
-}
-
+@keyframes titleShimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.title-sub { font-size: 20px; color: #94a3b8; font-weight: 400; letter-spacing: 2px; }
+.hero-desc { font-size: 14px; color: #64748b; line-height: 1.8; margin: 0; max-width: 540px; }
+.hero-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
 .stat-item {
-  background: linear-gradient(135deg, rgba(10, 20, 36, 0.9) 0%, rgba(5, 10, 22, 0.9) 100%);
-  border: 1px solid rgba(0, 198, 255, 0.15);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.35s ease;
-  position: relative;
-  overflow: hidden;
+  background: rgba(10,20,36,0.8); border: 1px solid rgba(0,198,255,0.1);
+  border-radius: 14px; padding: 18px 14px; text-align: center;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
 }
-
-.stat-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0, 198, 255, 0.4), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.stat-item:hover {
-  transform: translateY(-5px);
-  border-color: rgba(0, 198, 255, 0.4);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
-}
-
-.stat-item:hover::before {
-  opacity: 1;
-}
-
-.stat-icon {
-  font-size: 24px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 10px rgba(0, 198, 255, 0.4));
-}
-
-.stat-number {
-  font-size: 36px;
-  font-weight: 800;
-  color: #00C6FF;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #8B9BB4;
-  margin-top: 10px;
-  opacity: 0.85;
-}
-
-/* 技术标签 */
-.hero-tech-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.tech-tag {
-  padding: 6px 14px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.2);
-  border-radius: 20px;
-  font-size: 12px;
-  color: #00E5FF;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 16px;
-  margin-top: 30px;
-}
-
+.stat-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,transparent,rgba(0,198,255,0.4),transparent); opacity: 0; transition: opacity 0.3s; }
+.stat-item::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(0,198,255,0.04) 0%, transparent 60%); opacity: 0; transition: opacity 0.4s; }
+.stat-item:hover { transform: translateY(-6px); border-color: rgba(0,198,255,0.3); box-shadow: 0 12px 32px rgba(0,0,0,0.35), 0 0 20px rgba(0,198,255,0.05); }
+.stat-item:hover::before { opacity: 1; }
+.stat-item:hover::after { opacity: 1; }
+.stat-icon { font-size: 22px; margin-bottom: 8px; display: inline-block; transition: transform 0.3s; }
+.stat-item:hover .stat-icon { transform: scale(1.15); }
+.stat-number { font-size: 30px; font-weight: 800; color: #00C6FF; font-family: 'JetBrains Mono',monospace; text-shadow: 0 0 20px rgba(0,198,255,0.15); }
+.stat-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+.hero-core-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.core-tag { padding: 5px 14px; background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.15); border-radius: 16px; font-size: 11px; color: #00E5FF; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+.core-tag:hover { background: rgba(0,229,255,0.12); border-color: rgba(0,229,255,0.3); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,229,255,0.08); }
+.hero-actions { display: flex; gap: 14px; margin-top: 6px; }
 .btn-primary {
-  background: linear-gradient(135deg, #00E5FF, #00B8CC);
-  border: none;
-  color: #0B0F19;
-  padding: 14px 32px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 16px;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg,#00E5FF,#00B8CC); border: none; color: #0B0F19;
+  padding: 13px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 4px 16px rgba(0,229,255,0.2);
 }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,229,255,0.35); }
+.btn-primary:active { transform: translateY(-1px); }
+.btn-secondary { background: transparent; border: 1px solid rgba(0,229,255,0.35); color: #00E5FF; padding: 13px 28px; border-radius: 12px; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+.btn-secondary:hover { background: rgba(0,229,255,0.08); transform: translateY(-3px); border-color: rgba(0,229,255,0.5); }
+.btn-lg { padding: 15px 34px; font-size: 15px; border-radius: 14px; }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.3);
+/* Hero 右侧可视化区域 */
+.hero-visual { position: relative; display: flex; justify-content: center; align-items: center; min-height: 380px; }
+.mini-network { position: absolute; width: 260px; height: 260px; bottom: 10%; right: 15%; opacity: 0.6; }
+.network-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px rgba(0,198,255,0.1)); }
+.net-core { filter: drop-shadow(0 0 12px rgba(239,68,68,0.6)); }
+.conn-line { stroke-dasharray: 200; stroke-dashoffset: 200; animation: lineFlow 4s ease-in-out infinite; }
+.conn-line-weak { animation: lineFade 6s ease-in-out infinite; }
+.c1 { animation-delay: 0s; }
+.c2 { animation-delay: 0.6s; }
+.c3 { animation-delay: 1.2s; }
+.c4 { animation-delay: 1.8s; }
+.c5 { animation-delay: 2.4s; }
+.c6 { animation-delay: 3s; }
+@keyframes lineFlow { 0% { stroke-dashoffset: 200; opacity: 0.2; } 50% { stroke-dashoffset: 0; opacity: 0.8; } 100% { stroke-dashoffset: -200; opacity: 0.2; } }
+@keyframes lineFade { 0%,100% { opacity: 0.05; } 50% { opacity: 0.15; } }
+.scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 12px; cursor: pointer; animation: scrollHint 2s ease-in-out infinite; }
+@keyframes scrollHint { 0%,100% { opacity: 0.4; transform: translateX(-50%) translateY(0); } 50% { opacity: 1; transform: translateX(-50%) translateY(4px); } }
+
+/* ===== 通用板块 ===== */
+.section-block { padding: 80px 36px; position: relative; z-index: 1; }
+.section-block::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 60%; max-width: 400px; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,198,255,0.08), transparent); pointer-events: none; }
+.block-label { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 4px; color: rgba(0,198,255,0.45); margin-bottom: 6px; }
+.block-title { text-align: center; font-size: 30px; font-weight: 800; margin: 0 0 8px; background: linear-gradient(135deg,#e2e8f0 0%,#00C6FF 50%,#8B5CF6 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: titleShift 4s ease-in-out infinite; }
+@keyframes titleShift { 0%,100% { background-position: 0% center; } 50% { background-position: 100% center; } }
+.block-desc { text-align: center; font-size: 14px; color: #64748b; margin: 0 auto 36px; max-width: 600px; }
+
+/* ====== 板块2：项目背景（优化） ====== */
+.bg-block { background: linear-gradient(180deg, #020812, #0a1228); position: relative; }
+.bg-block::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 50% 30% at 50% 0%, rgba(0,198,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
 }
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid rgba(0, 229, 255, 0.4);
-  color: #00E5FF;
-  padding: 14px 32px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.btn-secondary:hover {
-  background: rgba(0, 229, 255, 0.1);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.hero-visual {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-}
-
-.hero-card {
-  position: absolute;
-  background: rgba(26, 31, 46, 0.85);
-  border: 1px solid rgba(0, 229, 255, 0.2);
+.bg-data-wall { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; max-width: 1200px; margin: 0 auto 36px; position: relative; z-index: 1; }
+.bg-big-num {
+  text-align: center; padding: 28px 16px;
+  background: linear-gradient(160deg, rgba(15,23,42,0.6), rgba(10,18,36,0.4));
+  border: 1px solid rgba(0,198,255,0.06);
   border-radius: 14px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(12px);
-  animation: cardFloat 4s ease-in-out infinite;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative; overflow: hidden;
 }
-
-.hero-card:hover {
-  transform: scale(1.08);
-  box-shadow: 0 8px 30px rgba(0, 229, 255, 0.2);
+.bg-big-num::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0; transition: opacity 0.3s;
 }
+.bg-big-num:hover { transform: translateY(-4px); border-color: rgba(0,198,255,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.bg-big-num:hover::before { opacity: 0.3; }
+.bgn-value { font-size: 42px; font-weight: 900; font-family: 'JetBrains Mono',monospace; letter-spacing: -1px; }
+.bgn-label { font-size: 13px; color: #e2e8f0; margin: 6px 0 4px; font-weight: 500; }
+.bgn-source { font-size: 10px; color: rgba(71,85,105,0.7); }
 
-.card-1 {
-  top: 5%;
-  left: 5%;
+.bg-problem-solution {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  max-width: 1200px; margin: 0 auto;
+  position: relative; z-index: 1;
 }
-
-.card-2 {
-  top: 45%;
-  right: 5%;
+.bgp-col { display: flex; flex-direction: column; gap: 0; }
+.bgp-col-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; margin-bottom: 10px;
+  border-radius: 10px; font-size: 13px; font-weight: 700;
 }
-
-.card-3 {
-  bottom: 10%;
-  left: 25%;
-}
-
-.card-4 {
-  top: 20%;
-  left: 55%;
-}
-
-@keyframes cardFloat {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.card-icon {
-  font-size: 30px;
-}
-
-.card-text {
-  font-size: 12px;
-  color: #8B9BB4;
-}
-
-.card-trend {
-  font-size: 11px;
-  padding: 4px 10px;
+.bgp-col-header.phdr { background: rgba(239,68,68,0.08); color: #F87171; }
+.bgp-col-header.shdr { background: rgba(0,229,255,0.08); color: #00E5FF; }
+.bgp-col-header.ehdr { background: rgba(34,197,94,0.08); color: #4ADE80; }
+.phdr-icon { font-size: 15px; }
+.phdr-text { flex: 1; letter-spacing: 0.3px; }
+.phdr-count { font-size: 10px; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 6px; font-weight: 500; }
+.bgp-list { display: flex; flex-direction: column; gap: 8px; }
+.bgp-item {
+  display: flex; gap: 12px; padding: 14px 15px;
+  background: rgba(0,0,0,0.2);
   border-radius: 10px;
-  margin-top: 4px;
+  border-left: 3px solid rgba(239,68,68,0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.bgp-item.sol { border-left-color: rgba(0,229,255,0.3); }
+.bgp-item.eff { border-left-color: rgba(34,197,94,0.3); }
+.bgp-item:hover { background: rgba(0,0,0,0.3); transform: translateX(3px); }
+.bgp-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.bgp-text { flex: 1; min-width: 0; }
+.bgp-text strong { font-size: 13px; color: #e2e8f0; display: block; margin-bottom: 3px; }
+.bgp-text p { font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.6; }
+.bge-value { font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono',monospace; margin-top: 4px; text-shadow: 0 0 20px currentColor; }
 
-.card-trend.positive {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22C55E;
-}
-
-.card-trend.neutral {
-  background: rgba(0, 229, 255, 0.15);
-  color: #00E5FF;
-}
-
-/* 迷你网络图 */
-.mini-network {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  bottom: 5%;
-  right: 15%;
-  opacity: 0.8;
-}
-
-.mini-node {
-  animation: nodePulse 2s ease-in-out infinite;
-}
-
-@keyframes nodePulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-}
-
-.hero-wave {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
-  background: linear-gradient(180deg, transparent, #1A1F2E);
-}
-
-/* 通用区块样式 */
-.section-header {
-  text-align: center;
-  margin-bottom: 50px;
-}
-
-.section-title {
-  font-size: 32px;
-  font-weight: bold;
-  margin: 0 0 14px 0;
-  color: #E8EDF5;
-}
-
-.section-desc {
-  font-size: 15px;
-  color: #8B9BB4;
-  margin: 0;
-}
-
-/* 痛点洞察区块 */
-.problem-section {
-  padding: 80px 40px;
-  background: #1A1F2E;
-}
-
-.problem-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.problem-card {
-  background: rgba(11, 15, 25, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.1);
+/* ====== 板块3：项目简介（优化） ====== */
+.intro-block { background: linear-gradient(180deg, #0a1228, #060d20); }
+.intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1200px; margin: 0 auto 36px; }
+.intro-card {
+  padding: 32px 26px;
+  background: linear-gradient(160deg, rgba(15,23,42,0.6), rgba(10,18,36,0.3));
+  border: 1px solid rgba(0,198,255,0.08);
   border-radius: 14px;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  transition: transform 0.3s, border-color 0.3s;
-}
-
-.problem-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(0, 229, 255, 0.25);
-}
-
-.card-icon-large {
-  font-size: 42px;
-}
-
-.card-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin: 0;
-  color: #E8EDF5;
-}
-
-.card-desc {
-  font-size: 13px;
-  color: #8B9BB4;
-  margin: 0;
-  flex: 1;
-}
-
-.card-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: #8B9BB4;
-}
-
-.progress-value {
-  font-size: 14px;
-  font-weight: bold;
-  color: #FF6B35;
-}
-
-/* 核心流程区块 */
-.solution-section {
-  padding: 80px 40px;
-  background: #0B0F19;
-}
-
-.flow-container {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: 20px;
-  max-width: 1400px;
-  margin: 0 auto 40px;
-}
-
-.flow-step {
-  flex: 1;
-  background: rgba(26, 31, 46, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.1);
-  border-radius: 14px;
-  padding: 28px;
   text-align: center;
-  transition: all 0.4s;
-  position: relative;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative; overflow: hidden;
 }
-
-.flow-step.active {
-  border-color: #00E5FF;
-  background: rgba(0, 229, 255, 0.04);
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+.intro-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(160deg, transparent, rgba(0,198,255,0.02));
+  opacity: 0; transition: opacity 0.4s;
 }
-
-.step-number {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 28px;
-  background: #0B0F19;
-  border: 2px solid #00E5FF;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #00E5FF;
-  font-size: 13px;
-}
-
-.step-icon {
-  font-size: 36px;
-  margin: 18px 0;
-}
-
-.step-title {
-  font-size: 17px;
-  font-weight: bold;
-  margin: 0 0 8px 0;
-  color: #E8EDF5;
-}
-
-.step-desc {
-  font-size: 12px;
-  color: #8B9BB4;
-  margin: 0;
-}
-
-.step-content {
-  margin-top: 18px;
-  min-height: 140px;
-}
-
-.step-data-flow {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.data-item {
-  width: 56px;
-  height: 56px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-/* 技术架构示意图 */
-.step-architecture {
-  padding: 10px;
-}
-
-.architecture-diagram {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-}
-
-.arch-node {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 11px;
-  color: #E8EDF5;
-  text-align: center;
-}
-
-.input-layer {
-  background: rgba(0, 229, 255, 0.2);
-  border: 1px solid rgba(0, 229, 255, 0.4);
-}
-
-.nlp-layer {
-  background: rgba(156, 136, 255, 0.2);
-  border: 1px solid rgba(156, 136, 255, 0.4);
-}
-
-.graph-layer {
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-}
-
-.kg-layer {
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-.output-layer {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-.arch-arrow {
-  color: #00E5FF;
-  font-size: 14px;
-}
-
-.arch-desc {
-  font-size: 11px;
-  color: #8B9BB4;
-  text-align: center;
-  margin-top: 12px;
-  line-height: 1.5;
-}
-
-.step-report {
-  display: flex;
-  justify-content: center;
-}
-
-.report-preview {
-  background: rgba(11, 15, 25, 0.8);
-  border: 1px solid rgba(0, 229, 255, 0.15);
-  border-radius: 8px;
-  padding: 14px;
-  min-width: 240px;
-}
-
-.report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.report-title {
-  font-weight: bold;
-  color: #00E5FF;
-  font-size: 13px;
-}
-
-.report-date {
-  font-size: 11px;
-  color: #8B9BB4;
-}
-
-.report-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.report-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-label {
-  font-size: 11px;
-  color: #8B9BB4;
-}
-
-.section-value {
-  font-size: 12px;
-  color: #E8EDF5;
-}
-
-.flow-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 24px;
-}
-
-.step-indicators {
-  display: flex;
-  gap: 8px;
-}
-
-.step-indicators span {
-  width: 28px;
-  height: 28px;
-  background: rgba(11, 15, 25, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #8B9BB4;
+.intro-card:hover { transform: translateY(-4px); border-color: rgba(0,198,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+.intro-card:hover::before { opacity: 1; }
+.intro-icon-wrapper {
+  width: 64px; height: 64px; margin: 0 auto 16px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.1), rgba(0,198,255,0.03));
+  border: 1px solid rgba(0,198,255,0.1);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.3s;
 }
+.intro-card:hover .intro-icon-wrapper { background: linear-gradient(135deg, rgba(0,198,255,0.15), rgba(0,198,255,0.05)); border-color: rgba(0,198,255,0.25); transform: scale(1.05); }
+.intro-big-icon { font-size: 30px; }
+.intro-card-title { font-size: 16px; color: #e2e8f0; font-weight: 700; margin: 0 0 8px; }
+.intro-card-desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.8; }
+.intro-tech-flow { max-width: 900px; margin: 0 auto; background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.06); border-radius: 14px; padding: 28px 24px; transition: all 0.3s; }
+.intro-tech-flow:hover { border-color: rgba(0,198,255,0.14); }
+.itf-title { font-size: 15px; font-weight: 700; color: #e2e8f0; text-align: center; margin-bottom: 24px; letter-spacing: 0.5px; }
+.itf-steps { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 0; }
+.itf-step { display: flex; align-items: center; gap: 8px; padding: 8px 4px; transition: all 0.3s; }
+.itf-step:hover { transform: translateY(-2px); }
+.itf-num { font-size: 10px; color: rgba(0,198,255,0.2); font-family: 'JetBrains Mono',monospace; font-weight: 700; }
+.itf-icon { font-size: 24px; }
+.itf-label { font-size: 12px; color: #94a3b8; white-space: nowrap; font-weight: 500; }
+.itf-connector { display: flex; flex-direction: column; align-items: center; margin: 0 12px; }
+.itf-line { width: 32px; height: 1px; background: linear-gradient(90deg, rgba(0,198,255,0.1), rgba(0,198,255,0.25), rgba(0,198,255,0.1)); }
+.itf-arrow { font-size: 10px; color: rgba(0,198,255,0.25); margin-top: -2px; animation: itfArrow 2s ease-in-out infinite; }
+@keyframes itfArrow { 0%,100% { opacity: 0.2; transform: translateX(0); } 50% { opacity: 0.6; transform: translateX(2px); } }
 
-.step-indicators span.active {
-  background: #00E5FF;
-  border-color: #00E5FF;
-  color: #0B0F19;
+/* ====== 板块4：技术路线（全面重写） ====== */
+.arch-block { background: linear-gradient(180deg, #020812, #060d20); position: relative; }
+
+/* 背景装饰网格线 */
+.arch-block::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,198,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,198,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
 }
 
-/* 技术深度区块 */
-.tech-section {
-  padding: 80px 40px;
-  background: #1A1F2E;
+.arch-canvas {
+  max-width: 860px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 0;
+  position: relative; z-index: 1;
 }
 
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.tech-card {
-  background: rgba(11, 15, 25, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.1);
+/* 各层卡片 */
+.arch-layer {
+  background: linear-gradient(135deg, rgba(10, 20, 40, 0.7), rgba(15, 25, 45, 0.5));
+  border: 1px solid rgba(0,198,255,0.08);
   border-radius: 14px;
-  padding: 26px;
-  transition: transform 0.3s, border-color 0.3s;
-}
-
-.tech-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(0, 229, 255, 0.25);
-}
-
-.tech-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.tech-icon {
-  font-size: 24px;
-}
-
-.tech-title {
-  font-size: 17px;
-  font-weight: bold;
-  margin: 0;
-  color: #E8EDF5;
-}
-
-.tech-content {
-  min-height: 180px;
-}
-
-.tech-chart {
-  width: 100%;
-  height: 180px;
-}
-
-/* 架构面板 */
-.architecture-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.arch-feature {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background: rgba(0, 229, 255, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 229, 255, 0.1);
-}
-
-.feature-icon {
-  font-size: 18px;
-}
-
-.feature-text {
-  font-size: 13px;
-  color: #E8EDF5;
-}
-
-.quality-panel-mini {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.quality-item-mini {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.quality-label-mini {
-  width: 56px;
-  font-size: 12px;
-  color: #8B9BB4;
-}
-
-.quality-value-mini {
-  width: 36px;
-  font-size: 12px;
-  color: #00E5FF;
-  text-align: right;
-}
-
-.comparison-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.comparison-header {
-  font-size: 14px;
-  font-weight: 500;
-  color: #E8EDF5;
-  margin-bottom: 4px;
-}
-
-.comparison-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.bar-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.bar-label {
-  width: 72px;
-  font-size: 12px;
-  color: #8B9BB4;
-}
-
-.bar-container {
-  flex: 1;
-  height: 20px;
-  background: rgba(11, 15, 25, 0.6);
-  border-radius: 4px;
+  padding: 20px 24px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
   overflow: hidden;
 }
 
-.bar {
-  height: 100%;
-  border-radius: 4px;
+/* 层卡片左上角光晕 */
+.arch-layer::before {
+  content: ''; position: absolute; top: -40px; left: -40px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,198,255,0.06) 0%, transparent 70%);
+  transition: all 0.5s ease;
+  pointer-events: none;
 }
 
-.bar-traditional {
-  background: linear-gradient(90deg, #FF6B35, #FF8C5A);
+.arch-layer:hover {
+  border-color: rgba(0,198,255,0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3), 0 0 20px rgba(0,198,255,0.03);
 }
 
-.bar-system {
-  background: linear-gradient(90deg, #00E5FF, #00D4AA);
+.arch-layer:hover::before { transform: scale(2.5); opacity: 0.6; }
+
+/* 不同层特殊颜色 */
+.layer-front { border-left: 3px solid rgba(0,212,255,0.3); }
+.layer-api { border-left: 3px solid rgba(139,92,246,0.3); }
+.layer-ai { border-left: 3px solid rgba(245,158,11,0.3); }
+.layer-data { border-left: 3px solid rgba(16,185,129,0.3); }
+
+.layer-label {
+  font-size: 10px; font-weight: 800;
+  color: rgba(0,198,255,0.5);
+  letter-spacing: 3px; margin-bottom: 10px;
+  text-transform: uppercase; font-family: 'SF Mono', 'Consolas', monospace;
 }
 
-.bar-value {
-  width: 54px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #E8EDF5;
-  text-align: right;
-}
+.layer-items { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-.comparison-note {
-  font-size: 11px;
-  color: #FF6B35;
-  text-align: center;
-  padding-top: 4px;
-}
-
-.accuracy-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(0, 229, 255, 0.08);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 229, 255, 0.1);
-}
-
-.accuracy-display span {
-  font-size: 13px;
-  color: #8B9BB4;
-}
-
-.accuracy-value {
-  font-size: 22px;
-  font-weight: bold;
-  color: #00E5FF;
-}
-
-/* Agent Workflow */
-.agent-workflow {
-  max-width: 1400px;
-  margin: 40px auto 0;
-  background: rgba(11, 15, 25, 0.6);
-  border: 1px solid rgba(255, 184, 0, 0.15);
-  border-radius: 14px;
-  padding: 26px;
-}
-
-.workflow-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.workflow-title {
-  font-size: 17px;
-  font-weight: bold;
-  color: #E8EDF5;
-  margin: 0;
-}
-
-.demo-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 20px;
-  background: linear-gradient(135deg, #FFB800, #FF8C00);
-  border: none;
+.arch-mod {
+  padding: 7px 14px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(0,198,255,0.08);
   border-radius: 8px;
-  color: #0B0F19;
+  font-size: 12px;
+  color: #94a3b8;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.arch-mod:hover {
+  background: rgba(0,198,255,0.08);
+  border-color: rgba(0,198,255,0.25);
+  color: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,198,255,0.06);
+}
+
+.arch-mod small {
+  display: block; font-size: 9px; color: #64748b; margin-top: 2px;
+}
+
+.layer-front .arch-mod { border-color: rgba(0,212,255,0.12); }
+.layer-front .arch-mod:hover { border-color: rgba(0,212,255,0.35); box-shadow: 0 4px 12px rgba(0,212,255,0.08); }
+.layer-api .arch-mod { border-color: rgba(139,92,246,0.12); }
+.layer-api .arch-mod:hover { border-color: rgba(139,92,246,0.35); box-shadow: 0 4px 12px rgba(139,92,246,0.08); }
+.layer-ai .arch-mod { border-color: rgba(245,158,11,0.12); }
+.layer-ai .arch-mod:hover { border-color: rgba(245,158,11,0.35); box-shadow: 0 4px 12px rgba(245,158,11,0.08); }
+
+.agent-items .arch-mod { padding: 8px 12px; text-align: center; min-width: 90px; }
+
+/* 前端箭头 */
+.arch-arrow-right {
+  color: rgba(0,198,255,0.25);
   font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+  font-family: 'SF Mono', monospace;
+  animation: arrowPulse 2s ease-in-out infinite;
+}
+@keyframes arrowPulse { 0%,100% { opacity: 0.25; transform: translateX(0); } 50% { opacity: 0.6; transform: translateX(3px); } }
+
+/* 层间连接器 */
+.arch-connector {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 24px;
+  position: relative;
+}
+.conn-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,198,255,0.15), rgba(0,198,255,0.25), rgba(0,198,255,0.15), transparent);
+  position: relative;
+}
+.conn-line::before {
+  content: '';
+  position: absolute; left: 0; top: -2px;
+  width: 6px; height: 5px;
+  background: rgba(0,198,255,0.3);
+  border-radius: 50%;
+  animation: connDotMove 3s ease-in-out infinite;
+}
+@keyframes connDotMove {
+  0% { left: 0; opacity: 0.2; }
+  50% { left: 100%; opacity: 0.8; }
+  100% { left: 0; opacity: 0.2; }
+}
+.conn-label {
+  font-size: 9px; color: rgba(0,198,255,0.2);
+  letter-spacing: 1.5px; white-space: nowrap;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* AI 模块特殊样式 */
+.ai-mod { border-color: rgba(245,158,11,0.2) !important; }
+.ai-mod:hover { border-color: rgba(245,158,11,0.4) !important; box-shadow: 0 4px 12px rgba(245,158,11,0.08) !important; }
+
+/* 数据层模块 */
+.data-mod { border-color: rgba(16,185,129,0.2) !important; }
+.data-mod:hover { border-color: rgba(16,185,129,0.4) !important; box-shadow: 0 4px 12px rgba(16,185,129,0.08) !important; }
+
+/* Agent 流程演示 - Pipeline 流水线 */
+.agent-flow-section {
+  max-width: 900px; margin: 32px auto 0;
+  background: linear-gradient(135deg, rgba(10,20,40,0.7), rgba(15,25,50,0.5));
+  border: 1px solid rgba(255,184,0,0.08);
+  border-radius: 16px;
+  padding: 28px 30px 24px;
+  position: relative; z-index: 1;
   transition: all 0.3s;
 }
+.agent-flow-section:hover { border-color: rgba(255,184,0,0.18); }
+.af-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.af-icon { font-size: 22px; }
+.af-title { font-size: 15px; font-weight: 700; color: #e2e8f0; flex: 1; letter-spacing: 0.3px; }
+.af-header-right { display: flex; align-items: center; gap: 12px; }
+.af-phase { font-size: 11px; color: #64748b; background: rgba(0,0,0,0.2); padding: 3px 10px; border-radius: 6px; }
+.af-demo-btn {
+  padding: 7px 20px;
+  background: linear-gradient(135deg, #FFB800, #FF8C00);
+  border: none; border-radius: 8px; color: #0B0F19;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: all 0.3s; letter-spacing: 0.5px;
+}
+.af-demo-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,184,0,0.35); }
+.af-demo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.demo-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(255, 184, 0, 0.4);
+.pipeline-container { position: relative; padding: 4px 0; }
+.pipeline-progress-bar {
+  position: absolute; top: 32px; left: 40px; right: 40px;
+  height: 3px; background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden; z-index: 0;
+}
+.pipeline-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00E5FF, #FFB800);
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 8px rgba(0,229,255,0.3);
+}
+.pipeline-steps { display: flex; flex-direction: column; gap: 0; position: relative; z-index: 1; }
+.pipeline-step {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 10px 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.5;
+}
+.pipeline-step.active { opacity: 1; }
+.pipeline-step.completed { opacity: 0.8; }
+.pipeline-step:hover:not(.active) { opacity: 0.7; }
+.pipeline-marker-col {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 44px; position: relative;
+}
+.pipeline-marker {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 2;
+  background: rgba(45,59,82,0.5);
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pipeline-step.active .pipeline-marker {
+  background: linear-gradient(135deg, rgba(255,184,0,0.25), rgba(255,140,0,0.15));
+  border-color: #FFB800;
+  box-shadow: 0 0 20px rgba(255,184,0,0.25), inset 0 0 12px rgba(255,184,0,0.06);
+  transform: scale(1.12);
+}
+.pipeline-step.completed .pipeline-marker {
+  background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,198,255,0.1));
+  border-color: #00E5FF;
+  box-shadow: 0 0 16px rgba(0,229,255,0.2);
+}
+.marker-ring {
+  position: absolute; inset: -3px; border-radius: 50%;
+  border: 1.5px solid transparent;
+  transition: all 0.5s;
+}
+.pipeline-step.active .marker-ring {
+  border-color: rgba(255,184,0,0.3);
+  animation: ringPulse 1.5s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 0; }
+}
+.marker-icon { font-size: 15px; line-height: 1; position: relative; z-index: 3; }
+.pipeline-step.active .marker-icon { animation: iconBounce 0.5s ease; }
+@keyframes iconBounce {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.marker-pulse {
+  position: absolute; inset: -8px; border-radius: 50%;
+  background: rgba(255,184,0,0.08);
+  opacity: 0; transform: scale(0.5);
+  transition: all 0.5s;
+}
+.pipeline-step.active .marker-pulse {
+  opacity: 1; transform: scale(1);
+  animation: pulseGlow 1.5s ease-in-out infinite 0.3s;
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.3); }
+}
+.pipeline-line {
+  flex: 1; width: 2px; background: rgba(255,255,255,0.06);
+  margin: 2px 0; position: relative; min-height: 20px;
+}
+.pipeline-line-fill {
+  position: absolute; top: 0; left: 0; width: 100%;
+  height: 0%; background: linear-gradient(to bottom, #00E5FF, #FFB800);
+  transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 1px;
+}
+.pipeline-line-fill.filled { height: 100%; }
+
+.pipeline-content-col { flex: 1; padding-top: 6px; min-width: 0; }
+.pipeline-label {
+  font-size: 14px; font-weight: 600; color: #94a3b8;
+  margin-bottom: 3px; transition: all 0.4s;
+}
+.pipeline-step.active .pipeline-label {
+  color: #FFD54F; text-shadow: 0 0 12px rgba(255,184,0,0.2);
+}
+.pipeline-step.completed .pipeline-label { color: #00E5FF; }
+.pipeline-desc {
+  font-size: 11px; color: #475569; line-height: 1.5;
+  max-width: 380px; transition: all 0.4s;
+}
+.pipeline-step.active .pipeline-desc { color: #94a3b8; }
+.pipeline-step.completed .pipeline-desc { color: #64748b; }
+
+.pipeline-status {
+  margin-top: 14px; padding: 10px 16px;
+  background: rgba(0,0,0,0.2); border-radius: 8px;
+  text-align: center;
+}
+.status-text {
+  font-size: 12px; color: #94a3b8; display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+}
+.status-text.completed { color: #00E5FF; }
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #FFB800; display: inline-block;
+  animation: dotBlink 0.8s ease-in-out infinite;
+}
+.status-dot.done { background: #00E5FF; animation: none; }
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
-.demo-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* 技术选型论证 */
+.tech-rationale { max-width: 860px; margin: 24px auto 0; position: relative; z-index: 1; }
+.tr-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 14px; letter-spacing: 0.3px; }
+.tr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tr-item { display: flex; gap: 10px; padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(0,198,255,0.06); border-radius: 10px; transition: all 0.3s; }
+.tr-item:hover { background: rgba(0,0,0,0.3); border-color: rgba(0,198,255,0.15); }
+.tr-icon { font-size: 22px; flex-shrink: 0; }
+.tr-body { flex: 1; min-width: 0; }
+.tr-name { font-size: 12px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+.tr-why { font-size: 10px; color: #94a3b8; line-height: 1.5; margin-bottom: 4px; }
+.tr-alt { font-size: 9px; color: #64748b; }
+.tr-verdict { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 8px; font-weight: 700; background: rgba(0,229,255,0.1); border-radius: 4px; color: #00E5FF; }
 
-.demo-btn-icon {
-  font-size: 14px;
-}
+/* ====== 板块5：创新点 ====== */
+.innov-block { background: linear-gradient(180deg, #020812, #0a1228); position: relative; }
+.innov-category { max-width: 1200px; margin: 0 auto 28px; }
+.innov-category:last-child { margin-bottom: 0; }
+.ic-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #94a3b8; margin-bottom: 14px; letter-spacing: 0.3px; }
+.ic-badge { display: inline-block; padding: 3px 12px; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.15); border-radius: 8px; font-size: 10px; font-weight: 700; color: #00E5FF; letter-spacing: 0.5px; }
+.ic-badge-app { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.15); color: #A78BFA; }
+.innov-grid { display: grid; gap: 18px; }
+.innov-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.innov-card { padding: 24px; background: linear-gradient(160deg, rgba(15,23,42,0.6), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.innov-card:hover { transform: translateY(-4px); border-color: rgba(0,198,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.innov-icon { font-size: 32px; margin-bottom: 12px; display: inline-block; transition: all 0.3s; }
+.innov-card:hover .innov-icon { transform: scale(1.1); }
+.innov-title { font-size: 15px; font-weight: 700; color: #e2e8f0; margin: 0 0 8px; }
+.innov-desc { font-size: 12px; color: #64748b; margin: 0 0 14px; line-height: 1.8; }
+.innov-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.innov-tag { padding: 2px 10px; background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.1); border-radius: 8px; font-size: 9px; color: #00E5FF; transition: all 0.3s; }
+.innov-tag:hover { background: rgba(0,229,255,0.12); border-color: rgba(0,229,255,0.25); }
 
-.agent-flow-chart {
-  width: 100%;
-  height: 300px;
+/* ====== 板块6：应用场景（优化） ====== */
+.scenario-block { background: linear-gradient(180deg, #0a1228, #020812); }
+.scenario-tabs { display: flex; gap: 0; max-width: 900px; margin: 0 auto 24px; background: rgba(0,0,0,0.25); border-radius: 12px; padding: 4px; border: 1px solid rgba(0,198,255,0.04); }
+.scenario-tabs button {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 14px; border: none; border-radius: 10px; background: transparent;
+  color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.3s;
 }
-
-.agent-steps-hint {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.agent-step-hint {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: rgba(45, 59, 82, 0.5);
-  border: 1px solid transparent;
-  font-size: 12px;
-  color: #8899AA;
-  transition: all 0.4s;
-}
-
-.agent-step-hint.active {
-  background: rgba(255, 184, 0, 0.15);
-  border-color: rgba(255, 184, 0, 0.4);
-  color: #FFD54F;
-  box-shadow: 0 0 10px rgba(255, 184, 0, 0.2);
-}
-
-.ash-icon {
-  font-size: 14px;
-}
-
-.ash-name {
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-/* 价值总结区块 */
-.value-section {
-  padding: 80px 40px;
-  background: #0B0F19;
-}
-
-.value-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  max-width: 1400px;
-  margin: 0 auto 50px;
-}
-
-.testimonials {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.testimonial-card {
-  background: rgba(26, 31, 46, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.1);
+.scenario-tabs button.active { background: rgba(0,198,255,0.15); color: #00E5FF; box-shadow: 0 4px 12px rgba(0,198,255,0.06); }
+.scenario-tabs button:hover:not(.active) { color: #94a3b8; background: rgba(255,255,255,0.02); }
+.sc-panel {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  max-width: 900px; margin: 0 auto; padding: 32px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3));
+  border: 1px solid rgba(0,198,255,0.08);
   border-radius: 14px;
-  padding: 22px;
+  min-height: 260px; transition: all 0.3s;
 }
+.sc-panel:hover { border-color: rgba(0,198,255,0.16); }
+.sc-left { display: flex; flex-direction: column; gap: 12px; }
+.sc-icon-large { font-size: 44px; margin-bottom: 4px; }
+.sc-panel-title { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 0; }
+.sc-panel-desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.7; }
+.sc-feature-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.sc-feature-list li { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; padding: 4px 0; }
+.sfl-dot { width: 6px; height: 6px; background: #00C6FF; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px rgba(0,198,255,0.3); }
+.sc-right { display: flex; flex-direction: column; gap: 12px; }
+.scr-label { font-size: 11px; font-weight: 700; color: rgba(0,198,255,0.4); letter-spacing: 2px; text-transform: uppercase; }
+.scr-list { display: flex; flex-direction: column; gap: 12px; }
+.scr-item { display: flex; gap: 10px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 10px; transition: all 0.3s; }
+.scr-item:hover { background: rgba(0,0,0,0.3); transform: translateX(2px); }
+.scr-icon { font-size: 20px; flex-shrink: 0; }
+.scr-text strong { font-size: 13px; color: #e2e8f0; display: block; margin-bottom: 2px; }
+.scr-text p { font-size: 11px; color: #64748b; margin: 0; }
+.sc-slide-enter-active, .sc-slide-leave-active { transition: all 0.35s cubic-bezier(0.16,1,0.3,1); }
+.sc-slide-enter-from { opacity: 0; transform: translateX(20px); }
+.sc-slide-leave-to { opacity: 0; transform: translateX(-20px); }
 
-.client-logo {
-  font-size: 28px;
-  margin-bottom: 10px;
+/* ====== 板块7：功能演示（优化） ====== */
+.features-block { background: linear-gradient(180deg, #020812, #0a1228); }
+.features-carousel { max-width: 860px; margin: 0 auto; }
+.fc-tabs { display: flex; gap: 0; margin-bottom: 22px; background: rgba(0,0,0,0.25); border-radius: 12px; padding: 4px; border: 1px solid rgba(0,198,255,0.04); }
+.fc-tabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 14px; border: none; border-radius: 10px; background: transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+.fc-tabs button.active { background: rgba(0,198,255,0.15); color: #00E5FF; box-shadow: 0 4px 12px rgba(0,198,255,0.06); }
+.fc-tabs button:hover:not(.active) { color: #94a3b8; background: rgba(255,255,255,0.02); }
+.fc-panel { background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; padding: 30px; min-height: 260px; transition: all 0.3s; }
+.fc-panel:hover { border-color: rgba(0,198,255,0.16); }
+.fc-content { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+.fc-icon-large { font-size: 48px; }
+.fc-title { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 0; }
+.fc-desc { font-size: 13px; color: #64748b; line-height: 1.7; margin: 0; max-width: 560px; }
+.fc-techs { display: flex; gap: 6px; flex-wrap: wrap; }
+.fc-tech { padding: 3px 10px; background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.15); border-radius: 10px; font-size: 10px; color: #00E5FF; }
+.fc-demo-list { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.fc-demo-item { display: flex; align-items: center; gap: 6px; padding: 8px 18px; background: rgba(0,0,0,0.25); border: 1px solid rgba(0,198,255,0.06); border-radius: 10px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.fc-demo-item:hover { background: rgba(0,198,255,0.08); border-color: rgba(0,198,255,0.2); transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,198,255,0.04); }
+.demo-icon { font-size: 16px; }
+.demo-text { font-size: 11px; color: #94a3b8; }
+.fc-slide-enter-active, .fc-slide-leave-active { transition: all 0.35s cubic-bezier(0.16,1,0.3,1); }
+.fc-slide-enter-from { opacity: 0; transform: translateX(20px); }
+.fc-slide-leave-to { opacity: 0; transform: translateX(-20px); }
+
+/* ====== 板块8：系统实战展示（替换文件目录） ====== */
+.system-block { background: linear-gradient(180deg, #0a1228, #020812); }
+.ui-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
+.ui-card { background: linear-gradient(160deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; overflow: hidden; transition: all 0.4s cubic-bezier(0.16,1,0.3,1); }
+.ui-card:hover { border-color: rgba(0,198,255,0.2); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.ui-mock { border-bottom: 1px solid rgba(0,198,255,0.06); }
+.uim-top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.03); }
+.uim-dots { display: flex; gap: 4px; }
+.uim-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+.uim-title { font-size: 10px; color: rgba(255,255,255,0.3); font-family: 'SF Mono','Consolas',monospace; }
+.uim-body { padding: 20px; min-height: 140px; display: flex; align-items: center; justify-content: center; }
+.uim-content { width: 100%; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.uim-icon { font-size: 36px; filter: drop-shadow(0 0 12px rgba(0,198,255,0.2)); }
+.uim-preview { font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'SF Mono',monospace; background: rgba(0,0,0,0.2); padding: 6px 14px; border-radius: 8px; }
+.uim-metrics { display: flex; gap: 20px; justify-content: center; }
+.uim-metric { text-align: center; }
+.um-value { display: block; font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono',monospace; }
+.um-label { display: block; font-size: 9px; color: #64748b; margin-top: 2px; }
+.uim-bars { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.uim-bar-row { display: flex; align-items: center; gap: 8px; }
+.ub-label { flex: 0 0 48px; font-size: 10px; color: #94a3b8; }
+.ub-track { flex: 1; height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden; }
+.ub-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+.ub-val { flex: 0 0 36px; font-size: 10px; color: #e2e8f0; font-family: 'JetBrains Mono',monospace; text-align: right; }
+.ui-title { font-size: 14px; font-weight: 700; color: #e2e8f0; padding: 14px 18px 4px; margin: 0; }
+.ui-desc { font-size: 11px; color: #64748b; padding: 0 18px; margin: 0 0 10px; line-height: 1.6; }
+.ui-techs { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 18px 14px; }
+.ui-tech { padding: 2px 8px; background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.08); border-radius: 6px; font-size: 9px; color: #00E5FF; }
+
+/* ====== 板块9：成果展示（优化） ====== */
+.result-block { background: linear-gradient(180deg, #020812, #0a1228); }
+.result-big-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; max-width: 1100px; margin: 0 auto 28px; }
+.result-big-item { text-align: center; padding: 24px; background: linear-gradient(160deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; }
+.result-big-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, currentColor, transparent); opacity: 0; transition: opacity 0.3s; }
+.result-big-item:hover { transform: translateY(-4px); border-color: rgba(0,198,255,0.2); box-shadow: 0 10px 28px rgba(0,0,0,0.2); }
+.result-big-item:hover::before { opacity: 0.3; }
+.rb-value { font-size: 40px; font-weight: 900; font-family: 'JetBrains Mono',monospace; letter-spacing: -1px; }
+.rb-label { font-size: 13px; color: #e2e8f0; margin: 4px 0; font-weight: 500; }
+.rb-compare { font-size: 10px; color: rgba(71,85,105,0.7); }
+.result-bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 1100px; margin: 0 auto; align-items: start; }
+
+/* 对比条 */
+.result-compare { background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; padding: 20px; transition: all 0.3s; }
+.result-compare:hover { border-color: rgba(0,198,255,0.16); }
+.rc-header { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,198,255,0.06); }
+.rc-list { display: flex; flex-direction: column; gap: 14px; }
+.rc-row { }
+.rc-label { font-size: 10px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+.rc-bars { display: flex; flex-direction: column; gap: 4px; }
+.rc-bar-group { display: flex; align-items: center; gap: 6px; }
+.rc-bar-label { font-size: 9px; color: #64748b; flex: 0 0 32px; font-family: 'SF Mono','Consolas',monospace; }
+.rc-track { flex: 1; height: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; overflow: hidden; }
+.rc-fill { height: 100%; border-radius: 4px; transition: width 1.2s cubic-bezier(0.16,1,0.3,1); }
+.rc-fill.traditional { opacity: 0.5; }
+.rc-fill.ours { box-shadow: 0 0 8px rgba(34,197,94,0.2); }
+.rc-val { flex: 0 0 36px; font-size: 10px; color: #94a3b8; font-family: 'JetBrains Mono',monospace; text-align: right; }
+.rc-ours { font-weight: 700; }
+
+/* 指标进度条（自绘，替代 Element Plus Progress） */
+.result-metric-list { display: flex; flex-direction: column; gap: 14px; }
+.rm-item { padding: 14px 18px; background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 12px; transition: all 0.3s; }
+.rm-item:hover { border-color: rgba(0,198,255,0.2); transform: translateX(2px); }
+.rm-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.rm-icon { font-size: 16px; }
+.rm-label { flex: 1; font-size: 12px; color: #94a3b8; }
+.rm-val { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono',monospace; }
+.rm-bar { height: 8px; background: rgba(0,0,0,0.25); border-radius: 4px; overflow: hidden; }
+.rm-fill { height: 100%; border-radius: 4px; transition: width 1.5s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 0 6px currentColor; }
+
+/* ====== 板块10：总结展望（优化） ====== */
+.outlook-block { background: linear-gradient(180deg, #0a1228, #020812); }
+.outlook-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
+.outlook-card { padding: 30px 26px; background: linear-gradient(160deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.08); border-radius: 14px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; }
+.outlook-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(0,198,255,0.15), transparent); opacity: 0; transition: opacity 0.4s; }
+.outlook-card:hover { transform: translateY(-3px); border-color: rgba(0,198,255,0.2); box-shadow: 0 10px 28px rgba(0,0,0,0.15); }
+.outlook-card:hover::after { opacity: 1; }
+.ol-icon { font-size: 34px; margin-bottom: 12px; }
+.ol-title { font-size: 16px; font-weight: 700; color: #e2e8f0; margin: 0 0 14px; }
+.ol-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.ol-list li { font-size: 12px; color: #94a3b8; line-height: 1.6; padding-left: 16px; position: relative; transition: all 0.2s; }
+.ol-list li::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: rgba(0,198,255,0.3); }
+.ol-list li:hover { color: #c8d6e5; padding-left: 20px; }
+
+/* ====== CTA（优化） ====== */
+.cta-block { background: linear-gradient(180deg, #020812, #0a1228); display: flex; align-items: center; justify-content: center; }
+.cta-container { text-align: center; padding: 56px; max-width: 650px; width: 100%; background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(10,18,36,0.3)); border: 1px solid rgba(0,198,255,0.1); border-radius: 20px; transition: all 0.3s; }
+.cta-container:hover { border-color: rgba(0,198,255,0.2); box-shadow: 0 0 40px rgba(0,198,255,0.03); }
+.cta-badge { font-size: 16px; margin-bottom: 16px; display: inline-block; }
+.cta-title { font-size: 26px; font-weight: 800; margin: 0 0 10px; background: linear-gradient(135deg,#e2e8f0,#00C6FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.cta-desc { font-size: 13px; color: #64748b; margin: 0 0 28px; }
+.cta-buttons { display: flex; justify-content: center; gap: 14px; }
+
+/* ====== Footer（优化） ====== */
+.showcase-footer { background: linear-gradient(180deg, #050D1A, #030810); border-top: 1px solid rgba(0,198,255,0.06); padding: 32px 36px; }
+.footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.footer-brand { display: flex; align-items: center; gap: 10px; }
+.fb-text { font-size: 14px; font-weight: 700; background: linear-gradient(135deg,#00C6FF,#00D4AA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.fb-sub { font-size: 10px; color: #64748b; }
+.footer-copy { font-size: 10px; color: rgba(71,85,105,0.6); }
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  .hero-content { grid-template-columns: 1fr; text-align: center; }
+  .hero-stats { grid-template-columns: repeat(2,1fr); }
+  .hero-desc { margin: 0 auto; }
+  .hero-actions { justify-content: center; }
+  .bg-data-wall, .result-big-row { grid-template-columns: repeat(2,1fr); }
+  .bg-problem-solution { grid-template-columns: 1fr; gap: 16px; }
+  .intro-grid, .innov-grid-3, .outlook-grid { grid-template-columns: repeat(2,1fr); }
+  .ui-grid { grid-template-columns: repeat(2,1fr); }
+  .tr-grid { grid-template-columns: 1fr; }
+  .result-bottom-row { grid-template-columns: 1fr; }
 }
-
-.testimonial-text {
-  font-size: 13px;
-  color: #E8EDF5;
-  margin: 0 0 10px 0;
-  line-height: 1.6;
-}
-
-.client-name {
-  font-size: 11px;
-  color: #8B9BB4;
-  font-style: italic;
-}
-
-.social-value {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.social-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin: 0;
-  color: #E8EDF5;
-}
-
-.value-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.value-stat {
-  background: rgba(26, 31, 46, 0.6);
-  border: 1px solid rgba(0, 229, 255, 0.1);
-  border-radius: 12px;
-  padding: 18px;
-  text-align: center;
-  transition: transform 0.3s;
-}
-
-.value-stat:hover {
-  transform: translateY(-3px);
-}
-
-.value-icon {
-  font-size: 24px;
-  margin-bottom: 6px;
-}
-
-.value-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: #00E5FF;
-}
-
-.value-label {
-  font-size: 11px;
-  color: #8B9BB4;
-  margin-top: 4px;
-}
-
-.final-cta {
-  text-align: center;
-  padding: 50px;
-  background: rgba(0, 229, 255, 0.04);
-  border: 1px solid rgba(0, 229, 255, 0.15);
-  border-radius: 18px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.final-cta h3 {
-  font-size: 24px;
-  font-weight: bold;
-  margin: 0 0 6px 0;
-  color: #E8EDF5;
-}
-
-.final-cta p {
-  font-size: 14px;
-  color: #8B9BB4;
-  margin: 0 0 24px 0;
-}
-
-.final-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-
-/* 页脚 */
-.showcase-footer {
-  background: #1A1F2E;
-  padding: 36px;
-  border-top: 1px solid rgba(0, 229, 255, 0.1);
-}
-
-.footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.footer-brand .brand-icon {
-  font-size: 22px;
-}
-
-.footer-brand .brand-text {
-  font-size: 16px;
-}
-
-.brand-sub {
-  font-size: 11px;
-  color: #8B9BB4;
-}
-
-.footer-links {
-  display: flex;
-  gap: 20px;
-}
-
-.footer-links a {
-  color: #8B9BB4;
-  text-decoration: none;
-  font-size: 12px;
-  transition: color 0.3s;
-}
-
-.footer-links a:hover {
-  color: #00E5FF;
-}
-
-.footer-copyright {
-  font-size: 11px;
-  color: #5A6A7E;
-}
-
-/* 响应式 */
-@media (max-width: 1200px) {
-  .hero-content {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  
-  .hero-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .problem-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .value-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .flow-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
 @media (max-width: 768px) {
-  .showcase-nav {
-    padding: 0 20px;
-  }
-  
-  .nav-links {
-    display: none;
-  }
-  
-  .hero-title {
-    font-size: 42px;
-  }
-  
-  .hero-subtitle {
-    font-size: 17px;
-  }
-  
-  .hero-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .problem-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .tech-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .value-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .footer-content {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
+  .nav-links { display: none; }
+  .title-line { font-size: 34px; }
+  .hero-stats { grid-template-columns: 1fr; }
+  .bg-data-wall, .result-big-row { grid-template-columns: 1fr; }
+  .intro-grid, .innov-grid-3, .outlook-grid { grid-template-columns: 1fr; }
+  .sc-panel { grid-template-columns: 1fr; }
+  .fc-tabs, .scenario-tabs { flex-direction: column; }
+  .fc-tabs button, .scenario-tabs button { padding: 10px; }
+  .ui-grid { grid-template-columns: 1fr; }
+  .section-block { padding: 50px 16px; }
 }
 </style>

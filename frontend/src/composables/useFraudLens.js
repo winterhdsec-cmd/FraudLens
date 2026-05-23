@@ -11,6 +11,7 @@ import api, {
   connectSocket,
   disconnectSocket,
   login as apiLogin,
+  demoLogin as apiDemoLogin,
   ocrImage,
   getDashboardData,
   getActiveAlerts,
@@ -146,7 +147,7 @@ export function useFraudLens() {
       if (data.success) {
         loginProgress.value = 100
         setTimeout(() => {
-          store.login(data.user || { username: loginForm.value.username }, data.token)
+          store.login(data.user || { username: loginForm.value.username }, data.access_token || data.token, data.refresh_token)
           loginForm.value = { username: '', password: '' }
           ElMessage.success('登录成功')
         }, 300)
@@ -155,6 +156,33 @@ export function useFraudLens() {
       }
     } catch (err) {
       loginError.value = err.response?.data?.message || err.message || '登录失败，请检查网络连接'
+    } finally {
+      clearInterval(loginProgressTimer)
+      loginLoading.value = false
+    }
+  }
+
+  const handleDemoLogin = async () => {
+    loginLoading.value = true
+    loginProgress.value = 0
+    loginError.value = ''
+    loginProgressTimer = setInterval(() => {
+      if (loginProgress.value < 85) loginProgress.value += Math.random() * 3
+    }, 600)
+    try {
+      const data = await apiDemoLogin()
+      if (data.success) {
+        loginProgress.value = 100
+        setTimeout(() => {
+          store.login(data.user || { username: 'admin' }, data.access_token || data.token, data.refresh_token)
+          loginForm.value = { username: '', password: '' }
+          ElMessage.success('演示登录成功')
+        }, 300)
+      } else {
+        loginError.value = data.message || '演示登录失败'
+      }
+    } catch (err) {
+      loginError.value = err.response?.data?.detail || err.message || '演示登录失败'
     } finally {
       clearInterval(loginProgressTimer)
       loginLoading.value = false
@@ -180,8 +208,7 @@ export function useFraudLens() {
 
   const totalAmount = computed(() => {
     return gangs.value.reduce((sum, g) => {
-      const num = parseFloat(g.amount?.replace(/[^0-9.]/g, '') || 0)
-      return sum + (isNaN(num) ? 0 : num)
+      return sum + (g.amountRaw || 0)
     }, 0)
   })
 
@@ -256,36 +283,6 @@ export function useFraudLens() {
     })
   })
 
-  const relationNodes = computed(() => {
-    if (!gangs.value.length) return []
-    const nodes = []
-    const posX = ['50%', '25%', '75%', '35%', '65%']
-    const posY = ['25%', '45%', '45%', '70%', '70%']
-    const types = ['gang', 'case', 'case', 'money', 'money']
-    const icons = ['👥', '📋', '📋', '💰', '💰']
-    const labels = [gangs.value[0]?.gang_name || '团伙', '案件关联', '案件关联', '资金流向', '资金流向']
-    for (let i = 0; i < Math.min(5, gangs.value.length + 2); i++) {
-      nodes.push({
-        id: i + 1,
-        type: types[i] || 'gang',
-        icon: icons[i] || '👥',
-        label: i === 0 ? (gangs.value[0]?.gang_name || '团伙') : labels[i],
-        style: { left: posX[i] || '50%', top: posY[i] || '50%' }
-      })
-    }
-    return nodes
-  })
-
-  const relationLines = computed(() => {
-    if (!relationNodes.value.length) return []
-    return [
-      { id: 1, x1: '50%', y1: '25%', x2: '25%', y2: '45%' },
-      { id: 2, x1: '50%', y1: '25%', x2: '75%', y2: '45%' },
-      { id: 3, x1: '25%', y1: '45%', x2: '35%', y2: '70%' },
-      { id: 4, x1: '75%', y1: '45%', x2: '65%', y2: '70%' }
-    ]
-  })
-
   const caseEvidence = computed(() => {
     if (!selectedCase.value) return []
     return [
@@ -322,58 +319,6 @@ export function useFraudLens() {
   ]
 
   const defaultKeywords = ['冒充客服', '征信诈骗', '安全账户', '转账验证']
-
-  const caseTypeStats = computed(() => {
-    const typeMap = {}
-    cases.value.forEach(c => {
-      const t = c.type || c.scam_type || '其他'
-      typeMap[t] = (typeMap[t] || 0) + 1
-    })
-    const entries = Object.entries(typeMap)
-    if (!entries.length) return []
-    const total = entries.reduce((s, [, v]) => s + v, 0)
-    const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
-    return entries.map(([name, count], i) => ({
-      name, count,
-      percent: Math.round(count / total * 100),
-      color: colors[i % colors.length]
-    }))
-  })
-
-  const regionStats = computed(() => {
-    const regionMap = {}
-    cases.value.forEach(c => {
-      const addr = c.victim_address || c.description || ''
-      let region = '其他'
-      const knownRegions = ['广东','浙江','江苏','北京','上海','福建','四川','湖北','湖南','山东','河南']
-      for (const r of knownRegions) {
-        if (addr.includes(r)) { region = r; break }
-      }
-      regionMap[region] = (regionMap[region] || 0) + 1
-    })
-    const entries = Object.entries(regionMap)
-    if (!entries.length) return []
-    const total = entries.reduce((s, [, v]) => s + v, 0)
-    return entries.sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({
-      name, count,
-      percent: Math.round(count / total * 100)
-    }))
-  })
-
-  const semanticFingerprints = computed(() => {
-    if (!cases.value.length) return []
-    const types = {}
-    cases.value.forEach(c => {
-      const t = c.type || c.scam_type || '其他'
-      if (!types[t]) types[t] = { type: t, count: 0, totalAmount: 0, keywords: [] }
-      types[t].count++
-      types[t].totalAmount += Math.abs(c.amount_value || 0)
-      if (c.keywords && Array.isArray(c.keywords)) {
-        types[t].keywords = [...new Set([...types[t].keywords, ...c.keywords])].slice(0, 6)
-      }
-    })
-    return Object.values(types)
-  })
 
   const getParticleStyle = (i) => {
     const size = Math.random() * 4 + 2
@@ -476,9 +421,10 @@ export function useFraudLens() {
     const isImage = file.type.startsWith('image/')
     const isText = file.type === 'text/plain' || file.name.endsWith('.csv')
     const isDocx = file.name.endsWith('.docx')
+    const isPdf = file.name.endsWith('.pdf')
     const isLt10M = file.size / 1024 / 1024 < 10
-    if (!isImage && !isText && !isDocx) {
-      ElMessage.error('仅支持图片(JPG/PNG)、文本文件(TXT/CSV)或Word文档(DOCX)')
+    if (!isImage && !isText && !isDocx && !isPdf) {
+      ElMessage.error('仅支持图片(JPG/PNG)、文本(TXT/CSV)、Word(DOCX)或PDF文档')
       return false
     }
     if (!isLt10M) {
@@ -498,15 +444,23 @@ export function useFraudLens() {
       }
       reader.readAsDataURL(file)
     } else {
-      uploadedImages.value.push({ url: '', name: file.name, type: 'docx', content: '', _file: file })
+      uploadedImages.value.push({ url: '', name: file.name, type: isDocx ? 'docx' : 'pdf', content: '', _file: file })
     }
     return false
   }
 
   const gangIcons = ['🦈', '🐺', '🦊', '🐍', '🐯', '🦅']
 
-  const formatAmount = (amount) => {
-    const num = typeof amount === 'number' ? amount : parseFloat(amount) || 0
+  const parseRawAmount = (g) => {
+    if (g.total_amount_value != null && g.total_amount_value > 0) return g.total_amount_value
+    const raw = g.total_amount_involved || g.total_amount || g.amount || ''
+    if (typeof raw === 'number') return raw
+    const match = raw.match(/[\d.]+/)
+    const num = match ? parseFloat(match[0]) : 0
+    return raw.includes('万') ? num * 10000 : num
+  }
+
+  const formatAmountRaw = (num) => {
     if (num >= 10000) {
       return '¥' + (num / 10000).toFixed(1) + '万'
     }
@@ -550,61 +504,9 @@ export function useFraudLens() {
           }, 2000)
           return
         }
-        gangs.value = (response.gangs || []).map((g, idx) => ({
-          id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
-          name: g.gang_name || '未知团伙',
-          icon: gangIcons[idx % gangIcons.length],
-          riskLevel: g.risk_level || 'B',
-          amount: formatAmount(g.total_amount_involved),
-          cases: g.total_cases || 0,
-          tags: Array.isArray(g.fingerprint)
-            ? g.fingerprint.filter(Boolean)
-            : g.fingerprint
-              ? g.fingerprint.split(/[,，、]/).map(t => t.trim()).filter(Boolean)
-              : [],
-          members: Array.isArray(g.network_nodes)
-            ? g.network_nodes.slice(0, 6).map((n, i) => ({
-                id: i + 1,
-                name: n.label || n.id || '成员' + (i + 1),
-                icon: '👤',
-                role: n.role || n.type || '成员'
-              }))
-            : [],
-          timeline: (g.steps || []).map(s => ({
-            date: s.date || s.time || '',
-            title: s.title || s.name || '',
-            desc: s.description || s.desc || '',
-            type: s.type || '活动'
-          })),
-          evidence: [],
-          abilities: g.radar_data || { tech: 50, org: 50, antiDetect: 50 },
-          victims: g.total_cases || 0,
-          createTime: '',
-          updateTime: '刚刚'
-        }))
+        gangs.value = (response.gangs || []).map((g, idx) => mapGangForAnalysis(g, idx))
 
-        cases.value = (response.raw_cases || []).map(c => ({
-          id: c.case_id || 'C' + String(Math.random()).slice(2, 8),
-          title: (c.victim || '当事人') + '被诈骗案',
-          gang: c.related_gang_id || c.assigned_gang || '',
-          amount: formatAmount(c.amount),
-          status: c.is_error ? '待核查' : '已立案',
-          date: c.extracted_entities?.date || '',
-          region: c.extracted_entities?.address || '',
-          type: c.scam_type || '',
-          victims: 1,
-          victimName: c.victim || '',
-          victimGender: c.extracted_entities?.gender || '',
-          victimAge: c.extracted_entities?.age || '',
-          victimPhone: c.extracted_entities?.phone || '',
-          victimJob: c.extracted_entities?.job || '',
-          victimAddress: c.extracted_entities?.address || '',
-          scamPhone: c.extracted_entities?.scam_phone || '',
-          phoneLocation: c.extracted_entities?.phone_location || '',
-          scamUrl: c.extracted_entities?.url || '',
-          ipAddress: c.extracted_entities?.ip || '',
-          description: c.ai_report || ''
-        }))
+        cases.value = (response.raw_cases || []).map(c => mapCaseForAnalysis(c))
 
         selectedCase.value = cases.value[0] || null
         const gangCount = response.gangs?.length || 0
@@ -619,7 +521,7 @@ export function useFraudLens() {
       }
     } catch (err) {
       showProgress.value = false
-      ElMessage.error('分析请求异常: ' + (err.message || '网络错误'))
+      ElMessage.error('分析请求异常: ' + (err?.message || '网络错误'))
     } finally {
       loading.value = false
     }
@@ -642,7 +544,7 @@ export function useFraudLens() {
     return c ? c.title : '未知案件'
   }
 
-  const startImageAnalysis = async () => {
+  const startImageAnalysis = async (mode = 'auto') => {
     if (!uploadedImages.value.length) {
       ElMessage.warning('请先上传文件')
       return
@@ -664,17 +566,24 @@ export function useFraudLens() {
             const res = await fetch(item.url)
             const blob = await res.blob()
             const file = new File([blob], item.name, { type: blob.type })
-            const ocrRes = await ocrImage(file)
-            if (ocrRes.success && ocrRes.text) {
-              allText += (allText ? '\n---\n' : '') + ocrRes.text
+            const formData = new FormData()
+            formData.append('file', file)
+            const r = await api.post(`/api/analyze-file?mode=${mode}`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 180000
+            })
+            if (r.data.success && r.data.text) {
+              const methodLabel = { ocr: '📝OCR', vision: '🧠视觉', direct: '📄直接' }
+              const tag = methodLabel[r.data.method] || r.data.method
+              allText += (allText ? '\n---\n' : '') + `[${item.name} | ${tag}]\n` + r.data.text
             }
           } catch (ocrErr) {
-            console.warn(`图片 OCR 识别失败:`, ocrErr)
-            ElMessage.warning(`"${item.name}" 文字识别失败，已跳过`)
+            console.warn(`图片处理失败:`, ocrErr)
+            ElMessage.warning(`"${item.name}" 处理失败，已跳过`)
           }
         } else if (item.type === 'text' && item.content) {
           allText += (allText ? '\n---\n' : '') + item.content
-        } else if (item.type === 'docx') {
+        } else if (item.type === 'docx' || item.type === 'pdf') {
           try {
             const formData = new FormData()
             formData.append('file', item._file)
@@ -707,7 +616,7 @@ export function useFraudLens() {
     } catch (e) {
       showProgress.value = false
       loading.value = false
-      ElMessage.error('文件处理失败: ' + (e.message || '未知错误'))
+      ElMessage.error('文件处理失败: ' + (e?.message || '未知错误'))
     }
   }
 
@@ -779,25 +688,123 @@ export function useFraudLens() {
   }
 
   const downloadReport = async () => {
-    ElMessage.success('正在生成下载文件...')
-    if (reportConfig.value.type === 'gang' && reportConfig.value.gangId) {
-      const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
-      if (gang) {
-        const fmt = reportConfig.value.format === 'pdf' ? 'pdf' : 'docx'
-        try {
-          const r = await api.get('/api/reports/gang/' + gang.gang_id, { params: { format: fmt } })
-          if (r.data.success && r.data.file_path) {
-            const a = document.createElement('a')
-            a.href = api.defaults.baseURL + r.data.file_path
-            a.download = gang.gang_name + '_报告.' + fmt
-            a.click()
-            ElMessage.success('下载已启动')
-          }
-        } catch (e) {
-          ElMessage.warning('报告下载接口暂不可用，请稍后重试')
-        }
-      }
+    ElMessage.info('正在生成报告文件...')
+    const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
+    const gangName = gang?.gang_name || gang?.name || '报告'
+    const title = getReportTitle()
+
+    const htmlContent = generateReportHTML(title, gangName)
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title}_${gangName}_${Date.now()}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    ElMessage.success('报告下载完成')
+  }
+
+  function generateReportHTML(title, gangName) {
+    const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
+    const sections = []
+
+    sections.push(`
+      <div class="doc-header">
+        <div class="doc-logo"><span class="logo-icon">🛡️</span><span class="logo-text">反诈情报分析系统</span></div>
+        <div class="doc-title">${title}</div>
+        <div class="doc-meta">
+          <div><span class="meta-label">报告编号：</span>RPT-${Date.now().toString().slice(-8)}</div>
+          <div><span class="meta-label">生成时间：</span>${new Date().toLocaleString()}</div>
+          <div><span class="meta-label">密级：</span><span class="meta-secret">机密</span></div>
+        </div>
+      </div>
+      <div class="doc-content">
+    `)
+
+    sections.push(`<div class="doc-section">
+      <div class="section-title">一、${reportConfig.value.type === 'case' ? '案件' : '团伙'}基本信息</div>
+      <div class="section-body">
+        <div class="info-table">
+          <div class="info-row"><span class="info-label">${reportConfig.value.type === 'case' ? '案件' : '团伙'}名称</span><span class="info-value">${gangName}</span></div>
+          <div class="info-row"><span class="info-label">风险等级</span><span class="info-value">${gang?.riskLevel || '-'}级</span></div>
+          <div class="info-row"><span class="info-label">涉案金额</span><span class="info-value danger">${gang?.amount || '-'}</span></div>
+          <div class="info-row"><span class="info-label">关联案件</span><span class="info-value">${gang?.cases || 0} 起</span></div>
+          <div class="info-row"><span class="info-label">技术特征</span><span class="info-value">${(gang?.tags || []).join('、') || '-'}</span></div>
+        </div>
+      </div>
+    </div>`)
+
+    if (reportConfig.value.includeTimeline) {
+      const timeline = gang?.timeline || []
+      const items = timeline.length ? timeline.map(t =>
+        `<div class="doc-timeline-item"><span class="doc-time">${t.date || '-'}</span><span class="doc-event">${t.title || ''}</span><span class="doc-desc">${t.desc || ''}</span></div>`
+      ).join('\n') : `<div class="doc-timeline-item"><span class="doc-time">-</span><span class="doc-event">案件发生</span><span class="doc-desc">${gangName}相关案件</span></div>`
+      sections.push(`<div class="doc-section">
+        <div class="section-title">二、作案时间线</div>
+        <div class="section-body"><div class="doc-timeline">${items}</div></div>
+      </div>`)
     }
+
+    if (reportConfig.value.includeMoney) {
+      sections.push(`<div class="doc-section">
+        <div class="section-title">三、资金流向分析</div>
+        <div class="section-body">
+          <div class="money-flow-summary">
+            <p>经分析，该${reportConfig.value.type === 'case' ? '案件' : '团伙'}涉案资金主要通过多级账户进行转移。资金流转层级约3-5层，涉及多家银行的多个账户，最终资金流向境外或虚拟货币平台。</p>
+          </div>
+        </div>
+      </div>`)
+    }
+
+    if (reportConfig.value.includeSuggestion) {
+      sections.push(`<div class="doc-section">
+        <div class="section-title">四、处置建议</div>
+        <div class="section-body">
+          <div class="suggestion-list">
+            <div class="suggestion-item"><span class="suggestion-num">1</span><span>建议立即对涉案账户进行止付冻结</span></div>
+            <div class="suggestion-item"><span class="suggestion-num">2</span><span>协调银行调取完整交易流水</span></div>
+            <div class="suggestion-item"><span class="suggestion-num">3</span><span>对团伙成员实施布控</span></div>
+            <div class="suggestion-item"><span class="suggestion-num">4</span><span>启动跨部门联合处置机制</span></div>
+          </div>
+        </div>
+      </div>`)
+    }
+    sections.push(`</div><div class="doc-footer"><div class="footer-line"></div><div class="footer-text"><span>本报告由反诈情报分析系统自动生成</span><span>仅供内部参考使用</span></div></div>`)
+
+    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${title} - ${gangName}</title>
+<style>
+body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding: 40px; margin: 0; display: flex; justify-content: center; }
+.report-wrap { max-width: 800px; width: 100%; background: linear-gradient(135deg, #1a2332 0%, #0f1923 100%); padding: 32px 40px; border-radius: 8px; border: 1px solid #2d4054; color: #c8d6e5; font-size: 13px; line-height: 1.8; }
+.doc-header { text-align: center; padding-bottom: 16px; border-bottom: 3px solid #2d5b7a; margin-bottom: 16px; }
+.doc-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+.logo-icon { font-size: 24px; }
+.logo-text { font-size: 14px; color: #5b8db8; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.doc-title { font-size: 17px; color: #e8eef5; font-weight: 700; margin-bottom: 10px; letter-spacing: 1px; }
+.doc-meta { display: flex; justify-content: center; gap: 20px; font-size: 11px; color: #8899aa; flex-wrap: wrap; }
+.meta-secret { color: #e74c3c; font-weight: 600; }
+.doc-section { margin-bottom: 14px; }
+.section-title { font-size: 14px; color: #e8eef5; font-weight: 600; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2d4054; }
+.section-body { padding-left: 6px; font-size: 12px; color: #b0c4d8; }
+.info-table { display: flex; flex-direction: column; gap: 3px; }
+.info-row { display: flex; padding: 3px 0; border-bottom: 1px dashed #2a3a4a; }
+.info-label { width: 90px; color: #7a8a9a; flex-shrink: 0; font-size: 11px; }
+.info-value { flex: 1; color: #c8d6e5; font-size: 12px; }
+.info-value.danger { color: #e74c3c; font-weight: 600; }
+.doc-timeline { display: flex; flex-direction: column; gap: 4px; }
+.doc-timeline-item { display: flex; gap: 8px; padding: 5px 10px; background: rgba(45,64,84,0.3); border-radius: 4px; }
+.doc-time { font-size: 11px; color: #7a8a9a; width: 80px; flex-shrink: 0; }
+.doc-event { font-size: 12px; color: #c8d6e5; font-weight: 500; width: 100px; flex-shrink: 0; }
+.doc-desc { font-size: 11px; color: #8899aa; }
+.money-flow-summary { font-size: 12px; color: #b0c4d8; line-height: 1.7; }
+.suggestion-list { display: flex; flex-direction: column; gap: 5px; }
+.suggestion-item { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #b0c4d8; }
+.suggestion-num { width: 20px; height: 20px; background: #2d5b7a; color: #e8eef5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.doc-footer { text-align: center; padding-top: 14px; }
+.footer-line { height: 1px; background: #2d4054; margin-bottom: 6px; }
+.footer-text { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: #5a6a7a; }
+</style></head><body><div class="report-wrap">${sections.join('\n')}</div></body></html>`
   }
 
   const loadDashboard = async () => {
@@ -825,7 +832,7 @@ export function useFraudLens() {
         ElMessage.error('获取看板数据失败: ' + (data.message || '服务器返回异常'))
       }
     } catch (err) {
-      ElMessage.error('获取看板数据异常: ' + (err.message || '网络错误'))
+      ElMessage.error('获取看板数据异常: ' + (err?.message || '网络错误'))
     } finally {
       dashboardLoading.value = false
     }
@@ -997,7 +1004,7 @@ export function useFraudLens() {
         ElMessage.error('获取预警信息失败: ' + (data.message || '服务器返回异常'))
       }
     } catch (err) {
-      ElMessage.error('获取预警信息异常: ' + (err.message || '网络错误'))
+      ElMessage.error('获取预警信息异常: ' + (err?.message || '网络错误'))
     } finally {
       alertsLoading.value = false
     }
@@ -1017,6 +1024,7 @@ export function useFraudLens() {
       flowGraphData.value = graphR.data.graph || graphR.data.data || null
     } catch (e) {
       console.error('loadFlowData:', e)
+      ElMessage.error('资金流向数据加载失败')
     }
   }
   const loadFlowMetrics = async () => {
@@ -1032,6 +1040,7 @@ export function useFraudLens() {
       }
     } catch (e) {
       console.error('loadFlowMetrics:', e)
+      ElMessage.error('资金流向统计数据加载失败')
     }
   }
   const addFlowRecord = (row) => {
@@ -1045,6 +1054,7 @@ export function useFraudLens() {
       dispatchOrders.value = r.data.orders || r.data.dispatch_orders || r.data.data || []
     } catch (e) {
       console.error('loadDispatchOrders:', e)
+      ElMessage.error('派单数据加载失败')
     }
   }
   const signDispatch = async (id) => {
@@ -1083,6 +1093,7 @@ export function useFraudLens() {
       keyPersons.value = r.data.persons || r.data.data || []
     } catch (e) {
       console.error('loadKeyPersons:', e)
+      ElMessage.error('重点人员数据加载失败')
     }
   }
   const deleteKeyPerson = async (id) => {
@@ -1094,28 +1105,23 @@ export function useFraudLens() {
     }
   }
 
-  let searchDebounceTimer = null
-
   const handleSearchInput = async (query) => {
     searchQuery.value = query
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
     if (!query || query.trim().length < 1) {
       searchResults.value = []
       return
     }
-    searchDebounceTimer = setTimeout(async () => {
-      searchLoading.value = true
-      try {
-        const r = await searchCases(query.trim())
-        if (r.success) {
-          searchResults.value = (r.cases || []).slice(0, 8)
-        }
-      } catch (e) {
-        console.error('搜索失败:', e)
-      } finally {
-        searchLoading.value = false
+    searchLoading.value = true
+    try {
+      const r = await searchCases(query.trim())
+      if (r.success) {
+        searchResults.value = (r.cases || []).slice(0, 8)
       }
-    }, 300)
+    } catch (e) {
+      console.error('搜索失败:', e)
+    } finally {
+      searchLoading.value = false
+    }
   }
 
   const handleSearchSelect = async (caseItem) => {
@@ -1156,7 +1162,7 @@ export function useFraudLens() {
         ElMessage.error('处置失败: ' + (data.message || '服务器返回异常'))
       }
     } catch (err) {
-      ElMessage.error('处置异常: ' + (err.message || '网络错误'))
+      ElMessage.error('处置异常: ' + (err?.message || '网络错误'))
     } finally {
       resolvingAlert.value = null
     }
@@ -1181,7 +1187,20 @@ export function useFraudLens() {
 
   const initCharts = () => {
     nextTick(() => {
-      const typeStats = caseTypeStats.value
+      const typeMap = {}
+      cases.value.forEach(c => {
+        const t = c.type || c.scam_type || '其他'
+        typeMap[t] = (typeMap[t] || 0) + 1
+      })
+      const entries = Object.entries(typeMap)
+      let typeStats = []
+      if (entries.length) {
+        const total = entries.reduce((s, [, v]) => s + v, 0)
+        const colors = ['#ef4444','#f59e0b','#8b5cf6','#00d4ff','#10b981','#ec4899']
+        typeStats = entries.map(([name, count], i) => ({
+          name, count, percent: Math.round(count / total * 100), color: colors[i % colors.length]
+        }))
+      }
       if (pieChartRef.value && typeStats.length) {
         if (pieChart) {
           pieChart.dispose()
@@ -1261,59 +1280,199 @@ export function useFraudLens() {
     })
   }
 
+  function mapGangFromResponse(g, idx) {
+    const rawAmt = parseRawAmount(g)
+    return {
+      id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+      gang_id: g.gang_id || '',
+      name: g.gang_name || '未知团伙',
+      gang_name: g.gang_name || '',
+      icon: gangIcons[idx % gangIcons.length],
+      riskLevel: g.risk_level || 'B',
+      risk_label: g.risk_label || '',
+      amount: formatAmountRaw(rawAmt),
+      amountRaw: rawAmt,
+      total_amount_involved: g.total_amount_involved || g.total_amount || '',
+      total_amount: g.total_amount || g.total_amount_involved || 0,
+      totalAmount: g.total_amount_involved || g.total_amount || 0,
+      total_cases: g.total_cases || 0, cases: g.total_cases || 0,
+      case_count: g.case_count || g.total_cases || 0,
+      tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
+      members: Array.isArray(g.network_nodes) ? g.network_nodes.slice(0, 6).map((n, i) => ({
+        id: i + 1,
+        name: n.label || n.id || n.name || ('成员' + (i + 1)),
+        icon: '👤',
+        role: n.role || n.type || '成员'
+      })) : [],
+      score: g.comprehensive_score || 0,
+      comprehensive_score: g.comprehensive_score || 0,
+      confidence: g.confidence || 0,
+      risk_score: g.risk_score || 0,
+      member_count: g.member_count || 0,
+      member_count_estimate: g.member_count_estimate || '',
+      team_size: g.team_size || 0,
+      tech_level: g.tech_level || '', script_type: g.script_type || '',
+      description: g.description || '',
+      fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
+      related_cases: Array.isArray(g.related_cases) ? g.related_cases : [],
+      leader_name: g.leader_name || '',
+      leader_role: g.leader_role || '',
+      sub_leader: g.sub_leader || '',
+      core_member: g.core_member || '',
+      sub_role: g.sub_role || '',
+      victim_count: g.victim_count || 0,
+      account_count: g.account_count || 0,
+      total_accounts: g.total_accounts || 0,
+      max_level: g.max_level || 0,
+      transfer_levels: g.transfer_levels || 0,
+      overseas_pct: g.overseas_pct || 0,
+      overseas_ratio: g.overseas_ratio || 0,
+      region: g.region || '',
+      area: g.area || '',
+      gang_type: g.gang_type || '',
+      updateTime: '刚刚'
+    }
+  }
+
+  function mapCaseFromResponse(c) {
+    return {
+      id: c.case_id, case_id: c.case_id,
+      title: c.title || (c.victim || c.victim_name || '当事人') + '被诈骗案',
+      amount: c.amount, amount_value: c.amount_value || 0,
+      scam_type: c.scam_type || '', type: c.scam_type || '',
+      status: c.status || '已立案', risk_level: c.risk_level || '',
+      victimName: c.victim || c.victim_name || '',
+      victimGender: c.victim_gender || '', victimAge: c.victim_age || '',
+      victimPhone: c.victim_phone || '', victimJob: c.victim_job || '',
+      victimAddress: c.victim_address || '',
+      description: c.description || '',
+      keywords: Array.isArray(c.keywords) ? c.keywords : [],
+      date: c.created_at || ''
+    }
+  }
+
+  function mapGangForAnalysis(g, idx) {
+    const rawAmt = parseRawAmount(g)
+    return {
+      id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
+      gang_id: g.gang_id || '',
+      name: g.gang_name || '未知团伙',
+      gang_name: g.gang_name || '',
+      icon: gangIcons[idx % gangIcons.length],
+      riskLevel: g.risk_level || 'B',
+      risk_level: g.risk_level || 'B',
+      risk_label: g.risk_label || '',
+      amount: formatAmountRaw(rawAmt),
+      amountRaw: rawAmt,
+      total_amount_involved: g.total_amount_involved || g.total_amount || '',
+      total_amount: g.total_amount || g.total_amount_involved || 0,
+      totalAmount: rawAmt,
+      cases: g.total_cases || 0,
+      total_cases: g.total_cases || 0,
+      case_count: g.case_count || g.total_cases || 0,
+      caseIds: (g.related_cases || []).map(c => c.case_id || c),
+      related_cases: g.related_cases || [],
+      tags: Array.isArray(g.fingerprint)
+        ? g.fingerprint.filter(Boolean)
+        : g.fingerprint
+          ? g.fingerprint.split(/[,，、]/).map(t => t.trim()).filter(Boolean)
+          : [],
+      fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
+      members: Array.isArray(g.network_nodes)
+        ? g.network_nodes.slice(0, 6).map((n, i) => ({
+            id: i + 1,
+            name: n.label || n.id || '成员' + (i + 1),
+            icon: '👤',
+            role: n.role || n.type || '成员'
+          }))
+        : [],
+      network_nodes: g.network_nodes || [],
+      timeline: (g.steps || []).map(s => ({
+        date: s.date || s.time || '',
+        title: s.title || s.name || '',
+        desc: s.description || s.desc || '',
+        type: s.type || '活动'
+      })),
+      steps: g.steps || [],
+      evidence: [],
+      abilities: g.radar_data || { tech: 50, org: 50, antiDetect: 50 },
+      radar_data: g.radar_data || {},
+      victims: g.total_cases || 0,
+      comprehensive_score: g.comprehensive_score || 0,
+      confidence: g.confidence || 0,
+      risk_score: g.risk_score || 0,
+      description: g.description || '',
+      gang_type: g.gang_type || g.script_type || '',
+      script_type: g.script_type || '',
+      leader_name: g.leader_name || '',
+      member_count: g.member_count || 0,
+      account_count: g.account_count || 0,
+      total_accounts: g.total_accounts || 0,
+      transfer_levels: g.transfer_levels || 0,
+      overseas_pct: g.overseas_pct || 0,
+      region: g.region || '',
+      createTime: '',
+      updateTime: '刚刚'
+    }
+  }
+
+  function mapCaseForAnalysis(c) {
+    const rawAmt = c.amount_value || (() => {
+      const m = (c.amount || '').match(/[\d.]+/)
+      const n = m ? parseFloat(m[0]) : 0
+      return (c.amount || '').includes('万') ? n * 10000 : n
+    })()
+    return {
+      id: c.case_id || 'C' + String(Math.random()).slice(2, 8),
+      case_id: c.case_id || '',
+      title: (c.victim || '当事人') + '被诈骗案',
+      gang: c.related_gang_id || c.assigned_gang || '',
+      related_gang_id: c.related_gang_id || c.assigned_gang || '',
+      amount: formatAmountRaw(rawAmt),
+      amountRaw: rawAmt,
+      amount_value: rawAmt,
+      status: c.is_error ? '待核查' : '已立案',
+      date: c.extracted_entities?.date || c.created_at || '',
+      region: c.extracted_entities?.address || '',
+      type: c.scam_type || '',
+      scam_type: c.scam_type || '',
+      risk_level: c.risk_level || '',
+      victims: 1,
+      victimName: c.victim || '',
+      victim: c.victim || '',
+      victim_name: c.victim || c.victim_name || '',
+      victimGender: c.extracted_entities?.gender || '',
+      victimAge: c.extracted_entities?.age || '',
+      victimPhone: c.extracted_entities?.phone || '',
+      victimJob: c.extracted_entities?.job || '',
+      victimAddress: c.extracted_entities?.address || '',
+      scamPhone: c.extracted_entities?.scam_phone || '',
+      phoneLocation: c.extracted_entities?.phone_location || '',
+      extracted_entities: c.extracted_entities || {},
+      keywords: Array.isArray(c.keywords) ? c.keywords : [],
+      ai_report: c.ai_report || '',
+      description: c.description || c.ai_report || '',
+      roles: c.roles || [],
+      steps: c.steps || [],
+      warning: c.warning || '',
+      is_error: c.is_error || false
+    }
+  }
+
   const reloadCasesAndGangs = async () => {
     try {
       const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
       if (casesRes.success) {
         const caseData = casesRes.cases || casesRes.data || []
-        cases.value = caseData.map(c => ({
-          id: c.case_id, case_id: c.case_id,
-          title: c.title || (c.victim || c.victim_name || '当事人') + '被诈骗案',
-          amount: c.amount, amount_value: c.amount_value || 0,
-          scam_type: c.scam_type || '', type: c.scam_type || '',
-          status: c.status || '已立案', risk_level: c.risk_level || '',
-          victimName: c.victim || c.victim_name || '',
-          victimGender: c.victim_gender || '', victimAge: c.victim_age || '',
-          victimPhone: c.victim_phone || '', victimJob: c.victim_job || '',
-          victimAddress: c.victim_address || '',
-          description: c.description || '',
-          keywords: Array.isArray(c.keywords) ? c.keywords : [],
-          date: c.created_at || ''
-        }))
+        cases.value = caseData.map(c => mapCaseFromResponse(c))
       }
       if (gangsRes.success) {
         const gangData = gangsRes.gangs || gangsRes.data || []
-        gangs.value = gangData.map((g, idx) => ({
-          id: g.gang_id || 'G' + String(idx + 1).padStart(3, '0'),
-          gang_id: g.gang_id || '',
-          name: g.gang_name || '未知团伙',
-          gang_name: g.gang_name || '',
-          icon: gangIcons[idx % gangIcons.length],
-          riskLevel: g.risk_level || 'B',
-          risk_label: g.risk_label || '',
-          amount: formatAmount(g.total_amount_involved || g.total_amount),
-          total_amount_involved: g.total_amount_involved || g.total_amount || '',
-          total_cases: g.total_cases || 0, cases: g.total_cases || 0,
-          tags: Array.isArray(g.fingerprint) ? g.fingerprint.filter(Boolean) : [],
-          members: Array.isArray(g.network_nodes) ? g.network_nodes.slice(0, 6).map((n, i) => ({
-            id: i + 1,
-            name: n.label || n.id || n.name || ('成员' + (i + 1)),
-            icon: '👤',
-            role: n.role || n.type || '成员'
-          })) : [],
-          score: g.comprehensive_score || 0,
-          comprehensive_score: g.comprehensive_score || 0,
-          confidence: g.confidence || 0,
-          member_count_estimate: g.member_count_estimate || '',
-          tech_level: g.tech_level || '', script_type: g.script_type || '',
-          description: g.description || '',
-          fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
-          related_cases: Array.isArray(g.related_cases) ? g.related_cases : [],
-          updateTime: '刚刚'
-        }))
+        gangs.value = gangData.map((g, idx) => mapGangFromResponse(g, idx))
       }
     } catch (e) {
       console.warn('刷新数据失败:', e)
+      ElMessage.error('数据加载失败，请检查后端服务是否正常运行')
     }
   }
 
@@ -1350,11 +1509,14 @@ export function useFraudLens() {
         try {
           await seedData()
           loadingMsg.close()
-          ElMessage.success('示例数据加载成功！即将刷新页面...')
-          setTimeout(() => window.location.reload(), 800)
+          ElMessage.success('示例数据加载成功！')
+          await reloadCasesAndGangs()
+          if (routeName === 'overview' && gangs.value.length) {
+            nextTick(() => initCharts())
+          }
         } catch (seedErr) {
           loadingMsg.close()
-          ElMessage.error('示例数据加载失败：' + (seedErr.response?.data?.detail || seedErr.message))
+          ElMessage.error('示例数据加载失败：' + (seedErr?.response?.data?.detail || seedErr?.message || String(seedErr)))
         }
       } catch (cancelErr) {
         // user cancelled, do nothing
@@ -1366,16 +1528,17 @@ export function useFraudLens() {
   })
 
   onUnmounted(() => {
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
     if (loginProgressTimer) clearInterval(loginProgressTimer)
-    if (dashboardRiskChart) { dashboardRiskChart.dispose(); dashboardRiskChart = null }
-    if (dashboardStatusChart) { dashboardStatusChart.dispose(); dashboardStatusChart = null }
-    if (dashboardBarChart) { dashboardBarChart.dispose(); dashboardBarChart = null }
-    if (dashboardTrendChart) { dashboardTrendChart.dispose(); dashboardTrendChart = null }
-    if (pieChart) { pieChart.dispose(); pieChart = null }
-    if (lineChart) { lineChart.dispose(); lineChart = null }
+    disposeAllCharts()
     disconnectSocket()
   })
+
+  const disposeAllCharts = () => {
+    [dashboardRiskChart, dashboardStatusChart, dashboardBarChart, dashboardTrendChart, pieChart, lineChart].forEach(c => {
+      if (c) { try { c.dispose() } catch (e) { /* ignore */ } }
+    })
+    dashboardRiskChart = dashboardStatusChart = dashboardBarChart = dashboardTrendChart = pieChart = lineChart = null
+  }
 
   return {
     store,
@@ -1441,17 +1604,13 @@ export function useFraudLens() {
     hasApiData,
     filteredGangs,
     features,
-    relationNodes,
-    relationLines,
     caseEvidence,
     investigationSteps,
     defaultMethodFlow,
     defaultKeywords,
-    caseTypeStats,
-    regionStats,
-    semanticFingerprints,
     gangIcons,
-    formatAmount,
+    formatAmountRaw,
+    reloadCasesAndGangs,
     navigateTo,
     getParticleStyle,
     getRiskType,
@@ -1470,6 +1629,7 @@ export function useFraudLens() {
     loadDemo,
     handleBeforeUpload,
     handleLogin,
+    handleDemoLogin,
     handleLogout,
     startAnalysis,
     goToResults,
@@ -1506,15 +1666,4 @@ export function useFraudLens() {
     initCharts
   }
 
-  const disposeAllCharts = () => {
-    [dashboardRiskChart, dashboardStatusChart, dashboardBarChart, dashboardTrendChart, pieChart, lineChart].forEach(c => {
-      if (c) { try { c.dispose() } catch (e) { /* ignore */ } }
-    })
-    dashboardRiskChart = dashboardStatusChart = dashboardBarChart = dashboardTrendChart = pieChart = lineChart = null
-  }
-
-  onUnmounted(() => {
-    disposeAllCharts()
-    if (loginProgressTimer) clearInterval(loginProgressTimer)
-  })
 }

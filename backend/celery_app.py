@@ -1,11 +1,19 @@
 """
 Celery configuration for FraudLens.
 """
+import os
 from celery import Celery
 
+_redis_host = os.getenv("REDIS_HOST", "localhost")
+_redis_port = os.getenv("REDIS_PORT", "6379")
+_redis_db = os.getenv("REDIS_DB", "0")
+_redis_password = os.getenv("REDIS_PASSWORD", "")
+_redis_auth = f":{_redis_password}@" if _redis_password else ""
+_redis_url = f"redis://{_redis_auth}{_redis_host}:{_redis_port}/{_redis_db}"
+
 celery_app = Celery('fraudlens',
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/0',
+    broker=_redis_url,
+    backend=_redis_url,
     include=['tasks']
 )
 

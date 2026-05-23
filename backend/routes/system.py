@@ -171,7 +171,7 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
         if USE_CELERY:
             try:
                 import redis as _redis
-                r = _redis.Redis(host='localhost', port=6379, db=0)
+                r = _redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
                 pubsub = r.pubsub()
                 pubsub.subscribe(f'progress:{session_id}')
                 while True:

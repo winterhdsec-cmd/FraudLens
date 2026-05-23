@@ -1,6 +1,42 @@
 """
-FraudLens 演示数据种子脚本
-注入20+条案情到数据库, 让看板/列表/详情页都有内容可展示
+FraudLens 全面种子数据注入脚本
+================================================================
+注入内容概览:
+  1. 分析会话 (AnalysisSession): 1 条
+  2. 诈骗案件 (Case): 75 条（覆盖6大诈骗类型）
+  3. 犯罪团伙 (Gang): 11 个（5个主团伙 + 6个按类型独立团伙）
+  4. 团伙-案件关联 (GangCaseRelation): 75 条
+  5. 资金流向 (CapitalFlow): ~300 条（每案3-5条，含完整银行信息）
+  6. 派单记录 (DispatchOrder): 75 条（每案1条，覆盖各级执法部门）
+  7. 重点人员 (KeyPerson): 25 条（含前科人员、两卡人员、涉诈重点人等）
+
+案件类型分布:
+  - 冒充客服:     19 条 (索引 0-6, 25-36)
+  - 冒充公检法:   16 条 (索引 7-12, 47-56)
+  - 刷单返利:     15 条 (索引 13-17, 37-46)
+  - 投资理财:     12 条 (索引 18-21, 57-64)
+  - 冒充熟人:      9 条 (索引 22-24, 65-70)
+  - 网络贷款:      4 条 (索引 71-74)
+
+团伙结构:
+  - Gang 1:  京东客服诈骗团伙    (S级, 7案, 冒充客服,     索引0-6)
+  - Gang 2:  公检法冒充团伙      (A级, 6案, 冒充公检法,   索引7-12)
+  - Gang 3:  刷单返利团伙        (B级, 5案, 刷单返利,     索引13-17)
+  - Gang 4:  虚假投资理财团伙    (A级, 4案, 投资理财,     索引18-21)
+  - Gang 5:  冒充熟人诈骗团伙    (B级, 3案, 冒充熟人,     索引22-24)
+  - Gang 6:  冒充客服独立团伙    (A级, 12案, 冒充客服,    索引25-36)
+  - Gang 7:  刷单返利独立团伙    (B级, 10案, 刷单返利,    索引37-46)
+  - Gang 8:  冒充公检法独立团伙  (A级, 10案, 冒充公检法,  索引47-56)
+  - Gang 9:  投资理财独立团伙    (A级, 8案,  投资理财,    索引57-64)
+  - Gang 10: 冒充熟人独立团伙    (B级, 6案,  冒充熟人,    索引65-70)
+  - Gang 11: 网络贷款独立团伙    (C级, 4案,  网络贷款,    索引71-74)
+
+资金流向设计: 每案3-5条资金流转记录，模拟受害人资金经多层账户洗转
+派单设计:     每案1条派单记录，覆盖刑侦、网安、派出所、反诈中心、经侦
+重点人员:     25人覆盖前科人员/高危人员/涉诈重点人/两卡人员四种类型
+
+数据库: mysql+pymysql://root:20051223@localhost:3306/fraudlens?charset=utf8mb4
+================================================================
 """
 import sys, os, uuid, json
 from datetime import datetime, timedelta
@@ -8,8 +44,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import db, init_db
 from flask import Flask as _Flask
+from dotenv import load_dotenv
 
-DB_URI = 'mysql+pymysql://root:20051223@localhost:3306/fraudlens?charset=utf8mb4'
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'key.env'))
+
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "fraudlens")
+DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 _flask_app = _Flask(__name__)
 _flask_app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
 _flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -17,6 +61,7 @@ init_db(_flask_app)
 
 with _flask_app.app_context():
     from database.models import Case, Gang, GangCaseRelation, AnalysisSession
+    from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
 
     # ---- 1. 创建分析会话 ----
     session_id = 'demo_session_' + datetime.now().strftime('%Y%m%d')
@@ -29,14 +74,14 @@ with _flask_app.app_context():
         session_id=session_id,
         status='completed',
         total_cases=75,
-        total_gangs=5,
+        total_gangs=11,
         raw_input={'source': 'demo_data'},
-        processing_info={'processing_time_ms': 8500, 'model': 'deepseek-v4-flash'}
+        processing_info={'processing_time_ms': 12000, 'model': 'deepseek-v4-flash'}
     )
     db.session.add(sess)
     db.session.flush()
 
-    # ---- 2. 注入25条案情 ----
+    # ---- 2. 注入75条案情 ----
     demo_cases = [
         # 团伙1: 冒充京东客服 (7条)
         {"title": "假冒京东客服征信诈骗案", "victim": "王芳", "amount": 125800, "type": "冒充客服", "desc": '接到自称京东客服电话，称其京东金条利率过高需注销，否则影响征信。对方引导下载"瞩目"APP并开启屏幕共享，以验证资金为由骗取转账。'},
@@ -184,22 +229,34 @@ with _flask_app.app_context():
         case_objects.append(case)
     db.session.flush()
 
-    # ---- 3. 注入5个团伙 ----
+    # ---- 3. 注入11个团伙 ----
     gang_data = [
         {'name': '京东客服诈骗团伙', 'level': 'S', 'score': 92, 'tech': '高', 'script': '冒充京东金融客服话术', 'member': '10-15人', 'amount': 1042600},
         {'name': '公检法冒充团伙', 'level': 'A', 'score': 85, 'tech': '高', 'script': '冒充公检法恐吓话术', 'member': '8-12人', 'amount': 1408800},
         {'name': '刷单返利团伙', 'level': 'B', 'score': 72, 'tech': '中', 'script': '刷单返利话术', 'member': '6-10人', 'amount': 544400},
         {'name': '虚假投资理财团伙', 'level': 'A', 'score': 88, 'tech': '高', 'script': '投资理财虚假平台', 'member': '15-20人', 'amount': 2136000},
         {'name': '冒充熟人诈骗团伙', 'level': 'B', 'score': 70, 'tech': '中', 'script': '冒充领导熟人话术', 'member': '5-8人', 'amount': 975600},
+        {'name': '冒充客服独立团伙', 'level': 'A', 'score': 84, 'tech': '高', 'script': '冒充各类平台客服话术', 'member': '12-18人', 'amount': 1198700},
+        {'name': '刷单返利独立团伙', 'level': 'B', 'score': 76, 'tech': '中', 'script': '刷单返利诱导话术', 'member': '8-14人', 'amount': 1322500},
+        {'name': '冒充公检法独立团伙', 'level': 'A', 'score': 87, 'tech': '高', 'script': '冒充公检法恐吓话术', 'member': '15-25人', 'amount': 3502900},
+        {'name': '投资理财独立团伙', 'level': 'A', 'score': 86, 'tech': '高', 'script': '虚假投资平台话术', 'member': '18-30人', 'amount': 4807000},
+        {'name': '冒充熟人独立团伙', 'level': 'B', 'score': 73, 'tech': '中', 'script': '冒充熟人急事话术', 'member': '6-12人', 'amount': 487700},
+        {'name': '网络贷款独立团伙', 'level': 'C', 'score': 65, 'tech': '低', 'script': '网贷手续费话术', 'member': '4-8人', 'amount': 181300},
     ]
 
     gang_objects = []
     gang_case_mapping = [
-        list(range(0, 7)),    # 团伙1 -> 案件1-7 (冒充京东客服)
-        list(range(7, 13)),   # 团伙2 -> 案件8-13 (冒充公检法)
-        list(range(13, 18)),  # 团伙3 -> 案件14-18 (刷单返利)
-        list(range(18, 22)),  # 团伙4 -> 案件19-22 (投资理财)
-        list(range(22, 25)),  # 团伙5 -> 案件23-25 (冒充熟人)
+        list(range(0, 7)),      # Gang 1: 京东客服诈骗团伙 (7案, 冒充客服, 索引0-6)
+        list(range(7, 13)),     # Gang 2: 公检法冒充团伙 (6案, 冒充公检法, 索引7-12)
+        list(range(13, 18)),    # Gang 3: 刷单返利团伙 (5案, 刷单返利, 索引13-17)
+        list(range(18, 22)),    # Gang 4: 虚假投资理财团伙 (4案, 投资理财, 索引18-21)
+        list(range(22, 25)),    # Gang 5: 冒充熟人诈骗团伙 (3案, 冒充熟人, 索引22-24)
+        list(range(25, 37)),    # Gang 6: 冒充客服独立团伙 (12案, 冒充客服, 索引25-36)
+        list(range(37, 47)),    # Gang 7: 刷单返利独立团伙 (10案, 刷单返利, 索引37-46)
+        list(range(47, 57)),    # Gang 8: 冒充公检法独立团伙 (10案, 冒充公检法, 索引47-56)
+        list(range(57, 65)),    # Gang 9: 投资理财独立团伙 (8案, 投资理财, 索引57-64)
+        list(range(65, 71)),    # Gang 10: 冒充熟人独立团伙 (6案, 冒充熟人, 索引65-70)
+        list(range(71, 75)),    # Gang 11: 网络贷款独立团伙 (4案, 网络贷款, 索引71-74)
     ]
 
     for gi, gd in enumerate(gang_data):
@@ -207,8 +264,8 @@ with _flask_app.app_context():
         gang = Gang(
             gang_id=gang_id, session_id=session_id,
             gang_name=gd['name'],
-            risk_level=gd['level'], risk_label={'S':'极危','A':'高危','B':'中危'}[gd['level']],
-            risk_type='danger' if gd['level'] in ['S','A'] else 'warning',
+            risk_level=gd['level'], risk_label={'S':'极危','A':'高危','B':'中危','C':'低危'}[gd['level']],
+            risk_type='danger' if gd['level'] in ['S','A'] else ('warning' if gd['level'] == 'B' else 'info'),
             threat_level=gd['level'],
             comprehensive_score=gd['score'], confidence=gd['score'] - random.randint(5, 10),
             member_count_estimate=gd['member'],
@@ -235,85 +292,228 @@ with _flask_app.app_context():
             )
             db.session.add(rel)
 
-    # ---- 5. 注入资金流向数据 ----
+    # ---- 5. 注入资金流向数据 (每案3-5条, 共~300条) ----
     from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
-    bank_accounts = [
-        ("622202****1234", "工商银行", "621700****5678", "招商银行"),
-        ("621790****9012", "建设银行", "621226****3456", "农业银行"),
-        ("622848****7890", "中国银行", "621558****2345", "交通银行"),
-        ("621700****6789", "招商银行", "622202****8901", "工商银行"),
-        ("621226****4567", "农业银行", "621790****0123", "建设银行"),
+
+    bank_accounts_pool = [
+        ("621700288011234567", "中国建设银行", "622202100345678901", "中国工商银行"),
+        ("621226400567890123", "中国工商银行", "621700322901234567", "中国建设银行"),
+        ("622848001234567890", "中国农业银行", "621700188765432109", "中国建设银行"),
+        ("621790600112233445", "中国银行", "622262011098765432", "交通银行"),
+        ("622575800123456789", "招商银行", "621226123489012345", "中国工商银行"),
+        ("621485020987654321", "中信银行", "622848567812345678", "中国农业银行"),
+        ("622662030123789456", "中国光大银行", "621700234598765432", "中国建设银行"),
+        ("621691550456123789", "中国邮政储蓄银行", "622202345678901234", "中国工商银行"),
+        ("622630780789456123", "华夏银行", "621700456789012345", "中国建设银行"),
+        ("621691330321654987", "中国民生银行", "622848901234567890", "中国农业银行"),
+        ("622568800654987321", "广发银行", "621790789012345678", "中国银行"),
+        ("622262011234567890", "交通银行", "622202567890123456", "中国工商银行"),
+        ("621700567890123456", "中国建设银行", "621226789012345678", "中国工商银行"),
+        ("622848345678901234", "中国农业银行", "621790901234567890", "中国银行"),
+        ("621226901234567890", "中国工商银行", "622848789012345678", "中国农业银行"),
+        ("622202789012345678", "中国工商银行", "621700123456789012", "中国建设银行"),
+        ("621700901234567890", "中国建设银行", "622262034567890123", "交通银行"),
+        ("621790123456789012", "中国银行", "622848456789012345", "中国农业银行"),
+        ("622848567890123456", "中国农业银行", "621700789012345678", "中国建设银行"),
+        ("621226345678901234", "中国工商银行", "622202901234567890", "中国工商银行"),
+        ("622202123456789012", "中国工商银行", "621790345678901234", "中国银行"),
+        ("621700345678901234", "中国建设银行", "621226567890123456", "中国工商银行"),
+        ("622848901234567890", "中国农业银行", "622262056789012345", "交通银行"),
+        ("621790567890123456", "中国银行", "622202789012345678", "中国工商银行"),
+        ("621226789012345678", "中国工商银行", "621700567890123456", "中国建设银行"),
+        ("622202456789012345", "中国工商银行", "621226901234567890", "中国工商银行"),
+        ("621700678901234567", "中国建设银行", "622848123456789012", "中国农业银行"),
+        ("621790789012345678", "中国银行", "622202345678901234", "中国工商银行"),
+        ("622848234567890123", "中国农业银行", "621700890123456789", "中国建设银行"),
+        ("621226123456789012", "中国工商银行", "622262078901234567", "交通银行"),
     ]
+
+    flow_direction_annotations = [
+        ("out", "受害人首次向嫌疑人账户转账"),
+        ("out", "资金被转移至二级账户"),
+        ("out", "资金被转移至三级账户"),
+        ("out", "资金在团伙内部账户间流转"),
+        ("in", "小额返利诱骗资金"),
+    ]
+
     flow_records = []
-    for i in range(15):
-        case_obj = case_objects[i % len(case_objects)]
-        src, src_bank, tgt, tgt_bank = bank_accounts[i % len(bank_accounts)]
-        amount = round(random.uniform(5000, 150000), 2)
-        flow = CapitalFlow(
-            case_id=case_obj.case_id,
-            source_account=src, target_account=tgt,
-            bank_name=src_bank,
-            amount=amount,
-            transaction_time=datetime.now() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
-            direction='out' if i % 3 != 0 else 'in',
-            level=random.randint(1, 3),
-            annotation=f"第{i+1}级资金流转"
-        )
-        db.session.add(flow)
-        flow_records.append(flow)
+    for ci, case_obj in enumerate(case_objects):
+        num_flows = random.choice([3, 4, 5])
+        for fi in range(num_flows):
+            src_idx = (ci * 3 + fi) % len(bank_accounts_pool)
+            tgt_idx = (src_idx + 1 + fi) % len(bank_accounts_pool)
+            src, src_bank, tgt, tgt_bank = bank_accounts_pool[src_idx]
+            case_amount = float(demo_cases[ci]['amount'])
+            level = fi + 1
+            if level == 1:
+                amt = round(case_amount * random.uniform(0.8, 1.0), 2)
+            elif level == 2:
+                amt = round(case_amount * random.uniform(0.5, 0.9), 2)
+            elif level == 3:
+                amt = round(case_amount * random.uniform(0.3, 0.7), 2)
+            else:
+                amt = round(case_amount * random.uniform(0.1, 0.4), 2)
+            dir, ann = flow_direction_annotations[fi % len(flow_direction_annotations)]
+            flow = CapitalFlow(
+                case_id=case_obj.case_id,
+                source_account=src,
+                target_account=tgt,
+                bank_name=src_bank,
+                amount=amt,
+                transaction_time=datetime.now() - timedelta(
+                    days=random.randint(1, 30),
+                    hours=random.randint(0, 23),
+                    minutes=random.randint(0, 59)
+                ),
+                direction=dir,
+                level=level,
+                annotation=f"{ann} (第{level}层)"
+            )
+            db.session.add(flow)
+            flow_records.append(flow)
     print(f"   资金流向: {len(flow_records)} 条")
 
-    # ---- 6. 注入派单数据 ----
+    # ---- 6. 注入派单数据 (每案1条, 共75条) ----
     depts = ["刑侦大队", "网安大队", "辖区派出所", "反诈中心", "经侦大队"]
-    officers = ["张明", "李华", "王强", "赵刚", "刘伟"]
+    officers = ["张明", "李华", "王强", "赵刚", "刘伟", "陈志远", "周建平"]
     statuses = ["pending", "signed", "completed"]
     dispatch_records = []
-    for i in range(8):
-        case_obj = case_objects[i % len(case_objects)]
+    for i in range(75):
+        case_obj = case_objects[i]
+        days_ago = random.randint(1, 30)
         dispatch = DispatchOrder(
-            alert_id=f"ALT202605{i+1:03d}",
+            alert_id=f"ALT{datetime.now().strftime('%Y%m%d')}{i+1:03d}",
             case_id=case_obj.case_id,
             assigned_dept=random.choice(depts),
             assigned_officer=random.choice(officers),
             status=random.choice(statuses),
-            dispatch_time=datetime.now() - timedelta(days=random.randint(1, 15)),
-            sign_time=datetime.now() - timedelta(days=random.randint(0, 10)),
-            feedback="已处置完毕" if random.random() > 0.5 else "",
-            deadline=datetime.now() + timedelta(days=random.randint(1, 7)),
+            dispatch_time=datetime.now() - timedelta(days=days_ago),
+            sign_time=datetime.now() - timedelta(days=max(0, days_ago - random.randint(1, 5))),
+            feedback="已处置完毕，嫌疑人已控制" if random.random() > 0.6 else "正在跟进调查中",
+            deadline=datetime.now() + timedelta(days=random.randint(1, 14)),
             created_by=1
         )
         db.session.add(dispatch)
         dispatch_records.append(dispatch)
     print(f"   派单: {len(dispatch_records)} 条")
 
-    # ---- 7. 注入重点人员数据 ----
+    # ---- 7. 注入重点人员数据 (原有10条 + 新增15条 = 25条) ----
     person_types = ["前科人员", "高危人员", "涉诈重点人", "两卡人员"]
-    identities = ["430****1234", "420****5678", "410****9012", "440****3456", "450****7890",
-                 "460****2345", "470****6789", "480****0123", "490****4567", "500****8901"]
-    phones = ["138****1234", "139****5678", "150****9012", "186****3456", "137****7890"]
+
+    original_persons = [
+        {"name": "刘某", "id_number": "420102198803152341", "phone": "13871562341", "person_type": "前科人员",
+         "risk_level": "S", "bank_account": "622202100345678901", "address": "湖北省武汉市江岸区后湖街道某某小区",
+         "notes": "涉及冒充客服类诈骗，有电信诈骗前科记录，曾因诈骗罪被判刑3年"},
+        {"name": "张某", "id_number": "420103199205267892", "phone": "13971565678", "person_type": "高危人员",
+         "risk_level": "A", "bank_account": "621700288011234567", "address": "湖北省武汉市武昌区中南路街道某某小区",
+         "notes": "涉及刷单返利类诈骗，多张银行卡被冻结，疑似团伙骨干成员"},
+        {"name": "王某", "id_number": "420106198709123456", "phone": "15071569012", "person_type": "涉诈重点人",
+         "risk_level": "A", "bank_account": "622848001234567890", "address": "湖北省武汉市洪山区珞南街道某某小区",
+         "notes": "涉及投资理财类诈骗，名下多张银行卡涉案，资金流水异常"},
+        {"name": "李某", "id_number": "420107199512347891", "phone": "18671563456", "person_type": "前科人员",
+         "risk_level": "B", "bank_account": "621790600112233445", "address": "湖北省武汉市江汉区前进街道某某小区",
+         "notes": "涉及冒充公检法类诈骗，曾因帮助信息网络犯罪活动罪被处理"},
+        {"name": "赵某", "id_number": "420111199009012345", "phone": "13771567890", "person_type": "两卡人员",
+         "risk_level": "B", "bank_account": "622575800123456789", "address": "湖北省武汉市硚口区韩家墩街道某某小区",
+         "notes": "涉及冒充熟人类诈骗，名下手机卡涉案，曾出售个人银行卡获利"},
+        {"name": "陈某", "id_number": "420112198612347892", "phone": "13871562342", "person_type": "高危人员",
+         "risk_level": "S", "bank_account": "622262011234567890", "address": "湖北省武汉市东西湖区吴家山街道某某小区",
+         "notes": "涉及网络贷款类诈骗，多次往返边境地区，有出入境异常记录"},
+        {"name": "周某", "id_number": "420113199409015678", "phone": "13971565679", "person_type": "涉诈重点人",
+         "risk_level": "A", "bank_account": "621700567890123456", "address": "湖北省武汉市汉南区纱帽街道某某小区",
+         "notes": "涉及冒充客服类诈骗，境外电话高频呼出记录，疑似境外窝点成员"},
+        {"name": "吴某", "id_number": "420114198805261234", "phone": "15071569013", "person_type": "前科人员",
+         "risk_level": "B", "bank_account": "622848345678901234", "address": "湖北省武汉市蔡甸区沌口街道某某小区",
+         "notes": "涉及刷单返利类诈骗，多次被公安机关打击处理，仍继续作案"},
+        {"name": "郑某", "id_number": "420115199103157892", "phone": "18671563457", "person_type": "两卡人员",
+         "risk_level": "C", "bank_account": "621226901234567890", "address": "湖北省武汉市江夏区纸坊街道某某小区",
+         "notes": "涉及投资理财类诈骗，出售个人银行卡和手机卡，被银行列入黑名单"},
+        {"name": "何某", "id_number": "420116199212347893", "phone": "13771567891", "person_type": "高危人员",
+         "risk_level": "A", "bank_account": "622202789012345678", "address": "湖北省武汉市黄陂区前川街道某某小区",
+         "notes": "涉及冒充公检法类诈骗，关联多个涉案账户，资金流向境外"},
+    ]
+
+    additional_persons = [
+        {"name": "唐某", "id_number": "420102199608142356", "phone": "18171562350", "person_type": "前科人员",
+         "risk_level": "A", "bank_account": "621700901234567890", "address": "湖北省武汉市江岸区二七街道某某小区",
+         "notes": "涉及冒充客服类诈骗，曾因诈骗罪被判处有期徒刑2年，刑满释放不足半年"},
+        {"name": "孙某", "id_number": "420103199705183467", "phone": "18271565680", "person_type": "高危人员",
+         "risk_level": "S", "bank_account": "622848567890123456", "address": "湖北省武汉市武昌区徐家棚街道某某小区",
+         "notes": "涉及刷单返利类诈骗，系多个刷单群群主，发展下线30余人，涉案金额巨大"},
+        {"name": "马某", "id_number": "420106199404215678", "phone": "18371569020", "person_type": "涉诈重点人",
+         "risk_level": "A", "bank_account": "621226345678901234", "address": "湖北省武汉市洪山区关山街道某某小区",
+         "notes": "涉及投资理财类诈骗，冒充投资导师在微信群讲课，诱导受害人投资虚假平台"},
+        {"name": "胡某", "id_number": "420107199308116789", "phone": "18471563460", "person_type": "两卡人员",
+         "risk_level": "B", "bank_account": "622202123456789012", "address": "湖北省武汉市江汉区万松街道某某小区",
+         "notes": "涉及冒充公检法类诈骗，名下3张银行卡被冻结，2张手机卡被关停"},
+        {"name": "黄某", "id_number": "420111199612287890", "phone": "18571567895", "person_type": "高危人员",
+         "risk_level": "A", "bank_account": "621700345678901234", "address": "湖北省武汉市硚口区长丰街道某某小区",
+         "notes": "涉及冒充熟人类诈骗，冒充领导身份实施诈骗，掌握大量企事业单位通讯录"},
+        {"name": "林某", "id_number": "420112199505091234", "phone": "18671562355", "person_type": "前科人员",
+         "risk_level": "B", "bank_account": "622848901234567890", "address": "湖北省武汉市东西湖区金银湖街道某某小区",
+         "notes": "涉及网络贷款类诈骗，曾因帮助信息网络犯罪活动罪被判处拘役6个月"},
+        {"name": "徐某", "id_number": "420113199807154567", "phone": "18771565685", "person_type": "涉诈重点人",
+         "risk_level": "S", "bank_account": "621790567890123456", "address": "湖北省武汉市汉南区东荆街道某某小区",
+         "notes": "涉及冒充客服类诈骗，系境外诈骗团伙回流人员，反侦察意识强"},
+        {"name": "朱某", "id_number": "420114199210187890", "phone": "18871569025", "person_type": "高危人员",
+         "risk_level": "A", "bank_account": "621226789012345678", "address": "湖北省武汉市蔡甸区大集街道某某小区",
+         "notes": "涉及刷单返利类诈骗，搭建虚假刷单平台，技术手段高超"},
+        {"name": "曹某", "id_number": "420115199609214567", "phone": "18971563465", "person_type": "两卡人员",
+         "risk_level": "B", "bank_account": "622202456789012345", "address": "湖北省武汉市江夏区藏龙岛街道某某小区",
+         "notes": "涉及投资理财类诈骗，出售个人银行卡4张，为诈骗团伙提供资金账户"},
+        {"name": "蒋某", "id_number": "420116199803126789", "phone": "19071567898", "person_type": "前科人员",
+         "risk_level": "C", "bank_account": "621700678901234567", "address": "湖北省武汉市黄陂区横店街道某某小区",
+         "notes": "涉及冒充公检法类诈骗，曾因诈骗罪被判处有期徒刑1年缓刑2年"},
+        {"name": "肖某", "id_number": "420102199908236701", "phone": "19171562360", "person_type": "高危人员",
+         "risk_level": "A", "bank_account": "621790789012345678", "address": "湖北省武汉市江岸区丹水池街道某某小区",
+         "notes": "涉及冒充熟人类诈骗，冒充公司老板对财务人员实施诈骗，已得手多起"},
+        {"name": "罗某", "id_number": "420103199604117892", "phone": "19271565690", "person_type": "涉诈重点人",
+         "risk_level": "A", "bank_account": "622848234567890123", "address": "湖北省武汉市武昌区水果湖街道某某小区",
+         "notes": "涉及网络贷款类诈骗，搭建虚假贷款APP，以手续费名义骗取受害人钱财"},
+        {"name": "万某", "id_number": "420106199702158903", "phone": "19371569030", "person_type": "两卡人员",
+         "risk_level": "B", "bank_account": "621226123456789012", "address": "湖北省武汉市洪山区和平街道某某小区",
+         "notes": "涉及冒充客服类诈骗，名下多张银行卡被用于接收受害人资金"},
+        {"name": "龚某", "id_number": "420107199305284567", "phone": "19471563470", "person_type": "高危人员",
+         "risk_level": "S", "bank_account": "621700288011234568", "address": "湖北省武汉市江汉区唐家墩街道某某小区",
+         "notes": "涉及刷单返利类诈骗，系境外诈骗团伙国内联系人，组织人员赴境外从事诈骗活动"},
+        {"name": "贺某", "id_number": "420111199610317890", "phone": "19571567899", "person_type": "涉诈重点人",
+         "risk_level": "A", "bank_account": "622202100345678902", "address": "湖北省武汉市硚口区古田街道某某小区",
+         "notes": "涉及投资理财类诈骗，制作虚假投资平台APP，具备完整的技术开发能力"},
+    ]
+
     risk_level_map = {"S": "极危", "A": "高危", "B": "中危", "C": "低危"}
     person_records = []
-    for i in range(10):
-        rl = random.choice(["S", "A", "B", "C"])
+
+    for pd in original_persons + additional_persons:
         person = KeyPerson(
-            name=["刘某", "张某", "王某", "李某", "赵某", "陈某", "周某", "吴某", "郑某", "何某"][i],
-            id_number=identities[i % len(identities)],
-            phone=phones[i % len(phones)],
-            person_type=random.choice(person_types),
-            risk_level=rl,
-            risk_label=risk_level_map[rl],
-            bank_account=f"6222{random.randint(100000,999999)}",
-            address=f"湖北省武汉市{random.choice(['江岸区','武昌区','洪山区','江汉区','硚口区'])}某某小区",
-            case_ids=[case_objects[i % len(case_objects)].case_id],
-            notes=f"涉及{random.choice(['冒充客服','刷单返利','投资理财','冒充公检法'])}类诈骗，有前科记录"
+            name=pd["name"],
+            id_number=pd["id_number"],
+            phone=pd["phone"],
+            person_type=pd["person_type"],
+            risk_level=pd["risk_level"],
+            risk_label=risk_level_map[pd["risk_level"]],
+            bank_account=pd["bank_account"],
+            address=pd["address"],
+            case_ids=[random.choice(case_objects).case_id],
+            notes=pd["notes"],
+            gender='男' if random.random() > 0.5 else '女',
+            age=str(random.randint(22, 55)),
+            tags=[pd["person_type"], pd["risk_level"] + "级风险", "需重点监控"],
+            source="公安大数据平台",
+            is_active=True
         )
         db.session.add(person)
         person_records.append(person)
     print(f"   重点人员: {len(person_records)} 条")
 
     db.session.commit()
+    total_gang_relations = sum(len(x) for x in gang_case_mapping)
     print(f"✅ 演示数据注入完成!")
     print(f"   会话: {session_id}")
     print(f"   案件: {len(case_objects)} 条")
     print(f"   团伙: {len(gang_objects)} 个")
-    print(f"   关联: {sum(len(x) for x in gang_case_mapping)} 条")
+    print(f"   关联: {total_gang_relations} 条")
+    print(f"   资金流向: {len(flow_records)} 条")
+    print(f"   派单: {len(dispatch_records)} 条")
+    print(f"   重点人员: {len(person_records)} 条")
+    print("=" * 50)

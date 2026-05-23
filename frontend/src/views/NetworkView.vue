@@ -19,7 +19,7 @@
     </div>
   </div>
   <div v-if="gangs.length" class="network-container tech-card">
-    <NetworkGraph :gangs="gangs" :cases="cases" :selectedGang="selectedGang" v-model:searchKeyword="networkSearchKeyword" @select="onNetworkSelect" />
+    <NetworkGraph :gangs="gangs" :cases="cases" :selectedGang="selectedGang" v-model:searchKeyword="networkSearchKeyword" @select="onNetworkSelect" @select-case="onCaseSelect" />
   </div>
   <div v-else class="empty-state">
     <div class="empty-content">
@@ -38,11 +38,15 @@ import { useAppState } from '../composables/useAppState.js'
 import NetworkGraph from '../components/NetworkGraph.vue'
 const router = useRouter()
 const state = useAppState()
-const { cases, gangs, networkView, selectGang, selectedGang } = state
+const { cases, gangs, networkView, selectGang, selectedGang, viewCaseDetail } = state
 const networkSearchKeyword = ref('')
 
 function onNetworkSelect(gang) {
   selectGang(gang)
   router.push({ name: 'details' })
+}
+
+function onCaseSelect(caseItem) {
+  viewCaseDetail(caseItem)
 }
 </script>

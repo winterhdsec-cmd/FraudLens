@@ -323,4 +323,13 @@ export async function visionAnalyze(file, prompt = '请详细描述这张图片�
   return response.data
 }
 
+// ========== AI Config ==========
+export async function getAiConfig() {
+  return api.get('/api/settings/api-key')
+}
+
+export async function saveAiConfig(data) {
+  return api.put('/api/settings/api-key', data)
+}
+
 export default api

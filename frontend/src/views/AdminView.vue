@@ -84,6 +84,35 @@
           </div>
         </div>
       </el-tab-pane>
+
+      <el-tab-pane label="AI 配置" name="ai-config">
+        <div class="admin-info-grid">
+          <div class="info-card tech-card">
+            <div class="info-card-title"><span class="title-accent"></span>AI 模型配置</div>
+            <el-form label-width="100px" class="admin-form">
+              <el-form-item label="API Key">
+                <el-input v-model="aiConfig.api_key" type="password" show-password placeholder="请输入 API Key" size="small" />
+              </el-form-item>
+              <el-form-item label="Base URL">
+                <el-input v-model="aiConfig.base_url" placeholder="https://api.deepseek.com/v1" size="small" />
+              </el-form-item>
+              <el-form-item label="Model">
+                <el-input v-model="aiConfig.model" placeholder="deepseek-chat" size="small" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" size="small" @click="handleSaveAiConfig" :loading="aiConfigLoading">保存配置</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+          <div class="info-card tech-card">
+            <div class="info-card-title"><span class="title-accent"></span>当前配置状态</div>
+            <div class="info-row"><span>配置状态</span><span :class="aiConfigured ? 'status-online' : 'status-offline'">{{ aiConfigured ? '已配置' : '未配置' }}</span></div>
+            <div class="info-row"><span>Key 预览</span><span>{{ keyPreview || '—' }}</span></div>
+            <div class="info-row"><span>Base URL</span><span>{{ aiConfig.base_url || '—' }}</span></div>
+            <div class="info-row"><span>Model</span><span>{{ aiConfig.model || '—' }}</span></div>
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -91,7 +120,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { changePassword, updateUser, deleteUser, getOperationLogs } from '../api.js'
+import { changePassword, updateUser, deleteUser, getOperationLogs, getAiConfig, saveAiConfig } from '../api.js'
 import { useAppState } from '../composables/useAppState.js'
 
 const state = useAppState()
@@ -104,6 +133,10 @@ const showAddUser = ref(false)
 const pwForm = ref({ old: '', new: '' })
 const pwLoading = ref(false)
 const useCelery = ref(false)
+const aiConfig = ref({ api_key: '', base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat' })
+const aiConfigured = ref(false)
+const keyPreview = ref('')
+const aiConfigLoading = ref(false)
 
 async function loadUsers() {
   try {
@@ -171,9 +204,44 @@ async function handleChangePw() {
   }
 }
 
+async function loadAiConfig() {
+  try {
+    const r = await getAiConfig()
+    const d = r.data
+    if (d && d.success) {
+      aiConfigured.value = d.configured || false
+      keyPreview.value = d.key_preview || ''
+    } else {
+      aiConfigured.value = false
+      keyPreview.value = ''
+    }
+  } catch (e) {
+    aiConfigured.value = false
+    keyPreview.value = ''
+  }
+}
+
+async function handleSaveAiConfig() {
+  if (!aiConfig.value.api_key) {
+    ElMessage.warning('请填写 API Key')
+    return
+  }
+  aiConfigLoading.value = true
+  try {
+    await saveAiConfig(aiConfig.value)
+    ElMessage.success('AI 配置已保存')
+    loadAiConfig()
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || '保存失败')
+  } finally {
+    aiConfigLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadUsers()
   loadLogs()
+  loadAiConfig()
 })
 </script>
 

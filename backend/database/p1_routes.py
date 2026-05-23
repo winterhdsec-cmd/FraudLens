@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -13,6 +13,7 @@ from database.p1_crud import (
     collision_check
 )
 from database import db
+from routes.deps import get_current_user
 
 router = APIRouter()
 
@@ -86,7 +87,9 @@ async def api_create_capital_flow(data: CapitalFlowCreate):
 # ========== Seed Data ==========
 
 @router.post('/api/seed')
-async def api_seed_data():
+async def api_seed_data(current_user: dict = Depends(get_current_user)):
+    if current_user.get('role') != 'admin':
+        return JSONResponse(status_code=403, content={"success": False, "error": "仅管理员可执行数据注入"})
     try:
         from database.models import db as _db, Case, Gang, GangCaseRelation, AlertRecord
         from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson

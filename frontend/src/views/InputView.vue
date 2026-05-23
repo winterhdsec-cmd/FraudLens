@@ -65,7 +65,7 @@
           <span class="input-feature-icon">🤖</span>
           <div class="input-feature-info">
             <span class="input-feature-title">AI 研判分析</span>
-            <span class="input-feature-desc">多智能体协同推理</span>
+            <span class="input-feature-desc">模块化协同分析推理</span>
           </div>
         </div>
         <div class="input-feature-divider"></div>

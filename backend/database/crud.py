@@ -235,17 +235,29 @@ def get_session_detail(session_id):
 
 
 def search_cases(query):
-    cases = Case.query.filter(
-        db.or_(
-            Case.case_id.ilike(f'%{query}%'),
-            Case.victim_name.ilike(f'%{query}%'),
-            Case.scam_type.ilike(f'%{query}%'),
-            Case.amount.ilike(f'%{query}%'),
-            Case.title.ilike(f'%{query}%'),
-            Case.description.ilike(f'%{query}%'),
-            Case.keywords.ilike(f'%{query}%')
-        )
-    ).order_by(Case.created_at.desc()).all()
+    if not query:
+        return []
+    query = query.strip()
+    # 纯数字查询：按编号后缀 + 标题模糊搜索，避免 amount/description 全量命中
+    # case_id 格式如 FC-2025-00005 或 FC20250522001，用后缀匹配 %{query} 定位末尾编号
+    if query.isdigit():
+        cases = Case.query.filter(
+            db.or_(
+                Case.case_id.ilike(f'%{query}'),
+                Case.title.ilike(f'%{query}%')
+            )
+        ).order_by(Case.created_at.desc()).all()
+    else:
+        cases = Case.query.filter(
+            db.or_(
+                Case.case_id.ilike(f'%{query}%'),
+                Case.victim_name.ilike(f'%{query}%'),
+                Case.scam_type.ilike(f'%{query}%'),
+                Case.title.ilike(f'%{query}%'),
+                Case.description.ilike(f'%{query}%'),
+                Case.keywords.ilike(f'%{query}%')
+            )
+        ).order_by(Case.created_at.desc()).all()
     return [_case_to_dict(c) for c in cases]
 
 

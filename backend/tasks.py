@@ -18,7 +18,7 @@ from celery import Task
 
 # ---------- Global Flask App (pushed once, keeps Flask-SQLAlchemy working in Celery workers) ----------
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
@@ -80,7 +80,7 @@ def run_analysis_task(self, messages, session_id):
                 progress_updates.append(progress_data)
                 try:
                     import redis
-                    r = redis.Redis(host='localhost', port=6379, db=0)
+                    r = redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
                     r.publish(f'progress:{self.session_id}', json.dumps(progress_data, default=str))
                     r.close()
                 except Exception:

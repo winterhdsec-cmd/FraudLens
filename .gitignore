@@ -1,35 +1,41 @@
-# ===========================
-# 🚀 Trae Vibe Coding 专用配置
-# ===========================
-
-# 1. 绝对禁止 AI 读取的“大坑” (防止索引崩溃)
+# AI tools
 .trae/
 backend/bge-large-zh-v1.5/
 frontend/node_modules/
 
-# 2. 历史备份文件 (你之前的手动存档)
-# 既然用了 Git，这些 txt 就不需要 AI 看了
-*.txt
+# Logs
 *.log
+*.err
 
-# 3. Python 标准忽略
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
 env/
-*.env
 
-# 4. 编辑器配置
+# Environment files (keep key.env template, ignore secrets)
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/key.env
+frontend/.env.local
+
+# Editor
 .vscode/
 .idea/
 
-# 5. 系统与临时文件
+# System
 .DS_Store
 Thumbs.db
 
-# 6. 运行时生成的文件
+# Build output
 backend/reports/
 frontend/dist/
 *.egg-info/
 dist/
+
+# Docker volumes
+mysql-data/
+redis-data/

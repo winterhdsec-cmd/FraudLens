@@ -2,8 +2,9 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { store } from './store.js'
 
-const API_BASE = 'http://localhost:5003'
-const WS_URL = 'http://localhost:5003'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5003'
+const WS_URL = import.meta.env.VITE_WS_URL || API_BASE
+const isDev = import.meta.env.DEV
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -32,22 +33,22 @@ export function connectSocket(sessionId, callbacks = {}) {
   })
 
   socket.on('connect', () => {
-    console.log('🔌 WebSocket connected:', socket.id)
+    if (isDev) console.log('🔌 WebSocket connected:', socket.id)
     callbacks.onConnect?.(socket.id)
   })
 
   socket.on('analysis_progress', (data) => {
-    console.log('📊 Progress:', data)
+    if (isDev) console.log('📊 Progress:', data)
     callbacks.onProgress?.(data)
   })
 
   socket.on('analysis_complete', (data) => {
-    console.log('✅ Analysis complete:', data)
+    if (isDev) console.log('✅ Analysis complete:', data)
     callbacks.onComplete?.(data)
   })
 
   socket.on('disconnect', () => {
-    console.log('🔌 WebSocket disconnected')
+    if (isDev) console.log('🔌 WebSocket disconnected')
     callbacks.onDisconnect?.()
   })
 
@@ -69,6 +70,11 @@ export function disconnectSocket() {
 // ========== Auth ==========
 export async function login(username, password) {
   const response = await api.post('/api/auth/login', { username, password })
+  return response.data
+}
+
+export async function demoLogin() {
+  const response = await api.post('/api/auth/demo-login')
   return response.data
 }
 
@@ -114,9 +120,12 @@ api.interceptors.response.use(
           error.config.headers.Authorization = 'Bearer ' + res.data.access_token
           return api(error.config)
         }
-      } catch (refreshError) {
-        // refresh failed (network/server error)
+      } catch {
+        store.logout()
       }
+      return Promise.reject(error)
+    }
+    if (error.response?.status === 401) {
       store.logout()
     }
     return Promise.reject(error)
@@ -132,14 +141,14 @@ export async function startAnalysis(messages, sessionId) {
 export async function ocrImage(file) {
   const form = new FormData()
   form.append('file', file)
-  const response = await api.post('/api/ocr', form)
+  const response = await api.post('/api/ocr', form, { timeout: 120000 })
   return response.data
 }
 
 export async function extractText(file) {
   const form = new FormData()
   form.append('file', file)
-  const response = await api.post('/api/extract-text', form)
+  const response = await api.post('/api/extract-text', form, { timeout: 120000 })
   return response.data
 }
 
@@ -289,6 +298,27 @@ export async function importExcel(file) {
   const response = await api.post('/api/import/excel', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000
+  })
+  return response.data
+}
+
+// ========== Smart File Analysis ==========
+export async function analyzeFile(file, mode = 'auto') {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(`/api/analyze-file?mode=${mode}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000
+  })
+  return response.data
+}
+
+export async function visionAnalyze(file, prompt = '请详细描述这张图片的内容') {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(`/api/vision-analyze?prompt=${encodeURIComponent(prompt)}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000
   })
   return response.data
 }

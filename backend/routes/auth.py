@@ -102,7 +102,7 @@ async def api_register(data: RegisterRequest, request: Request):
         user = User(
             username=data.username,
             display_name=data.display_name or data.username,
-            role=data.role,
+            role='analyst',
             department=data.department,
             phone=data.phone
         )

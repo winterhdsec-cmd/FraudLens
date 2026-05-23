@@ -55,7 +55,7 @@ const props = defineProps({
   cases: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['select', 'update:searchKeyword'])
+const emit = defineEmits(['select', 'selectCase', 'update:searchKeyword'])
 const containerRef = ref(null)
 const graphMode = ref('gang')
 const physicsEnabled = ref(true)
@@ -212,7 +212,15 @@ function buildGangGraph() {
   network.on('click', (params) => {
     if (params.nodes.length) {
       const node = nodes.get(params.nodes[0])
-      if (node && node.group === 'gang' && node.gangData) emit('select', node.gangData)
+      if (!node) return
+      if (node.group === 'gang' && node.gangData) {
+        emit('select', node.gangData)
+      } else if (node.group === 'case') {
+        const nodeId = node.id
+        const rawCaseId = nodeId.startsWith('case_') ? nodeId.slice(5) : nodeId
+        const caseItem = props.cases.find(c => c.case_id === rawCaseId || c.id === rawCaseId)
+        if (caseItem) emit('selectCase', caseItem)
+      }
     }
   })
 }

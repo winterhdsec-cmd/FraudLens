@@ -158,57 +158,41 @@
                       <div class="money-header">
                         <span class="money-icon">💰</span>
                         <span class="money-title">资金流向追踪</span>
+                        <el-button type="primary" size="small" @click="navigateTo('capital')" style="margin-left:auto">查看完整图谱</el-button>
                       </div>
-                      <div class="money-flow">
-                        <div class="flow-diagram">
-                          <div class="flow-node source">
-                            <span class="node-icon">👤</span>
-                            <span class="node-label">受害人账户</span>
-                            <span class="node-amount">{{ selectedCase.amount }}</span>
-                          </div>
-                          <div class="flow-arrow">
-                            <span>→</span>
-                            <span class="arrow-label">转账</span>
-                          </div>
-                          <div class="flow-node gang">
-                            <span class="node-icon">💳</span>
-                            <span class="node-label">涉案账户</span>
-                            <span class="node-amount">***1234</span>
-                          </div>
-                          <div class="flow-arrow">
-                            <span>→</span>
-                            <span class="arrow-label">分散</span>
-                          </div>
-                          <div class="flow-node middle">
-                            <span class="node-icon">🏦</span>
-                            <span class="node-label">中转账户</span>
-                            <span class="node-amount">多层分散</span>
-                          </div>
-                          <div class="flow-arrow">
-                            <span>→</span>
-                            <span class="arrow-label">出境</span>
-                          </div>
-                          <div class="flow-node target">
-                            <span class="node-icon">🌍</span>
-                            <span class="node-label">境外取现</span>
-                            <span class="node-amount">最终去向</span>
-                          </div>
-                        </div>
+                      <div v-if="capitalFlows.length === 0" class="no-data">
+                        <el-empty description="暂无资金流向数据" />
                       </div>
-                      <div class="money-stats">
-                        <div class="money-stat">
-                          <span class="ms-label">涉案账户数</span>
-                          <span class="ms-value">23个</span>
+                      <template v-else>
+                        <div class="flow-chain">
+                          <div v-for="(f, idx) in capitalFlows" :key="idx" class="flow-step">
+                            <div class="flow-step-node" :class="'level-' + f.level">
+                              <div class="step-level">第{{ f.level }}层</div>
+                              <div class="step-bank">{{ f.bank_name }}</div>
+                              <div class="step-acct" v-if="idx > 0">{{ f.source_account }}</div>
+                              <div class="step-acct" v-else>受害方:{{ selectedCase.victim_name || '未知' }}</div>
+                              <div class="step-arrow">→</div>
+                              <div class="step-acct target">{{ f.target_account }}</div>
+                              <div class="step-amount">¥{{ (f.amount / 10000).toFixed(1) }}万</div>
+                              <div class="step-anno">{{ f.annotation }}</div>
+                            </div>
+                          </div>
                         </div>
-                        <div class="money-stat">
-                          <span class="ms-label">资金层级</span>
-                          <span class="ms-value">3-5层</span>
+                        <div class="money-stats">
+                          <div class="money-stat">
+                            <span class="ms-label">涉案账户数</span>
+                            <span class="ms-value">{{ capitalFlows.length + 1 }}个</span>
+                          </div>
+                          <div class="money-stat">
+                            <span class="ms-label">资金层级</span>
+                            <span class="ms-value">{{ Math.max(...capitalFlows.map(f => f.level)) }}层</span>
+                          </div>
+                          <div class="money-stat">
+                            <span class="ms-label">总涉案金额</span>
+                            <span class="ms-value">{{ selectedCase.amount || '—' }}</span>
+                          </div>
                         </div>
-                        <div class="money-stat">
-                          <span class="ms-label">境外流向</span>
-                          <span class="ms-value">85%</span>
-                        </div>
-                      </div>
+                      </template>
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="调查进展" name="progress">
@@ -376,18 +360,31 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { watch } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  activeMenu, caseEvidence, detailTab, gangs, getGangById, investigationSteps,
-  parsedReport, selectGang, selectedCase, viewRelatedGang
+  caseEvidence, detailTab, gangs, getGangById, investigationSteps,
+  parsedReport, selectedCase, viewRelatedGang,
+  capitalFlows, flowGraphData, loadFlowData, navigateTo
 } = state
+
+watch(detailTab, (newVal) => {
+  if (newVal === 'money' && selectedCase.value) {
+    loadFlowData(selectedCase.value.case_id)
+  }
+})
 const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '调取银行流水，追踪资金流向', '提取通讯记录，追踪诈骗号码', '固定电子证据，制作询问笔录', '串并关联案件，锁定犯罪团伙']
 </script>
 
 <style scoped>
-.case-detail-content { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+.case-detail-content {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
 .detail-main { display: flex; flex-direction: column; gap: 16px; }
 
 /* ====== 案件头卡片 ====== */
@@ -399,7 +396,7 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   border: 1px solid rgba(0,198,255,0.15);
   border-radius: 14px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .case-header-card::before {
   content: '';
@@ -422,8 +419,8 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
 }
 .case-header-card:hover {
   border-color: rgba(0,198,255,0.3);
-  box-shadow: 0 0 30px rgba(0,198,255,0.08);
-  transform: translateY(-1px);
+  box-shadow: 0 0 40px rgba(0,198,255,0.1), 0 8px 32px rgba(0,0,0,0.25);
+  transform: translateY(-2px);
 }
 .case-header-top {
   display: flex;
@@ -550,13 +547,13 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   border: 1px solid rgba(0,198,255,0.08);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 .timeline-section:hover, .money-section:hover, .method-section:hover {
   border-color: rgba(0,198,255,0.2);
-  box-shadow: 0 0 28px rgba(0,198,255,0.06);
+  box-shadow: 0 0 32px rgba(0,198,255,0.06);
   transform: translateY(-1px);
 }
 
@@ -599,7 +596,7 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   background: rgba(0,0,0,0.2);
   border-radius: 10px;
   border: 1px solid rgba(0,198,255,0.06);
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
@@ -615,9 +612,9 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   transition: opacity 0.3s ease;
 }
 .info-item:hover {
-  background: rgba(0,0,0,0.3);
-  border-color: rgba(0,198,255,0.18);
-  transform: translateX(2px);
+  background: rgba(0,0,0,0.35);
+  border-color: rgba(0,198,255,0.2);
+  transform: translateX(3px);
 }
 .info-item:hover::before { opacity: 0.6; }
 .info-label {
@@ -712,12 +709,12 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   padding: 18px 24px;
   border-radius: 12px;
   min-width: 100px;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 .flow-node:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
 }
 .flow-node.source {
   background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
@@ -769,10 +766,30 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   padding-top: 18px;
   border-top: 1px solid rgba(0,198,255,0.08);
 }
-.money-stat { text-align: center; padding: 8px 16px; background: rgba(0,0,0,0.1); border-radius: 8px; transition: all 0.3s; }
-.money-stat:hover { background: rgba(0,0,0,0.2); transform: translateY(-1px); }
+.money-stat { text-align: center; padding: 10px 20px; background: rgba(0,0,0,0.15); border-radius: 8px; transition: all 0.3s; }
+.money-stat:hover { background: rgba(0,0,0,0.25); transform: translateY(-2px); }
 .ms-label { font-size: 11px; color: #64748b; display: block; margin-bottom: 4px; }
 .ms-value { font-size: 18px; font-weight: 700; color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0,198,255,0.15); }
+
+.flow-chain { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+.flow-step { position: relative; padding-left: 20px; }
+.flow-step::before { content: ''; position: absolute; left: 6px; top: 28px; bottom: -12px; width: 2px; background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-purple)); opacity: 0.4; }
+.flow-step:last-child::before { display: none; }
+.flow-step-node { background: rgba(0,0,0,0.2); border: 1px solid rgba(0,198,255,0.12); border-radius: 10px; padding: 12px 16px; transition: all 0.3s; position: relative; overflow: hidden; }
+.flow-step-node:hover { border-color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0,198,255,0.1); }
+.flow-step-node.level-1 { border-left: 3px solid #ef4444; }
+.flow-step-node.level-2 { border-left: 3px solid #f59e0b; }
+.flow-step-node.level-3 { border-left: 3px solid #3b82f6; }
+.flow-step-node.level-4 { border-left: 3px solid #8b5cf6; }
+.flow-step-node.level-5 { border-left: 3px solid #10b981; }
+.step-level { position: absolute; top: 8px; right: 12px; font-size: 10px; color: var(--accent-cyan); background: rgba(0,198,255,0.08); padding: 2px 8px; border-radius: 4px; }
+.step-bank { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+.step-acct { font-size: 13px; color: #e2e8f0; font-family: monospace; display: inline; }
+.step-acct.target { color: var(--accent-cyan); }
+.step-arrow { display: inline; color: #64748b; margin: 0 6px; font-size: 14px; }
+.step-amount { font-size: 14px; color: #f97316; font-weight: 600; margin-top: 4px; }
+.step-anno { font-size: 11px; color: #64748b; margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.15); border-radius: 4px; }
+.no-data { padding: 40px 0; text-align: center; }
 
 /* ====== 调查进展时间线 ====== */
 .method-header {
@@ -798,7 +815,9 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   gap: 16px;
   position: relative;
   padding-bottom: 24px;
+  transition: all 0.3s ease;
 }
+.timeline-item:hover { padding-left: 4px; }
 .timeline-item:last-child { padding-bottom: 0; }
 .timeline-marker {
   display: flex;
@@ -861,12 +880,12 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   color: #e2e8f0;
   font-size: 13px;
   line-height: 1.6;
-  transition: all 0.3s;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .suggestion-item:hover {
   background: rgba(0,198,255,0.07);
-  transform: translateX(3px);
-  box-shadow: 0 2px 12px rgba(0,198,255,0.06);
+  transform: translateX(4px);
+  box-shadow: 0 2px 16px rgba(0,198,255,0.08);
 }
 .suggestion-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
 
@@ -878,14 +897,14 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   border: 1px solid rgba(0,198,255,0.08);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 .sidebar-section:hover {
   border-color: rgba(0,198,255,0.2);
-  box-shadow: 0 0 22px rgba(0,198,255,0.05);
-  transform: translateY(-1px);
+  box-shadow: 0 0 26px rgba(0,198,255,0.06);
+  transform: translateY(-2px);
 }
 .sidebar-section::before {
   content: '';
@@ -920,7 +939,7 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
 .evidence-item:hover {
   background: rgba(0,0,0,0.35);
   border-color: rgba(0,198,255,0.15);
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 .evidence-icon { font-size: 20px; width: 28px; text-align: center; }
 .evidence-info { flex: 1; }
@@ -941,13 +960,17 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
 .member-item:hover {
   background: rgba(0,0,0,0.35);
   border-color: rgba(0,198,255,0.15);
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 .member-avatar { font-size: 22px; }
 .member-info { flex: 1; }
 .member-name { font-size: 13px; color: #e2e8f0; font-weight: 500; }
 .member-role { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 @keyframes tl-pulse {
   0%, 100% { box-shadow: 0 0 10px rgba(0,198,255,0.3); }
   50% { box-shadow: 0 0 22px rgba(0,198,255,0.6); }

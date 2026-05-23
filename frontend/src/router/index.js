@@ -18,8 +18,8 @@ import AdminView from '../views/AdminView.vue'
 import StatusView from '../views/StatusView.vue'
 
 const routes = [
-  { path: '/', name: 'showcase', component: ShowcaseView, meta: { fullPage: true } },
-  { path: '/input', name: 'input', component: InputView },
+  { path: '/', name: 'showcase', component: ShowcaseView, meta: { fullPage: true, public: true } },
+  { path: '/input', name: 'input', component: InputView, meta: { public: true } },
   { path: '/dashboard', name: 'dashboard', component: DashboardView },
   { path: '/alerts', name: 'alerts', component: AlertsView },
   { path: '/upload', name: 'upload', component: UploadView },
@@ -35,11 +35,27 @@ const routes = [
   { path: '/report', name: 'report', component: ReportView },
   { path: '/status', name: 'status', component: StatusView },
   { path: '/admin', name: 'admin', component: AdminView },
+  { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/dashboard' },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+const PUBLIC_ROUTES = new Set(['showcase', 'input'])
+
+router.beforeEach((to, from, next) => {
+  if (to.meta?.public || PUBLIC_ROUTES.has(to.name)) {
+    next()
+    return
+  }
+  const token = localStorage.getItem('fraudlens_token')
+  if (!token) {
+    next({ name: 'input' })
+    return
+  }
+  next()
 })
 
 export default router

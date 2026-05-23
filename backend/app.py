@@ -71,7 +71,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
 
 # 数据库配置
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "20051223")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")

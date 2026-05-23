@@ -1,16 +1,15 @@
 @echo off
-chcp 65001 >nul 2>&1
-title FraudLens Docker 部署
+title FraudLens Docker Deploy
 
 echo ============================================
-echo   FraudLens Docker 一键部署
+echo   FraudLens Docker Deploy
 echo ============================================
 echo.
 
 where docker >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [错误] 未检测到 Docker，请先安装 Docker Desktop
-    echo 下载地址: https://www.docker.com/products/docker-desktop
+    echo [ERROR] Docker not found. Please install Docker Desktop.
+    echo Download: https://www.docker.com/products/docker-desktop
     pause
     exit /b 1
 )
@@ -19,80 +18,80 @@ docker compose version >nul 2>&1
 if %errorlevel% neq 0 (
     docker-compose version >nul 2>&1
     if %errorlevel% neq 0 (
-        echo [错误] 未检测到 docker-compose
+        echo [ERROR] docker-compose not found.
         pause
         exit /b 1
     )
 )
 
 if not exist .env (
-    echo [1/5] 创建 .env 配置文件...
+    echo [1/5] Creating .env config file...
     copy .env.docker .env
     echo.
-    echo [重要] 请编辑 .env 文件，填入你的 DEEPSEEK_API_KEY
+    echo [IMPORTANT] Please edit .env and fill in your DEEPSEEK_API_KEY
     echo.
     notepad .env
-    echo 配置文件已保存，继续部署...
+    echo Config saved, continuing...
 ) else (
-    echo [1/5] .env 配置文件已存在，跳过
+    echo [1/5] .env already exists, skipping
 )
 
 echo.
-echo [2/5] 构建 Docker 镜像（首次可能需要较长时间）...
+echo [2/5] Building Docker image (first time may take a while)...
 docker-compose build --no-cache backend
 if %errorlevel% neq 0 (
-    echo [错误] 镜像构建失败
+    echo [ERROR] Build failed
     pause
     exit /b 1
 )
 
 echo.
-echo [3/5] 启动所有服务...
+echo [3/5] Starting all services...
 docker-compose up -d
 if %errorlevel% neq 0 (
-    echo [错误] 服务启动失败
+    echo [ERROR] Start failed
     pause
     exit /b 1
 )
 
 echo.
-echo [4/5] 等待服务就绪...
+echo [4/5] Waiting for services...
 timeout /t 20 /nobreak >nul
 
 echo.
-echo [5/5] 检查 BGE 模型...
+echo [5/5] Checking BGE model...
 if exist "backend\bge-large-zh-v1.5\pytorch_model.bin" (
-    echo   检测到本地 BGE 模型，正在复制到容器...
-    for /f "tokens=*" %%i in ('docker-compose ps -q backend') do (
+    echo   BGE model found locally, copying to container...
+    for /f "tokens=*" %%i in ('docker-compose ps -q backend 2^>nul') do (
         docker cp "backend\bge-large-zh-v1.5\." %%i:/app/bge-large-zh-v1.5/
     )
-    echo   BGE 模型复制完成！
-    echo   重启后端以加载模型...
+    echo   BGE model copied!
+    echo   Restarting backend to load model...
     docker-compose restart backend
     timeout /t 10 /nobreak >nul
 ) else (
-    echo   [跳过] 本地未找到 BGE 模型文件
-    echo   如需使用聚类分析功能，请手动将模型复制到容器：
-    echo   docker cp ./backend/bge-large-zh-v1.5/. ^<容器ID^>:/app/bge-large-zh-v1.5/
+    echo   [SKIP] BGE model not found locally
+    echo   To use clustering, copy model to container:
+    echo   docker cp ./backend/bge-large-zh-v1.5/. CONTAINER_ID:/app/bge-large-zh-v1.5/
 )
 
 echo.
 echo ============================================
-echo   部署完成！
+echo   Deploy Complete!
 echo ============================================
 echo.
-echo   访问地址: http://localhost
-echo   默认账号: admin / admin123
+echo   URL:       http://localhost
+echo   Account:   admin / admin123
 echo.
-echo   MySQL:  localhost:3307 (root / .env中的密码)
-echo   Redis:  localhost:6380
-echo   后端API: localhost:5003
+echo   MySQL:     localhost:3307
+echo   Redis:     localhost:6380
+echo   Backend:   localhost:5003
 echo.
-echo   常用命令:
-echo     查看日志:   docker-compose logs -f
-echo     停止服务:   stop.bat 或 docker-compose down
-echo     重启服务:   docker-compose restart
-echo     注入种子:   docker-compose run --rm seed
+echo   Commands:
+echo     Logs:      docker-compose logs -f
+echo     Stop:      stop.bat
+echo     Restart:   docker-compose restart
+echo     Seed data: docker-compose run --rm seed
 echo ============================================
 echo.
 pause

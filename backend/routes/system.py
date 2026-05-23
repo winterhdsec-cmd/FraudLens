@@ -7,12 +7,14 @@ import uuid
 import asyncio
 import traceback
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request, Depends
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Optional
 
 from .deps import (
     logger, USE_CELERY, ProgressAdapter, progress_store, progress_locks,
-    AnalyzeRequest
+    AnalyzeRequest, get_current_user, log_operation
 )
 
 router = APIRouter(tags=['系统'])
@@ -209,3 +211,99 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
     finally:
         progress_store.pop(session_id, None)
         progress_locks.pop(session_id, None)
+
+
+_KEY_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'key.env')
+
+
+class APIKeyUpdateRequest(BaseModel):
+    api_key: str
+    base_url: Optional[str] = None
+    model: Optional[str] = None
+
+
+def _read_key_env() -> dict:
+    env = {}
+    if os.path.exists(_KEY_ENV_PATH):
+        with open(_KEY_ENV_PATH, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, _, v = line.partition('=')
+                    env[k.strip()] = v.strip()
+    return env
+
+
+def _write_key_env(env: dict):
+    lines = []
+    for k, v in env.items():
+        lines.append(f"{k}={v}")
+    with open(_KEY_ENV_PATH, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines) + '\n')
+
+
+@router.get('/api/settings/api-key')
+async def api_get_api_key(current_user: dict = Depends(get_current_user)):
+    try:
+        api_key = os.getenv("DEEPSEEK_API_KEY", "")
+        configured = bool(api_key and api_key != "mock-key")
+        key_preview = ""
+        if configured:
+            if len(api_key) <= 8:
+                key_preview = "sk-***"
+            else:
+                key_preview = f"sk-***{api_key[-4:]}"
+        return {
+            "success": True,
+            "configured": configured,
+            "key_preview": key_preview
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.put('/api/settings/api-key')
+async def api_update_api_key(
+    data: APIKeyUpdateRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="需要管理员权限")
+
+        env = _read_key_env()
+        env['DEEPSEEK_API_KEY'] = data.api_key
+        if data.base_url:
+            env['DEEPSEEK_BASE_URL'] = data.base_url
+        if data.model:
+            env['DEEPSEEK_MODEL'] = data.model
+        _write_key_env(env)
+
+        os.environ['DEEPSEEK_API_KEY'] = data.api_key
+        if data.base_url:
+            os.environ['DEEPSEEK_BASE_URL'] = data.base_url
+        if data.model:
+            os.environ['DEEPSEEK_MODEL'] = data.model
+
+        ip = request.client.host if request.client else ''
+        log_operation(
+            current_user['id'], current_user.get('username', ''),
+            'update_api_key', 'system', 'api_key', ip_address=ip
+        )
+
+        key_preview = ""
+        if len(data.api_key) > 8:
+            key_preview = f"sk-***{data.api_key[-4:]}"
+        else:
+            key_preview = "sk-***"
+
+        return {
+            "success": True,
+            "message": "API Key 更新成功",
+            "key_preview": key_preview
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

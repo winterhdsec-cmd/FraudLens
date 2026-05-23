@@ -1,9 +1,8 @@
 @echo off
-chcp 65001 >nul 2>&1
-title FraudLens Docker 停止
+title FraudLens Docker Stop
 
-echo 正在停止 FraudLens 所有服务...
+echo Stopping FraudLens...
 docker-compose down
 echo.
-echo 所有服务已停止
+echo All services stopped.
 pause

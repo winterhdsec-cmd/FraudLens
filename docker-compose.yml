@@ -8,7 +8,7 @@ services:
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
-      - "3307:3306"
+      - "13307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -66,6 +66,7 @@ services:
       - easyocr-model:/root/.EasyOCR/model
 
   seed:
+    image: fraudlens-backend:latest
     build:
       context: .
       dockerfile: Dockerfile

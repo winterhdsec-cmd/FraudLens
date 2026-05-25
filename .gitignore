@@ -40,3 +40,13 @@ dist/
 # Docker volumes
 mysql-data/
 redis-data/
+DockerData/
+
+# Drawio backup
+.*.bkp
+
+# Office temp files
+~$*
+
+# Generated demo files
+generate_doc.py

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { store } from './store.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5003'
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5003'
 const WS_URL = import.meta.env.VITE_WS_URL || API_BASE
 const isDev = import.meta.env.DEV
 
@@ -210,22 +210,6 @@ export async function deleteSession(sessionId) {
   return response.data
 }
 
-// ========== Merges ==========
-export async function suggestMerges() {
-  const response = await api.post('/api/merges/suggest')
-  return response.data
-}
-
-export async function confirmMerge(caseIdA, caseIdB, gangId) {
-  const response = await api.post('/api/merges/confirm', { case_id_a: caseIdA, case_id_b: caseIdB, gang_id: gangId })
-  return response.data
-}
-
-export async function getPendingMerges() {
-  const response = await api.get('/api/merges/pending')
-  return response.data
-}
-
 // ========== Reports ==========
 export async function generateCaseReport(caseId, format) {
   const response = await api.get(`/api/reports/case/${caseId}`, { params: { format } })
@@ -330,6 +314,26 @@ export async function getAiConfig() {
 
 export async function saveAiConfig(data) {
   return api.put('/api/settings/api-key', data)
+}
+
+// ========== Reviews ==========
+export async function getPendingReviews() {
+  const response = await api.get('/api/reviews/pending')
+  return response.data
+}
+
+export async function reviewCase(caseId, data) {
+  const response = await api.put(`/api/reviews/${caseId}`, data)
+  return response.data
+}
+
+// ========== Radar ==========
+export async function getCaseRadar(caseId) {
+  return api.get(`/api/cases/${caseId}/radar`)
+}
+
+export async function getGangRadar(gangId) {
+  return api.get(`/api/gangs/${gangId}/radar`)
 }
 
 export default api

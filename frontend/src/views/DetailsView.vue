@@ -31,6 +31,13 @@
       <span class="badge-label">当前分析：</span>
       <span class="badge-name">{{ currentGang.name || currentGang.gang_name || '未知团伙' }}</span>
       <span class="badge-risk" :style="{ background: currentGangPattern.riskColor }">{{ currentGangPattern.riskLabel }}</span>
+      <div class="gang-review-indicator">
+        <el-tag v-if="gangReviewSummary.pending === 0 && gangReviewSummary.total > 0" size="small" type="success" effect="dark">全团已复核</el-tag>
+        <el-tag v-else-if="gangReviewSummary.pending > 0" size="small" type="warning" effect="dark">{{ gangReviewSummary.reviewed }}/{{ gangReviewSummary.total }} 已复核</el-tag>
+        <el-button v-if="gangReviewSummary.pending > 0" size="small" type="primary" plain @click="openGangReviewDialog" style="margin-left:8px;height:28px;font-size:12px">
+          <span>✅</span> 一键复核确认
+        </el-button>
+      </div>
     </div>
 
     <Transition name="gang-fade" mode="out-in">
@@ -41,27 +48,11 @@
             <div class="analysis-card">
               <div class="analysis-header">
                 <span class="analysis-icon">🎯</span>
-                <span class="analysis-title">团伙特征提取</span>
+                <span class="analysis-title">团伙特征雷达</span>
                 <span class="analysis-subtitle">AI智能分析</span>
               </div>
               <div class="analysis-content">
-                <div class="feature-grid">
-                  <div v-for="(feature, idx) in currentFeatures" :key="feature.name" class="feature-card" :style="{ '--feature-color': feature.color }">
-                    <div class="feature-icon-wrap">
-                      <span class="feature-icon">{{ getFeatureIcon(idx) }}</span>
-                    </div>
-                    <div class="feature-info">
-                      <div class="feature-header">
-                        <span class="feature-name">{{ feature.name }}</span>
-                        <span class="feature-value" :style="{ color: feature.color }">{{ feature.confidence }}%</span>
-                      </div>
-                      <span class="feature-desc">{{ feature.desc }}</span>
-                    </div>
-                    <div class="feature-bar-wrap">
-                      <div class="feature-bar" :style="{ width: feature.confidence + '%', background: feature.color }"></div>
-                    </div>
-                  </div>
-                </div>
+                <div ref="radarChartRef" class="radar-chart-container"></div>
               </div>
             </div>
 
@@ -294,12 +285,47 @@
     </Transition>
   </div>
 </div>
+
+<el-dialog v-model="reviewDialogVisible" title="团伙复核确认" width="500px" class="review-dialog">
+  <div class="dialog-body">
+    <div class="dialog-gang-info">
+      <div class="info-row"><span class="label">团伙名称</span><span class="value">{{ currentGang?.gang_name || currentGang?.name || '未知' }}</span></div>
+      <div class="info-row"><span class="label">关联案件数</span><span class="value">{{ gangReviewSummary.total }} 件</span></div>
+      <div class="info-row">
+        <span class="label">复核进度</span>
+        <span class="value">{{ gangReviewSummary.reviewed }}/{{ gangReviewSummary.total }}（待复核: {{ gangReviewSummary.pending }} 件）</span>
+      </div>
+    </div>
+    <div class="dialog-hint">
+      <span class="hint-icon">ℹ️</span>
+      <span class="hint-text">一键复核确认将为该团伙中所有未复核的案件批量提交复核结论</span>
+    </div>
+    <el-form label-position="top" class="review-form">
+      <el-form-item label="复核结论">
+        <el-select v-model="reviewForm.status" style="width:100%">
+          <el-option label="已复核 — 结论正确" value="已复核" />
+          <el-option label="已复核 — 需修正" value="待修正" />
+          <el-option label="已复核 — 误报" value="已驳回" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="复核备注">
+        <el-input v-model="reviewForm.notes" type="textarea" :rows="3" placeholder="请输入复核意见，如团伙划分结果、诈骗类型确认等" />
+      </el-form-item>
+    </el-form>
+  </div>
+  <template #footer>
+    <el-button @click="reviewDialogVisible = false">取消</el-button>
+    <el-button type="primary" :loading="reviewSubmitting" @click="submitGangReview">确认批量复核</el-button>
+  </template>
+</el-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+import * as echarts from 'echarts'
+import { getGangRadar, reviewCase } from '../api.js'
 import MiniNetworkGraph from '../components/MiniNetworkGraph.vue'
 const router = useRouter()
 const state = useAppState()
@@ -307,6 +333,73 @@ const {
   gangs, cases, getFeatureIcon,
   selectedGang, selectedCase
 } = state
+
+const reviewDialogVisible = ref(false)
+const reviewForm = ref({ status: '已复核', notes: '' })
+const reviewSubmitting = ref(false)
+const gangReviewSummary = ref({ total: 0, reviewed: 0, pending: 0 })
+
+const pendingCasesInGang = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const related = g.related_cases || []
+  const allCases = cases.value || []
+  return related.filter(rc => {
+    const full = allCases.find(c => (c.case_id || c.id) === rc.case_id)
+    if (!full) return false
+    const s = full.status || ''
+    if (s === '已复核' || s === '待修正' || s === '已驳回') return false
+    if (s === '' || s === '待分析' || s === '已删除') return false
+    return true
+  })
+})
+
+function updateGangReviewSummary() {
+  const g = currentGang.value
+  if (!g) {
+    gangReviewSummary.value = { total: 0, reviewed: 0, pending: 0 }
+    return
+  }
+  const related = g.related_cases || []
+  const allCases = cases.value || []
+  let total = related.length
+  let reviewed = 0
+  related.forEach(rc => {
+    const full = allCases.find(c => (c.case_id || c.id) === rc.case_id)
+    if (!full) return
+    const s = full.status || ''
+    if (s === '已复核' || s === '待修正' || s === '已驳回') reviewed++
+  })
+  gangReviewSummary.value = { total, reviewed, pending: total - reviewed }
+}
+
+function openGangReviewDialog() {
+  reviewForm.value = { status: '已复核', notes: '' }
+  reviewDialogVisible.value = true
+}
+
+async function submitGangReview() {
+  reviewSubmitting.value = true
+  try {
+    const pendingCases = pendingCasesInGang.value
+    for (const rc of pendingCases) {
+      const cid = rc.case_id
+      try {
+        await reviewCase(cid, reviewForm.value)
+        const full = cases.value.find(c => (c.case_id || c.id) === cid)
+        if (full) full.status = reviewForm.value.status
+      } catch (e) {
+        console.warn(`复核案件 ${cid} 失败:`, e)
+      }
+    }
+    reviewDialogVisible.value = false
+    updateGangReviewSummary()
+  } catch (e) {
+    console.error('批量复核失败:', e)
+  } finally {
+    reviewSubmitting.value = false
+  }
+}
 
 const selectedGangId = ref(null)
 const isMoneyFlowCollapsed = ref(false)
@@ -664,12 +757,158 @@ const relationPhysics = {
 }
 
 const relationChartRef = ref(null)
+const radarChartRef = ref(null)
+let radarChartInstance = null
 
-onMounted(() => {
-  nextTick(() => {})
+function renderRadarChart() {
+  if (!radarChartRef.value) {
+    requestAnimationFrame(() => renderRadarChart())
+    return
+  }
+  if (radarChartInstance && radarChartInstance.getDom() !== radarChartRef.value) {
+    radarChartInstance.dispose()
+    radarChartInstance = null
+  }
+  if (!radarChartInstance) {
+    radarChartInstance = echarts.init(radarChartRef.value, null, { renderer: 'canvas' })
+  }
+  const g = currentGang.value
+  if (!g) {
+    radarChartInstance.clear()
+    return
+  }
+  const gangId = g.gang_id || g.id
+  if (!gangId) {
+    radarChartInstance.clear()
+    return
+  }
+  getGangRadar(gangId).then(res => {
+    let radar = res.data?.radar || {}
+    if (!Object.keys(radar).length && g.radar_data) {
+      radar = g.radar_data
+    }
+    const names = Object.keys(radar)
+    const values = Object.values(radar)
+    if (!names.length) {
+      radarChartInstance.clear()
+      return
+    }
+    const colors = ['#ef4444', '#f59e0b', '#00d4ff', '#8b5cf6', '#10b981', '#ec4899']
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(10,14,26,0.92)',
+        borderColor: 'rgba(0,198,255,0.2)',
+        borderWidth: 1,
+        textStyle: { color: '#e2e8f0', fontSize: 12 },
+        formatter: (params) => {
+          if (!params.value) return ''
+          return names.map((n, i) =>
+            `<span style="color:${colors[i % colors.length]};font-weight:700">${n}</span>: ${params.value[i]}%`
+          ).join('<br/>')
+        }
+      },
+      radar: {
+        indicator: names.map(n => ({ name: n, max: 100 })),
+        shape: 'polygon',
+        radius: '68%',
+        center: ['50%', '52%'],
+        axisName: {
+          color: '#94a3b8',
+          fontSize: 11,
+          fontWeight: 500,
+          padding: [0, 0, 0, 0]
+        },
+        splitNumber: 4,
+        splitArea: {
+          areaStyle: {
+            color: [
+              'rgba(0,198,255,0.02)',
+              'rgba(0,198,255,0.04)',
+              'rgba(0,198,255,0.06)',
+              'rgba(0,198,255,0.08)'
+            ]
+          }
+        },
+        splitLine: {
+          lineStyle: { color: 'rgba(0,198,255,0.1)', width: 1 }
+        },
+        axisLine: {
+          lineStyle: { color: 'rgba(0,198,255,0.12)' }
+        }
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: values,
+          name: '团伙特征',
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            color: '#00d4ff',
+            width: 2,
+            shadowColor: 'rgba(0,212,255,0.4)',
+            shadowBlur: 8
+          },
+          areaStyle: {
+            color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+              { offset: 0, color: 'rgba(0,212,255,0.25)' },
+              { offset: 1, color: 'rgba(0,212,255,0.02)' }
+            ])
+          },
+          itemStyle: {
+            color: '#00d4ff',
+            borderColor: '#00d4ff',
+            borderWidth: 2,
+            shadowColor: 'rgba(0,212,255,0.5)',
+            shadowBlur: 6
+          }
+        }],
+        animationDuration: 800,
+        animationEasing: 'cubicOut'
+      }]
+    }
+    radarChartInstance.setOption(option, true)
+  }).catch(e => {
+    console.warn('团伙雷达图加载失败:', e)
+    const features = currentFeatures.value
+    if (!features.length) {
+      radarChartInstance.clear()
+      return
+    }
+    const indicator = features.map(f => ({ name: f.name, max: 100 }))
+    const values = features.map(f => f.confidence)
+    radarChartInstance.setOption({
+      radar: { indicator, shape: 'polygon', radius: '68%', center: ['50%', '52%'], axisName: { color: '#94a3b8', fontSize: 11 }, splitNumber: 4, splitArea: { areaStyle: { color: ['rgba(0,198,255,0.02)','rgba(0,198,255,0.04)','rgba(0,198,255,0.06)','rgba(0,198,255,0.08)'] } }, splitLine: { lineStyle: { color: 'rgba(0,198,255,0.1)' } }, axisLine: { lineStyle: { color: 'rgba(0,198,255,0.12)' } } },
+      series: [{ type: 'radar', data: [{ value: values, name: '团伙特征', lineStyle: { color: '#00d4ff', width: 2 }, areaStyle: { color: 'rgba(0,212,255,0.15)' }, itemStyle: { color: '#00d4ff' } }] }]
+    }, true)
+  })
+}
+
+const resizeRadarChart = () => {
+  radarChartInstance?.resize()
+}
+
+watch(currentFeatures, () => {
+  nextTick(() => renderRadarChart())
+}, { deep: true })
+
+watch(currentGang, () => {
+  nextTick(() => renderRadarChart())
 })
 
-onUnmounted(() => {})
+onMounted(() => {
+  nextTick(() => renderRadarChart())
+  window.addEventListener('resize', resizeRadarChart)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', resizeRadarChart)
+  if (radarChartInstance) {
+    radarChartInstance.dispose()
+    radarChartInstance = null
+  }
+})
 
 watch(() => gangs.value?.length || 0, (val) => {
   if (val === 0) {
@@ -684,6 +923,10 @@ watch(selectedGangId, (newVal) => {
     selectedGangId.value = gangs.value[0]?.id || gangs.value[0]?.gang_id || null
   }
 })
+
+watch(currentGang, () => {
+  nextTick(() => updateGangReviewSummary())
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -809,10 +1052,18 @@ watch(selectedGangId, (newVal) => {
   font-size: 14px;
   backdrop-filter: blur(4px);
   transition: border-color 0.3s, box-shadow 0.3s;
+  flex-wrap: wrap;
 }
 .current-gang-badge:hover {
   border-color: rgba(0,198,255,0.25);
   box-shadow: 0 0 20px rgba(0,198,255,0.06);
+}
+.gang-review-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0,198,255,0.15);
 }
 .badge-dot {
   width: 8px;
@@ -886,60 +1137,10 @@ watch(selectedGangId, (newVal) => {
   background: rgba(0,198,255,0.08);
 }
 
-.feature-grid { display: flex; flex-direction: column; gap: 12px; }
-.feature-card {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.08));
-  border: 1px solid rgba(0, 198, 255, 0.04);
-  border-radius: 10px;
-  transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s;
-}
-.feature-card:hover {
-  border-color: var(--feature-color, rgba(0,198,255,0.15));
-  box-shadow: 0 0 16px rgba(0,0,0,0.15);
-  transform: translateX(4px);
-}
-.feature-icon-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.feature-icon {
-  font-size: 20px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.3);
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-.feature-info { flex: 1; }
-.feature-header { display: flex; justify-content: space-between; align-items: center; }
-.feature-name { font-size: 13px; color: #e2e8f0; font-weight: 600; }
-.feature-value { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
-.feature-desc { font-size: 11px; color: #64748b; margin-top: 4px; }
-.feature-bar-wrap {
-  height: 6px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-.feature-bar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-.feature-bar::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent);
-  border-radius: 3px;
+.radar-chart-container {
+  width: 100%;
+  height: 340px;
+  min-height: 280px;
 }
 
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
@@ -1188,4 +1389,44 @@ watch(selectedGangId, (newVal) => {
   width: 48px; font-size: 13px; color: #00d4ff;
   font-weight: 700; text-align: right;
 }
+
+.dialog-body { padding: 8px 0; }
+.dialog-gang-info {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.dialog-gang-info .info-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  gap: 12px;
+}
+.dialog-gang-info .info-row .label {
+  font-size: 13px;
+  color: var(--text-muted);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+.dialog-gang-info .info-row .value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.dialog-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(0, 198, 255, 0.05);
+  border: 1px solid rgba(0, 198, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.dialog-hint .hint-icon { font-size: 14px; flex-shrink: 0; }
+.dialog-hint .hint-text { line-height: 1.5; }
+.review-form { margin-top: 4px; }
 </style>

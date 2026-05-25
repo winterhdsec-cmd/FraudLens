@@ -112,6 +112,7 @@ class Case(db.Model):
     steps = db.Column(JSON, default=list)
     roles = db.Column(JSON, default=list)
     extracted_entities = db.Column(JSON, default=dict)
+    radar_data = db.Column(JSON, default=dict)
     message_count = db.Column(db.Integer, default=0)
     time_range = db.Column(db.String(50), default='')
     warning = db.Column(db.Text, nullable=True)

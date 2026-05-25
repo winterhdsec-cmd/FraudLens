@@ -285,28 +285,39 @@ const runAnalysis = () => {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 12px 24px;
   border-top: 1px solid var(--border-primary);
-  background: rgba(0,0,0,0.1);
+  background: transparent;
 }
 .mode-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 .mode-opt { font-size: 12px; }
 .mode-selector :deep(.el-radio-group) { gap: 0; }
 .mode-selector :deep(.el-radio-button__inner) {
-  background: rgba(0,0,0,0.3);
-  border-color: var(--border-primary);
-  color: var(--text-secondary);
+  background: rgba(0,0,0,0.4) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
   padding: 5px 14px;
   font-size: 12px;
   transition: all 0.2s;
 }
 .mode-selector :deep(.el-radio-button__inner:hover) {
-  color: var(--text-primary);
-  border-color: rgba(0,198,255,0.3);
+  color: var(--text-primary) !important;
+  border-color: rgba(0,198,255,0.3) !important;
 }
 .mode-selector :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background: linear-gradient(135deg, rgba(0,198,255,0.2), rgba(0,132,255,0.15));
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-  box-shadow: none;
+  background: linear-gradient(135deg, rgba(0,198,255,0.2), rgba(0,132,255,0.15)) !important;
+  border-color: var(--accent-cyan) !important;
+  color: var(--accent-cyan) !important;
+  box-shadow: none !important;
+}
+.mode-selector :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: linear-gradient(135deg, rgba(0,198,255,0.2), rgba(0,132,255,0.15)) !important;
+  border-color: var(--accent-cyan) !important;
+  color: var(--accent-cyan) !important;
+}
+.mode-selector :deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-left-color: var(--border-primary) !important;
+}
+.mode-selector :deep(.el-radio-button:focus:not(.is-focus):not(:active):not(.is-active) .el-radio-button__inner) {
+  box-shadow: none !important;
 }
 .mode-hint { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 180px; }
 </style>

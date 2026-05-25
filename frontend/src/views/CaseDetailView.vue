@@ -223,6 +223,10 @@
                     <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
+                          <h4 class="overview-title">🎯 案件特征雷达</h4>
+                          <div ref="caseRadarRef" class="case-radar-chart"></div>
+                        </div>
+                        <div class="overview-section">
                           <h4 class="overview-title">🎯 行为特征分析</h4>
                           <div class="info-grid">
                             <div class="info-item"><span class="info-label">作案时段</span><span class="info-value">{{ selectedCase.peakHours || '—' }}</span></div>
@@ -245,13 +249,14 @@
                       <div class="case-overview">
                         <div class="overview-section">
                           <h4 class="overview-title">🔗 关联案件</h4>
-                          <p class="overview-content" v-if="gangs.length">当前案件所属团伙共关联 {{ gangs.length }} 个案件</p>
-                          <p class="overview-content" v-else>暂无关联案件信息</p>
+                          <p class="overview-content" v-if="selectedCaseGang && selectedCaseGang.related_cases">{{ selectedCaseGang.gang_name }} 共关联 {{ selectedCaseGang.related_cases.length }} 个案件</p>
+                          <p class="overview-content" v-else>{{ selectedCase?.gang ? '当前案件所属团伙暂无其他关联案件' : '当前案件暂未关联到任何团伙' }}</p>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">👥 关联团伙</h4>
+                          <h4 class="overview-title">👥 所属团伙</h4>
                           <div class="tag-cloud">
-                            <el-tag v-for="gang in gangs.slice(0,10)" :key="gang.id || gang.gang_id" type="danger" size="small" style="margin:4px;cursor:pointer" @click="viewRelatedGang(gang.gang_id || gang.id)">{{ gang.name || gang.gang_name }}</el-tag>
+                            <el-tag v-if="selectedCaseGang" type="danger" size="small" style="margin:4px;cursor:pointer" @click="viewRelatedGang(selectedCaseGang.gang_id || selectedCaseGang.id)">{{ selectedCaseGang.gang_name || selectedCaseGang.name }}</el-tag>
+                            <el-tag v-else type="info" size="small">暂未关联团伙</el-tag>
                           </div>
                         </div>
                       </div>
@@ -341,14 +346,50 @@
 
               <div class="sidebar-section">
                 <div class="section-title-bar">
+                  <span class="section-icon">✅</span>
+                  <span class="section-title-text">复核确认</span>
+                </div>
+                <div class="review-status-area">
+                  <div class="review-status-row">
+                    <span class="rs-label">复核状态</span>
+                    <el-tag :type="reviewStatusTag" size="small" effect="dark">
+                      {{ reviewStatusText }}
+                    </el-tag>
+                  </div>
+                  <div v-if="reviewNotes" class="review-notes-block">
+                    <span class="rn-label">复核备注:</span>
+                    <p class="rn-text">{{ reviewNotes }}</p>
+                  </div>
+                  <div v-if="canReview" class="review-action-wrapper" style="margin-top: 10px;">
+                    <el-button type="primary" size="small" style="width:100%" @click="openReviewDialog">
+                      <span>✅</span> 复核确认
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-section">
+                <div class="section-title-bar">
                   <span class="section-icon">🔗</span>
-                  <span class="section-title-text">关联团伙</span>
+                  <span class="section-title-text">所属团伙</span>
                 </div>
                 <div class="tag-cloud">
-                  <el-tag v-if="selectedCase.gang" type="danger" size="small" @click="viewRelatedGang(selectedCase.gang)">
-                    {{ getGangById(selectedCase.gang)?.name || '未知团伙' }}
+                  <el-tag v-if="selectedCaseGang" type="danger" size="small" @click="viewRelatedGang(selectedCaseGang.gang_id || selectedCaseGang.id)">
+                    {{ selectedCaseGang.gang_name || selectedCaseGang.name || '未知团伙' }}
                   </el-tag>
-                  <el-tag v-else type="info" size="small">待关联</el-tag>
+                  <el-tag v-else type="info" size="small">暂未关联</el-tag>
+                </div>
+              </div>
+
+              <div class="sidebar-section">
+                <div class="section-title-bar">
+                  <span class="section-icon">💰</span>
+                  <span class="section-title-text">资金流向</span>
+                </div>
+                <div class="sidebar-action">
+                  <el-button size="small" style="width:100%" @click="goToCapitalFlow">
+                    <span>💰</span> 查看资金流向图
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -356,25 +397,250 @@
 
           </template>
         </div>
+
+  <el-dialog v-model="reviewDialogVisible" title="人工复核确认" width="480px" class="review-dialog">
+    <div class="dialog-body">
+      <div class="dialog-case-info">
+        <div class="info-row"><span class="label">案件编号</span><span class="value">{{ selectedCase?.case_id || selectedCase?.id }}</span></div>
+        <div class="info-row"><span class="label">案件标题</span><span class="value">{{ selectedCase?.title || '未命名' }}</span></div>
+        <div class="info-row"><span class="label">当前状态</span><span class="value">{{ selectedCase?.status }}</span></div>
+      </div>
+      <el-form label-position="top" class="review-form">
+        <el-form-item label="复核结论">
+          <el-select v-model="reviewForm.status" style="width:100%">
+            <el-option label="已复核 — 结论正确" value="已复核" />
+            <el-option label="已复核 — 需修正" value="待修正" />
+            <el-option label="已复核 — 误报" value="已驳回" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="复核备注">
+          <el-input v-model="reviewForm.notes" type="textarea" :rows="3" placeholder="请输入复核意见，如修正的分案结果、纠正的诈骗类型等" />
+        </el-form-item>
+      </el-form>
+    </div>
+    <template #footer>
+      <el-button @click="reviewDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="reviewSubmitting" @click="submitReview">确认复核</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import * as echarts from 'echarts'
 import { useAppState } from '../composables/useAppState.js'
+import { getCaseRadar, reviewCase } from '../api.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  caseEvidence, detailTab, gangs, getGangById, investigationSteps,
+  caseEvidence, detailTab, gangs, investigationSteps,
   parsedReport, selectedCase, viewRelatedGang,
   capitalFlows, flowGraphData, loadFlowData, navigateTo
 } = state
+
+const reviewDialogVisible = ref(false)
+const reviewForm = ref({ status: '已复核', notes: '' })
+const reviewSubmitting = ref(false)
+
+const selectedCaseGang = computed(() => {
+  if (!selectedCase.value || !gangs.value) return null
+  const cid = selectedCase.value.case_id || selectedCase.value.id
+  if (!cid) return null
+  return gangs.value.find(g => {
+    if (g.gang_id === cid || g.id === cid) return true
+    if (g.related_cases && g.related_cases.includes(cid)) return true
+    if (g.case_ids && g.case_ids.includes(cid)) return true
+    return false
+  }) || gangs.value.find(g => g.gang_id === selectedCase.value.gang || g.id === selectedCase.value.gang) || null
+})
+
+const canReview = computed(() => {
+  if (!selectedCase.value) return false
+  const s = selectedCase.value.status || ''
+  if (s === '已复核' || s === '待修正' || s === '已驳回') return false
+  if (s === '' || s === '待分析' || s === '已删除') return false
+  return true
+})
+
+const reviewStatusText = computed(() => {
+  if (!selectedCase.value) return '—'
+  const s = selectedCase.value.status || ''
+  if (s === '已复核') return '已复核'
+  if (s === '待修正') return '待修正'
+  if (s === '已驳回') return '已驳回'
+  if (canReview.value) return '待复核'
+  return '无需复核'
+})
+
+const reviewStatusTag = computed(() => {
+  const s = selectedCase.value?.status || ''
+  if (s === '已复核') return 'success'
+  if (s === '待修正') return 'warning'
+  if (s === '已驳回') return 'danger'
+  if (canReview.value) return 'info'
+  return 'info'
+})
+
+const reviewNotes = computed(() => {
+  if (!selectedCase.value) return ''
+  const desc = selectedCase.value.description || ''
+  const match = desc.match(/\[复核备注\]\s*(.+)/)
+  return match ? match[1] : ''
+})
+
+function openReviewDialog() {
+  reviewForm.value = { status: '已复核', notes: '' }
+  reviewDialogVisible.value = true
+}
+
+async function submitReview() {
+  reviewSubmitting.value = true
+  try {
+    const cid = selectedCase.value.case_id || selectedCase.value.id
+    await reviewCase(cid, reviewForm.value)
+    reviewDialogVisible.value = false
+    selectedCase.value.status = reviewForm.value.status
+    if (reviewForm.value.notes) {
+      selectedCase.value.description = (selectedCase.value.description || '') + `\n[复核备注] ${reviewForm.value.notes}`
+    }
+  } catch (e) {
+    console.error('复核失败:', e)
+  } finally {
+    reviewSubmitting.value = false
+  }
+}
+
+function goToCapitalFlow() {
+  const cid = selectedCase.value?.case_id || selectedCase.value?.id
+  if (cid) {
+    state.flowSearchCaseId = cid
+    router.push('/capital-flow')
+  }
+}
+
+const caseRadarRef = ref(null)
+let caseRadarInstance = null
+
+async function renderCaseRadar() {
+  if (!selectedCase.value) return
+  if (!caseRadarRef.value) {
+    requestAnimationFrame(() => renderCaseRadar())
+    return
+  }
+  if (caseRadarInstance && caseRadarInstance.getDom() !== caseRadarRef.value) {
+    caseRadarInstance.dispose()
+    caseRadarInstance = null
+  }
+  if (!caseRadarInstance) {
+    caseRadarInstance = echarts.init(caseRadarRef.value, null, { renderer: 'canvas' })
+  }
+  const cid = selectedCase.value.case_id || selectedCase.value.id
+  if (!cid) return
+  try {
+    const res = await getCaseRadar(cid)
+    let radar = res.data?.radar || {}
+    if (!Object.keys(radar).length && selectedCase.value?.radar_data) {
+      radar = selectedCase.value.radar_data
+    }
+    const names = Object.keys(radar)
+    const values = Object.values(radar)
+    if (!names.length) {
+      caseRadarInstance.clear()
+      return
+    }
+    const colors = ['#ef4444', '#f59e0b', '#00d4ff', '#8b5cf6', '#10b981', '#ec4899']
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(10,14,26,0.92)',
+        borderColor: 'rgba(0,198,255,0.2)',
+        borderWidth: 1,
+        textStyle: { color: '#e2e8f0', fontSize: 12 },
+        formatter: (params) => {
+          if (!params.value) return ''
+          return names.map((n, i) =>
+            `<span style="color:${colors[i % colors.length]};font-weight:700">${n}</span>: ${params.value[i]}%`
+          ).join('<br/>')
+        }
+      },
+      radar: {
+        indicator: names.map(n => ({ name: n, max: 100 })),
+        shape: 'polygon',
+        radius: '65%',
+        center: ['50%', '52%'],
+        axisName: { color: '#94a3b8', fontSize: 11, fontWeight: 500 },
+        splitNumber: 4,
+        splitArea: {
+          areaStyle: {
+            color: ['rgba(0,198,255,0.02)', 'rgba(0,198,255,0.04)', 'rgba(0,198,255,0.06)', 'rgba(0,198,255,0.08)']
+          }
+        },
+        splitLine: { lineStyle: { color: 'rgba(0,198,255,0.1)', width: 1 } },
+        axisLine: { lineStyle: { color: 'rgba(0,198,255,0.12)' } }
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: values,
+          name: '案件特征',
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            color: '#00d4ff', width: 2,
+            shadowColor: 'rgba(0,212,255,0.4)', shadowBlur: 8
+          },
+          areaStyle: {
+            color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+              { offset: 0, color: 'rgba(0,212,255,0.25)' },
+              { offset: 1, color: 'rgba(0,212,255,0.02)' }
+            ])
+          },
+          itemStyle: {
+            color: '#00d4ff', borderColor: '#00d4ff', borderWidth: 2,
+            shadowColor: 'rgba(0,212,255,0.5)', shadowBlur: 6
+          }
+        }],
+        animationDuration: 800,
+        animationEasing: 'cubicOut'
+      }]
+    }
+    caseRadarInstance.setOption(option, true)
+  } catch (e) {
+    console.warn('案件雷达图加载失败:', e)
+  }
+}
+
+const resizeCaseRadar = () => caseRadarInstance?.resize()
 
 watch(detailTab, (newVal) => {
   if (newVal === 'money' && selectedCase.value) {
     loadFlowData(selectedCase.value.case_id)
   }
+  if (newVal === 'behavior') {
+    nextTick(() => setTimeout(() => renderCaseRadar(), 100))
+  }
 })
+
+watch(() => selectedCase.value?.case_id || selectedCase.value?.id, () => {
+  nextTick(() => setTimeout(() => renderCaseRadar(), 200))
+}, { deep: true })
+
+onMounted(() => {
+  window.addEventListener('resize', resizeCaseRadar)
+  if (detailTab.value === 'behavior') {
+    nextTick(() => setTimeout(() => renderCaseRadar(), 300))
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', resizeCaseRadar)
+  if (caseRadarInstance) {
+    caseRadarInstance.dispose()
+    caseRadarInstance = null
+  }
+})
+
 const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '调取银行流水，追踪资金流向', '提取通讯记录，追踪诈骗号码', '固定电子证据，制作询问笔录', '串并关联案件，锁定犯罪团伙']
 </script>
 
@@ -867,6 +1133,13 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
 /* ====== 标签云 ====== */
 .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* ====== 案件雷达图 ====== */
+.case-radar-chart {
+  width: 100%;
+  height: 320px;
+  min-height: 260px;
+}
+
 /* ====== 处置建议 ====== */
 .suggestion-list { display: flex; flex-direction: column; gap: 12px; }
 .suggestion-item {
@@ -891,6 +1164,67 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
 
 /* ====== 侧边栏 ====== */
 .detail-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+.review-status-area { padding: 4px 0; }
+.review-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.review-status-row .rs-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.review-notes-block {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  border-left: 2px solid rgba(245,158,11,0.4);
+}
+.review-notes-block .rn-label {
+  font-size: 11px;
+  color: #f59e0b;
+  display: block;
+  margin-bottom: 4px;
+}
+.review-notes-block .rn-text {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+.review-action-wrapper { margin-top: 10px; }
+
+.sidebar-action { padding: 4px 0; }
+
+.dialog-body { padding: 8px 0; }
+.dialog-case-info {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+.dialog-case-info .info-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  gap: 12px;
+}
+.dialog-case-info .info-row .label {
+  font-size: 13px;
+  color: var(--text-muted);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+.dialog-case-info .info-row .value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.review-form { margin-top: 8px; }
+
 .sidebar-section {
   padding: 18px;
   background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(18,28,50,0.6));

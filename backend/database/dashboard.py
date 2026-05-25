@@ -29,7 +29,27 @@ def _format_amount(value):
     return f'\u00a5{round(value, 2)}'
 
 
+_memory_cache = {}
+_memory_cache_ttl = 300
+
+def _get_cached(key):
+    cached = _memory_cache.get(key)
+    if cached and (datetime.utcnow() - cached['ts']).seconds < _memory_cache_ttl:
+        return cached['data']
+    return None
+
+def _set_cache(key, data):
+    _memory_cache[key] = {'data': data, 'ts': datetime.utcnow()}
+    if len(_memory_cache) > 20:
+        cutoff = datetime.utcnow() - timedelta(seconds=_memory_cache_ttl)
+        _memory_cache.clear()
+
+
 def get_dashboard_data():
+    cached = _get_cached('dashboard_stats')
+    if cached:
+        return cached
+
     try:
         import redis as redis_lib
         r = redis_lib.Redis(
@@ -38,9 +58,11 @@ def get_dashboard_data():
             password=os.getenv('REDIS_PASSWORD', ''),
             socket_connect_timeout=2
         )
-        cached = r.get('dashboard_stats')
-        if cached:
-            return json.loads(cached)
+        cached_redis = r.get('dashboard_stats')
+        if cached_redis:
+            data = json.loads(cached_redis)
+            _set_cache('dashboard_stats', data)
+            return data
     except Exception:
         pass
 
@@ -204,8 +226,17 @@ def get_dashboard_data():
         'data_update_frequency': '每日自动更新'
     }
 
+    _set_cache('dashboard_stats', data)
     try:
-        r.setex('dashboard_stats', 300, json.dumps(data, default=str, ensure_ascii=False))
+        import redis as redis_lib
+        r2 = redis_lib.Redis(
+            host=os.getenv('REDIS_HOST', 'localhost'),
+            port=int(os.getenv('REDIS_PORT', 6379)),
+            password=os.getenv('REDIS_PASSWORD', ''),
+            socket_connect_timeout=2
+        )
+        r2.setex('dashboard_stats', 300, json.dumps(data, default=str, ensure_ascii=False))
+        r2.close()
     except Exception:
         pass
 

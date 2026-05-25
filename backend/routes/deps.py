@@ -136,7 +136,11 @@ def get_current_user(request: Request) -> Dict[str, Any]:
     if not payload:
         raise HTTPException(status_code=401, detail="令牌无效或已过期")
     from database.models import User
-    user = User.query.get(int(payload['sub']))
+    try:
+        user = db.session.get(User, int(payload['sub']))
+    except Exception:
+        db.session.rollback()
+        user = db.session.get(User, int(payload['sub']))
     if not user:
         raise HTTPException(status_code=401, detail="用户不存在")
     if not user.is_active:

@@ -89,7 +89,7 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
             socketio=progress_adapter, session_id=session_id, persist=True
         )
         context = AgentContext(session_id=session_id, trace_id=str(uuid.uuid4()))
-        result = chief_agent.process({
+        result = chief_agent.simple_process({
             'messages': raw_messages, 'platform_data': platform_data
         }, context)
         progress_adapter.emit('analysis_complete', {
@@ -246,6 +246,9 @@ def _write_key_env(env: dict):
 async def api_get_api_key(current_user: dict = Depends(get_current_user)):
     try:
         api_key = os.getenv("DEEPSEEK_API_KEY", "")
+        if not api_key:
+            env = _read_key_env()
+            api_key = env.get("DEEPSEEK_API_KEY", "")
         configured = bool(api_key and api_key != "mock-key")
         key_preview = ""
         if configured:
@@ -253,10 +256,20 @@ async def api_get_api_key(current_user: dict = Depends(get_current_user)):
                 key_preview = "sk-***"
             else:
                 key_preview = f"sk-***{api_key[-4:]}"
+        base_url = os.getenv("DEEPSEEK_BASE_URL", "")
+        model = os.getenv("DEEPSEEK_MODEL", "")
+        if not base_url:
+            env = _read_key_env()
+            base_url = env.get("DEEPSEEK_BASE_URL", "")
+        if not model:
+            env = _read_key_env() if not base_url else env
+            model = env.get("DEEPSEEK_MODEL", "")
         return {
             "success": True,
             "configured": configured,
-            "key_preview": key_preview
+            "key_preview": key_preview,
+            "base_url": base_url,
+            "model": model
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

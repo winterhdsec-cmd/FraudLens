@@ -1,6 +1,6 @@
 import numpy as np
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from . import db
 from .models import (
     AnalysisSession, Case, Gang, GangCaseRelation,
@@ -181,9 +181,27 @@ def save_gang(gang_data, session_id=None):
         return gang
 
 
+_list_cache = {}
+_list_cache_ttl = 30
+
+def _cache_get(key):
+    val = _list_cache.get(key)
+    if val and (datetime.utcnow() - val['ts']).seconds < _list_cache_ttl:
+        return val['data']
+    return None
+
+def _cache_set(key, data):
+    _list_cache[key] = {'data': data, 'ts': datetime.utcnow()}
+
+
 def get_all_cases():
+    cached = _cache_get('all_cases')
+    if cached:
+        return cached
     cases = Case.query.order_by(Case.created_at.desc()).all()
-    return [_case_to_dict(c) for c in cases]
+    result = [_case_to_dict(c) for c in cases]
+    _cache_set('all_cases', result)
+    return result
 
 
 def get_case_by_id(case_id):
@@ -192,8 +210,13 @@ def get_case_by_id(case_id):
 
 
 def get_all_gangs():
+    cached = _cache_get('all_gangs')
+    if cached:
+        return cached
     gangs = Gang.query.order_by(Gang.created_at.desc()).all()
-    return [_gang_to_dict(g) for g in gangs]
+    result = [_gang_to_dict(g) for g in gangs]
+    _cache_set('all_gangs', result)
+    return result
 
 
 def get_gang_by_id(gang_id):
@@ -315,6 +338,7 @@ def _case_to_dict(c):
         'time_range': c.time_range,
         'warning': c.warning,
         'is_error': c.is_error,
+        'radar_data': c.radar_data if c.radar_data else {},
         'date': date_str,
         'created_at': created_str
     }

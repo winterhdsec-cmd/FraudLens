@@ -97,7 +97,7 @@ def create_dispatch(data):
 
 def sign_dispatch(dispatch_id):
     with transactional():
-        dispatch = DispatchOrder.query.get(dispatch_id)
+        dispatch = db.session.get(DispatchOrder, dispatch_id)
         if not dispatch:
             raise ValueError('派单不存在')
         if dispatch.status != 'pending':
@@ -109,7 +109,7 @@ def sign_dispatch(dispatch_id):
 
 def complete_dispatch(dispatch_id, feedback):
     with transactional():
-        dispatch = DispatchOrder.query.get(dispatch_id)
+        dispatch = db.session.get(DispatchOrder, dispatch_id)
         if not dispatch:
             raise ValueError('派单不存在')
         if dispatch.status != 'signed':
@@ -132,7 +132,7 @@ def get_dispatch_orders(status=None):
 
 def get_dispatch_by_id(dispatch_id):
     try:
-        dispatch = DispatchOrder.query.get(dispatch_id)
+        dispatch = db.session.get(DispatchOrder, dispatch_id)
         return dispatch.to_dict() if dispatch else None
     except Exception as e:
         raise e
@@ -208,7 +208,7 @@ def get_key_persons(search=None, risk_level=None, person_type=None):
 
 def get_key_person_by_id(person_id):
     try:
-        person = KeyPerson.query.get(person_id)
+        person = db.session.get(KeyPerson, person_id)
         return person.to_dict() if person else None
     except Exception as e:
         raise e
@@ -230,7 +230,7 @@ def search_key_persons_by_phone_or_account(query_str):
 
 def delete_key_person(person_id):
     with transactional():
-        person = KeyPerson.query.get(person_id)
+        person = db.session.get(KeyPerson, person_id)
         if not person:
             raise ValueError('重点人员不存在')
         person.is_active = False

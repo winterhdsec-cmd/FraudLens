@@ -61,21 +61,38 @@ class PreprocessAgent(BaseAgent):
         text = re.sub(r'^\[.*?\]\s*', '', text)
         return text
 
+    def _split_long_text(self, text: str) -> list:
+        """将长文本按行拆分为多条消息，便于分案"""
+        if len(text) < 300:
+            return [text]
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        if len(lines) >= 3:
+            return lines
+        return [text]
+
     def standardize_message_format(self, raw_messages: List[Any]) -> List[Dict[str, Any]]:
         """标准化消息格式，统一为 {content, sender, timestamp} 结构"""
         standardized = []
         for msg in raw_messages:
             if isinstance(msg, str):
-                content = self.clean_text(msg)
+                content = msg.strip()
                 if content:
-                    standardized.append({"content": content, "sender": "unknown", "timestamp": None})
+                    parts = self._split_long_text(content)
+                    for part in parts:
+                        cleaned = self.clean_text(part)
+                        if cleaned:
+                            standardized.append({"content": cleaned, "sender": "unknown", "timestamp": None})
             elif isinstance(msg, dict):
                 content = msg.get('content', msg.get('text', ''))
-                content = self.clean_text(content)
+                content = content.strip()
                 if content:
                     sender = msg.get('sender', msg.get('role', 'unknown'))
                     timestamp = msg.get('time', msg.get('timestamp', None))
-                    standardized.append({"content": content, "sender": sender, "timestamp": timestamp})
+                    parts = self._split_long_text(content)
+                    for part in parts:
+                        cleaned = self.clean_text(part)
+                        if cleaned:
+                            standardized.append({"content": cleaned, "sender": sender, "timestamp": timestamp})
             elif isinstance(msg, dict) and msg.get('type') == 'image':
                 ocr_text = "【图片内容】检测到转账或验证码信息"
                 standardized.append({"content": ocr_text, "sender": "unknown", "timestamp": None})

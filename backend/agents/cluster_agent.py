@@ -303,8 +303,12 @@ class ClusterAgent(BaseAgent):
         for case in cases:
             # 提取关键文本信息
             scam_type = case.get('scam_type', '未知类型')
-            keywords = ' '.join(case.get('keywords', []))[:100]
-            steps = ' '.join(case.get('steps', []))[:150]
+            keywords = ' '.join([k if isinstance(k, str) else str(k.get('name', k.get('keyword', ''))) for k in case.get('keywords', [])])[:100]
+            raw_steps = case.get('steps', [])
+            if raw_steps and isinstance(raw_steps[0], dict):
+                steps = ' '.join([s.get('step', s.get('description', s.get('name', ''))) for s in raw_steps])[:150]
+            else:
+                steps = ' '.join([str(s) for s in raw_steps])[:150]
             ai_report = case.get('ai_report', '')[:200]
 
             # 构建语义指纹文本（聚类质量的关键）
@@ -337,7 +341,7 @@ class ClusterAgent(BaseAgent):
                        f"类型: {case.get('scam_type', '未知')}, "
                        f"风险: {case.get('risk_level', 'LOW')}, "
                        f"金额: {case.get('amount', '未知')}, "
-                       f"关键词: {', '.join(case.get('keywords', ['无']))[:50]}")
+                       f"关键词: {', '.join([k if isinstance(k, str) else str(k.get('name', k.get('keyword', ''))) for k in case.get('keywords', ['无'])])[:50]}")
             case_summaries.append(summary)
 
         cases_context = "\n".join(case_summaries)

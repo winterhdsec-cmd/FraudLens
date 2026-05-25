@@ -211,6 +211,8 @@ async function loadAiConfig() {
     if (d && d.success) {
       aiConfigured.value = d.configured || false
       keyPreview.value = d.key_preview || ''
+      if (d.base_url) aiConfig.value.base_url = d.base_url
+      if (d.model) aiConfig.value.model = d.model
     } else {
       aiConfigured.value = false
       keyPreview.value = ''

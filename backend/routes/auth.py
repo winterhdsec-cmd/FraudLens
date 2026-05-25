@@ -123,7 +123,7 @@ async def api_register(data: RegisterRequest, request: Request):
 @router.get('/me')
 async def api_get_me(current_user: dict = Depends(get_current_user)):
     from database.models import User
-    user = User.query.get(current_user['id'])
+    user = db.session.get(User, current_user['id'])
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     return {"success": True, "user": user.to_dict()}
@@ -173,7 +173,7 @@ async def api_refresh(data: RefreshRequest):
         raise HTTPException(status_code=401, detail="无效的刷新令牌")
     user_id = int(payload['sub'])
     from database.models import User
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     access_token = create_token(
@@ -198,7 +198,7 @@ async def api_change_password(request: Request, current_user: dict = Depends(get
         if len(new_pw) < 6:
             raise HTTPException(status_code=400, detail="新密码至少6位")
         from database.models import User
-        user = User.query.get(current_user['id'])
+        user = db.session.get(User, current_user['id'])
         if not user or not user.check_password(old_pw):
             raise HTTPException(status_code=403, detail="旧密码错误")
         user.set_password(new_pw)
@@ -216,7 +216,7 @@ async def api_admin_user_put(user_id: int, request: Request, current_user: dict 
         if current_user.get('role') != 'admin':
             raise HTTPException(status_code=403, detail="无权限")
         from database.models import User
-        target = User.query.get(user_id)
+        target = db.session.get(User, user_id)
         if not target:
             raise HTTPException(status_code=404, detail="用户不存在")
         body = await request.json()
@@ -239,7 +239,7 @@ async def api_admin_user_delete(user_id: int, request: Request, current_user: di
         if current_user.get('role') != 'admin':
             raise HTTPException(status_code=403, detail="无权限")
         from database.models import User
-        target = User.query.get(user_id)
+        target = db.session.get(User, user_id)
         if not target:
             raise HTTPException(status_code=404, detail="用户不存在")
         db.session.delete(target)

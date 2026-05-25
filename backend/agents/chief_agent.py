@@ -7,6 +7,8 @@ from .profiler_agent import ProfilerAgent
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 import time
 import uuid
+import json
+import re
 from datetime import datetime
 from typing import Dict, Any, List
 import sys
@@ -96,6 +98,163 @@ class ChiefAgent(BaseAgent):
         self.context['current_stage'] = stage
         self._emit_progress(stage, status, message, context)
         self._log("INFO", f"阶段[{stage}] {status}: {message}", context)
+
+    def simple_process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
+        """简化版研判：直接发送给LLM提取，绕过复杂Agent流水线"""
+        self._log("INFO", "开始简化版智能研判(单次LLM调用)", context)
+        start_time = time.time()
+
+        raw_text = ''
+        for msg in payload.get('messages', []):
+            if isinstance(msg, dict):
+                raw_text += (msg.get('content', msg.get('text', '')) or '') + '\n'
+            elif isinstance(msg, str):
+                raw_text += msg + '\n'
+        raw_text = raw_text.strip()
+
+        if not raw_text:
+            return {"success": False, "error": "没有有效内容", "total_cases": 0, "raw_cases": [], "gangs": []}
+
+        prompt = f"""你是一名反诈情报分析师。请分析以下报案材料，提取所有案件信息并以JSON格式返回。
+
+材料内容：
+{raw_text[:6000]}
+
+请严格按照以下JSON结构返回（不要包含markdown代码块标记，直接返回纯JSON）：
+{{
+  "cases": [
+    {{
+      "case_id": "如CASE001",
+      "title": "案件标题",
+      "scam_type": "诈骗类型",
+      "description": "案情描述（包含受害人、嫌疑人、作案手法等）",
+      "victim_name": "受害人姓名",
+      "victim_gender": "性别",
+      "victim_age": "年龄数字",
+      "victim_phone": "联系电话",
+      "victim_job": "职业",
+      "victim_address": "户籍地址",
+      "amount": "涉案金额如'¥158,000元'或'158,000元'",
+      "amount_value": 158000,
+      "date": "立案日期",
+      "status": "待调查",
+      "region": "案发地区",
+      "type": "案件类型",
+      "scam_phone": "诈骗电话号码",
+      "phone_location": "号码归属地",
+      "scam_url": "诈骗网址",
+      "ip_address": "IP地址",
+      "peak_hours": "作案时段",
+      "target_group": "目标群体",
+      "tools": "作案工具如'电话/Zoom/手机银行'",
+      "comm_method": "沟通方式",
+      "keywords": ["关键词1", "关键词2"],
+      "related_accounts": ["涉案银行账号1", "涉案银行账号2"],
+      "timeline": [
+        {{"step": "步骤名", "description": "描述", "time": "时间"}}
+      ],
+      "roles": [
+        {{"role": "角色如受害人/一级卡主", "entity": "姓名", "description": "描述"}}
+      ],
+      "fingerprint": ["特征描述1", "特征描述2"],
+      "suggestions": ["处置建议1", "处置建议2"],
+      "radar_data": {{
+        "诈骗可能性": 95,
+        "资金追回难度": 70,
+        "团伙组织化程度": 60,
+        "作案专业化程度": 80,
+        "社会危害性": 75
+      }}
+    }}
+  ],
+  "gangs": [
+    {{
+      "gang_id": "GANG001",
+      "gang_name": "团伙名称",
+      "script_type": "诈骗剧本类型",
+      "description": "团伙描述",
+      "case_ids": ["CASE001", "CASE002"],
+      "risk_level": "HIGH/MEDIUM/LOW",
+      "fingerprint": ["特征1", "特征2"],
+      "related_cases": ["CASE001"],
+      "member_count": 3,
+      "total_amount": "总涉案金额"
+    }}
+  ],
+  "triage_summary": "分案说明"
+}}
+
+要求：
+1. 如果有多个独立案件（不同受害人、不同诈骗场景），分别提取为多个case
+2. **每个case必须归入至少一个gang**。如果多个案件诈骗手法相似或涉及相同嫌疑人，归入同一个gang。如果案件之间无关联，每个case独立成为一个gang。
+3. **非常重要：gangs数组不能为空！有多少个case，至少要有多少个gang（一对一或一对多）**
+4. 每个案件必须填写 victim_name、scam_type、amount、description、keywords、timeline、roles
+5. radar_data 是0-100的评分，必须包含所有5个维度
+6. 金额同时提供 amount（带单位的字符串）和 amount_value（纯数字）
+7. 从材料中提取具体信息，不要编造
+
+JSON结果："""
+        try:
+            response = self.llm_analyze.invoke(prompt)
+            result_text = response.content if hasattr(response, 'content') else str(response)
+            result_text = re.sub(r'^```(?:json)?\s*', '', result_text.strip())
+            result_text = re.sub(r'\s*```$', '', result_text)
+            parsed = json.loads(result_text)
+        except Exception as e:
+            self._log("ERROR", f"LLM返回解析失败: {e}", context)
+            return {
+                "success": False, "error": f"LLM解析失败: {e}",
+                "raw_response": result_text if 'result_text' in dir() else '',
+                "total_cases": 0, "raw_cases": [], "gangs": []
+            }
+
+        cases = parsed.get('cases', [])
+        gangs = parsed.get('gangs', [])
+
+        for i, c in enumerate(cases):
+            if not c.get('case_id'):
+                c['case_id'] = f'CASE{i+1:03d}'
+            c['id'] = c['case_id']
+
+        for g in gangs:
+            if not g.get('gang_id'):
+                g['gang_id'] = f'GANG{gangs.index(g)+1:03d}'
+            g['id'] = g['gang_id']
+            if 'gang_name' not in g:
+                g['gang_name'] = g.get('script_type', '未知团伙')
+            if 'fingerprint' not in g or not g['fingerprint']:
+                g['fingerprint'] = ['特征分析中']
+            if 'related_cases' not in g:
+                g['related_cases'] = [c['case_id'] for c in cases if c.get('case_id') in g.get('case_ids', [])]
+            risk_level = g.get('risk_level', 'LOW')
+            g['risk_label'] = '高风险' if risk_level == 'HIGH' else ('中风险' if risk_level == 'MEDIUM' else '低风险')
+            g['risk_type'] = 'danger' if risk_level == 'HIGH' else ('warning' if risk_level == 'MEDIUM' else 'info')
+
+        for c in cases:
+            gang_ids = [g['gang_id'] for g in gangs if c['case_id'] in g.get('case_ids', [])]
+            c['gang'] = gang_ids[0] if gang_ids else ''
+
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        self._log("INFO", f"简化研判完成: {len(cases)}个案件, {len(gangs)}个团伙, 耗时{processing_time_ms}ms", context)
+
+        return {
+            "success": True,
+            "total_cases": len(cases),
+            "triage_status": "success",
+            "raw_cases": cases,
+            "gangs": gangs,
+            "network_data": {"nodes": [], "links": []},
+            "processing_info": {
+                "server_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+                "processing_time_ms": processing_time_ms,
+                "data_version": "2.0-simple",
+                "agent_version": "AntiFraudDirectLLM-v1.0",
+                "total_stages": 1,
+                "errors": [],
+                "warnings": []
+            },
+            "message": "智能研判完成"
+        }
 
     def process(self, payload: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         """

@@ -31,7 +31,16 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-echo "[3/4] Checking BGE model..."
+echo "[3/5] Copying static files to shared volume..."
+if [ -d "/app/static" ]; then
+    mkdir -p /app/static-shared
+    cp -r /app/static/. /app/static-shared/
+    echo "  Static files copied!"
+else
+    echo "  [WARN] /app/static not found, skipping..."
+fi
+
+echo "[4/5] Checking BGE model..."
 if [ -f "/app/bge-large-zh-v1.5/config.json" ] && [ -f "/app/bge-large-zh-v1.5/pytorch_model.bin" ]; then
     echo "  BGE model found!"
 else
@@ -40,5 +49,5 @@ else
     echo "    docker cp ./backend/bge-large-zh-v1.5/. CONTAINER_ID:/app/bge-large-zh-v1.5/"
 fi
 
-echo "[4/4] Starting FraudLens backend..."
+echo "[5/5] Starting FraudLens backend..."
 exec python main.py

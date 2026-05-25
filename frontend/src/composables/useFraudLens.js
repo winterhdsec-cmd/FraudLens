@@ -82,6 +82,7 @@ export function useFraudLens() {
   const searchQuery = ref('')
   const searchResults = ref([])
   const searchLoading = ref(false)
+  const lastImportedCaseIds = ref([])
 
   const dashboardData = ref({
     total_cases: null,
@@ -205,6 +206,11 @@ export function useFraudLens() {
   const lineChartRef = ref(null)
   let pieChart = null
   let lineChart = null
+
+  const recentCases = computed(() => {
+    if (!lastImportedCaseIds.value.length) return []
+    return cases.value.filter(c => lastImportedCaseIds.value.includes(c.case_id || c.id))
+  })
 
   const totalAmount = computed(() => {
     return gangs.value.reduce((sum, g) => {
@@ -479,17 +485,45 @@ export function useFraudLens() {
       showProgress.value = true
       progressPercent.value = 0
       progressMessage.value = '正在初始化分析引擎...'
+
+      let lastWsProgress = 0
+      let lastWsTime = Date.now()
       connectSocket(sessionId, {
         onProgress: (data) => {
           const pct = data.progress_percent || data.progress || 0
           progressPercent.value = Math.min(pct, 99)
           progressMessage.value = data.message || data.stage_name || '分析中...'
+          lastWsProgress = progressPercent.value
+          lastWsTime = Date.now()
         },
         onComplete: (data) => {
           progressPercent.value = 100
           progressMessage.value = '分析完成'
         }
       })
+
+      const progressStage = [
+        { limit: 8, time: 3000, msg: '正在解析输入内容...' },
+        { limit: 15, time: 8000, msg: '正在清洗和标准化数据...' },
+        { limit: 25, time: 15000, msg: '正在进行智能分案...' },
+        { limit: 45, time: 25000, msg: '正在深度分析各案件...' },
+        { limit: 65, time: 40000, msg: '正在深度分析各案件...' },
+        { limit: 80, time: 55000, msg: '正在进行团伙聚类分析...' },
+        { limit: 90, time: 70000, msg: '正在生成画像增强...' },
+      ]
+      let progressTimer = setInterval(() => {
+        const elapsed = Date.now() - analysisStartTime.value
+        if (lastWsProgress > 0 && Date.now() - lastWsTime < 5000) {
+          return
+        }
+        for (const stage of progressStage) {
+          if (elapsed >= stage.time && progressPercent.value < stage.limit) {
+            progressPercent.value = Math.min(stage.limit, 90)
+            progressMessage.value = stage.msg
+            break
+          }
+        }
+      }, 1000)
 
       const response = await apiStartAnalysis(messages, sessionId)
 
@@ -506,7 +540,9 @@ export function useFraudLens() {
         }
         gangs.value = (response.gangs || []).map((g, idx) => mapGangForAnalysis(g, idx))
 
-        cases.value = (response.raw_cases || []).map(c => mapCaseForAnalysis(c))
+        const rawCases = (response.raw_cases || []).map(c => mapCaseForAnalysis(c))
+        cases.value = rawCases
+        lastImportedCaseIds.value = rawCases.map(c => c.case_id || c.id).filter(Boolean)
 
         selectedCase.value = cases.value[0] || null
         const gangCount = response.gangs?.length || 0
@@ -523,6 +559,7 @@ export function useFraudLens() {
       showProgress.value = false
       ElMessage.error('分析请求异常: ' + (err?.message || '网络错误'))
     } finally {
+      if (typeof progressTimer !== 'undefined') clearInterval(progressTimer)
       loading.value = false
     }
   }
@@ -1549,6 +1586,8 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     uploadedImages,
     gangs,
     cases,
+    lastImportedCaseIds,
+    recentCases,
     selectedGang,
     selectedCase,
     viewMode,

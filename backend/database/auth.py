@@ -110,7 +110,7 @@ def register_routes(app):
     @jwt_required(refresh=True)
     def refresh():
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"success": False, "error": "用户不存在"}), 404
 
@@ -128,7 +128,7 @@ def register_routes(app):
     @jwt_required()
     def get_me():
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"success": False, "error": "用户不存在"}), 404
         return jsonify({"success": True, "user": user.to_dict()})
@@ -174,7 +174,7 @@ def register_routes(app):
             return jsonify({"success": False, "error": "请提供旧密码和新密码"}), 400
         if len(new_pw) < 6:
             return jsonify({"success": False, "error": "新密码至少6位"}), 400
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user or not user.check_password(old_pw):
             return jsonify({"success": False, "error": "旧密码错误"}), 403
         user.set_password(new_pw)
@@ -187,11 +187,11 @@ def register_routes(app):
     @jwt_required()
     def admin_user(user_id):
         current_id = int(get_jwt_identity())
-        current_user = User.query.get(current_id)
+        current_user = db.session.get(User, current_id)
         if not current_user or current_user.role != 'admin':
             return jsonify({"success": False, "error": "无权限"}), 403
 
-        target = User.query.get(user_id)
+        target = db.session.get(User, user_id)
         if not target:
             return jsonify({"success": False, "error": "用户不存在"}), 404
 

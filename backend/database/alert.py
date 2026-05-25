@@ -103,7 +103,7 @@ class AlertEngine:
 
     def resolve_alert(self, alert_id):
         try:
-            record = AlertRecord.query.get(alert_id)
+            record = db.session.get(AlertRecord, alert_id)
             if record:
                 record.resolved = True
                 record.resolved_at = datetime.utcnow()

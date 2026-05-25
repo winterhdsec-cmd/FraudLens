@@ -54,9 +54,7 @@
             <el-button class="login-btn" type="primary" size="large" :loading="loginLoading" @click="handleLogin">
               <span>{{ loginLoading ? '正在加载研判模型...' : '登 录' }}</span>
             </el-button>
-            <el-button class="demo-login-btn" size="large" :loading="loginLoading" @click="handleDemoLogin">
-              <span>🚀 演示登录</span>
-            </el-button>
+
           </div>
           <div class="lfp-security">
             <span class="sec-icon">🔒</span>
@@ -82,7 +80,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showResult" width="480px" class="result-dialog">
+    <el-dialog v-model="showResult" width="560px" class="result-dialog">
       <div class="result-body">
         <div class="result-icon">✅</div>
         <div class="result-title">研判完成</div>
@@ -91,10 +89,25 @@
           <div class="result-stat"><div class="rs-value">{{ resultStats.gangs }}</div><div class="rs-label">识别团伙</div></div>
           <div class="result-stat"><div class="rs-value">{{ resultStats.time }}</div><div class="rs-label">用时</div></div>
         </div>
+        <div v-if="importedCaseRows.length" class="result-cases-list">
+          <div class="rcl-header">📋 本次导入案件（点击编号跳转详情）：</div>
+          <div class="rcl-table">
+            <div v-for="row in importedCaseRows" :key="row.id" class="rcl-row" @click="goToCaseDetail(row.id)">
+              <span class="rcl-id">{{ row.id }}</span>
+              <span class="rcl-title">{{ row.title }}</span>
+              <span class="rcl-gang">
+                <el-tag v-if="row.gangName" size="small" type="danger">{{ row.gangName }}</el-tag>
+                <el-tag v-else size="small" type="info">未关联</el-tag>
+              </span>
+              <span class="rcl-arrow">→</span>
+            </div>
+          </div>
+        </div>
       </div>
       <template #footer>
         <el-button @click="showResult = false" size="large">留在当前页</el-button>
-        <el-button type="primary" @click="goToResults" size="large">查看分析结果 →</el-button>
+        <el-button @click="goToCapitalFlowAll" size="large">💰 查看资金流向</el-button>
+        <el-button type="primary" @click="goToResults" size="large">📊 查看分析结果 →</el-button>
       </template>
     </el-dialog>
 
@@ -180,11 +193,12 @@
 
 <script setup>
 import { provide, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useFraudLens } from './composables/useFraudLens.js'
 import NetworkGraph from './components/NetworkGraph.vue'
 
 const route = useRoute()
+const router = useRouter()
 const isFullPage = computed(() => route.meta?.fullPage)
 
 const appState = useFraudLens()
@@ -194,12 +208,30 @@ const {
   store, activeMenu, loading,
   showProgress, showResult, progressPercent, progressMessage, resultStats,
   loginForm, loginLoading, loginError, loginProgress,
-  handleLogin, handleDemoLogin, handleLogout, handleMenuSelect,
+  handleLogin, handleLogout, handleMenuSelect,
   getParticleStyle, goToResults,
   searchQuery, searchResults, searchLoading,
   handleSearchInput, handleSearchSelect,
-  navigateTo, unresolvedAlertCount
+  navigateTo, unresolvedAlertCount,
+  lastImportedCaseIds, cases, getCaseTitle, gangs
 } = appState
+
+const importedCaseRows = computed(() => {
+  const ids = lastImportedCaseIds.value || []
+  const caseList = cases.value || []
+  return ids.map(id => {
+    const c = caseList.find(x => (x.case_id === id || x.id === id))
+    const gang = gangs.value?.find(g => {
+      const related = g.related_cases || g.caseIds || g.case_ids || []
+      return related.includes(id)
+    })
+    return {
+      id: id,
+      title: c?.title || c?.victim_name || '未知案件',
+      gangName: gang?.gang_name || gang?.name || ''
+    }
+  })
+})
 
 let searchTimer = null
 const handleSearchDebounced = (val) => {
@@ -208,6 +240,28 @@ const handleSearchDebounced = (val) => {
 }
 const onSearchBlur = () => {
   setTimeout(() => { searchResults.value = [] }, 200)
+}
+const goToCapitalFlow = (caseId) => {
+  showResult.value = false
+  if (appState.flowSearchCaseId !== undefined) {
+    appState.flowSearchCaseId = caseId
+  }
+  router.push({ name: 'capital-flow' })
+}
+const goToCapitalFlowAll = () => {
+  showResult.value = false
+  if (appState.flowSearchCaseId !== undefined) {
+    appState.flowSearchCaseId = ''
+  }
+  router.push({ name: 'capital-flow' })
+}
+const goToCaseDetail = (caseId) => {
+  showResult.value = false
+  const found = cases.value?.find(c => (c.case_id === caseId || c.id === caseId))
+  if (found && appState.selectedCase) {
+    appState.selectedCase.value = found
+  }
+  router.push({ name: 'case-detail' })
 }
 </script>
 
@@ -682,23 +736,7 @@ const onSearchBlur = () => {
   letter-spacing: 4px;
 }
 
-.demo-login-btn {
-  width: 100%;
-  height: 48px;
-  font-size: 15px;
-  margin-top: 8px;
-  border-radius: 10px;
-  font-weight: 600;
-  background: rgba(0,198,255,0.08);
-  border: 1px solid rgba(0,198,255,0.2);
-  color: var(--accent-cyan);
-  transition: all 0.3s ease !important;
-}
-.demo-login-btn:hover {
-  background: rgba(0,198,255,0.15);
-  border-color: rgba(0,198,255,0.4);
-  box-shadow: 0 0 20px rgba(0,198,255,0.1);
-}
+
 
 /* 安全提示 */
 .lfp-security {
@@ -750,6 +788,25 @@ const onSearchBlur = () => {
 .result-stat { text-align: center; }
 .rs-value { font-size: 28px; color: var(--accent-cyan); font-weight: 700; }
 .rs-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.result-cases-list {
+  margin-top: 16px; padding: 12px 16px;
+  background: rgba(0,0,0,0.2); border-radius: 8px;
+  border: 1px solid rgba(0,198,255,0.08);
+}
+.rcl-header { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+.rcl-table { display: flex; flex-direction: column; gap: 4px; }
+.rcl-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px;
+  background: rgba(0,0,0,0.15); cursor: pointer;
+  transition: all 0.15s;
+}
+.rcl-row:hover { background: rgba(0,198,255,0.08); }
+.rcl-id { font-family: monospace; font-size: 12px; color: var(--accent-cyan); font-weight: 600; min-width: 80px; }
+.rcl-title { flex: 1; font-size: 13px; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rcl-gang { min-width: 60px; text-align: center; }
+.rcl-arrow { color: #475569; font-size: 14px; min-width: 16px; text-align: right; }
+.rcl-row:hover .rcl-arrow { color: var(--accent-cyan); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes float { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.15; } 90% { opacity: 0.15; } 100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }

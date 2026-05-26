@@ -50,3 +50,11 @@ DockerData/
 
 # Generated demo files
 generate_doc.py
+
+# Office documents with sensitive data
+*.docx
+*.doc
+
+# Support materials
+支撑材料.md
+FraudLens_支撑材料*.docx

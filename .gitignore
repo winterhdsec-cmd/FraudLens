@@ -58,3 +58,6 @@ generate_doc.py
 # Support materials
 支撑材料.md
 FraudLens_支撑材料*.docx
+
+# Database exports with sensitive demo data
+docker/data.sql

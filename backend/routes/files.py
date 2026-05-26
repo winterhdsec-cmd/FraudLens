@@ -7,8 +7,10 @@ import io
 import tempfile
 import re
 
-from fastapi import APIRouter, UploadFile, File, Query
+from fastapi import APIRouter, UploadFile, File, Query, Depends
 from fastapi.responses import JSONResponse
+
+from .deps import get_current_user
 
 router = APIRouter(prefix='/api', tags=['文件'])
 
@@ -18,6 +20,74 @@ DOC_EXTENSIONS = ('.docx',)
 PDF_EXTENSIONS = ('.pdf',)
 
 ALL_TEXT_EXTENSIONS = TEXT_EXTENSIONS + DOC_EXTENSIONS + PDF_EXTENSIONS
+
+_llm_client = None
+_llm_model = None
+
+
+def _get_llm_client():
+    """获取 LLM 客户端（用于文本后处理）"""
+    global _llm_client, _llm_model
+    if _llm_client is not None:
+        return _llm_client, _llm_model
+    api_key = os.getenv("DEEPSEEK_API_KEY", "")
+    base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    _llm_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    if api_key and api_key != "mock-key":
+        from openai import OpenAI
+        _llm_client = OpenAI(api_key=api_key, base_url=base_url)
+    return _llm_client, _llm_model
+
+
+def _clean_chat_text(raw_text: str) -> str:
+    """
+    AI 后处理：对 OCR/视觉提取的文字进行清洗，
+    区分嫌疑人（骗子）与受害人发言（聊天记录截图场景）。
+    如果 LLM 不可用则返回原始文本。
+    """
+    if not raw_text or not raw_text.strip():
+        return raw_text
+
+    client, model = _get_llm_client()
+    if not client:
+        return raw_text
+
+    prompt = (
+        "你是一位反诈分析助手。以下是从图片中提取的原始文字（可能包含 OCR 识别错误），"
+        "请进行以下处理：\n\n"
+        "1. **清洗与纠错**：修正 OCR 识别错误，恢复正确的标点和分段\n"
+        "2. **角色区分**：如果内容看起来是聊天记录或对话，请区分发言者角色：\n"
+        "   - **[嫌疑人/骗子]**：冒充客服、公检法等身份，诱导转账、索要验证码等\n"
+        "   - **[受害人]**：被诱导的受害人发言\n"
+        "3. **内容归类**：按以下类别整理信息：\n"
+        "   - 📞 通话/聊天内容（区分角色）\n"
+        "   - 💳 资金信息（金额、账号、转账记录）\n"
+        "   - 👤 人员信息（姓名、电话、身份证号）\n"
+        "   - 📅 时间线信息\n"
+        "4. **结构化输出**：如果内容较少，保留原始格式但添加角色标注\n\n"
+        "请输出处理后的文本，保持原意不变，不要编造不存在的信息。\n\n"
+        "原始文字：\n"
+        f"{raw_text}"
+    )
+
+    try:
+        from tools.response import logger
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=2048,
+            timeout=30
+        )
+        cleaned = response.choices[0].message.content
+        if cleaned and cleaned.strip():
+            logger.info(f"[TextClean] AI 文本清洗完成，{len(raw_text)}→{len(cleaned)} 字符")
+            return cleaned
+    except Exception as e:
+        from tools.response import logger
+        logger.warning(f"[TextClean] AI 清洗失败（{e}），返回原始文本")
+
+    return raw_text
 
 
 def _extract_docx(content: bytes) -> str:
@@ -97,7 +167,7 @@ def _pdf_to_images(file_bytes: bytes) -> list:
 #  端点1: 传统文字提取（纯文字文档）
 # ──────────────────────────────────────────────
 @router.post('/extract-text')
-async def api_extract_text(file: UploadFile = File(...)):
+async def api_extract_text(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     try:
         filename = file.filename or ''
         ext = os.path.splitext(filename)[1].lower()
@@ -124,7 +194,7 @@ async def api_extract_text(file: UploadFile = File(...)):
 #  端点2: OCR 文字识别（纯图片）
 # ──────────────────────────────────────────────
 @router.post('/ocr')
-async def api_ocr(file: UploadFile = File(...)):
+async def api_ocr_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     try:
         filename = file.filename or ''
         ext = os.path.splitext(filename)[1].lower()
@@ -146,7 +216,9 @@ async def api_ocr(file: UploadFile = File(...)):
 @router.post('/analyze-file')
 async def api_analyze_file(
     file: UploadFile = File(...),
-    mode: str = Query('auto', description='auto: 自动选择, ocr: 强制OCR, vision: 强制多模态')
+    mode: str = Query('auto', description='auto: 自动选择, ocr: 强制OCR, vision: 强制多模态'),
+    clean: str = Query('auto', description='auto: 图片结果自动AI清洗, off: 不清洗'),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     智能文件分析端点 - 自动选择最佳处理路径
@@ -159,6 +231,7 @@ async def api_analyze_file(
         - 复杂图片(截图/表格) → DeepSeek VL2 多模态 (理解力强)
     - 强制 mode=ocr → 全部走 OCR
     - 强制 mode=vision → 图片走多模态
+    - clean=auto → 图片结果自动 AI 清洗（区分嫌疑人/受害人）
     """
     try:
         filename = file.filename or ''
@@ -214,17 +287,30 @@ async def api_analyze_file(
                     "请以结构化文字形式完整输出所有可识别的信息。"
                 )
                 result = analyzer.analyze(content, prompt, format=ext.lstrip('.'))
+                raw_text = result.get("text", "")
+                cleaned_text = _clean_chat_text(raw_text) if clean == 'auto' and raw_text else raw_text
                 return {
                     "success": True,
-                    "text": result.get("text", ""),
+                    "text": cleaned_text,
+                    "raw_text": raw_text if cleaned_text != raw_text else "",
                     "filename": filename,
                     "method": result.get("model", "vision"),
-                    "route": "vision"
+                    "route": "vision",
+                    "cleaned": cleaned_text != raw_text
                 }
             else:
                 from tools.ocr import ocr_image as ocr_fn
                 text = ocr_fn(content)
-                return {"success": True, "text": text, "filename": filename, "method": "ocr", "route": "image"}
+                cleaned_text = _clean_chat_text(text) if clean == 'auto' and text else text
+                return {
+                    "success": True,
+                    "text": cleaned_text,
+                    "raw_text": text if cleaned_text != text else "",
+                    "filename": filename,
+                    "method": "ocr",
+                    "route": "image",
+                    "cleaned": cleaned_text != text
+                }
     
         return JSONResponse(status_code=400, content={
             "success": False, "error": f"不支持的文件格式: {ext}"
@@ -239,7 +325,9 @@ async def api_analyze_file(
 @router.post('/vision-analyze')
 async def api_vision_analyze(
     file: UploadFile = File(...),
-    prompt: str = Query('请详细描述这张图片的内容', description='分析提示词')
+    prompt: str = Query('请详细描述这张图片的内容', description='分析提示词'),
+    clean: str = Query('auto', description='auto: 自动AI清洗结果, off: 不清洗'),
+    current_user: dict = Depends(get_current_user)
 ):
     """完全使用多模态大模型分析图片，适合复杂截图/表格"""
     try:
@@ -253,12 +341,16 @@ async def api_vision_analyze(
         content = await file.read()
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(content, prompt, format=ext.lstrip('.'))
+        raw_text = result.get("text", "")
+        cleaned_text = _clean_chat_text(raw_text) if clean == 'auto' and raw_text else raw_text
         return {
             "success": True,
-            "text": result.get("text", ""),
+            "text": cleaned_text,
+            "raw_text": raw_text if cleaned_text != raw_text else "",
             "filename": filename,
             "model": result.get("model", "unknown"),
-            "note": result.get("note", "")
+            "note": result.get("note", ""),
+            "cleaned": cleaned_text != raw_text
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

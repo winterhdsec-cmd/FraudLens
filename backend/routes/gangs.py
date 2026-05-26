@@ -1,19 +1,21 @@
 """
 Gang routes.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from database import db
 from database.models import Gang
 from database.crud import get_all_gangs, get_gang_by_id
 from routes.cases import _compute_gang_radar
+from .deps import get_current_user, db_retry
 
 router = APIRouter(prefix='/api/gangs', tags=['团伙'])
 
 
 @router.get('')
-async def api_get_gangs():
+@db_retry()
+async def api_get_gangs(current_user: dict = Depends(get_current_user)):
     try:
         gangs = get_all_gangs()
         return {"success": True, "gangs": gangs, "total": len(gangs)}
@@ -22,7 +24,7 @@ async def api_get_gangs():
 
 
 @router.get('/{gang_id}')
-async def api_get_gang(gang_id: str):
+async def api_get_gang(gang_id: str, current_user: dict = Depends(get_current_user)):
     try:
         gang = get_gang_by_id(gang_id)
         if gang:
@@ -33,7 +35,7 @@ async def api_get_gang(gang_id: str):
 
 
 @router.get('/{gang_id}/radar')
-async def api_get_gang_radar(gang_id: str):
+async def api_get_gang_radar(gang_id: str, current_user: dict = Depends(get_current_user)):
     try:
         gang = db.session.query(Gang).filter(Gang.gang_id == gang_id).first()
         if not gang:

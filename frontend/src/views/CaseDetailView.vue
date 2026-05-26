@@ -428,6 +428,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { fetchCaseById } from '../api.js'
 import * as echarts from 'echarts'
 import { useAppState } from '../composables/useAppState.js'
 import { getCaseRadar, reviewCase } from '../api.js'
@@ -626,8 +627,23 @@ watch(() => selectedCase.value?.case_id || selectedCase.value?.id, () => {
   nextTick(() => setTimeout(() => renderCaseRadar(), 200))
 }, { deep: true })
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('resize', resizeCaseRadar)
+  if (!selectedCase.value) {
+    const { default: api } = await import('../api.js')
+    const params = new URLSearchParams(window.location.search)
+    const caseId = params.get('case_id')
+    if (caseId) {
+      try {
+        const r = await api.get(`/api/cases/${caseId}`)
+        if (r.data.success && r.data.case) {
+          selectedCase.value = r.data.case
+        }
+      } catch (e) {
+        console.warn('通过API加载案件详情失败:', e)
+      }
+    }
+  }
   if (detailTab.value === 'behavior') {
     nextTick(() => setTimeout(() => renderCaseRadar(), 300))
   }

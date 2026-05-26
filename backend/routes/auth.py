@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from database import db
 from .deps import (
     get_current_user, get_token_from_header, decode_token,
-    create_token, create_refresh_token, log_operation,
+    create_token, create_refresh_token, log_operation, db_retry,
     LoginRequest, RegisterRequest, RefreshRequest,
     _TOKEN_BLACKLIST
 )
@@ -18,6 +18,7 @@ router = APIRouter(prefix='/api/auth', tags=['认证'])
 
 
 @router.post('/login')
+@db_retry()
 async def api_login(data: LoginRequest, request: Request):
     try:
         from database.models import User
@@ -52,6 +53,7 @@ async def api_login(data: LoginRequest, request: Request):
 
 
 @router.post('/demo-login')
+@db_retry()
 async def api_demo_login(request: Request):
     try:
         from database.models import User
@@ -90,6 +92,7 @@ async def api_demo_login(request: Request):
 
 
 @router.post('/register')
+@db_retry()
 async def api_register(data: RegisterRequest, request: Request):
     try:
         if not data.username or not data.password:
@@ -121,6 +124,7 @@ async def api_register(data: RegisterRequest, request: Request):
 
 
 @router.get('/me')
+@db_retry()
 async def api_get_me(current_user: dict = Depends(get_current_user)):
     from database.models import User
     user = db.session.get(User, current_user['id'])
@@ -144,6 +148,7 @@ async def api_logout(request: Request):
 
 
 @router.get('/users')
+@db_retry()
 async def api_list_users(current_user: dict = Depends(get_current_user)):
     from database.models import User
     users = User.query.order_by(User.created_at.desc()).all()
@@ -151,6 +156,7 @@ async def api_list_users(current_user: dict = Depends(get_current_user)):
 
 
 @router.get('/logs')
+@db_retry()
 async def api_get_auth_logs(current_user: dict = Depends(get_current_user)):
     from database.models import OperationLog
     logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(100).all()
@@ -166,6 +172,7 @@ async def api_get_auth_logs(current_user: dict = Depends(get_current_user)):
 
 
 @router.post('/refresh')
+@db_retry()
 async def api_refresh(data: RefreshRequest):
     token = data.refresh_token
     payload = decode_token(token)
@@ -188,6 +195,7 @@ async def api_refresh(data: RefreshRequest):
 
 
 @router.put('/change-password')
+@db_retry()
 async def api_change_password(request: Request, current_user: dict = Depends(get_current_user)):
     try:
         body = await request.json()
@@ -211,6 +219,7 @@ async def api_change_password(request: Request, current_user: dict = Depends(get
 
 
 @router.put('/admin/users/{user_id}')
+@db_retry()
 async def api_admin_user_put(user_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     try:
         if current_user.get('role') != 'admin':
@@ -234,6 +243,7 @@ async def api_admin_user_put(user_id: int, request: Request, current_user: dict 
 
 
 @router.delete('/admin/users/{user_id}')
+@db_retry()
 async def api_admin_user_delete(user_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     try:
         if current_user.get('role') != 'admin':

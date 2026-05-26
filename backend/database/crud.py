@@ -182,7 +182,7 @@ def save_gang(gang_data, session_id=None):
 
 
 _list_cache = {}
-_list_cache_ttl = 30
+_list_cache_ttl = 3600
 
 def _cache_get(key):
     val = _list_cache.get(key)
@@ -192,6 +192,9 @@ def _cache_get(key):
 
 def _cache_set(key, data):
     _list_cache[key] = {'data': data, 'ts': datetime.utcnow()}
+
+def _cache_clear():
+    _list_cache.clear()
 
 
 def get_all_cases():
@@ -207,16 +210,6 @@ def get_all_cases():
 def get_case_by_id(case_id):
     case = Case.query.filter_by(case_id=case_id).first()
     return _case_to_dict(case) if case else None
-
-
-def get_all_gangs():
-    cached = _cache_get('all_gangs')
-    if cached:
-        return cached
-    gangs = Gang.query.order_by(Gang.created_at.desc()).all()
-    result = [_gang_to_dict(g) for g in gangs]
-    _cache_set('all_gangs', result)
-    return result
 
 
 def get_gang_by_id(gang_id):
@@ -344,13 +337,10 @@ def _case_to_dict(c):
     }
 
 
-def _gang_to_dict(g):
-    if not g:
-        return None
-    related_cases = GangCaseRelation.query.filter_by(gang_id=g.gang_id).all()
+def _build_gang_dict(g, related_cases, cases_map):
     case_details = []
     for rel in related_cases:
-        case = Case.query.filter_by(case_id=rel.case_id).first()
+        case = cases_map.get(rel.case_id)
         if case:
             case_details.append({
                 'case_id': case.case_id,
@@ -396,6 +386,36 @@ def _gang_to_dict(g):
         'related_cases': case_details,
         'created_at': g.created_at.isoformat() if g.created_at else None
     }
+
+
+def _gang_to_dict(g):
+    if not g:
+        return None
+    related_cases = GangCaseRelation.query.filter_by(gang_id=g.gang_id).all()
+    case_ids = [r.case_id for r in related_cases]
+    cases_map = {}
+    if case_ids:
+        cases_map = {c.case_id: c for c in Case.query.filter(Case.case_id.in_(case_ids)).all()}
+    return _build_gang_dict(g, related_cases, cases_map)
+
+
+def get_all_gangs():
+    cached = _cache_get('all_gangs')
+    if cached:
+        return cached
+    gangs = Gang.query.order_by(Gang.created_at.desc()).all()
+    gang_ids = [g.gang_id for g in gangs]
+    all_relations = GangCaseRelation.query.filter(GangCaseRelation.gang_id.in_(gang_ids)).all()
+    gang_rels = {}
+    for r in all_relations:
+        gang_rels.setdefault(r.gang_id, []).append(r)
+    all_case_ids = list(set(r.case_id for r in all_relations))
+    cases_map = {}
+    if all_case_ids:
+        cases_map = {c.case_id: c for c in Case.query.filter(Case.case_id.in_(all_case_ids)).all()}
+    result = [_build_gang_dict(g, gang_rels.get(g.gang_id, []), cases_map) for g in gangs]
+    _cache_set('all_gangs', result)
+    return result
 
 
 VALID_STATUS_TRANSITIONS = {
@@ -609,7 +629,7 @@ def search_cases_enhanced(query):
         return []
     cases = Case.query.filter(
         db.or_(
-            Case.case_id.ilike(f'{query}%'),
+            Case.case_id.ilike(f'%{query}%'),
             Case.title.ilike(f'%{query}%'),
             Case.victim_name.ilike(f'%{query}%'),
             Case.scam_type.ilike(f'%{query}%')

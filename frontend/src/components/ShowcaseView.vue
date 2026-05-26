@@ -620,7 +620,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { store } from '../store.js'
-import api from '../api.js'
 
 const router = useRouter()
 const scrollY = ref(0)
@@ -636,7 +635,6 @@ const progressPercent = computed(() => {
 })
 
 const enterSystem = async () => {
-  store.logout()
   router.push('/input')
 }
 

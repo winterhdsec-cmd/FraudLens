@@ -13,7 +13,7 @@ from database.p1_crud import (
     collision_check
 )
 from database import db
-from routes.deps import get_current_user
+from routes.deps import get_current_user, db_retry
 
 router = APIRouter()
 
@@ -76,7 +76,8 @@ class CheckPersonsRequest(BaseModel):
 # ========== Capital Flow Routes ==========
 
 @router.post('/api/capital/flows')
-async def api_create_capital_flow(data: CapitalFlowCreate):
+@db_retry()
+async def api_create_capital_flow(data: CapitalFlowCreate, current_user: dict = Depends(get_current_user)):
     try:
         result = save_capital_flow(data.dict())
         return {'success': True, 'flow': result}
@@ -237,7 +238,8 @@ async def api_seed_data(current_user: dict = Depends(get_current_user)):
 
 
 @router.get('/api/capital/flows')
-async def api_list_capital_flows(case_id: Optional[str] = Query(None)):
+@db_retry()
+async def api_list_capital_flows(case_id: Optional[str] = Query(None), current_user: dict = Depends(get_current_user)):
     try:
         flows = get_capital_flows(case_id)
         return {'success': True, 'flows': flows, 'total': len(flows)}
@@ -246,7 +248,8 @@ async def api_list_capital_flows(case_id: Optional[str] = Query(None)):
 
 
 @router.get('/api/capital/graph/{case_id}')
-async def api_capital_flow_graph(case_id: str):
+@db_retry()
+async def api_capital_flow_graph(case_id: str, current_user: dict = Depends(get_current_user)):
     try:
         graph = get_capital_flow_graph(case_id)
         return {'success': True, 'graph': graph}
@@ -255,7 +258,8 @@ async def api_capital_flow_graph(case_id: str):
 
 
 @router.get('/api/capital/stats')
-async def api_capital_flow_stats():
+@db_retry()
+async def api_capital_flow_stats(current_user: dict = Depends(get_current_user)):
     try:
         from database.p1_models import CapitalFlow
         from sqlalchemy import func
@@ -283,7 +287,8 @@ async def api_capital_flow_stats():
 # ========== Dispatch Routes ==========
 
 @router.post('/api/dispatch/create')
-async def api_create_dispatch(data: DispatchCreate):
+@db_retry()
+async def api_create_dispatch(data: DispatchCreate, current_user: dict = Depends(get_current_user)):
     try:
         result = create_dispatch(data.dict())
         return {'success': True, 'dispatch': result}
@@ -292,7 +297,8 @@ async def api_create_dispatch(data: DispatchCreate):
 
 
 @router.put('/api/dispatch/{dispatch_id}/sign')
-async def api_sign_dispatch(dispatch_id: int):
+@db_retry()
+async def api_sign_dispatch(dispatch_id: int, current_user: dict = Depends(get_current_user)):
     try:
         result = sign_dispatch(dispatch_id)
         return {'success': True, 'dispatch': result}
@@ -303,7 +309,8 @@ async def api_sign_dispatch(dispatch_id: int):
 
 
 @router.put('/api/dispatch/{dispatch_id}/complete')
-async def api_complete_dispatch(dispatch_id: int, data: DispatchComplete):
+@db_retry()
+async def api_complete_dispatch(dispatch_id: int, data: DispatchComplete, current_user: dict = Depends(get_current_user)):
     try:
         result = complete_dispatch(dispatch_id, data.feedback)
         return {'success': True, 'dispatch': result}
@@ -314,7 +321,8 @@ async def api_complete_dispatch(dispatch_id: int, data: DispatchComplete):
 
 
 @router.get('/api/dispatch/list')
-async def api_list_dispatch(status: Optional[str] = Query(None)):
+@db_retry()
+async def api_list_dispatch(status: Optional[str] = Query(None), current_user: dict = Depends(get_current_user)):
     try:
         orders = get_dispatch_orders(status)
         return {'success': True, 'orders': orders, 'total': len(orders)}
@@ -323,7 +331,8 @@ async def api_list_dispatch(status: Optional[str] = Query(None)):
 
 
 @router.get('/api/dispatch/{dispatch_id}')
-async def api_get_dispatch(dispatch_id: int):
+@db_retry()
+async def api_get_dispatch(dispatch_id: int, current_user: dict = Depends(get_current_user)):
     try:
         order = get_dispatch_by_id(dispatch_id)
         if order:
@@ -336,7 +345,8 @@ async def api_get_dispatch(dispatch_id: int):
 # ========== Key Person Routes ==========
 
 @router.post('/api/persons/key')
-async def api_create_key_person(data: KeyPersonCreate):
+@db_retry()
+async def api_create_key_person(data: KeyPersonCreate, current_user: dict = Depends(get_current_user)):
     try:
         result = save_key_person(data.dict())
         return {'success': True, 'person': result}
@@ -347,10 +357,12 @@ async def api_create_key_person(data: KeyPersonCreate):
 
 
 @router.get('/api/persons/key')
+@db_retry()
 async def api_list_key_persons(
     search: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
-    person_type: Optional[str] = Query(None)
+    person_type: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         persons = get_key_persons(search, risk_level, person_type)
@@ -360,7 +372,8 @@ async def api_list_key_persons(
 
 
 @router.get('/api/persons/key/{person_id}')
-async def api_get_key_person(person_id: int):
+@db_retry()
+async def api_get_key_person(person_id: int, current_user: dict = Depends(get_current_user)):
     try:
         person = get_key_person_by_id(person_id)
         if person:
@@ -371,7 +384,8 @@ async def api_get_key_person(person_id: int):
 
 
 @router.delete('/api/persons/key/{person_id}')
-async def api_delete_key_person(person_id: int):
+@db_retry()
+async def api_delete_key_person(person_id: int, current_user: dict = Depends(get_current_user)):
     try:
         result = delete_key_person(person_id)
         return {'success': True, **result}
@@ -382,10 +396,12 @@ async def api_delete_key_person(person_id: int):
 
 
 @router.get('/api/persons/collision')
+@db_retry()
 async def api_collision_check(
     phone: Optional[str] = Query(None),
     account: Optional[str] = Query(None),
-    id_number: Optional[str] = Query(None)
+    id_number: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         result = collision_check(phone, account, id_number)
@@ -397,7 +413,7 @@ async def api_collision_check(
 # ========== Intrusion Detection during analysis ==========
 
 @router.post('/api/analyze/check-persons')
-async def api_check_extracted_persons(data: CheckPersonsRequest):
+async def api_check_extracted_persons(data: CheckPersonsRequest, current_user: dict = Depends(get_current_user)):
     try:
         all_matches = []
         for person in data.persons:

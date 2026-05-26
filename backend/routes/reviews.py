@@ -7,12 +7,13 @@ from fastapi.responses import JSONResponse
 from database import db
 from database.models import Case, AnalysisSession
 from database.crud import get_all_cases
-from .deps import get_current_user, log_operation
+from .deps import get_current_user, log_operation, db_retry
 
 router = APIRouter(prefix='/api/reviews', tags=['复核'])
 
 
 @router.get('/pending')
+@db_retry()
 async def api_pending_reviews(current_user: dict = Depends(get_current_user)):
     try:
         cases = get_all_cases()
@@ -86,6 +87,7 @@ async def api_pending_reviews(current_user: dict = Depends(get_current_user)):
 
 
 @router.put('/{case_id}')
+@db_retry()
 async def api_review_case(case_id: str, request: Request,
                            current_user: dict = Depends(get_current_user)):
     try:

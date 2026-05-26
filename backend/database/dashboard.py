@@ -30,7 +30,7 @@ def _format_amount(value):
 
 
 _memory_cache = {}
-_memory_cache_ttl = 300
+_memory_cache_ttl = 600
 
 def _get_cached(key):
     cached = _memory_cache.get(key)
@@ -51,18 +51,14 @@ def get_dashboard_data():
         return cached
 
     try:
-        import redis as redis_lib
-        r = redis_lib.Redis(
-            host=os.getenv('REDIS_HOST', 'localhost'),
-            port=int(os.getenv('REDIS_PORT', 6379)),
-            password=os.getenv('REDIS_PASSWORD', ''),
-            socket_connect_timeout=2
-        )
-        cached_redis = r.get('dashboard_stats')
-        if cached_redis:
-            data = json.loads(cached_redis)
-            _set_cache('dashboard_stats', data)
-            return data
+        from tools.redis_utils import get_redis
+        r = get_redis()
+        if r:
+            cached_redis = r.get('dashboard_stats')
+            if cached_redis:
+                data = json.loads(cached_redis)
+                _set_cache('dashboard_stats', data)
+                return data
     except Exception:
         pass
 
@@ -228,15 +224,10 @@ def get_dashboard_data():
 
     _set_cache('dashboard_stats', data)
     try:
-        import redis as redis_lib
-        r2 = redis_lib.Redis(
-            host=os.getenv('REDIS_HOST', 'localhost'),
-            port=int(os.getenv('REDIS_PORT', 6379)),
-            password=os.getenv('REDIS_PASSWORD', ''),
-            socket_connect_timeout=2
-        )
-        r2.setex('dashboard_stats', 300, json.dumps(data, default=str, ensure_ascii=False))
-        r2.close()
+        from tools.redis_utils import get_redis
+        r = get_redis()
+        if r:
+            r.setex('dashboard_stats', 600, json.dumps(data, default=str, ensure_ascii=False))
     except Exception:
         pass
 

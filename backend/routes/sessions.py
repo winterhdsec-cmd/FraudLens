@@ -5,13 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from database.crud import get_sessions, get_session_detail, delete_session
-from .deps import get_current_user, log_operation
+from .deps import get_current_user, log_operation, db_retry
 
 router = APIRouter(prefix='/api/sessions', tags=['会话'])
 
 
 @router.get('')
-async def api_get_sessions():
+@db_retry()
+async def api_get_sessions(current_user: dict = Depends(get_current_user)):
     try:
         sessions = get_sessions()
         return {"success": True, "sessions": sessions}
@@ -20,7 +21,8 @@ async def api_get_sessions():
 
 
 @router.get('/{session_id}')
-async def api_get_session_detail_route(session_id: str):
+@db_retry()
+async def api_get_session_detail_route(session_id: str, current_user: dict = Depends(get_current_user)):
     try:
         detail = get_session_detail(session_id)
         if detail:
@@ -31,6 +33,7 @@ async def api_get_session_detail_route(session_id: str):
 
 
 @router.delete('/{session_id}')
+@db_retry()
 async def api_delete_session_route(session_id: str, request: Request,
                                     current_user: dict = Depends(get_current_user)):
     try:

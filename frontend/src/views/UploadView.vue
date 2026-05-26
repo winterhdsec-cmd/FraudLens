@@ -290,6 +290,7 @@ const runAnalysis = () => {
 .mode-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 .mode-opt { font-size: 12px; }
 .mode-selector :deep(.el-radio-group) { gap: 0; }
+.mode-selector :deep(.el-radio-button) { background: transparent !important; }
 .mode-selector :deep(.el-radio-button__inner) {
   background: rgba(0,0,0,0.4) !important;
   border-color: var(--border-primary) !important;

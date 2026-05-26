@@ -20,7 +20,8 @@ import api, {
   importCSV,
   importExcel,
   seedData,
-  searchCases
+  searchCases,
+  getMe
 } from '../api.js'
 
 export function useFraudLens() {
@@ -147,11 +148,18 @@ export function useFraudLens() {
       const data = await apiLogin(loginForm.value.username, loginForm.value.password)
       if (data.success) {
         loginProgress.value = 100
-        setTimeout(() => {
-          store.login(data.user || { username: loginForm.value.username }, data.access_token || data.token, data.refresh_token)
-          loginForm.value = { username: '', password: '' }
-          ElMessage.success('登录成功')
-        }, 300)
+        store.login(data.user || { username: loginForm.value.username }, data.access_token || data.token, data.refresh_token)
+        loginForm.value = { username: '', password: '' }
+        clearInterval(loginProgressTimer)
+        loginLoading.value = false
+        loginError.value = ''
+        ElMessage.success('登录成功')
+        reloadCasesAndGangs()
+        loadFlowMetrics()
+        const routeName = route.name
+        if (routeName === 'dashboard') loadDashboard()
+        if (routeName === 'alerts') loadAlerts()
+        return
       } else {
         loginError.value = data.message || '登录失败，请重试'
       }
@@ -174,11 +182,18 @@ export function useFraudLens() {
       const data = await apiDemoLogin()
       if (data.success) {
         loginProgress.value = 100
-        setTimeout(() => {
-          store.login(data.user || { username: 'admin' }, data.access_token || data.token, data.refresh_token)
-          loginForm.value = { username: '', password: '' }
-          ElMessage.success('演示登录成功')
-        }, 300)
+        store.login(data.user || { username: 'admin' }, data.access_token || data.token, data.refresh_token)
+        loginForm.value = { username: '', password: '' }
+        clearInterval(loginProgressTimer)
+        loginLoading.value = false
+        loginError.value = ''
+        ElMessage.success('演示登录成功')
+        reloadCasesAndGangs()
+        loadFlowMetrics()
+        const routeName = route.name
+        if (routeName === 'dashboard') loadDashboard()
+        if (routeName === 'alerts') loadAlerts()
+        return
       } else {
         loginError.value = data.message || '演示登录失败'
       }
@@ -612,7 +627,8 @@ export function useFraudLens() {
             if (r.data.success && r.data.text) {
               const methodLabel = { ocr: '📝OCR', vision: '🧠视觉', direct: '📄直接' }
               const tag = methodLabel[r.data.method] || r.data.method
-              allText += (allText ? '\n---\n' : '') + `[${item.name} | ${tag}]\n` + r.data.text
+              const cleanTag = r.data.cleaned ? ' ✨已清洗' : ''
+              allText += (allText ? '\n---\n' : '') + `[${item.name} | ${tag}${cleanTag}]\n` + r.data.text
             }
           } catch (ocrErr) {
             console.warn(`图片处理失败:`, ocrErr)
@@ -1065,6 +1081,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     }
   }
   const loadFlowMetrics = async () => {
+    if (!store.isLoggedIn) return
     try {
       const r = await fetchCapitalFlowStats()
       if (r.success && r.stats) {
@@ -1074,10 +1091,12 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
           overseas_pct: r.stats.overseas_pct ?? 0,
           total_flows: r.stats.total_flows || 0
         }
+      } else {
+        console.warn('[loadFlowMetrics] API returned not success:', r)
       }
     } catch (e) {
-      console.error('loadFlowMetrics:', e)
-      ElMessage.error('资金流向统计数据加载失败')
+      const detail = e?.response?.data?.detail || e?.response?.data?.error || e?.message || String(e)
+      console.error('[loadFlowMetrics] 加载失败:', detail)
     }
   }
   const addFlowRecord = (row) => {
@@ -1497,19 +1516,27 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
   }
 
   const reloadCasesAndGangs = async () => {
+    if (!store.isLoggedIn) return
     try {
       const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
       if (casesRes.success) {
         const caseData = casesRes.cases || casesRes.data || []
         cases.value = caseData.map(c => mapCaseFromResponse(c))
+      } else {
+        console.error('[reloadCasesAndGangs] fetchCases failed:', casesRes)
       }
       if (gangsRes.success) {
         const gangData = gangsRes.gangs || gangsRes.data || []
         gangs.value = gangData.map((g, idx) => mapGangFromResponse(g, idx))
+      } else {
+        console.error('[reloadCasesAndGangs] fetchGangs failed:', gangsRes)
       }
     } catch (e) {
-      console.warn('刷新数据失败:', e)
-      ElMessage.error('数据加载失败，请检查后端服务是否正常运行')
+      const detail = e?.response?.data?.detail || e?.response?.data?.error || e?.message || String(e)
+      console.warn('[reloadCasesAndGangs] 刷新数据失败:', detail)
+      if (store.isLoggedIn) {
+        ElMessage.error('数据加载失败: ' + detail)
+      }
     }
   }
 
@@ -1524,18 +1551,26 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     if (newVal === 'alerts') {
       loadAlerts()
     }
-    if (newVal === 'details') {
+    if (newVal === 'details' && store.isLoggedIn) {
       reloadCasesAndGangs()
     }
   })
 
   onMounted(async () => {
     const routeName = route.name
+    if (store.isLoggedIn) {
+      try {
+        await getMe()
+      } catch {
+        store.logout()
+      }
+    }
     if (routeName === 'dashboard') loadDashboard()
     if (routeName === 'alerts') loadAlerts()
-    loadFlowMetrics()
-    await reloadCasesAndGangs()
-    if (store.isLoggedIn && cases.value.length === 0) {
+    if (store.isLoggedIn) {
+      loadFlowMetrics()
+      await reloadCasesAndGangs()
+      if (cases.value.length === 0) {
       try {
         await ElMessageBox.confirm(
           '系统尚未初始化数据，是否加载示例数据？',
@@ -1559,7 +1594,8 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
         // user cancelled, do nothing
       }
     }
-    if (routeName === 'overview' && gangs.value.length) {
+  }
+  if (routeName === 'overview' && gangs.value.length) {
       nextTick(() => initCharts())
     }
   })

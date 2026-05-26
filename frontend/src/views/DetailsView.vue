@@ -52,7 +52,12 @@
                 <span class="analysis-subtitle">AI智能分析</span>
               </div>
               <div class="analysis-content">
-                <div ref="radarChartRef" class="radar-chart-container"></div>
+                <div ref="radarChartRef" class="radar-chart-container">
+                <div v-if="radarLoading" class="radar-loading">
+                  <span class="radar-loading-spinner"></span>
+                  <span>雷达数据分析中...</span>
+                </div>
+              </div>
               </div>
             </div>
 
@@ -759,6 +764,8 @@ const relationPhysics = {
 const relationChartRef = ref(null)
 const radarChartRef = ref(null)
 let radarChartInstance = null
+let _radarReqId = 0
+const radarLoading = ref(false)
 
 function renderRadarChart() {
   if (!radarChartRef.value) {
@@ -775,14 +782,21 @@ function renderRadarChart() {
   const g = currentGang.value
   if (!g) {
     radarChartInstance.clear()
+    radarLoading.value = false
     return
   }
   const gangId = g.gang_id || g.id
   if (!gangId) {
     radarChartInstance.clear()
+    radarLoading.value = false
     return
   }
+
+  const reqId = ++_radarReqId
+  radarLoading.value = true
   getGangRadar(gangId).then(res => {
+    if (reqId !== _radarReqId) return
+    if (!radarChartInstance) return
     let radar = res.data?.radar || {}
     if (!Object.keys(radar).length && g.radar_data) {
       radar = g.radar_data
@@ -791,6 +805,7 @@ function renderRadarChart() {
     const values = Object.values(radar)
     if (!names.length) {
       radarChartInstance.clear()
+      radarLoading.value = false
       return
     }
     const colors = ['#ef4444', '#f59e0b', '#00d4ff', '#8b5cf6', '#10b981', '#ec4899']
@@ -869,7 +884,11 @@ function renderRadarChart() {
       }]
     }
     radarChartInstance.setOption(option, true)
+    radarLoading.value = false
   }).catch(e => {
+    if (reqId !== _radarReqId) return
+    radarLoading.value = false
+    if (!radarChartInstance) return
     console.warn('团伙雷达图加载失败:', e)
     const features = currentFeatures.value
     if (!features.length) {
@@ -903,6 +922,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  _radarReqId++
   window.removeEventListener('resize', resizeRadarChart)
   if (radarChartInstance) {
     radarChartInstance.dispose()
@@ -1141,7 +1161,31 @@ watch(currentGang, () => {
   width: 100%;
   height: 340px;
   min-height: 280px;
+  position: relative;
 }
+.radar-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  background: rgba(10,14,26,0.6);
+  border-radius: 8px;
+  z-index: 10;
+}
+.radar-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(0,198,255,0.15);
+  border-top-color: #00d4ff;
+  border-radius: 50%;
+  animation: radar-spin 0.7s linear infinite;
+}
+@keyframes radar-spin { to { transform: rotate(360deg); } }
 
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .pattern-card {

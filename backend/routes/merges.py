@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from database.crud import get_all_cases
-from .deps import get_current_user, log_operation, MergeConfirmRequest
+from .deps import get_current_user, log_operation, MergeConfirmRequest, db_retry
 
 router = APIRouter(prefix='/api/merges', tags=['合并'])
 
 
 @router.post('/suggest')
+@db_retry()
 async def api_suggest_merges(current_user: dict = Depends(get_current_user)):
     try:
         from database.merge import suggest_merges
@@ -30,6 +31,7 @@ async def api_suggest_merges(current_user: dict = Depends(get_current_user)):
 
 
 @router.post('/confirm')
+@db_retry()
 async def api_confirm_merge(data: MergeConfirmRequest, request: Request,
                              current_user: dict = Depends(get_current_user)):
     try:
@@ -44,6 +46,7 @@ async def api_confirm_merge(data: MergeConfirmRequest, request: Request,
 
 
 @router.get('/pending')
+@db_retry()
 async def api_pending_merges(current_user: dict = Depends(get_current_user)):
     try:
         from database.merge import get_pending_merges

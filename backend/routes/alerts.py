@@ -1,16 +1,18 @@
 """
 Alert routes.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from database.crud import get_all_cases
+from .deps import get_current_user, db_retry
 
 router = APIRouter(prefix='/api/alerts', tags=['预警'])
 
 
 @router.get('')
-async def api_get_alerts():
+@db_retry()
+async def api_get_alerts(current_user: dict = Depends(get_current_user)):
     try:
         from database.alert import alert_engine
         alerts = alert_engine.get_active_alerts()

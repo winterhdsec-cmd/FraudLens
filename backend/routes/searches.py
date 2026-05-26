@@ -1,16 +1,18 @@
 """
 Search routes.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 
 from database.crud import search_cases, _case_to_dict
+from .deps import get_current_user, db_retry
 
 router = APIRouter(prefix='/api/search', tags=['搜索'])
 
 
 @router.get('')
-async def api_search(q: str = Query('', alias='q')):
+@db_retry()
+async def api_search(q: str = Query('', alias='q'), current_user: dict = Depends(get_current_user)):
     try:
         if not q:
             return {"success": True, "cases": []}

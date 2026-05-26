@@ -61,3 +61,8 @@ FraudLens_支撑材料*.docx
 
 # Database exports with sensitive demo data
 docker/data.sql
+
+# Test files
+test_*.py
+request.json
+token.txt

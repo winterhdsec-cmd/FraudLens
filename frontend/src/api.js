@@ -19,6 +19,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && store.isLoggedIn) {
+      const url = error.config?.url || ''
+      if (!url.includes('/auth/login') && !url.includes('/auth/register') && !url.includes('/auth/demo-login')) {
+        store.logout()
+        window.location.href = '/'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ========== WebSocket ==========
 let socket = null
 
@@ -105,6 +119,16 @@ export async function deleteUser(user_id) {
 
 export async function getOperationLogs() {
   const response = await api.get('/api/auth/logs')
+  return response.data
+}
+
+export async function fetchCaseById(caseId) {
+  const response = await api.get(`/api/cases/${caseId}`)
+  return response.data
+}
+
+export async function fetchGangById(gangId) {
+  const response = await api.get(`/api/gangs/${gangId}`)
   return response.data
 }
 

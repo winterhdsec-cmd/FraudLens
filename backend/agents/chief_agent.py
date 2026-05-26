@@ -234,7 +234,93 @@ JSON结果："""
             gang_ids = [g['gang_id'] for g in gangs if c['case_id'] in g.get('case_ids', [])]
             c['gang'] = gang_ids[0] if gang_ids else ''
 
+        existing_ids = set()
+        try:
+            from database.crud import get_all_cases
+            for ec in get_all_cases():
+                eid = ec.get('case_id')
+                if eid:
+                    existing_ids.add(eid)
+        except Exception:
+            pass
+
+        for i, c in enumerate(cases):
+            case_id = c.get('case_id', '')
+            if case_id in existing_ids or not case_id:
+                new_id = f"FC{time.strftime('%Y%m%d%H%M%S')}_{i+1}"
+                c['case_id'] = new_id
+                c['id'] = new_id
+                for g in gangs:
+                    if 'case_ids' in g:
+                        g['case_ids'] = [new_id if cid == case_id else cid for cid in g['case_ids']]
+                    if 'related_cases' in g:
+                        if isinstance(g['related_cases'], list):
+                            g['related_cases'] = [
+                                {'case_id': new_id, 'similarity': 1.0}
+                                if (isinstance(rc, dict) and rc.get('case_id') == case_id)
+                                else rc
+                                for rc in g['related_cases']
+                            ]
+                        elif isinstance(g['related_cases'], list):
+                            g['related_cases'] = [new_id if rc == case_id else rc for rc in g['related_cases']]
+                existing_ids.add(new_id)
+
         processing_time_ms = int((time.time() - start_time) * 1000)
+
+        if self.persist:
+            try:
+                self._log("INFO", "正在将分析结果持久化到数据库...", context)
+                from database import db
+
+                for c in cases:
+                    if 'victim' not in c and 'victim_name' in c:
+                        c['victim'] = c['victim_name']
+                    if 'source' not in c:
+                        c['source'] = '文本'
+                    if 'ai_report' not in c:
+                        c['ai_report'] = c.get('description', '')
+                    if 'extracted_entities' not in c:
+                        c['extracted_entities'] = {}
+                    if 'risk_label' not in c:
+                        rl = c.get('risk_level', 'LOW')
+                        c['risk_label'] = '高风险' if rl == 'HIGH' else ('中风险' if rl == 'MEDIUM' else '低风险')
+                    if 'risk_type' not in c:
+                        rl = c.get('risk_level', 'LOW')
+                        c['risk_type'] = 'danger' if rl == 'HIGH' else ('warning' if rl == 'MEDIUM' else 'info')
+
+                for g in gangs:
+                    if 'total_amount_involved' not in g:
+                        g['total_amount_involved'] = g.get('total_amount', '0')
+                    if 'related_cases' in g and isinstance(g['related_cases'], list):
+                        g['related_cases'] = [
+                            {'case_id': cid, 'similarity': 1.0}
+                            for cid in g['related_cases']
+                        ]
+
+                create_session(self.session_id, raw_input=payload.get('messages', []))
+                for case_data in cases:
+                    save_case(case_data, session_id=self.session_id)
+                for gang_data in gangs:
+                    save_gang(gang_data, session_id=self.session_id)
+                db.session.commit()
+
+                from database.crud import _cache_clear
+                _cache_clear()
+
+                processing_info = {
+                    "server_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+                    "processing_time_ms": processing_time_ms,
+                    "data_version": "2.0-simple",
+                    "agent_version": "AntiFraudDirectLLM-v1.0",
+                    "total_stages": 1,
+                    "errors": [],
+                    "warnings": []
+                }
+                complete_session(self.session_id, status='completed', processing_info=processing_info)
+                self._log("INFO", f"数据库持久化完成: {len(cases)} 个案件, {len(gangs)} 个团伙", context)
+            except Exception as db_err:
+                self._log("ERROR", f"数据库持久化失败: {db_err}", context)
+
         self._log("INFO", f"简化研判完成: {len(cases)}个案件, {len(gangs)}个团伙, 耗时{processing_time_ms}ms", context)
 
         return {

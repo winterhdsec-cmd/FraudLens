@@ -27,6 +27,7 @@ dotenv_path = os.path.join(os.path.dirname(__file__), 'key.env')
 load_dotenv(dotenv_path)
 
 from database import db, init_db
+
 from tools.response import logger
 
 DB_USER = os.getenv("DB_USER", "root")
@@ -42,7 +43,9 @@ _flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 _flask_app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'connect_args': {'charset': 'utf8mb4'},
     'pool_pre_ping': True,
-    'pool_recycle': 3600
+    'pool_recycle': 300,
+    'pool_size': 10,
+    'max_overflow': 5
 }
 init_db(_flask_app)
 _flask_app.app_context().push()
@@ -437,24 +440,43 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"演示案件数据注入跳过: {e}")
 
-    try:
-        from database.models import Case as _CaseForRadar
-        missing_radar = db.session.query(_CaseForRadar).filter(
-            db.session.query(_CaseForRadar).filter(
-                (_CaseForRadar.radar_data.is_(None)) | (_CaseForRadar.radar_data == '{}')
-            ).exists()
-        )
-        if missing_radar:
+    import threading
+
+    def _compute_radar_background():
+        import logging as _log
+        _log.info("[雷达预算] 后台线程启动")
+        try:
+            _flask_app.app_context().push()
+        except Exception:
+            pass
+        try:
+            from database.models import Case
             from routes.cases import _compute_case_radar
-            for c in db.session.query(_CaseForRadar).all():
+            for c in db.session.query(Case).all():
                 if not c.radar_data or c.radar_data == {}:
                     try:
                         _compute_case_radar(c)
                     except Exception:
                         pass
-            logger.info("雷达图数据已补全")
-    except Exception as e:
-        logger.warning(f"雷达图数据计算跳过: {e}")
+            _log.info("案件雷达图数据已补全")
+        except Exception as e:
+            _log.warning(f"案件雷达图数据计算跳过: {e}")
+
+        try:
+            from database.models import Gang
+            from routes.cases import _compute_gang_radar
+            for g in db.session.query(Gang).all():
+                if not g.radar_data or g.radar_data == {}:
+                    try:
+                        _compute_gang_radar(g)
+                    except Exception:
+                        pass
+            _log.info("团伙雷达图数据已补全")
+        except Exception as e:
+            _log.warning(f"团伙雷达图数据计算跳过: {e}")
+
+    _radar_thread = threading.Thread(target=_compute_radar_background, daemon=True)
+    _radar_thread.start()
 
     yield
     logger.info("服务关闭")
@@ -474,8 +496,29 @@ app.add_middleware(
 )
 
 
+_db_lock = asyncio.Lock()
+
+
+@app.middleware("http")
+async def db_session_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith('/api/') or path in ('/agent-analyze', '/health'):
+        async with _db_lock:
+            response = await call_next(request)
+        return response
+    return await call_next(request)
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    try:
+        _sqlalchemy_db.session.remove()
+    except Exception:
+        pass
+    try:
+        _sqlalchemy_db.session.rollback()
+    except Exception:
+        pass
     traceback.print_exc()
     return JSONResponse(
         status_code=500,

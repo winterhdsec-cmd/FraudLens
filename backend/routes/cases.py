@@ -11,16 +11,40 @@ from database.crud import (
     update_case_status, create_case, delete_case,
     update_case, search_cases_enhanced
 )
+import json
+
 from database import db
 from database.models import Case, Gang, GangCaseRelation
 from database.p1_models import CapitalFlow
-from .deps import get_current_user, log_operation
+from .deps import get_current_user, log_operation, db_retry
+
+def _radar_cache_get(key):
+    try:
+        from tools.redis_utils import get_redis
+        r = get_redis()
+        if r:
+            data = r.get(key)
+            if data:
+                return json.loads(data)
+    except Exception:
+        pass
+    return None
+
+def _radar_cache_set(key, data, ttl=86400):
+    try:
+        from tools.redis_utils import get_redis
+        r = get_redis()
+        if r:
+            r.setex(key, ttl, json.dumps(data, ensure_ascii=False))
+    except Exception:
+        pass
 
 router = APIRouter(prefix='/api/cases', tags=['案件'])
 
 
 @router.get('')
-async def api_get_cases():
+@db_retry()
+async def api_get_cases(current_user: dict = Depends(get_current_user)):
     try:
         cases = get_all_cases()
         return {"success": True, "cases": cases, "total": len(cases)}
@@ -29,6 +53,11 @@ async def api_get_cases():
 
 
 def _compute_case_radar(case) -> dict:
+    cache_key = f'radar:case:{case.case_id}'
+    cached = _radar_cache_get(cache_key)
+    if cached:
+        return cached
+
     if case.radar_data and isinstance(case.radar_data, dict) and len(case.radar_data) >= 4:
         first_key = next(iter(case.radar_data))
         if any(ord(c) > 0x4e00 for c in first_key):
@@ -134,11 +163,12 @@ def _compute_case_radar(case) -> dict:
     except Exception:
         db.session.rollback()
 
+    _radar_cache_set(cache_key, radar)
     return radar
 
 
 @router.get('/{case_id}/radar')
-async def api_get_case_radar(case_id: str):
+async def api_get_case_radar(case_id: str, current_user: dict = Depends(get_current_user)):
     try:
         case = db.session.query(Case).filter(Case.case_id == case_id).first()
         if not case:
@@ -150,6 +180,11 @@ async def api_get_case_radar(case_id: str):
 
 
 def _compute_gang_radar(gang) -> dict:
+    cache_key = f'radar:gang:{gang.gang_id}'
+    cached = _radar_cache_get(cache_key)
+    if cached:
+        return cached
+
     if gang.radar_data and isinstance(gang.radar_data, dict) and len(gang.radar_data) >= 4:
         first_key = next(iter(gang.radar_data))
         if any(ord(c) > 0x4e00 for c in first_key):
@@ -193,11 +228,12 @@ def _compute_gang_radar(gang) -> dict:
     except Exception:
         db.session.rollback()
 
+    _radar_cache_set(cache_key, radar)
     return radar
 
 
 @router.get('/stats')
-async def api_case_stats():
+async def api_case_stats(current_user: dict = Depends(get_current_user)):
     try:
         stats = get_case_stats()
         return {"success": True, "stats": stats}
@@ -206,7 +242,7 @@ async def api_case_stats():
 
 
 @router.get('/search')
-async def api_search_cases(q: str = ''):
+async def api_search_cases(q: str = '', current_user: dict = Depends(get_current_user)):
     try:
         if not q:
             return {"success": True, "cases": []}
@@ -217,7 +253,7 @@ async def api_search_cases(q: str = ''):
 
 
 @router.get('/{case_id}')
-async def api_get_case(case_id: str):
+async def api_get_case(case_id: str, current_user: dict = Depends(get_current_user)):
     try:
         case = get_case_by_id(case_id)
         if case:

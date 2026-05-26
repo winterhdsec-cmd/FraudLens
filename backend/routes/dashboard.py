@@ -1,16 +1,18 @@
 """
 Dashboard routes.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from database.crud import get_sessions, get_session_detail
+from .deps import get_current_user, db_retry
 
 router = APIRouter(prefix='/api/dashboard', tags=['看板'])
 
 
 @router.get('')
-async def api_dashboard():
+@db_retry()
+async def api_dashboard(current_user: dict = Depends(get_current_user)):
     try:
         from database.dashboard import get_dashboard_data
         data = get_dashboard_data()

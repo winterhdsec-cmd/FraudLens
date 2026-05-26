@@ -43,16 +43,16 @@ const router = createRouter({
   routes,
 })
 
-const PUBLIC_ROUTES = new Set(['showcase', 'input'])
+const PUBLIC_ROUTES = new Set(['showcase'])
 
 router.beforeEach((to, from, next) => {
   if (to.meta?.public || PUBLIC_ROUTES.has(to.name)) {
     next()
     return
   }
-  const token = localStorage.getItem('fraudlens_token')
+  const token = sessionStorage.getItem('fraudlens_token')
   if (!token) {
-    next({ name: 'input' })
+    next({ name: 'showcase' })
     return
   }
   next()

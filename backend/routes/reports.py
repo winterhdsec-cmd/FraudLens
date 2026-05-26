@@ -3,14 +3,17 @@ Report routes.
 """
 import os
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse
+
+from .deps import get_current_user, db_retry
 
 router = APIRouter(prefix='/api/reports', tags=['报告'])
 
 
 @router.get('/case/{case_id}')
-async def api_case_report(case_id: str, format: str = Query('pdf', alias='format')):
+@db_retry()
+async def api_case_report(case_id: str, format: str = Query('pdf', alias='format'), current_user: dict = Depends(get_current_user)):
     try:
         from database.report import generate_case_report, export_case_docx
         filepath = export_case_docx(case_id) if format == 'docx' else generate_case_report(case_id)

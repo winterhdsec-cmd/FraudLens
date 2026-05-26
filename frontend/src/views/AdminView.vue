@@ -10,6 +10,7 @@
       </div>
     </div>
 
+    <div class="admin-error" v-if="adminError">{{ adminError }}</div>
     <el-tabs v-model="adminTab" class="admin-tabs">
       <el-tab-pane label="用户管理" name="users">
         <div class="admin-toolbar">
@@ -129,6 +130,7 @@ const { activeMenu } = state
 const adminTab = ref('users')
 const userList = ref([])
 const logList = ref([])
+const adminError = ref('')
 const showAddUser = ref(false)
 const pwForm = ref({ old: '', new: '' })
 const pwLoading = ref(false)
@@ -143,8 +145,13 @@ async function loadUsers() {
     const { default: api } = await import('../api.js')
     const r = await api.get('/api/auth/users')
     userList.value = r.data.users || []
+    adminError.value = ''
+    if (!userList.value.length) {
+      adminError.value = '暂未获取到用户数据，请确认登录状态'
+    }
   } catch (e) {
-    console.warn('用户列表API不可用')
+    console.warn('用户列表API不可用:', e)
+    adminError.value = '获取用户列表失败: ' + (e.response?.data?.error || e.message || '网络错误')
   }
 }
 
@@ -275,6 +282,16 @@ onMounted(() => {
 .section-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
 .section-title .title-icon { margin-right: 6px; }
 .section-desc { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+.admin-error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
 
 .admin-tabs {
   position: relative;

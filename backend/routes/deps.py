@@ -12,6 +12,9 @@ from typing import Dict, Any, Optional, List
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from sqlalchemy.exc import OperationalError, InterfaceError as SAInterfaceError, InvalidRequestError, DisconnectionError
+import pymysql.err
+
 import jwt as pyjwt
 
 from database import db
@@ -136,11 +139,24 @@ def get_current_user(request: Request) -> Dict[str, Any]:
     if not payload:
         raise HTTPException(status_code=401, detail="令牌无效或已过期")
     from database.models import User
-    try:
-        user = db.session.get(User, int(payload['sub']))
-    except Exception:
-        db.session.rollback()
-        user = db.session.get(User, int(payload['sub']))
+    for _attempt in range(3):
+        try:
+            user = db.session.get(User, int(payload['sub']))
+            break
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            try:
+                db.session.remove()
+            except Exception:
+                pass
+            import time
+            time.sleep(0.3)
+            user = None
+    else:
+        user = None
     if not user:
         raise HTTPException(status_code=401, detail="用户不存在")
     if not user.is_active:
@@ -173,6 +189,55 @@ def log_operation(user_id: int, username: str, action: str,
     )
     db.session.add(log)
     db.session.commit()
+
+
+def db_retry(max_retries=3):
+    def decorator(func):
+        import functools
+        import asyncio
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except (
+                    OperationalError, SAInterfaceError, InvalidRequestError,
+                    DisconnectionError, pymysql.err.InterfaceError, pymysql.err.OperationalError
+                ) as e:
+                    last_error = e
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    try:
+                        db.session.close()
+                    except Exception:
+                        pass
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1.0)
+                except Exception as e:
+                    if 'pymysql.err.InterfaceError' in type(e).__name__ or 'pymysql.err.OperationalError' in type(e).__name__:
+                        last_error = e
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(1.0)
+                    else:
+                        raise
+            raise last_error
+        return wrapper
+    return decorator
 
 
 progress_store: Dict[str, List[Dict[str, Any]]] = {}

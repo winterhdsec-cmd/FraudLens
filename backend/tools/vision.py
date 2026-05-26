@@ -9,14 +9,24 @@ from typing import Optional, Dict, Any, List
 from tools.response import logger
 
 
+VISION_MODELS = ['deepseek-vl2', 'deepseek-vl', 'gpt-4o', 'gpt-4-vision-preview', 'qwen-vl-plus', 'qwen-vl-max']
+
+
 class VisionAnalyzer:
     """多模态图像分析器"""
 
     def __init__(self, api_key: str = None, base_url: str = None, model: str = None):
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
         self.base_url = base_url or os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-        self.model = model or os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+        vl_model = os.getenv("DEEPSEEK_VL_MODEL", "")
+        if model:
+            self.model = model
+        elif vl_model:
+            self.model = vl_model
+        else:
+            self.model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
         self._client = None
+        self._vision_client = None
 
     @property
     def client(self):
@@ -24,6 +34,17 @@ class VisionAnalyzer:
             from openai import OpenAI
             self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         return self._client
+
+    def _get_vision_client(self):
+        vl_base = os.getenv("DEEPSEEK_VL_BASE_URL", self.base_url)
+        if self._vision_client is None:
+            from openai import OpenAI
+            self._vision_client = OpenAI(api_key=self.api_key, base_url=vl_base)
+        return self._vision_client
+
+    def _is_vision_model(self):
+        base = self.model.lower()
+        return any(vm in base for vm in VISION_MODELS)
 
     def _encode_image(self, image_data: bytes, format: str = "png") -> str:
         return base64.b64encode(image_data).decode("utf-8")
@@ -42,22 +63,37 @@ class VisionAnalyzer:
             logger.warning("[Vision] 未配置 API Key，使用模拟模式")
             return self._mock_analyze(prompt)
 
-        try:
-            content = self._build_content(image_data, prompt, format)
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": content}],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                timeout=30
-            )
-            result = response.choices[0].message.content
-            logger.info(f"[Vision] 分析完成，耗时: {response.usage.total_tokens} tokens")
-            return {"success": True, "text": result, "model": self.model}
-        except Exception as e:
-            logger.error(f"[Vision] 调用失败: {e}")
-            fallback_text, method = self._try_fallback(image_data, prompt, format)
-            return {"success": True, "text": fallback_text, "model": "ocr_fallback", "note": str(e)}
+        models_to_try = []
+        if self._is_vision_model():
+            models_to_try.append((self.model, self.client))
+        else:
+            models_to_try.append((self.model, self.client))
+            for vm in ['deepseek-vl2', 'gpt-4o']:
+                if vm != self.model.lower():
+                    models_to_try.append((vm, self._get_vision_client()))
+
+        last_error = ""
+        for model_name, client in models_to_try:
+            try:
+                content = self._build_content(image_data, prompt, format)
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": content}],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout=30
+                )
+                result = response.choices[0].message.content
+                logger.info(f"[Vision] 分析完成，模型: {model_name}, 耗时: {response.usage.total_tokens} tokens")
+                return {"success": True, "text": result, "model": model_name}
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"[Vision] 模型 {model_name} 调用失败: {e}，尝试下一个...")
+                continue
+
+        logger.error(f"[Vision] 所有视觉模型调用失败: {last_error}")
+        fallback_text, method = self._try_fallback(image_data, prompt, format)
+        return {"success": True, "text": fallback_text, "model": "ocr_fallback", "note": last_error}
 
     def _try_fallback(self, image_data: bytes, prompt: str, format: str = "png") -> tuple:
         from tools.ocr import ocr_image

@@ -40,7 +40,7 @@ async def health_check():
 
 
 @router.post('/agent-analyze')
-async def api_agent_analyze(data: AnalyzeRequest, request: Request):
+async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user: dict = Depends(get_current_user)):
     try:
         raw_messages = data.messages
         platform_data = data.platform_data
@@ -110,7 +110,7 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request):
 
 
 @router.get('/api/tasks/{task_id}')
-async def api_get_task(task_id: str):
+async def api_get_task(task_id: str, current_user: dict = Depends(get_current_user)):
     try:
         if not USE_CELERY:
             return JSONResponse(status_code=400, content={
@@ -131,7 +131,7 @@ async def api_get_task(task_id: str):
 
 
 @router.get('/api/logs')
-async def api_public_logs():
+async def api_public_logs(current_user: dict = Depends(get_current_user)):
     try:
         from database.models import OperationLog
         logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(50).all()
@@ -148,7 +148,7 @@ async def api_public_logs():
 
 
 @router.get('/api/network-data')
-async def api_network_data():
+async def api_network_data(current_user: dict = Depends(get_current_user)):
     return {
         "success": True,
         "message": "此接口需要基于会话或数据库实现完整功能",

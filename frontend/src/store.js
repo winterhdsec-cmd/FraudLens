@@ -8,10 +8,10 @@ const STORAGE_KEYS = {
 
 function loadSavedUser() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.user)
+    const raw = sessionStorage.getItem(STORAGE_KEYS.user)
     return raw ? JSON.parse(raw) : null
   } catch {
-    localStorage.removeItem(STORAGE_KEYS.user)
+    sessionStorage.removeItem(STORAGE_KEYS.user)
     return null
   }
 }
@@ -22,9 +22,9 @@ function isValidToken(val) {
 
 export const store = reactive({
   user: loadSavedUser(),
-  token: localStorage.getItem(STORAGE_KEYS.token) || null,
-  refreshToken: localStorage.getItem(STORAGE_KEYS.refresh) || null,
-  isLoggedIn: !!localStorage.getItem(STORAGE_KEYS.token),
+  token: sessionStorage.getItem(STORAGE_KEYS.token) || null,
+  refreshToken: sessionStorage.getItem(STORAGE_KEYS.refresh) || null,
+  isLoggedIn: !!sessionStorage.getItem(STORAGE_KEYS.token),
   login(user, token, refreshToken) {
     if (!isValidToken(token)) {
       console.warn('[store] login failed: invalid token')
@@ -38,10 +38,10 @@ export const store = reactive({
     this.token = token
     this.refreshToken = isValidToken(refreshToken) ? refreshToken : null
     this.isLoggedIn = true
-    localStorage.setItem(STORAGE_KEYS.token, token)
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user))
+    sessionStorage.setItem(STORAGE_KEYS.token, token)
+    sessionStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user))
     if (this.refreshToken) {
-      localStorage.setItem(STORAGE_KEYS.refresh, this.refreshToken)
+      sessionStorage.setItem(STORAGE_KEYS.refresh, this.refreshToken)
     }
   },
   logout() {
@@ -49,6 +49,6 @@ export const store = reactive({
     this.token = null
     this.refreshToken = null
     this.isLoggedIn = false
-    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k))
+    Object.values(STORAGE_KEYS).forEach(k => sessionStorage.removeItem(k))
   }
 })

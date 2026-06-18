@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>双路径团伙发现策略</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #fff;
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .container {
+    max-width: 780px;
+    width: 100%;
+  }
+  .title {
+    text-align: center;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 11px;
+    margin-bottom: 22px;
+  }
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .input-box {
+    background: #f1f5f9;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 28px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .input-box .icon { font-size: 18px; }
+  .input-box .label { color: #334155; font-size: 12px; font-weight: 600; }
+  .split-line {
+    width: 1.5px;
+    height: 14px;
+    background: #cbd5e1;
+    margin-bottom: 0;
+  }
+  .paths {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+  }
+  .path {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .path-header {
+    padding: 6px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .path-a .path-header { background: #8b5cf6; }
+  .path-b .path-header { background: #0891b2; }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    width: 100%;
+    max-width: 260px;
+  }
+  .step-box {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .path-a .step-box { border-left: 3px solid #c4b5fd; }
+  .path-b .step-box { border-left: 3px solid #67e8f9; }
+  .step-icon { font-size: 14px; flex-shrink: 0; }
+  .step-text { color: #334155; font-size: 10.5px; line-height: 1.3; }
+  .step-text strong { font-size: 11px; color: #1e293b; }
+  .path-arrow {
+    color: #cbd5e1;
+    font-size: 14px;
+    margin: 2px 0;
+  }
+  .merge-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .merge-arrows {
+    display: flex;
+    gap: 140px;
+    align-items: flex-end;
+    margin-bottom: 0;
+  }
+  .merge-arrow-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .merge-arrow-item .tag { font-size: 9px; color: #94a3b8; margin-bottom: 2px; }
+  .merge-arrow-item .line { width: 1.5px; height: 18px; background: #cbd5e1; }
+  .merge-box {
+    background: #fffbeb;
+    border: 1.5px solid #fcd34d;
+    border-radius: 8px;
+    padding: 8px 24px;
+    text-align: center;
+  }
+  .merge-box .icon { font-size: 16px; }
+  .merge-box .label { color: #92400e; font-size: 12px; font-weight: 700; }
+  .merge-box .desc { color: #64748b; font-size: 9px; }
+  .output-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .output-line { width: 1.5px; height: 14px; background: #cbd5e1; }
+  .output-box {
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 8px;
+    padding: 8px 24px;
+    text-align: center;
+  }
+  .output-box .icon { font-size: 16px; }
+  .output-box .label { color: #991b1b; font-size: 12px; font-weight: 700; }
+  .note {
+    text-align: center;
+    margin-top: 18px;
+    padding: 10px 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #1e293b;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .note strong { color: #0f172a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title">双路径团伙发现策略</div>
+  <div class="subtitle">语义关联与实体关联加权融合，兼顾"手法相似"与"人员关联"</div>
+  <div class="diagram">
+    <div class="input-box">
+      <span class="icon">📄</span>
+      <span class="label">案件数据输入</span>
+    </div>
+    <div class="split-line"></div>
+    <div class="paths">
+      <div class="path path-a">
+        <div class="path-header">语义关联路径</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">🔤</span>
+            <span class="step-text"><strong>BGE嵌入编码</strong><br>案件文本→768维语义向量</span>
+          </div>
+        </div>
+        <div class="path-arrow">↓</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">📐</span>
+            <span class="step-text"><strong>UMAP降维</strong><br>768维→低维空间</span>
+          </div>
+        </div>
+        <div class="path-arrow">↓</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">🔍</span>
+            <span class="step-text"><strong>文本相似度计算</strong><br>发现手法相似的案件</span>
+          </div>
+        </div>
+      </div>
+      <div class="path path-b">
+        <div class="path-header">实体关联路径</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">📱</span>
+            <span class="step-text"><strong>实体要素提取</strong><br>电话/账号/身份证号</span>
+          </div>
+        </div>
+        <div class="path-arrow">↓</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">🔗</span>
+            <span class="step-text"><strong>跨案件交叉匹配</strong><br>查找要素重叠</span>
+          </div>
+        </div>
+        <div class="path-arrow">↓</div>
+        <div class="step">
+          <div class="step-box">
+            <span class="step-icon">📊</span>
+            <span class="step-text"><strong>要素重叠度计算</strong><br>发现人员关联的案件</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="merge-section">
+      <div class="merge-arrows">
+        <div class="merge-arrow-item"><span class="tag">语义相似度</span><div class="line"></div></div>
+        <div class="merge-arrow-item"><span class="tag">要素重叠度</span><div class="line"></div></div>
+      </div>
+      <div class="merge-box">
+        <div class="icon">⚖️</div>
+        <div class="label">加权融合</div>
+        <div class="desc">权重基于验证集网格搜索确定</div>
+      </div>
+    </div>
+    <div class="output-section">
+      <div class="output-line"></div>
+      <div class="output-box">
+        <div class="icon">👥</div>
+        <div class="label">团伙归属判定</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>双路径优势：</strong>语义路径发现"手法相似"的案件，实体路径发现"人员关联"的案件，两路融合弥补单一路径盲区，预期较单一语义路径召回率提升10%以上。
+  </div>
+</div>
+</body>
+</html>

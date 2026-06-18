@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6阶段研判流水线</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #fff;
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .container {
+    max-width: 880px;
+    width: 100%;
+  }
+  .title {
+    text-align: center;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #475569;
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+  .pipeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+  .pipeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 110px;
+  }
+  .stage-box {
+    width: 90px;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    border: 1.5px solid;
+  }
+  .stage-icon { font-size: 20px; margin-bottom: 4px; }
+  .stage-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .stage-desc { font-size: 9px; line-height: 1.3; }
+  .s1 .stage-box { background: #eff6ff; border-color: #93c5fd; }
+  .s1 .stage-name { color: #1d4ed8; }
+  .s1 .stage-desc { color: #334155; }
+  .s2 .stage-box { background: #f5f3ff; border-color: #c4b5fd; }
+  .s2 .stage-name { color: #6d28d9; }
+  .s2 .stage-desc { color: #334155; }
+  .s3 .stage-box { background: #ecfeff; border-color: #67e8f9; }
+  .s3 .stage-name { color: #0e7490; }
+  .s3 .stage-desc { color: #334155; }
+  .s4 .stage-box { background: #ecfdf5; border-color: #6ee7b7; }
+  .s4 .stage-name { color: #047857; }
+  .s4 .stage-desc { color: #334155; }
+  .s5 .stage-box { background: #fffbeb; border-color: #fcd34d; }
+  .s5 .stage-name { color: #b45309; }
+  .s5 .stage-desc { color: #334155; }
+  .s6 .stage-box { background: #fef2f2; border-color: #fca5a5; }
+  .s6 .stage-name { color: #b91c1c; }
+  .s6 .stage-desc { color: #334155; }
+  .arrow-wrap {
+    display: flex;
+    align-items: center;
+    height: 70px;
+    padding: 0 2px;
+  }
+  .arrow-line {
+    width: 24px;
+    height: 2px;
+    background: #cbd5e1;
+    position: relative;
+  }
+  .arrow-line::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: -3.5px;
+    border: 4px solid transparent;
+    border-left: 6px solid #cbd5e1;
+  }
+  .flow-tag {
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .note {
+    text-align: center;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #1e293b;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .note strong { color: #0f172a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title">6阶段智能研判流水线</div>
+  <div class="subtitle">前一阶段输出作为后一阶段的上下文输入，形成链式推理</div>
+  <div class="pipeline">
+    <div class="stage s1">
+      <div class="stage-box">
+        <div class="stage-icon">📥</div>
+        <div class="stage-name">文本提取</div>
+        <div class="stage-desc">OCR与视觉模型提取文字</div>
+      </div>
+    </div>
+    <div class="arrow-wrap"><div class="arrow-line"><span class="flow-tag">原始文本</span></div></div>
+    <div class="stage s2">
+      <div class="stage-box">
+        <div class="stage-icon">🧹</div>
+        <div class="stage-name">信息清洗</div>
+        <div class="stage-desc">区分嫌疑人与受害人</div>
+      </div>
+    </div>
+    <div class="arrow-wrap"><div class="arrow-line"><span class="flow-tag">清洗数据</span></div></div>
+    <div class="stage s3">
+      <div class="stage-box">
+        <div class="stage-icon">🧠</div>
+        <div class="stage-name">智能研判</div>
+        <div class="stage-desc">DeepSeek链式推理分析</div>
+      </div>
+    </div>
+    <div class="arrow-wrap"><div class="arrow-line"><span class="flow-tag">研判结论</span></div></div>
+    <div class="stage s4">
+      <div class="stage-box">
+        <div class="stage-icon">🔗</div>
+        <div class="stage-name">证据链构建</div>
+        <div class="stage-desc">自动关联案件要素</div>
+      </div>
+    </div>
+    <div class="arrow-wrap"><div class="arrow-line"><span class="flow-tag">证据链</span></div></div>
+    <div class="stage s5">
+      <div class="stage-box">
+        <div class="stage-icon">👥</div>
+        <div class="stage-name">团伙关联</div>
+        <div class="stage-desc">双路径融合挖掘团伙</div>
+      </div>
+    </div>
+    <div class="arrow-wrap"><div class="arrow-line"><span class="flow-tag">团伙归属</span></div></div>
+    <div class="stage s6">
+      <div class="stage-box">
+        <div class="stage-icon">📋</div>
+        <div class="stage-name">报告生成</div>
+        <div class="stage-desc">自动生成研判报告</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>链式推理：</strong>每个阶段的输出作为下一阶段的上下文输入，后续阶段可参考前序分析结果，确保研判结论可追溯、可复核。
+  </div>
+</div>
+</body>
+</html>

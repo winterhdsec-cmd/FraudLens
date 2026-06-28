@@ -16,6 +16,7 @@ import KeyPersonsView from '../views/KeyPersonsView.vue'
 import ReportView from '../views/ReportView.vue'
 import AdminView from '../views/AdminView.vue'
 import StatusView from '../views/StatusView.vue'
+import ChatView from '../views/ChatView.vue'
 
 const routes = [
   { path: '/', name: 'showcase', component: ShowcaseView, meta: { fullPage: true, public: true } },
@@ -35,6 +36,7 @@ const routes = [
   { path: '/report', name: 'report', component: ReportView },
   { path: '/status', name: 'status', component: StatusView },
   { path: '/admin', name: 'admin', component: AdminView },
+  { path: '/chat', name: 'chat', component: ChatView },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/dashboard' },
 ]
 

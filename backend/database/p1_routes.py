@@ -141,35 +141,64 @@ async def api_seed_data(current_user: dict = Depends(get_current_user)):
             case_objs.append(case)
         _db.session.commit()
 
-        gangs_data = [
-            {'gang_id': 'GANG-001', 'gang_name': '东南亚冒充客服团伙', 'risk_level': 'CRITICAL', 'comprehensive_score': 92,
-             'fingerprint': '["冒充客服", "虚假征信", "屏幕共享", "安全账户", "京东白条"]', 'location': '柬埔寨/缅甸', 'scale': '12人', 'abilities': '{"技术": 85, "组织": 90, "反侦察": 80, "社会危害": 95}',
-             'case_ids': ['CASE-2024-0001', 'CASE-2024-0011', 'CASE-2024-0008']},
-            {'gang_id': 'GANG-002', 'gang_name': '虚假投资诈骗团伙', 'risk_level': 'CRITICAL', 'comprehensive_score': 90,
-             'fingerprint': '["虚假投资", "高收益", "虚拟货币", "杀猪盘", "外汇平台"]', 'location': '菲律宾/马来西亚', 'scale': '18人', 'abilities': '{"技术": 80, "组织": 95, "反侦察": 85, "社会危害": 95}',
-             'case_ids': ['CASE-2024-0003', 'CASE-2024-0005', 'CASE-2024-0012']},
-            {'gang_id': 'GANG-003', 'gang_name': '冒充公检法诈骗团伙', 'risk_level': 'CRITICAL', 'comprehensive_score': 93,
-             'fingerprint': '["冒充公检法", "通缉令", "安全账户", "洗钱", "配合调查"]', 'location': '老挝/泰国', 'scale': '9人', 'abilities': '{"技术": 75, "组织": 90, "反侦察": 90, "社会危害": 98}',
-             'case_ids': ['CASE-2024-0004', 'CASE-2024-0015']},
-            {'gang_id': 'GANG-004', 'gang_name': '刷单返利诈骗团伙', 'risk_level': 'HIGH', 'comprehensive_score': 78,
-             'fingerprint': '["刷单返利", "兼职", "宝妈群", "联单任务", "VIP充值"]', 'location': '境内/福建', 'scale': '22人', 'abilities': '{"技术": 60, "组织": 75, "反侦察": 65, "社会危害": 80}',
-             'case_ids': ['CASE-2024-0002', 'CASE-2024-0010']},
-            {'gang_id': 'GANG-005', 'gang_name': '冒充领导财务诈骗团伙', 'risk_level': 'HIGH', 'comprehensive_score': 76,
-             'fingerprint': '["冒充领导", "冒充老板", "紧急转账", "公司群", "会计出纳"]', 'location': '境内/广东', 'scale': '7人', 'abilities': '{"技术": 55, "组织": 80, "反侦察": 70, "社会危害": 85}',
-             'case_ids': ['CASE-2024-0007']},
-        ]
+        # 按诈骗类型分组，创建多案件团伙
+        type_groups = {}
+        for c in case_objs:
+            scam_type = c.scam_type or '未知类型'
+            if scam_type not in type_groups:
+                type_groups[scam_type] = []
+            type_groups[scam_type].append(c)
+        
         gang_objs = []
-        for g in gangs_data:
-            gang = Gang(gang_id=g['gang_id'], gang_name=g['gang_name'], risk_level=g['risk_level'],
-                        comprehensive_score=g['comprehensive_score'], fingerprint=g['fingerprint'])
-            # location, scale, abilities not in Gang model - stored if needed later
-            _db.session.add(gang)
-            gang_objs.append(gang)
-        _db.session.commit()
-
-        for g in gangs_data:
-            for cid in g['case_ids']:
-                _db.session.add(GangCaseRelation(gang_id=g['gang_id'], case_id=cid))
+        gang_idx = 0
+        
+        # 为每种诈骗类型创建1-3个团伙
+        for scam_type, cases in type_groups.items():
+            num_gangs = min(3, max(1, len(cases) // 3))  # 每3-6个案件一个团伙
+            
+            # 打乱案件顺序
+            random.shuffle(cases)
+            
+            for g_idx in range(num_gangs):
+                # 分配案件给这个团伙
+                start_idx = (g_idx * len(cases)) // num_gangs
+                end_idx = ((g_idx + 1) * len(cases)) // num_gangs
+                gang_cases = cases[start_idx:end_idx]
+                
+                if not gang_cases:
+                    continue
+                
+                gang_idx += 1
+                gang_id = f'GANG_{scam_type}_{gang_idx:03d}'
+                
+                # 计算团伙统计
+                total_amount = sum(float(c.amount_value or 0) for c in gang_cases)
+                avg_score = sum(c.risk_score or 0 for c in gang_cases) / len(gang_cases)
+                max_risk = max([c.risk_level for c in gang_cases], key=lambda x: {'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}.get(x, 0))
+                
+                gang_name = f'{scam_type}犯罪团伙{gang_idx}号'
+                
+                gang = Gang(
+                    gang_id=gang_id,
+                    gang_name=gang_name,
+                    risk_level=max_risk,
+                    comprehensive_score=int(avg_score),
+                    total_cases=len(gang_cases),
+                    total_amount=str(int(total_amount)),
+                    total_amount_value=total_amount,
+                    fingerprint=f'["{scam_type}", "{len(gang_cases)}起案件", "涉案{int(total_amount)}元"]',
+                    description=f'基于{scam_type}诈骗手法的犯罪团伙，涉及{len(gang_cases)}起案件，总涉案金额{int(total_amount)}元'
+                )
+                _db.session.add(gang)
+                _db.session.flush()
+                
+                # 创建团伙-案件关联
+                for c in gang_cases:
+                    rel = GangCaseRelation(gang_id=gang_id, case_id=c.case_id, similarity=0.85)
+                    _db.session.add(rel)
+                
+                gang_objs.append(gang)
+        
         _db.session.commit()
 
         alert_types = ['高危预警', '预警提醒', '关注提示', '紧急预警', '高危预警', '预警提醒', '紧急预警', '关注提示']
@@ -229,7 +258,7 @@ async def api_seed_data(current_user: dict = Depends(get_current_user)):
         _db.session.commit()
 
         return {'success': True, 'message': '示例数据已加载',
-                'counts': {'cases': len(seed_cases), 'gangs': len(gangs_data),
+                'counts': {'cases': len(seed_cases), 'gangs': len(gang_objs),
                            'alerts': 8, 'capital_flows': 12, 'dispatches': 8, 'key_persons': len(key_persons_data)}}
     except Exception as e:
         import traceback

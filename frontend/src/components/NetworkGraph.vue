@@ -166,6 +166,32 @@ function buildGangGraph() {
     }
   })
 
+  // 为同一团伙内的案件之间创建关联边
+  props.gangs.forEach((gang, idx) => {
+    const cases = gang.related_cases || []
+    const caseIds = cases.map(c => 'case_' + (c.case_id || '')).filter(id => nodes.get(id))
+    
+    // 两两案件之间创建关联边
+    for (let i = 0; i < caseIds.length; i++) {
+      for (let j = i + 1; j < caseIds.length; j++) {
+        const edgeId = 'case_link_' + caseIds[i] + '_' + caseIds[j]
+        if (!edges.get(edgeId)) {
+          edges.add({
+            id: edgeId,
+            from: caseIds[i],
+            to: caseIds[j],
+            color: { color: 'rgba(16, 185, 129, 0.5)', highlight: '#10b981', hover: '#10b981' },
+            width: 2,
+            dashes: true,
+            smooth: { type: 'curvedCW', roundness: 0.2 },
+            shadow: { enabled: true, size: 5, color: 'rgba(16, 185, 129, 0.3)' },
+            arrows: { to: { enabled: false } }
+          })
+        }
+      }
+    }
+  })
+
   const gangNodes = props.gangs.map((g, idx) => 'gang_' + (g.gang_id || idx))
   for (let i = 0; i < gangNodes.length; i++) {
     for (let j = i + 1; j < gangNodes.length; j++) {
@@ -179,10 +205,13 @@ function buildGangGraph() {
           edges.add({
             id: edgeId, from: gangNodes[i], to: gangNodes[j],
             label: shared.length + '案关联',
-            color: { color: 'rgba(245,158,11,0.3)', highlight: '#f59e0b' },
-            width: 1 + shared.length * 0.5,
-            font: { color: 'rgba(245,158,11,0.6)', size: 8, align: 'middle', strokeWidth: 2, strokeColor: '#0a0e1a' },
-            dashes: true, smooth: { type: 'curvedCW', roundness: 0.2 }
+            color: { color: 'rgba(245,158,11,0.6)', highlight: '#f59e0b', hover: '#f59e0b' },
+            width: 2 + shared.length * 0.8,
+            font: { color: 'rgba(245,158,11,0.9)', size: 10, align: 'middle', strokeWidth: 3, strokeColor: '#0a0e1a', bold: true },
+            dashes: true, 
+            smooth: { type: 'curvedCW', roundness: 0.25 },
+            shadow: { enabled: true, size: 8, color: 'rgba(245,158,11,0.4)' },
+            arrows: { to: { enabled: false } }
           })
         }
       }

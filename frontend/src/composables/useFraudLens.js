@@ -3,6 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import { useRouter, useRoute } from 'vue-router'
 import { store } from '../store.js'
+import { useCachedLoader } from './useAppState.js'
 import api, {
   startAnalysis as apiStartAnalysis,
   fetchCases,
@@ -27,6 +28,7 @@ import api, {
 export function useFraudLens() {
   const router = useRouter()
   const route = useRoute()
+  const { cachedLoad, invalidateCache } = useCachedLoader()
 
   const activeMenu = computed(() => route.name || 'input')
   const loading = ref(false)
@@ -441,31 +443,34 @@ export function useFraudLens() {
   const handleBeforeUpload = (file) => {
     const isImage = file.type.startsWith('image/')
     const isText = file.type === 'text/plain' || file.name.endsWith('.csv')
-    const isDocx = file.name.endsWith('.docx')
+    const isDocx = file.name.endsWith('.docx') || file.name.endsWith('.doc')
     const isPdf = file.name.endsWith('.pdf')
     const isLt10M = file.size / 1024 / 1024 < 10
     if (!isImage && !isText && !isDocx && !isPdf) {
-      ElMessage.error('仅支持图片(JPG/PNG)、文本(TXT/CSV)、Word(DOCX)或PDF文档')
+      ElMessage.error('仅支持图片(JPG/PNG)、文本(TXT/CSV)、Word(DOCX/DOC)或PDF文档')
       return false
     }
     if (!isLt10M) {
       ElMessage.error('文件大小不能超过 10MB')
       return false
     }
-    if (isText) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        uploadedImages.value.push({ url: '', name: file.name, type: 'text', content: e.target.result, _file: file })
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const item = {
+        url: isImage ? e.target.result : '',
+        name: file.name,
+        type: isText ? 'text' : isImage ? 'image' : isDocx ? 'docx' : 'pdf',
+        content: isText ? e.target.result : (isImage ? '' : e.target.result),
+        _file: file
       }
+      uploadedImages.value.push(item)
+    }
+    if (isText) {
       reader.readAsText(file)
     } else if (isImage) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        uploadedImages.value.push({ url: e.target.result, name: file.name, type: 'image', content: '', _file: file })
-      }
       reader.readAsDataURL(file)
     } else {
-      uploadedImages.value.push({ url: '', name: file.name, type: isDocx ? 'docx' : 'pdf', content: '', _file: file })
+      reader.readAsArrayBuffer(file)
     }
     return false
   }
@@ -639,9 +644,15 @@ export function useFraudLens() {
         } else if (item.type === 'docx' || item.type === 'pdf') {
           try {
             const formData = new FormData()
-            formData.append('file', item._file)
+            const fileBlob = item.content instanceof ArrayBuffer
+              ? new Blob([item.content], { type: 'application/octet-stream' })
+              : item._file
+            const uploadFile = item.content instanceof ArrayBuffer
+              ? new File([fileBlob], item.name)
+              : item._file
+            formData.append('file', uploadFile)
             const r = await api.post('/api/extract-text', formData, {
-              headers: { 'Content-Type': 'multipart/form-data' }
+              timeout: 180000
             })
             if (r.data.success && r.data.text) {
               allText += (allText ? '\n---\n' : '') + r.data.text
@@ -860,10 +871,10 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
 </style></head><body><div class="report-wrap">${sections.join('\n')}</div></body></html>`
   }
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (forceRefresh = false) => {
     dashboardLoading.value = true
     try {
-      const data = await getDashboardData()
+      const data = await cachedLoad('dashboard', getDashboardData, forceRefresh ? 0 : 30000)
       if (data.success) {
         dashboardData.value = {
           total_cases: data.total_cases ?? data.data?.total_cases ?? '-',
@@ -1047,10 +1058,10 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     })
   }
 
-  const loadAlerts = async () => {
+  const loadAlerts = async (forceRefresh = false) => {
     alertsLoading.value = true
     try {
-      const data = await getActiveAlerts()
+      const data = await cachedLoad('alerts', getActiveAlerts, forceRefresh ? 0 : 15000)
       if (data.success) {
         alerts.value = data.alerts || data.data || []
       } else {
@@ -1080,10 +1091,10 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       ElMessage.error('资金流向数据加载失败')
     }
   }
-  const loadFlowMetrics = async () => {
+  const loadFlowMetrics = async (forceRefresh = false) => {
     if (!store.isLoggedIn) return
     try {
-      const r = await fetchCapitalFlowStats()
+      const r = await cachedLoad('flowMetrics', fetchCapitalFlowStats, forceRefresh ? 0 : 60000)
       if (r.success && r.stats) {
         flowMetrics.value = {
           total_accounts: r.stats.total_accounts || 0,
@@ -1103,10 +1114,12 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     ElMessage.info('追加资金流向功能：' + row.source_account + ' → ' + row.target_account)
   }
 
-  const loadDispatchOrders = async () => {
+  const loadDispatchOrders = async (forceRefresh = false) => {
     try {
       const params = dispatchStatusFilter.value ? { status: dispatchStatusFilter.value } : {}
-      const r = await api.get('/api/dispatch/list', { params })
+      const cacheKey = 'dispatch_' + (params.status || 'all')
+      const loader = () => api.get('/api/dispatch/list', { params })
+      const r = await cachedLoad(cacheKey, loader, forceRefresh ? 0 : 15000)
       dispatchOrders.value = r.data.orders || r.data.dispatch_orders || r.data.data || []
     } catch (e) {
       console.error('loadDispatchOrders:', e)
@@ -1140,12 +1153,14 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     }
   }
 
-  const loadKeyPersons = async () => {
+  const loadKeyPersons = async (forceRefresh = false) => {
     try {
       const params = {}
       if (personSearch.value) params.search = personSearch.value
       if (personTypeFilter.value) params.person_type = personTypeFilter.value
-      const r = await api.get('/api/persons/key', { params })
+      const cacheKey = 'keyPersons_' + (params.search || '') + '_' + (params.person_type || 'all')
+      const loader = () => api.get('/api/persons/key', { params })
+      const r = await cachedLoad(cacheKey, loader, forceRefresh ? 0 : 15000)
       keyPersons.value = r.data.persons || r.data.data || []
     } catch (e) {
       console.error('loadKeyPersons:', e)
@@ -1515,10 +1530,13 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     }
   }
 
-  const reloadCasesAndGangs = async () => {
+  const reloadCasesAndGangs = async (forceRefresh = false) => {
     if (!store.isLoggedIn) return
     try {
-      const [casesRes, gangsRes] = await Promise.all([fetchCases(), fetchGangs()])
+      const [casesRes, gangsRes] = await Promise.all([
+        cachedLoad('cases', fetchCases, forceRefresh ? 0 : 10000),
+        cachedLoad('gangs', fetchGangs, forceRefresh ? 0 : 10000)
+      ])
       if (casesRes.success) {
         const caseData = casesRes.cases || casesRes.data || []
         cases.value = caseData.map(c => mapCaseFromResponse(c))

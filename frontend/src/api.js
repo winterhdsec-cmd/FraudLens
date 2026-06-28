@@ -360,4 +360,28 @@ export async function getGangRadar(gangId) {
   return api.get(`/api/gangs/${gangId}/radar`)
 }
 
+// ========== Chat ==========
+export async function sendChatMessage(message, sessionId = null) {
+  const response = await api.post('/api/chat/message', {
+    message,
+    session_id: sessionId
+  })
+  return response.data
+}
+
+export async function getChatHistory(sessionId) {
+  const response = await api.get(`/api/chat/sessions/${sessionId}/history`)
+  return response.data
+}
+
+export async function clearChatSession(sessionId) {
+  const response = await api.delete(`/api/chat/sessions/${sessionId}`)
+  return response.data
+}
+
+export async function listChatIntents() {
+  const response = await api.get('/api/chat/intents')
+  return response.data
+}
+
 export default api

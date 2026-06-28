@@ -26,8 +26,8 @@ def _radar_cache_get(key):
             data = r.get(key)
             if data:
                 return json.loads(data)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Redis缓存读取失败: {e}")
     return None
 
 def _radar_cache_set(key, data, ttl=86400):
@@ -36,8 +36,8 @@ def _radar_cache_set(key, data, ttl=86400):
         r = get_redis()
         if r:
             r.setex(key, ttl, json.dumps(data, ensure_ascii=False))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Redis缓存写入失败: {e}")
 
 router = APIRouter(prefix='/api/cases', tags=['案件'])
 
@@ -86,8 +86,8 @@ def _compute_case_radar(case) -> dict:
         ).count()
         if flow_count > 0:
             fund_dispersion = min(95, 25 + flow_count * 8)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"查询资金流向失败: {e}")
 
     tech_level = 35
     entities = case.extracted_entities or {}
@@ -134,8 +134,8 @@ def _compute_case_radar(case) -> dict:
         ).count()
         if flows > 0:
             cross_region += 20
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"查询境外资金流向失败: {e}")
     cross_region = min(95, cross_region)
 
     anti_detection = 30
@@ -160,7 +160,8 @@ def _compute_case_radar(case) -> dict:
     try:
         case.radar_data = radar
         db.session.commit()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"保存案件雷达图数据失败: {e}")
         db.session.rollback()
 
     _radar_cache_set(cache_key, radar)
@@ -225,7 +226,8 @@ def _compute_gang_radar(gang) -> dict:
     try:
         gang.radar_data = radar
         db.session.commit()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"保存团伙雷达图数据失败: {e}")
         db.session.rollback()
 
     _radar_cache_set(cache_key, radar)

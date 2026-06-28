@@ -146,15 +146,16 @@ def get_current_user(request: Request) -> Dict[str, Any]:
         try:
             user = db.session.get(User, int(payload['sub']))
             break
-        except Exception:
+        except Exception as e:
+            logger.warning(f"数据库查询失败(重试 {_attempt + 1}/3): {e}")
             try:
                 db.session.rollback()
-            except Exception:
-                pass
+            except Exception as rollback_err:
+                logger.warning(f"回滚失败: {rollback_err}")
             try:
                 db.session.remove()
-            except Exception:
-                pass
+            except Exception as remove_err:
+                logger.warning(f"清理会话失败: {remove_err}")
             import time
             time.sleep(0.3)
             user = None
@@ -209,31 +210,33 @@ def db_retry(max_retries=3):
                     DisconnectionError, pymysql.err.InterfaceError, pymysql.err.OperationalError
                 ) as e:
                     last_error = e
+                    logger.warning(f"数据库连接错误(重试 {attempt + 1}/{max_retries}): {e}")
                     try:
                         db.session.rollback()
-                    except Exception:
-                        pass
+                    except Exception as rollback_err:
+                        logger.warning(f"回滚失败: {rollback_err}")
                     try:
                         db.session.close()
-                    except Exception:
-                        pass
+                    except Exception as close_err:
+                        logger.warning(f"关闭连接失败: {close_err}")
                     try:
                         db.session.remove()
-                    except Exception:
-                        pass
+                    except Exception as remove_err:
+                        logger.warning(f"清理会话失败: {remove_err}")
                     if attempt < max_retries - 1:
                         await asyncio.sleep(1.0)
                 except Exception as e:
                     if 'pymysql.err.InterfaceError' in type(e).__name__ or 'pymysql.err.OperationalError' in type(e).__name__:
                         last_error = e
+                        logger.warning(f"PyMySQL错误(重试 {attempt + 1}/{max_retries}): {e}")
                         try:
                             db.session.rollback()
-                        except Exception:
-                            pass
+                        except Exception as rollback_err:
+                            logger.warning(f"回滚失败: {rollback_err}")
                         try:
                             db.session.remove()
-                        except Exception:
-                            pass
+                        except Exception as remove_err:
+                            logger.warning(f"清理会话失败: {remove_err}")
                         if attempt < max_retries - 1:
                             await asyncio.sleep(1.0)
                     else:
@@ -269,5 +272,5 @@ class ProgressAdapter:
                 r = _redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
                 r.publish(f'progress:{self.session_id}', json.dumps(entry, default=str))
                 r.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Redis发布进度消息失败: {e}")

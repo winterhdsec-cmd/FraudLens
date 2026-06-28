@@ -3,22 +3,16 @@ FastAPI application for FraudLens.
 Replaces the original Flask app.py with a modern ASGI architecture.
 """
 import os
-import sys
-import json
-import time
-import uuid
 import asyncio
 import traceback
 import threading
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
-from typing import Dict, Any, Optional, List
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from flask import Flask as _Flask
 from dotenv import load_dotenv
@@ -27,7 +21,6 @@ dotenv_path = os.path.join(os.path.dirname(__file__), 'key.env')
 load_dotenv(dotenv_path)
 
 from database import db, init_db
-
 from tools.response import logger
 
 DB_USER = os.getenv("DB_USER", "root")
@@ -37,6 +30,7 @@ DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "fraudlens")
 DB_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 
+# Flask应用实例（仅用于Flask-SQLAlchemy初始化）
 _flask_app = _Flask(__name__)
 _flask_app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
 _flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -50,11 +44,9 @@ _flask_app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 init_db(_flask_app)
 _flask_app.app_context().push()
 
-from database import db as _sqlalchemy_db
+# 设置数据库字符集
 with _flask_app.app_context():
-    _sqlalchemy_db.session.execute(_sqlalchemy_db.text("SET NAMES utf8mb4"))
-    _sqlalchemy_db.session.execute(_sqlalchemy_db.text("SET CHARACTER SET utf8mb4"))
-    _sqlalchemy_db.session.execute(_sqlalchemy_db.text("SET character_set_connection=utf8mb4"))
+    db.session.execute(db.text("SET NAMES utf8mb4"))
 
 
 @asynccontextmanager

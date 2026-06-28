@@ -161,7 +161,8 @@ class CommunityDetector:
                     graph,
                     [set(nodes) for nodes in self.communities.values()]
                 )
-        except:
+        except Exception as e:
+            logger.warning(f"计算模块度失败: {e}")
             modularity = 0.0
         
         # 计算轮廓系数（如果有嵌入）

@@ -1,0 +1,12 @@
+{
+  "checkpoint_id": "orchestrator_20260628_153704",
+  "agent_id": "orchestrator",
+  "timestamp": "2026-06-28T15:37:04.956167",
+  "state": {
+    "stage": "completed",
+    "session_id": "session_20260628_153704",
+    "total_cases": 1,
+    "total_gangs": 0
+  },
+  "metadata": {}
+}

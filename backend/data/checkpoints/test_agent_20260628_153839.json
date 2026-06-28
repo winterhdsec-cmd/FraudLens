@@ -1,0 +1,12 @@
+{
+  "checkpoint_id": "test_agent_20260628_153839",
+  "agent_id": "test_agent",
+  "timestamp": "2026-06-28T15:38:39.289355",
+  "state": {
+    "stage": "test",
+    "data": "test_data"
+  },
+  "metadata": {
+    "test": true
+  }
+}

@@ -8,6 +8,7 @@ from datetime import datetime
 
 from core.agent_runtime import AgentRuntime
 from core.state import AgentState
+from core.tool_sandbox import ToolSandbox
 from tools.base import ToolRegistry
 from tools.database_tools import SearchSimilarCasesTool, GetCaseDetailTool
 from tools.evidence_tools import ExtractEvidenceTool
@@ -35,6 +36,9 @@ class AnalystAgent:
             "assess_risk": AssessRiskTool(),
             "get_case_detail": GetCaseDetailTool()
         }
+        
+        # 初始化工具沙箱
+        self.sandbox = ToolSandbox(timeout=30.0, max_memory_mb=512, max_retries=2)
         
         # 初始化 Agent 运行时
         self.runtime = AgentRuntime(

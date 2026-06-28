@@ -123,23 +123,10 @@ class InferenceQueue:
             task.status = TaskStatus.RUNNING
             task.started_at = datetime.now()
             
-            # 尝试推送Flask应用上下文（如果可用）
-            flask_app = None
-            try:
-                from flask import current_app
-                if current_app:
-                    flask_app = current_app._get_current_object()
-            except RuntimeError:
-                pass
-            
             # 延迟初始化detector
             if not self._detector:
                 from .gang_detector import GangDetector
-                if flask_app:
-                    with flask_app.app_context():
-                        self._detector = GangDetector()
-                else:
-                    self._detector = GangDetector()
+                self._detector = GangDetector()
             
             # 定义进度回调
             def on_progress(stage: str, percent: float):
@@ -152,24 +139,14 @@ class InferenceQueue:
                     except Exception:
                         pass
             
-            # 执行检测（在Flask应用上下文中）
-            if flask_app:
-                with flask_app.app_context():
-                    result = self._detector.detect(
-                        cases=task.cases,
-                        use_gnn=task.use_gnn,
-                        training_epochs=task.training_epochs,
-                        incremental=task.incremental,
-                        progress_callback=on_progress
-                    )
-            else:
-                result = self._detector.detect(
-                    cases=task.cases,
-                    use_gnn=task.use_gnn,
-                    training_epochs=task.training_epochs,
-                    incremental=task.incremental,
-                    progress_callback=on_progress
-                )
+            # 执行检测
+            result = self._detector.detect(
+                cases=task.cases,
+                use_gnn=task.use_gnn,
+                training_epochs=task.training_epochs,
+                incremental=task.incremental,
+                progress_callback=on_progress
+            )
             
             task.result = result
             task.status = TaskStatus.COMPLETED

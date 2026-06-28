@@ -197,6 +197,10 @@ class ChatAgent:
                     }
                 )
                 
+                # 7. 检查是否需要压缩到长期记忆（当短期记忆超过阈值时）
+                if len(self.short_term_memory.messages) >= 10:
+                    self._compress_to_long_term_memory()
+                
                 duration = (datetime.utcnow() - start_time).total_seconds()
                 
                 # 记录成功指标
@@ -489,10 +493,35 @@ class ChatAgent:
     ) -> str:
         """生成回复"""
         with tracer.span("chat_agent.generate_response"):
-            # 构建上下文
+            # 1. 短期记忆上下文
             conversation_context = self.short_term_memory.get_context(max_tokens=2000)
             
-            # 如果有工具结果，添加到上下文
+            # 2. 向量记忆检索（相关历史对话）
+            vector_context = ""
+            try:
+                relevant_memories = self.vector_memory.search(user_message, top_k=3)
+                if relevant_memories:
+                    memory_parts = []
+                    for mem in relevant_memories:
+                        if mem.get("similarity", 0) > 0.5:
+                            memory_parts.append(mem["content"][:200])
+                    if memory_parts:
+                        vector_context = "\n\n相关历史对话:\n" + "\n---\n".join(memory_parts)
+                        logger.info("Vector memory retrieved", count=len(memory_parts))
+            except Exception as e:
+                logger.warning("Vector memory search failed", error=str(e))
+            
+            # 3. 长期记忆摘要（历史会话概要）
+            long_term_context = ""
+            try:
+                if self.session_id:
+                    summary_data = self.long_term_memory.get_summary(self.session_id)
+                    if summary_data:
+                        long_term_context = f"\n\n本次会话概要: {summary_data.get('summary', '')}"
+            except Exception as e:
+                logger.warning("Long-term memory retrieval failed", error=str(e))
+            
+            # 4. 工具结果
             tool_context = ""
             if tool_result and tool_result.get("success"):
                 tool_context = f"\n\n工具执行结果:\n{json.dumps(tool_result.get('data'), ensure_ascii=False, indent=2)}"
@@ -505,6 +534,8 @@ class ChatAgent:
 
 对话历史:
 {conversation_context}
+{long_term_context}
+{vector_context}
 
 用户最新消息: {user_message}
 {tool_context}
@@ -619,3 +650,36 @@ class ChatAgent:
         """清空对话历史"""
         self.short_term_memory.clear()
         logger.info("Chat history cleared", session_id=self.session_id)
+    
+    def _compress_to_long_term_memory(self):
+        """将短期记忆压缩到长期记忆"""
+        if not self.session_id:
+            return
+        
+        try:
+            # 获取当前短期记忆
+            messages = self.short_term_memory.get_messages()
+            if not messages:
+                return
+            
+            # 压缩对话为摘要
+            summary = self.long_term_memory.compress_conversation(messages)
+            
+            # 存储到长期记忆
+            self.long_term_memory.store_summary(
+                session_id=self.session_id,
+                summary=summary,
+                metadata={
+                    "message_count": len(messages),
+                    "compressed_at": datetime.utcnow().isoformat()
+                }
+            )
+            
+            logger.info(
+                "Long-term memory compressed",
+                session_id=self.session_id,
+                message_count=len(messages)
+            )
+            
+        except Exception as e:
+            logger.error("Failed to compress to long-term memory", error=str(e))

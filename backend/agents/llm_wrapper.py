@@ -7,6 +7,7 @@ import time
 import json
 import re
 from typing import Optional
+from core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 
 class MockLLM:
@@ -40,20 +41,33 @@ class MockLLM:
 class RateLimitedLLM:
     """Thread-safe wrapper that limits concurrent LLM invocations per second and concurrency."""
 
-    def __init__(self, llm, max_concurrent: int = 2, calls_per_second: int = 5):
+    def __init__(self, llm, max_concurrent: int = 2, calls_per_second: int = 5, use_circuit_breaker: bool = True):
         self._llm = llm
         self._semaphore = threading.Semaphore(max_concurrent)
         self._call_times = []
         self._lock = threading.Lock()
         self._calls_per_second = calls_per_second
         self._stats = {'total': 0, 'errors': 0, 'total_time_ms': 0}
+        
+        # 熔断器保护
+        self._circuit_breaker = None
+        if use_circuit_breaker:
+            self._circuit_breaker = CircuitBreaker(
+                name="llm_api",
+                failure_threshold=5,
+                recovery_timeout=60
+            )
 
     def invoke(self, prompt: str, **kwargs):
         with self._semaphore:
             self._rate_limit()
             t0 = time.time()
             try:
-                result = self._llm.invoke(prompt, **kwargs)
+                if self._circuit_breaker:
+                    result = self._circuit_breaker.call(self._llm.invoke, prompt, **kwargs)
+                else:
+                    result = self._llm.invoke(prompt, **kwargs)
+                
                 if hasattr(result, 'content'):
                     result = result.content
                 elapsed = int((time.time() - t0) * 1000)
@@ -61,6 +75,10 @@ class RateLimitedLLM:
                     self._stats['total'] += 1
                     self._stats['total_time_ms'] += elapsed
                 return result
+            except CircuitBreakerOpenError:
+                with self._lock:
+                    self._stats['errors'] += 1
+                raise
             except Exception as e:
                 with self._lock:
                     self._stats['errors'] += 1

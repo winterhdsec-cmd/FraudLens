@@ -93,7 +93,10 @@ def _clean_chat_text(raw_text: str) -> str:
 def _extract_docx(content: bytes) -> str:
     """提取 DOCX 段落 + 表格数据"""
     from docx import Document
-    doc = Document(io.BytesIO(content))
+    try:
+        doc = Document(io.BytesIO(content))
+    except Exception as e:
+        raise ValueError(f"无法解析Word文件: {e}")
     parts = []
     for p in doc.paragraphs:
         if p.text.strip():
@@ -172,12 +175,18 @@ async def api_extract_text(file: UploadFile = File(...), current_user: dict = De
         filename = file.filename or ''
         ext = os.path.splitext(filename)[1].lower()
         content = await file.read()
+        
+        # 调试：记录文件信息
+        print(f"[DEBUG] 上传文件: {filename}, 扩展名: {ext}, 大小: {len(content)} bytes")
+        
         text = ''
         source = 'direct'
         if ext in TEXT_EXTENSIONS:
             text = content.decode('utf-8', errors='ignore')
         elif ext == '.docx':
+            print(f"[DEBUG] 开始解析DOCX文件...")
             text = _extract_docx(content)
+            print(f"[DEBUG] DOCX解析成功，提取文本长度: {len(text)}")
         elif ext == '.pdf':
             text = _extract_pdf_content(content)
             source = 'pdf_ocr' if len(text) > 0 else 'direct'
@@ -187,6 +196,9 @@ async def api_extract_text(file: UploadFile = File(...), current_user: dict = De
             })
         return {"success": True, "text": text, "filename": filename, "source": source}
     except Exception as e:
+        print(f"[ERROR] 文件处理失败: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 

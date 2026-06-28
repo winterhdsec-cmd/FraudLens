@@ -21,7 +21,10 @@ from database import db
 from tools.response import logger
 from tools.redis_utils import blacklist_add, blacklist_exists, redis_available
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fraudlens-jwt-secret-key-2024")
+# 安全配置 - 从环境变量读取,不提供默认值以避免硬编码密钥
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY environment variable is required for security")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 

@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS `cases` (
   `steps` JSON DEFAULT NULL,
   `roles` JSON DEFAULT NULL,
   `extracted_entities` JSON DEFAULT NULL,
+  `radar_data` JSON DEFAULT NULL,
   `message_count` INT DEFAULT 0,
   `time_range` VARCHAR(50) DEFAULT '',
   `warning` TEXT DEFAULT NULL,

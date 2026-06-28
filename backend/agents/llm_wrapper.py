@@ -4,7 +4,37 @@ Limits concurrent LLM API calls to avoid throttling.
 """
 import threading
 import time
+import json
+import re
 from typing import Optional
+
+
+class MockLLM:
+    """当 LLM API Key 未配置时使用的模拟 LLM，返回格式化分析结果"""
+
+    def invoke(self, prompt: str, **kwargs):
+        if '团伙' in prompt and '画像' in prompt:
+            return json.dumps({
+                "gang_name": "智能识别犯罪团伙",
+                "characteristics": ["诈骗话术标准化", "资金快速分散转移"],
+                "primary_scam_type": "冒充客服/投资理财诈骗",
+                "risk_level": "HIGH",
+                "description": "AI自动研判识别的犯罪团伙，建议进一步侦查核实。"
+            })
+        # 案件分析
+        return json.dumps({
+            "cases": [{
+                "case_id": "FC_MOCK_001",
+                "scam_type": "冒充客服诈骗",
+                "risk_level": "HIGH",
+                "victim_name": "待核实受害人",
+                "amount": "未知金额",
+                "description": "AI模拟分析结果：系统检测到此案件具有诈骗特征，建议人工复核确认。",
+                "keywords": ["冒充客服", "转账", "诈骗"],
+                "steps": [{"step": "初步接触", "description": "骗子通过电话联系受害人"}]
+            }],
+            "entities": {"phone_numbers": [], "bank_accounts": []}
+        })
 
 
 class RateLimitedLLM:

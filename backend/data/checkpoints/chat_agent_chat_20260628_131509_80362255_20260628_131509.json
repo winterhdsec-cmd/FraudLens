@@ -1,0 +1,14 @@
+{
+  "checkpoint_id": "chat_agent_chat_20260628_131509_80362255_20260628_131509",
+  "agent_id": "chat_agent_chat_20260628_131509_80362255",
+  "timestamp": "2026-06-28T13:15:09.930664",
+  "state": {
+    "session_id": "chat_20260628_131509_80362255",
+    "messages": [],
+    "state": {}
+  },
+  "metadata": {
+    "stage": "session_started",
+    "message_count": 0
+  }
+}

@@ -143,6 +143,9 @@
         <div class="menu-group"><div class="menu-group-title">输出报告</div>
           <el-menu-item index="report"><template #title><div class="menu-item-content"><span class="menu-icon">📄</span><span class="menu-text">报告生成</span></div></template></el-menu-item>
         </div>
+        <div class="menu-group"><div class="menu-group-title">智能助手</div>
+          <el-menu-item index="chat"><template #title><div class="menu-item-content"><span class="menu-icon">💬</span><span class="menu-text">AI对话助手</span></div></template></el-menu-item>
+        </div>
         <div class="menu-group"><div class="menu-group-title">系统管理</div>
           <el-menu-item index="status"><template #title><div class="menu-item-content"><span class="menu-icon">📊</span><span class="menu-text">系统监控</span></div></template></el-menu-item>
           <el-menu-item index="admin"><template #title><div class="menu-item-content"><span class="menu-icon">⚙️</span><span class="menu-text">系统管理</span></div></template></el-menu-item>

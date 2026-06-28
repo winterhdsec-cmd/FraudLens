@@ -131,6 +131,552 @@ button {
   transition: all 0.3s ease;
 }
 
+/* ====== 增强卡片效果 ====== */
+.tech-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.tech-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 198, 255, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.tech-card:hover::before {
+  left: 100%;
+}
+
+/* ====== 增强文字发光效果 ====== */
+.text-glow {
+  text-shadow: 
+    0 0 10px rgba(0, 198, 255, 0.3),
+    0 0 20px rgba(0, 198, 255, 0.15);
+}
+
+.text-glow-strong {
+  text-shadow: 
+    0 0 10px rgba(0, 198, 255, 0.5),
+    0 0 30px rgba(0, 198, 255, 0.3),
+    0 0 40px rgba(0, 198, 255, 0.1);
+}
+
+/* ====== 增强边框发光 ====== */
+.border-glow {
+  position: relative;
+}
+
+.border-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  filter: blur(8px);
+}
+
+.border-glow:hover::after {
+  opacity: 0.3;
+}
+
+/* ====== 增强玻璃态效果 ====== */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 198, 255, 0.08) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+/* ====== 增强统计卡片 ====== */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 198, 255, 0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.stat-card:hover::after {
+  opacity: 1;
+}
+
+.stat-value {
+  position: relative;
+  z-index: 1;
+}
+
+/* ====== 增强按钮效果 ====== */
+#app .el-button--primary {
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+#app .el-button--primary:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* ====== 增强输入框焦点效果 ====== */
+#app .el-input__wrapper.is-focus {
+  position: relative;
+}
+
+#app .el-input__wrapper.is-focus::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  opacity: 0.2;
+  z-index: -1;
+  filter: blur(4px);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.4; }
+}
+
+/* ====== 增强表格行悬停效果 ====== */
+#app .el-table__body tr:hover > td {
+  position: relative;
+}
+
+#app .el-table__body tr:hover > td::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gradient-primary);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+}
+
+/* ====== 增强标签效果 ====== */
+#app .el-tag {
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.4s ease;
+}
+
+#app .el-tag:hover::before {
+  left: 100%;
+}
+
+/* ====== 增强菜单项效果 ====== */
+#app .el-menu-item {
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-menu-item::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(0, 198, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+#app .el-menu-item:hover::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* ====== 增强加载动画 ====== */
+#app .el-loading-spinner .circular {
+  animation: rotate 2s linear infinite;
+}
+
+#app .el-loading-spinner .path {
+  stroke: var(--accent-cyan);
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+/* ====== 增强对话框效果 ====== */
+#app .el-dialog {
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-dialog::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  opacity: 0.6;
+}
+
+/* ====== 增强进度条效果 ====== */
+#app .el-progress-bar__outer {
+  background: rgba(0, 198, 255, 0.1);
+}
+
+#app .el-progress-bar__inner {
+  background: var(--gradient-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-progress-bar__inner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ====== 增强面包屑效果 ====== */
+#app .el-breadcrumb__item {
+  transition: all 0.3s ease;
+}
+
+#app .el-breadcrumb__item:hover {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 8px rgba(0, 198, 255, 0.3);
+}
+
+/* ====== 增强标签页效果 ====== */
+#app .el-tabs__item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+#app .el-tabs__item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  transform: translateX(-50%);
+  transition: width 0.3s ease;
+}
+
+#app .el-tabs__item:hover::after,
+#app .el-tabs__item.is-active::after {
+  width: 100%;
+}
+
+/* ====== 增强上传组件效果 ====== */
+#app .el-upload-dragger {
+  position: relative;
+  overflow: hidden;
+}
+
+#app .el-upload-dragger::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 198, 255, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+#app .el-upload-dragger:hover::before {
+  opacity: 1;
+}
+
+/* ====== 增强空状态效果 ====== */
+#app .el-empty__description {
+  position: relative;
+}
+
+#app .el-empty__description p {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* ====== 增强视图区域效果 ====== */
+.view-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.view-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--gradient-primary);
+  opacity: 0.4;
+}
+
+.view-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--accent-cyan), transparent);
+  opacity: 0.2;
+}
+
+/* ====== 增强章节标题效果 ====== */
+.section-title {
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 70%;
+  background: var(--gradient-primary);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.4);
+}
+
+/* ====== 增强快速统计效果 ====== */
+.quick-stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-stat::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 198, 255, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.quick-stat:hover::before {
+  opacity: 1;
+}
+
+.qs-value {
+  position: relative;
+  z-index: 1;
+}
+
+/* ====== 增强检查清单效果 ====== */
+.check-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.check-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.check-item.active::before {
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.4);
+}
+
+/* ====== 增强团伙卡片效果 ====== */
+.gang-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.gang-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gang-card:hover::before {
+  opacity: 1;
+}
+
+.gang-card.selected::before {
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(0, 198, 255, 0.4);
+}
+
+/* ====== 增强 API 源卡片效果 ====== */
+.api-source-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.api-source-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.api-source-card:hover::before,
+.api-source-card.active::before {
+  opacity: 1;
+}
+
+/* ====== 增强报告文档效果 ====== */
+.report-document {
+  position: relative;
+  overflow: hidden;
+}
+
+.report-document::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-primary);
+  opacity: 0.6;
+}
+
+/* ====== 增强打印样式 ====== */
+@media print {
+  .tech-card::before,
+  .glass-card::before,
+  .stat-card::after,
+  .view-section::before,
+  .view-section::after {
+    display: none;
+  }
+}
+
 /* ====== 科技风卡片 ====== */
 .tech-card {
   background: var(--bg-card);
@@ -138,7 +684,6 @@ button {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: all 0.3s ease;
-  overflow: hidden;
 }
 
 .tech-card:hover {

@@ -82,6 +82,36 @@ class AnalysisSession(db.Model):
     gangs = db.relationship('Gang', backref='session', lazy='dynamic')
 
 
+class GraphNode(db.Model):
+    """图节点表 - 持久化存储异构图节点"""
+    __tablename__ = 'graph_nodes'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    node_id = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    node_type = db.Column(db.String(20), nullable=False, index=True)  # case, victim, phone, scam_type, city
+    features = db.Column(JSON, default=dict)  # 节点特征
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class GraphEdge(db.Model):
+    """图边表 - 持久化存储异构图边"""
+    __tablename__ = 'graph_edges'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    source_id = db.Column(db.String(64), db.ForeignKey('graph_nodes.node_id'), nullable=False, index=True)
+    target_id = db.Column(db.String(64), db.ForeignKey('graph_nodes.node_id'), nullable=False, index=True)
+    relation = db.Column(db.String(30), nullable=False)  # has_victim, has_phone, is_type, in_city, similar
+    weight = db.Column(db.Float, default=1.0)
+    properties = db.Column(JSON, default=dict)  # 边的额外属性
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.Index('idx_edge_relation', 'relation'),
+        db.UniqueConstraint('source_id', 'target_id', 'relation', name='uq_edge'),
+    )
+
+
 class Case(db.Model):
     __tablename__ = 'cases'
 

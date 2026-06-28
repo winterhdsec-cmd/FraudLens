@@ -33,15 +33,22 @@ const props = defineProps({
   legends: { type: Array, default: () => [] },
   layout: { type: Object, default: null },
   physics: { type: Object, default: () => ({
-    solver: 'forceAtlas2Based',
-    forceAtlas2Based: {
-      gravitationalConstant: -200,
-      centralGravity: 0.003,
+    solver: 'barnesHut',
+    barnesHut: {
+      gravitationalConstant: -3000,
+      centralGravity: 0.3,
       springLength: 150,
-      springConstant: 0.02,
-      damping: 0.4
+      springConstant: 0.04,
+      damping: 0.09,
+      avoidOverlap: 0.1
     },
-    stabilization: { iterations: 60, updateInterval: 50, fit: true }
+    stabilization: { 
+      iterations: 100, 
+      updateInterval: 25,
+      fit: true
+    },
+    maxVelocity: 50,
+    minVelocity: 0.75
   })},
   nodeDefaults: { type: Object, default: () => ({
     shape: 'dot',

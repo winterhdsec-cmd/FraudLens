@@ -16,6 +16,9 @@ from .deps import (
     logger, USE_CELERY, ProgressAdapter, progress_store, progress_locks,
     AnalyzeRequest, get_current_user, log_operation
 )
+from core.metrics import list_all_metrics
+from core.circuit_breaker import list_circuit_breakers
+from core.checkpoint import get_checkpoint_manager
 
 router = APIRouter(tags=['系统'])
 
@@ -64,20 +67,31 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
         from agents.base import AgentConfig, AgentContext
         llm_analyze = None
         llm_triage = None
-        try:
-            from langchain_community.chat_models import ChatOpenAI
-            from agents.llm_wrapper import wrap_llm
-            api_key = os.getenv("DEEPSEEK_API_KEY", "")
-            base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-            model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-            raw_analyze = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
-                                      api_key=api_key, base_url=base_url)
-            raw_triage = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
-                                    api_key=api_key, base_url=base_url)
-            llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
-            llm_triage = wrap_llm(raw_triage, max_concurrent=3)
-        except ImportError:
-            logger.warning("使用模拟模式 (langchain不可用)")
+        api_key = os.getenv("DEEPSEEK_API_KEY", "")
+        if api_key and api_key != "mock-key":
+            try:
+                from openai import OpenAI
+                from agents.llm_wrapper import RateLimitedLLM
+                base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+                model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+                client = OpenAI(api_key=api_key, base_url=base_url)
+                class OpenAIImageLLM:
+                    def invoke(self, prompt, **kwargs):
+                        resp = client.chat.completions.create(model=model, messages=[{"role":"user","content":prompt}], temperature=0.1, timeout=120)
+                        return resp.choices[0].message.content
+                raw = OpenAIImageLLM()
+                llm_analyze = RateLimitedLLM(raw, max_concurrent=3)
+                llm_triage = RateLimitedLLM(raw, max_concurrent=3)
+                logger.info(f"DeepSeek LLM 初始化成功 (model={model})")
+            except Exception as e:
+                logger.warning(f"LLM 初始化失败: {e}，使用模拟模式")
+        else:
+            logger.warning("DEEPSEEK_API_KEY 未配置，使用模拟模式")
+        if llm_analyze is None:
+            from agents.llm_wrapper import MockLLM
+            mock = MockLLM()
+            llm_analyze = mock
+            llm_triage = mock
         progress_adapter = ProgressAdapter(session_id)
         progress_adapter.emit('analysis_progress', {
             'stage': 'init', 'stage_name': '初始化', 'status': 'running',
@@ -319,4 +333,202 @@ async def api_update_api_key(
     except HTTPException:
         raise
     except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# ==================== 系统监控API端点 ====================
+
+@router.get('/api/metrics')
+async def api_get_metrics(current_user: dict = Depends(get_current_user)):
+    """
+    获取所有Agent的性能指标
+    
+    返回：
+    - 任务成功率、工具调用成功率
+    - 平均响应时间、错误率
+    - LLM调用统计
+    - 最近任务和工具调用历史
+    """
+    try:
+        metrics = list_all_metrics()
+        return {
+            "success": True,
+            "metrics": metrics,
+            "agent_count": len(metrics)
+        }
+    except Exception as e:
+        logger.error("Get metrics error", error=str(e))
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/api/circuit-breakers')
+async def api_get_circuit_breakers(current_user: dict = Depends(get_current_user)):
+    """
+    获取所有熔断器状态
+    
+    返回：
+    - 熔断器名称和当前状态（CLOSED/OPEN/HALF_OPEN）
+    - 失败次数、成功次数
+    - 最后失败时间
+    """
+    try:
+        breakers = list_circuit_breakers()
+        return {
+            "success": True,
+            "circuit_breakers": breakers,
+            "total": len(breakers)
+        }
+    except Exception as e:
+        logger.error("Get circuit breakers error", error=str(e))
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/api/checkpoints')
+async def api_get_checkpoints(
+    agent_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    获取检查点信息
+    
+    参数：
+    - agent_id: 可选，过滤特定Agent的检查点
+    
+    返回：
+    - 检查点ID、Agent ID、时间戳
+    - 检查点元数据
+    """
+    try:
+        checkpoint_manager = get_checkpoint_manager()
+        checkpoints = checkpoint_manager.list_checkpoints(agent_id=agent_id)
+        
+        return {
+            "success": True,
+            "checkpoints": checkpoints,
+            "total": len(checkpoints),
+            "filter_agent_id": agent_id
+        }
+    except Exception as e:
+        logger.error("Get checkpoints error", error=str(e))
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/api/checkpoints/{checkpoint_id}')
+async def api_get_checkpoint(
+    checkpoint_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    获取特定检查点详情
+    
+    参数：
+    - checkpoint_id: 检查点ID
+    
+    返回：
+    - 完整的检查点数据（包括状态快照）
+    """
+    try:
+        checkpoint_manager = get_checkpoint_manager()
+        checkpoint = checkpoint_manager.load_checkpoint(checkpoint_id)
+        
+        if not checkpoint:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Checkpoint not found"}
+            )
+        
+        return {
+            "success": True,
+            "checkpoint": checkpoint
+        }
+    except Exception as e:
+        logger.error("Get checkpoint error", error=str(e), checkpoint_id=checkpoint_id)
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.delete('/api/checkpoints/{checkpoint_id}')
+async def api_delete_checkpoint(
+    checkpoint_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    删除特定检查点
+    
+    参数：
+    - checkpoint_id: 检查点ID
+    """
+    try:
+        checkpoint_manager = get_checkpoint_manager()
+        deleted = checkpoint_manager.delete_checkpoint(checkpoint_id)
+        
+        if not deleted:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Checkpoint not found"}
+            )
+        
+        return {
+            "success": True,
+            "message": "Checkpoint deleted",
+            "checkpoint_id": checkpoint_id
+        }
+    except Exception as e:
+        logger.error("Delete checkpoint error", error=str(e), checkpoint_id=checkpoint_id)
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/api/system-status')
+async def api_get_system_status(current_user: dict = Depends(get_current_user)):
+    """
+    获取系统整体状态
+    
+    返回：
+    - Agent指标汇总
+    - 熔断器状态汇总
+    - 检查点统计
+    - 系统健康状态
+    """
+    try:
+        # 收集各项状态
+        metrics = list_all_metrics()
+        breakers = list_circuit_breakers()
+        checkpoint_manager = get_checkpoint_manager()
+        checkpoints = checkpoint_manager.list_checkpoints()
+        
+        # 计算汇总指标
+        total_tasks = sum(m.get("metrics", {}).get("task_total_count", 0) for m in metrics.values())
+        total_success = sum(m.get("metrics", {}).get("task_success_count", 0) for m in metrics.values())
+        task_success_rate = (total_success / total_tasks * 100) if total_tasks > 0 else 0
+        
+        # 熔断器状态统计
+        open_breakers = [b for b in breakers if b["state"] == "open"]
+        half_open_breakers = [b for b in breakers if b["state"] == "half_open"]
+        
+        # 系统健康状态
+        health_status = "healthy"
+        if len(open_breakers) > 0:
+            health_status = "degraded"
+        if len(open_breakers) > 2:
+            health_status = "unhealthy"
+        
+        return {
+            "success": True,
+            "system_status": {
+                "health": health_status,
+                "agent_count": len(metrics),
+                "total_tasks": total_tasks,
+                "task_success_rate": round(task_success_rate, 2),
+                "circuit_breakers": {
+                    "total": len(breakers),
+                    "open": len(open_breakers),
+                    "half_open": len(half_open_breakers),
+                    "closed": len(breakers) - len(open_breakers) - len(half_open_breakers)
+                },
+                "checkpoints": {
+                    "total": len(checkpoints)
+                }
+            }
+        }
+    except Exception as e:
+        logger.error("Get system status error", error=str(e))
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

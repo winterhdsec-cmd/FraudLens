@@ -291,41 +291,82 @@ const graphNodes = computed(() => {
   const maxAmount = Math.max(...Array.from(nodeMap.values()).map(n => n.totalAmount), 1)
   return Array.from(nodeMap.entries()).map(([account, data]) => {
     const ratio = data.totalAmount / maxAmount
-    const sz = 18 + ratio * 22
+    const sz = 25 + ratio * 35  // 增大节点尺寸范围
     const amt = data.totalAmount
+    const colors = getLevelColor(data.level)
     return {
       id: account,
       label: formatAccountName(account),
       title: `<b>${formatAccountName(account)}</b><br>层级: ${getLevelLabel(data.level)}<br>涉案金额: ¥${amt.toLocaleString()}`,
       size: Math.round(sz),
-      color: getLevelColor(data.level),
+      color: colors,
       level: data.level,
       amount: data.totalAmount,
-      font: { color: '#e2e8f0', size: 11, face: 'sans-serif', strokeWidth: 3, strokeColor: '#0a0e1a' },
+      font: { color: '#ffffff', size: 12, face: 'Arial', strokeWidth: 3, strokeColor: '#000000', bold: true },
       shape: 'dot',
-      borderWidth: 2,
-      shadow: { enabled: true, size: 10, color: getLevelColor(data.level).background + '66' }
+      borderWidth: 3,
+      shadow: { enabled: true, size: 15, color: colors.background + '88', x: 0, y: 0 }
     }
   })
 })
 
 const graphEdges = computed(() => {
   if (!capitalFlows.value.length) return []
+  const maxAmount = Math.max(...capitalFlows.value.map(f => Number(f.amount || 0)), 1)
+  
   return capitalFlows.value.map(flow => {
     const amt = Number(flow.amount || 0)
+    const ratio = amt / maxAmount
+    const width = 3 + ratio * 8  // 边宽度根据金额动态调整
+    
+    // 根据层级选择边的颜色
+    const level = flow.level || 1
+    let edgeColor = 'rgba(239, 68, 68, 0.6)'  // 默认红色
+    if (level === 1) edgeColor = 'rgba(239, 68, 68, 0.7)'  // 一级：红色
+    else if (level === 2) edgeColor = 'rgba(249, 115, 22, 0.7)'  // 二级：橙色
+    else if (level >= 3) edgeColor = 'rgba(6, 182, 212, 0.7)'  // 三级及以上：青色
+    
     return {
       from: flow.source_account,
       to: flow.target_account,
-      width: Math.max(1.5, Math.min(2 + (amt / 500000) * 2, 4.5)),
+      width: width,
       color: {
-        color: 'rgba(0,198,255,0.25)',
+        color: edgeColor,
         highlight: '#00c6ff',
-        hover: '#00c6ff'
+        hover: '#00c6ff',
+        opacity: 1
       },
-      smooth: { type: 'curvedCW', roundness: 0.1 },
-      arrows: { to: { enabled: true, scaleFactor: 0.6 } },
-      label: '¥' + (amt >= 10000 ? (amt / 10000).toFixed(1) + '万' : amt.toLocaleString()),
-      font: { color: 'rgba(0,198,255,0.8)', size: 10, align: 'middle', strokeWidth: 2, strokeColor: '#0a0e1a' }
+      smooth: {
+        type: 'curvedCW',
+        roundness: 0.2
+      },
+      arrows: {
+        to: {
+          enabled: true,
+          scaleFactor: 0.8,
+          type: 'arrow'
+        }
+      },
+      label: '¥' + amt.toLocaleString(),
+      font: {
+        color: '#ffffff',
+        size: 11,
+        face: 'Arial',
+        align: 'middle',
+        strokeWidth: 3,
+        strokeColor: '#000000',
+        bold: true
+      },
+      shadow: {
+        enabled: true,
+        size: 10,
+        color: edgeColor
+      },
+      animation: {
+        enabled: true,
+        duration: 1500,
+        easing: 'easeInOutCubic'
+      }
     }
   })
 })
@@ -337,30 +378,101 @@ const graphLegends = [
 ]
 
 const graphPhysics = {
-  solver: 'forceAtlas2Based',
-  forceAtlas2Based: {
-    gravitationalConstant: -150,
-    centralGravity: 0.005,
+  enabled: true,
+  solver: 'barnesHut',
+  barnesHut: {
+    gravitationalConstant: -4000,
+    centralGravity: 0.2,
     springLength: 180,
-    springConstant: 0.03,
-    damping: 0.5
+    springConstant: 0.05,
+    damping: 0.1,
+    avoidOverlap: 0.2
   },
-  stabilization: { iterations: 40, updateInterval: 30, fit: true }
+  stabilization: {
+    enabled: true,
+    iterations: 150,
+    updateInterval: 20,
+    fit: true
+  },
+  maxVelocity: 40,
+  minVelocity: 0.5
 }
 
 const graphNodeDefaults = {
   shape: 'dot',
-  font: { color: '#e2e8f0', size: 11, face: 'sans-serif', strokeWidth: 3, strokeColor: '#0a0e1a' },
-  borderWidth: 2,
-  shadow: { enabled: true, size: 8, color: 'rgba(0,0,0,0.3)' }
+  font: { 
+    color: '#ffffff', 
+    size: 12, 
+    face: 'Arial', 
+    strokeWidth: 3, 
+    strokeColor: '#000000',
+    bold: true
+  },
+  borderWidth: 3,
+  shadow: { 
+    enabled: true, 
+    size: 15, 
+    color: 'rgba(0,0,0,0.5)',
+    x: 0,
+    y: 0
+  },
+  borderWidthSelected: 4,
+  scaling: {
+    min: 25,
+    max: 60,
+    label: {
+      enabled: true,
+      min: 10,
+      max: 14,
+      maxVisible: 12
+    }
+  }
 }
 
 const graphEdgeDefaults = {
-  smooth: { type: 'curvedCW', roundness: 0.1 },
-  arrows: { to: { enabled: true, scaleFactor: 0.6 } },
-  width: 2,
-  color: { color: 'rgba(0,198,255,0.25)', highlight: '#00c6ff', hover: '#00c6ff' },
-  font: { color: 'rgba(0,198,255,0.8)', size: 10, align: 'middle', strokeWidth: 2, strokeColor: '#0a0e1a' }
+  smooth: { 
+    type: 'curvedCW', 
+    roundness: 0.25,
+    forceDirection: 'none'
+  },
+  arrows: { 
+    to: { 
+      enabled: true, 
+      scaleFactor: 0.8,
+      type: 'arrow'
+    } 
+  },
+  width: 3,
+  color: { 
+    color: 'rgba(239, 68, 68, 0.6)', 
+    highlight: '#00c6ff', 
+    hover: '#00c6ff',
+    opacity: 1
+  },
+  font: { 
+    color: '#ffffff', 
+    size: 11, 
+    face: 'Arial',
+    align: 'middle', 
+    strokeWidth: 3, 
+    strokeColor: '#000000',
+    bold: true
+  },
+  shadow: {
+    enabled: true,
+    size: 10,
+    color: 'rgba(0,0,0,0.3)'
+  },
+  scaling: {
+    min: 3,
+    max: 15,
+    label: {
+      enabled: true,
+      min: 9,
+      max: 13,
+      maxVisible: 10
+    }
+  }
 }
 
 const tryLoadFirstCase = () => {

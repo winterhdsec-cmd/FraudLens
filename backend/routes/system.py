@@ -63,59 +63,60 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
         logger.info("反诈研判官Agent启动智能研判流程 (同步模式)...")
         logger.info(f"会话ID: {session_id}")
         logger.info("=" * 60)
-        from agents.chief_agent import ChiefAgent
-        from agents.base import AgentConfig, AgentContext
-        llm_analyze = None
-        llm_triage = None
-        api_key = os.getenv("DEEPSEEK_API_KEY", "")
-        if api_key and api_key != "mock-key":
-            try:
-                from openai import OpenAI
-                from agents.llm_wrapper import RateLimitedLLM
-                base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-                model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-                client = OpenAI(api_key=api_key, base_url=base_url)
-                class OpenAIImageLLM:
-                    def invoke(self, prompt, **kwargs):
-                        resp = client.chat.completions.create(model=model, messages=[{"role":"user","content":prompt}], temperature=0.1, timeout=120)
-                        return resp.choices[0].message.content
-                raw = OpenAIImageLLM()
-                llm_analyze = RateLimitedLLM(raw, max_concurrent=3)
-                llm_triage = RateLimitedLLM(raw, max_concurrent=3)
-                logger.info(f"DeepSeek LLM 初始化成功 (model={model})")
-            except Exception as e:
-                logger.warning(f"LLM 初始化失败: {e}，使用模拟模式")
-        else:
-            logger.warning("DEEPSEEK_API_KEY 未配置，使用模拟模式")
-        if llm_analyze is None:
-            from agents.llm_wrapper import MockLLM
-            mock = MockLLM()
-            llm_analyze = mock
-            llm_triage = mock
+        
+        # 使用新的 OrchestratorAgent
+        from agents.orchestrator import OrchestratorAgent
+        
         progress_adapter = ProgressAdapter(session_id)
         progress_adapter.emit('analysis_progress', {
             'stage': 'init', 'stage_name': '初始化', 'status': 'running',
             'progress': 0, 'progress_percent': 0, 'message': '初始化分析引擎'
         })
-        chief_agent = ChiefAgent(
-            AgentConfig(agent_id="ChiefAgent"),
-            llm_analyze, llm_triage,
-            socketio=progress_adapter, session_id=session_id, persist=True
-        )
-        context = AgentContext(session_id=session_id, trace_id=str(uuid.uuid4()))
-        result = chief_agent.simple_process({
-            'messages': raw_messages, 'platform_data': platform_data
-        }, context)
+        
+        orchestrator = OrchestratorAgent()
+        
+        # 将消息格式转换为案件列表
+        cases = []
+        for msg in raw_messages:
+            if isinstance(msg, dict):
+                cases.append(msg)
+            elif isinstance(msg, str):
+                cases.append({
+                    "description": msg,
+                    "case_id": f"case_{len(cases)}"
+                })
+        
+        result = orchestrator.process(cases)
+        
         progress_adapter.emit('analysis_complete', {
-            'success': result.get('success'),
-            'total_cases': result.get('total_cases', 0),
+            'success': result.get('status') == 'completed',
+            'total_cases': result.get('statistics', {}).get('total_cases', 0),
             'total_gangs': len(result.get('gangs', [])),
-            'trace_id': context.trace_id
+            'trace_id': session_id
         })
+        
         logger.info("=" * 60)
         logger.info("智能研判完成！")
         logger.info("=" * 60)
-        return result
+        
+        # 转换结果格式以兼容前端
+        return {
+            'success': result.get('status') == 'completed',
+            'total_cases': result.get('statistics', {}).get('total_cases', 0),
+            'total_gangs': len(result.get('gangs', [])),
+            'session_id': result.get('session_id', session_id),
+            'raw_cases': result.get('cases', []),
+            'gangs': result.get('gangs', []),
+            'cluster_quality': {
+                'quality_score': result.get('statistics', {}).get('quality_score', 0)
+            },
+            'processing_info': {
+                'processing_time': result.get('statistics', {}).get('processing_time', 0)
+            },
+            'warnings': [],
+            'error': result.get('error'),
+            'message': '分析完成' if result.get('status') == 'completed' else '分析失败'
+        }
     except HTTPException:
         raise
     except Exception as e:

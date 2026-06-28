@@ -33,29 +33,9 @@ _flask_app.app_context().push()
 
 @celery_app.task(bind=True, name='tasks.run_analysis_task')
 def run_analysis_task(self, messages, session_id):
-    """Full analysis pipeline using ChiefAgent."""
+    """Full analysis pipeline using OrchestratorAgent."""
     try:
-        import uuid
-        from agents.chief_agent import ChiefAgent
-        from agents.base import AgentConfig, AgentContext
-
-        api_key = os.getenv("DEEPSEEK_API_KEY", "mock-key")
-        LLM_REQUEST_TIMEOUT = 30
-
-        try:
-            from langchain_community.chat_models import ChatOpenAI
-            from agents.llm_wrapper import wrap_llm
-            base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-            model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-            raw_analyze = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
-                                      api_key=api_key, base_url=base_url)
-            raw_triage = ChatOpenAI(model=model, temperature=0.1, request_timeout=120,
-                                    api_key=api_key, base_url=base_url)
-            llm_analyze = wrap_llm(raw_analyze, max_concurrent=3)
-            llm_triage = wrap_llm(raw_triage, max_concurrent=3)
-        except ImportError:
-            llm_analyze = None
-            llm_triage = None
+        from agents.orchestrator import OrchestratorAgent
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'init',
@@ -63,53 +43,8 @@ def run_analysis_task(self, messages, session_id):
             'message': '初始化分析引擎'
         })
 
-        progress_updates = []
-
-        class TaskProgressAdapter:
-            def __init__(self, task, sid):
-                self.task = task
-                self.session_id = sid
-
-            def emit(self, event, data, room=None):
-                nonlocal progress_updates
-                progress_data = {
-                    'event': event,
-                    'data': data,
-                    'ts': time.time()
-                }
-                progress_updates.append(progress_data)
-                try:
-                    import redis
-                    r = redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
-                    r.publish(f'progress:{self.session_id}', json.dumps(progress_data, default=str))
-                    r.close()
-                except Exception:
-                    pass
-                try:
-                    stage = data.get('stage', 'unknown')
-                    progress_percent = data.get('progress_percent', 0)
-                    message = data.get('message', '')
-                    self.task.update_state(state='PROGRESS', meta={
-                        'stage': stage,
-                        'progress': progress_percent,
-                        'message': message
-                    })
-                except Exception:
-                    pass
-
-        chief_agent = ChiefAgent(
-            AgentConfig(agent_id="ChiefAgent"),
-            llm_analyze,
-            llm_triage,
-            socketio=TaskProgressAdapter(self, session_id),
-            session_id=session_id,
-            persist=True
-        )
-
-        context = AgentContext(
-            session_id=session_id,
-            trace_id=str(uuid.uuid4())
-        )
+        # 初始化 OrchestratorAgent
+        orchestrator = OrchestratorAgent()
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'analysis',
@@ -117,10 +52,19 @@ def run_analysis_task(self, messages, session_id):
             'message': '开始智能研判'
         })
 
-        result = chief_agent.process({
-            'messages': messages,
-            'platform_data': {}
-        }, context)
+        # 将消息格式转换为案件列表
+        cases = []
+        for msg in messages:
+            if isinstance(msg, dict):
+                cases.append(msg)
+            elif isinstance(msg, str):
+                # 如果是字符串，尝试解析或创建基本案件结构
+                cases.append({
+                    "description": msg,
+                    "case_id": f"case_{len(cases)}"
+                })
+
+        result = orchestrator.process(cases)
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'complete',
@@ -129,17 +73,21 @@ def run_analysis_task(self, messages, session_id):
         })
 
         return {
-            'success': result.get('success', False),
-            'total_cases': result.get('total_cases', 0),
+            'success': result.get('status') == 'completed',
+            'total_cases': result.get('statistics', {}).get('total_cases', 0),
             'total_gangs': len(result.get('gangs', [])),
-            'session_id': session_id,
-            'raw_cases': result.get('raw_cases', []),
+            'session_id': result.get('session_id', session_id),
+            'raw_cases': result.get('cases', []),
             'gangs': result.get('gangs', []),
-            'cluster_quality': result.get('cluster_quality', {}),
-            'processing_info': result.get('processing_info', {}),
-            'warnings': result.get('warnings', []),
+            'cluster_quality': {
+                'quality_score': result.get('statistics', {}).get('quality_score', 0)
+            },
+            'processing_info': {
+                'processing_time': result.get('statistics', {}).get('processing_time', 0)
+            },
+            'warnings': [],
             'error': result.get('error'),
-            'message': result.get('message', '')
+            'message': '分析完成' if result.get('status') == 'completed' else '分析失败'
         }
 
     except Exception as e:

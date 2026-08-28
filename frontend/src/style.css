@@ -2642,3 +2642,87 @@ html.dark {
   --el-text-color-placeholder: var(--dark-color-text-4);
   --el-mask-color: rgba(0, 0, 0, 0.6);
 }
+
+/* ============================================
+   Showcase 霓虹增强层（仅作用于暗色主题，
+   借鉴首页大屏：发光按钮 / 渐变文字 / 辉光悬浮）
+   ============================================ */
+
+/* 视图容器透明化，让底层 FX（网格/极光/星场）从卡片缝隙透出 */
+html.dark .view-section {
+  background: transparent !important;
+  border: none !important;
+}
+/* 卡片改半透明毛玻璃，透出底纹又有层次 */
+html.dark .stat-card,
+html.dark .tech-card,
+html.dark .glass-card,
+html.dark .view-card,
+html.dark .el-card {
+  background: rgba(26, 34, 52, 0.72) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* 主按钮：cyan 辉光 */
+html.dark .el-button--primary {
+  background: linear-gradient(135deg, #00c6ff 0%, #0088cc 100%);
+  border: none;
+  color: #04121f;
+  font-weight: 600;
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+html.dark .el-button--primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 0 26px rgba(0, 212, 255, 0.55), 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+html.dark .el-button--primary:active { transform: translateY(0); filter: brightness(0.95); }
+
+/* 次级按钮悬浮微光 */
+html.dark .el-button--default {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+html.dark .el-button--default:hover {
+  border-color: var(--dark-color-primary);
+  color: var(--dark-color-primary);
+  box-shadow: 0 0 14px var(--dark-color-primary-glow-soft);
+}
+
+/* 输入框聚焦光晕 */
+html.dark .el-input__wrapper.is-focus,
+html.dark .el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--dark-color-primary), 0 0 16px var(--dark-color-primary-glow-soft) !important;
+}
+
+/* 表格行悬浮青色微光 */
+html.dark .el-table__body tr:hover > td.el-table__cell {
+  background: rgba(0, 212, 255, 0.06) !important;
+}
+
+/* 文字选中青色 */
+html.dark ::selection {
+  background: rgba(0, 212, 255, 0.28);
+  color: #fff;
+}
+
+/* 渐变霓虹标题工具类（供各页面 section-title 按需使用） */
+.neon-title {
+  background: linear-gradient(135deg, #00c6ff 0%, #00e5ff 40%, #ffffff 60%, #8b5cf6 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: neonShift 6s ease-in-out infinite;
+}
+@keyframes neonShift { 0%, 100% { background-position: 0% center; } 50% { background-position: 100% center; } }
+
+/* LIVE 呼吸指示灯工具类 */
+.live-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: liveDotPulse 1.6s ease-in-out infinite;
+}
+@keyframes liveDotPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }

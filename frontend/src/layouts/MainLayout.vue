@@ -1,5 +1,12 @@
 <template>
   <div class="main-layout">
+    <!-- 视觉 FX 层：网格底纹 + 极光光斑 + 粒子星场（借鉴 Showcase 大屏设计语言） -->
+    <div class="fx-layer" aria-hidden="true">
+      <div class="fx-grid"></div>
+      <div class="fx-glow fx-glow-a"></div>
+      <div class="fx-glow fx-glow-b"></div>
+      <div class="fx-stars"></div>
+    </div>
     <!-- 进度对话框 -->
     <el-dialog v-model="showProgress" :close-on-click-modal="false" :show-close="false" width="420px" class="progress-dialog">
       <div class="progress-body">
@@ -304,7 +311,44 @@ const goToCaseDetail = (caseId) => {
   grid-template-rows: auto 1fr;
   height: 100vh; width: 100vw;
   position: relative;
+  background:
+    radial-gradient(ellipse 90% 60% at 70% -10%, rgba(0, 212, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 10% 110%, rgba(139, 92, 246, 0.06), transparent 60%),
+    var(--color-bg-page);
 }
+
+/* ====== FX 视觉层（网格底纹 + 极光 + 星场） ====== */
+.fx-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.fx-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, rgba(0,0,0,0.5), transparent 85%);
+  mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, rgba(0,0,0,0.5), transparent 85%);
+}
+.fx-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; will-change: transform; }
+.fx-glow-a { width: 560px; height: 380px; top: -140px; right: 8%; background: radial-gradient(closest-side, rgba(0, 198, 255, 0.16), transparent); animation: glowDriftA 26s ease-in-out infinite alternate; }
+.fx-glow-b { width: 480px; height: 360px; bottom: -120px; left: 18%; background: radial-gradient(closest-side, rgba(139, 92, 246, 0.14), transparent); animation: glowDriftB 32s ease-in-out infinite alternate; }
+@keyframes glowDriftA { from { transform: translate3d(0,0,0); } to { transform: translate3d(-70px, 50px, 0); } }
+@keyframes glowDriftB { from { transform: translate3d(0,0,0); } to { transform: translate3d(60px, -40px, 0); } }
+.fx-stars {
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 22%, rgba(0,229,255,0.8), transparent 100%),
+    radial-gradient(1px 1px at 28% 68%, rgba(180,220,255,0.55), transparent 100%),
+    radial-gradient(1.5px 1.5px at 44% 14%, rgba(0,229,255,0.5), transparent 100%),
+    radial-gradient(1px 1px at 58% 42%, rgba(255,255,255,0.45), transparent 100%),
+    radial-gradient(1.5px 1.5px at 71% 76%, rgba(0,229,255,0.6), transparent 100%),
+    radial-gradient(1px 1px at 83% 28%, rgba(180,220,255,0.5), transparent 100%),
+    radial-gradient(1px 1px at 91% 58%, rgba(0,229,255,0.7), transparent 100%),
+    radial-gradient(1.5px 1.5px at 17% 88%, rgba(139,92,246,0.55), transparent 100%),
+    radial-gradient(1px 1px at 50% 92%, rgba(0,229,255,0.5), transparent 100%),
+    radial-gradient(1px 1px at 66% 8%, rgba(255,255,255,0.4), transparent 100%);
+  animation: starsTwinkle 7s ease-in-out infinite;
+}
+@keyframes starsTwinkle { 0%,100% { opacity: 0.5; } 50% { opacity: 0.95; } }
 
 /* ====== 顶栏（一级导航） ====== */
 .app-header {
@@ -312,7 +356,9 @@ const goToCaseDetail = (caseId) => {
   height: 52px;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 14px 0 10px;
-  background: linear-gradient(180deg, var(--color-bg-layout) 0%, var(--color-bg-hover) 100%);
+  background: linear-gradient(180deg, rgba(20, 27, 43, 0.72) 0%, rgba(20, 27, 43, 0.5) 100%);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
   border-bottom: 1px solid var(--color-border-1);
   position: relative;
   z-index: 20;
@@ -384,7 +430,7 @@ const goToCaseDetail = (caseId) => {
 .tabs-bar {
   display: flex; align-items: flex-end;
   padding: 6px 16px 0;
-  background: var(--color-bg-page);
+  background: transparent;
   border-bottom: 1px solid var(--color-border-1);
 }
 .tabs-list {
@@ -433,7 +479,9 @@ const goToCaseDetail = (caseId) => {
 .sidebar {
   grid-column: 1; grid-row: 2;
   width: 232px; min-width: 232px; height: 100%;
-  background: linear-gradient(180deg, var(--color-bg-layout), var(--color-bg-page) 100%);
+  background: linear-gradient(180deg, rgba(20, 27, 43, 0.66), rgba(13, 18, 32, 0.55) 100%);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
   border-right: 1px solid var(--color-border-1);
   display: flex; flex-direction: column; overflow-y: auto; z-index: 10;
   transition: border-color var(--transition-base);
@@ -486,7 +534,7 @@ const goToCaseDetail = (caseId) => {
 .menu-icon { font-size: 16px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .menu-text { font-size: 13px; font-weight: var(--font-weight-regular); }
 .menu-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; background: var(--color-danger); color: #fff; font-size: 11px; font-weight: var(--font-weight-semibold); border-radius: 9px; margin-left: auto; }
-.system-status { padding: 12px 14px; border-top: 1px solid var(--color-divider); background: var(--color-bg-layout); }
+.system-status { padding: 12px 14px; border-top: 1px solid var(--color-divider); background: transparent; }
 .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-2); }
 .status-dot { width: 6px; height: 6px; background: var(--color-success); border-radius: 50%; }
@@ -516,7 +564,7 @@ const goToCaseDetail = (caseId) => {
 .sidebar.collapsed .logout-btn .el-icon { margin: 0; font-size: 15px; }
 
 /* ====== 主区 ====== */
-.main-content { grid-column: 2; grid-row: 2; height: 100%; overflow-y: auto; position: relative; z-index: 1; background: var(--color-bg-page); }
+.main-content { grid-column: 2; grid-row: 2; height: 100%; overflow-y: auto; position: relative; z-index: 1; background: transparent; }
 .search-bar { padding: 12px 20px 0; }
 .search-wrapper { position: relative; max-width: 520px; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 14px; }

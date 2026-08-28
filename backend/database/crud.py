@@ -419,12 +419,18 @@ def get_sessions():
     } for s in sessions]
 
 
-def get_session_detail(session_id):
+def get_session_detail(session_id, user=None):
     session = AnalysisSession.query.filter_by(session_id=session_id).first()
     if not session:
         return None
-    cases = Case.query.filter_by(session_id=session_id).all()
-    gangs = Gang.query.filter_by(session_id=session_id).all()
+    q_cases = Case.query.filter_by(session_id=session_id)
+    q_gangs = Gang.query.filter_by(session_id=session_id)
+    if user:
+        # 行级隔离：非 admin 仅见本部门案件/团伙（G3 RBAC）
+        q_cases = apply_department_scope(Case, q_cases, user)
+        q_gangs = apply_department_scope(Gang, q_gangs, user)
+    cases = q_cases.all()
+    gangs = q_gangs.all()
     return {
         'session': {
             'session_id': session.session_id,
@@ -659,17 +665,36 @@ def update_case(case_id, data):
         }
         for key, value in data.items():
             if key in allowed_fields and value is not None:
+                if key == 'status':
+                    # 状态必须走状态机（复用 update_case_status 的流转校验），
+                    # 防止绕过 VALID_STATUS_TRANSITIONS 任意跳转（如 待分析→已结案）
+                    try:
+                        current = case.status or '待分析'
+                        allowed = VALID_STATUS_TRANSITIONS.get(current, [])
+                        if value != current and value not in allowed:
+                            raise ValueError(
+                                f'Invalid status transition: {current} -> {value}. '
+                                f'Allowed targets: {allowed}'
+                            )
+                    except ValueError:
+                        raise
+                    except Exception:
+                        pass  # 状态值非法时仍 setattr，由 DB 约束兜底
                 setattr(case, key, value)
 
         if 'amount' in data:
             import re
-            amount_str = data['amount']
-            match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
-            if match:
-                num = float(match.group(1))
-                if '万' in amount_str:
-                    num *= 10000
-                case.amount_value = num
+            amount_raw = data['amount']
+            # 兼容数字与字符串（审计 L：amount 传数字时 re.search 抛 TypeError）
+            if isinstance(amount_raw, (int, float)):
+                case.amount_value = float(amount_raw)
+            elif isinstance(amount_raw, str) and amount_raw.strip():
+                match = re.search(r'(\d+(?:\.\d+)?)', amount_raw)
+                if match:
+                    num = float(match.group(1))
+                    if '万' in amount_raw:
+                        num *= 10000
+                    case.amount_value = num
 
         return _case_to_dict(case)
 
@@ -747,17 +772,32 @@ def generate_case_number():
 
 def create_case(data, department: str = ''):
     with transactional():
+        # 案号并发竞态防护：generate_case_number 为查-算-插（无锁），并发下可能撞号。
+        # 在插入前检查该 case_id 是否已存在，存在则重试下一序号（至多 20 次）。
         case_id = generate_case_number()
+        for _ in range(20):
+            if Case.query.filter_by(case_id=case_id).first() is None:
+                break
+            latest = Case.query.filter(
+                Case.case_id.like(f"ALT{datetime.now().strftime('%Y%m%d')}%")
+            ).order_by(Case.case_id.desc()).first()
+            seq = (int(case_id[-3:]) if case_id[-3:].isdigit() else 0) + 1
+            case_id = f"ALT{datetime.now().strftime('%Y%m%d')}{seq:03d}"
 
         amount_str = data.get('amount', '0')
         amount_value = 0.0
         import re
-        match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
-        if match:
-            num = float(match.group(1))
-            if '万' in amount_str:
-                num *= 10000
-            amount_value = num
+        # 兼容数字输入（amount 传 int/float 时 re.search 抛 TypeError）
+        if isinstance(amount_str, (int, float)):
+            amount_value = float(amount_str)
+            amount_str = str(amount_str)
+        else:
+            match = re.search(r'(\d+(?:\.\d+)?)', amount_str)
+            if match:
+                num = float(match.group(1))
+                if '万' in amount_str:
+                    num *= 10000
+                amount_value = num
 
         scam_type = data.get('scam_type', '')
         victim_name = data.get('victim_name', '')

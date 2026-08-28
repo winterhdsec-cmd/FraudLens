@@ -22,7 +22,8 @@ async def api_get_alerts(current_user: dict = Depends(get_current_user)):
 
 
 @router.post('/{alert_id}/resolve')
-async def api_resolve_alert(alert_id: int):
+@db_retry()
+async def api_resolve_alert(alert_id: int, current_user: dict = Depends(get_current_user)):
     try:
         from database.alert import alert_engine
         result = alert_engine.resolve_alert(alert_id)
@@ -34,10 +35,13 @@ async def api_resolve_alert(alert_id: int):
 
 
 @router.post('/check')
-async def api_check_alerts():
+@db_retry()
+async def api_check_alerts(current_user: dict = Depends(get_current_user)):
     try:
         from database.alert import alert_engine
-        cases = get_all_cases()
+        from database.crud import get_all_cases
+        # 只检查当前用户部门可见的最新案件，避免跨部门空转/越权
+        cases = get_all_cases(current_user)
         if not cases:
             return {"success": True, "alerts": []}
         latest = cases[0]

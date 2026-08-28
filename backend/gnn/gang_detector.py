@@ -179,8 +179,9 @@ class GangDetector:
                 self.metrics['last_train_time'] = time.time() - t_train
                 embeddings_obtained = True
                 
-                # 持久化模型
-                if self.enable_persistence and self.gnn_model is not None:
+                # 持久化模型（gnn 或 han 任一存在即保存，修复 use_han 时从不落盘）
+                if self.enable_persistence and (
+                        self.gnn_model is not None or self.han_model is not None):
                     self._save_model()
             except Exception as e:
                 if self.enable_fallback:
@@ -402,7 +403,16 @@ class GangDetector:
             out_dim=self.embedding_dim,
             num_layers=self.num_layers
         )
-        
+        self._last_in_dim = in_dim
+
+        # 尝试加载已保存权重（图hash/维度匹配则跳过重训）
+        if self._maybe_load_saved_weights(self.gnn_model, graph_hash, in_dim):
+            self._last_graph_hash = graph_hash
+            self.gnn_model.eval()
+            with torch.no_grad():
+                embeddings = self.gnn_model(features_tensor, adj_tensor)
+            return embeddings.numpy()
+
         # 自监督训练（邻接矩阵重构）
         optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.01)
         
@@ -482,6 +492,16 @@ class GangDetector:
             num_layers=self.num_layers
         )
         self._han_meta_paths = list(self.han_model.meta_paths)
+        self._last_in_dim = in_dim
+
+        # 尝试加载已保存权重（模型类型/维度/图hash 匹配则跳过重训）
+        if self._maybe_load_saved_weights(self.han_model, graph_hash, in_dim):
+            self._last_graph_hash = graph_hash
+            self.han_model.eval()
+            with torch.no_grad():
+                meta_path_adjs = self._build_meta_path_adjs()
+                embeddings = self.han_model.han(features_tensor, meta_path_adjs)
+            return embeddings.numpy()
 
         # 构建元路径邻接矩阵（真异构：每条元路径拓扑不同）
         meta_path_adjs = self._build_meta_path_adjs()
@@ -523,19 +543,24 @@ class GangDetector:
         return hash((len(nodes), len(self.graph.edges), tuple(nodes[:10])))
     
     def _save_model(self):
-        """持久化模型到磁盘"""
+        """持久化模型到磁盘（修复：use_han=True 时 gnn_model 为 None，
+        旧实现直接 return 导致 HAN 权重从不落盘——死代码）"""
         try:
-            if self.gnn_model is None:
+            model = self.gnn_model if self.gnn_model is not None else self.han_model
+            if model is None:
                 return
-            model_path = os.path.join(self.model_dir, 'gnn_model.pt')
-            meta_path = os.path.join(self.model_dir, 'model_meta.pkl')
-            
-            torch.save(self.gnn_model.state_dict(), model_path)
-            
+            model_type = 'graphsage' if self.gnn_model is not None else 'han'
+            model_path = os.path.join(self.model_dir, f'{model_type}_model.pt')
+            meta_path = os.path.join(self.model_dir, f'{model_type}_meta.pkl')
+
+            torch.save(model.state_dict(), model_path)
+
             meta = {
+                'model_type': model_type,
                 'embedding_dim': self.embedding_dim,
                 'hidden_dim': self.hidden_dim,
                 'num_layers': self.num_layers,
+                'in_dim': getattr(self, '_last_in_dim', 0),
                 'graph_hash': getattr(self, '_last_graph_hash', 0),
                 'trained_at': time.time()
             }
@@ -543,26 +568,51 @@ class GangDetector:
                 pickle.dump(meta, f)
         except Exception:
             pass  # 持久化失败不影响主流程
-    
+
     def _try_load_model(self):
-        """尝试从磁盘加载已训练模型"""
+        """尝试从磁盘加载已训练模型（修复：旧实现只记录路径从不真正加载，
+        _saved_meta/_saved_model_path 全库无读取处——死代码）"""
         try:
-            model_path = os.path.join(self.model_dir, 'gnn_model.pt')
-            meta_path = os.path.join(self.model_dir, 'model_meta.pkl')
-            
-            if not os.path.exists(model_path) or not os.path.exists(meta_path):
-                return
-            
-            with open(meta_path, 'rb') as f:
-                meta = pickle.load(f)
-            
-            # 用保存的元数据重建模型结构
-            # 注意：in_dim 需要图数据才能确定，这里先不加载权重
-            # 等 detect() 时根据实际 in_dim 加载
-            self._saved_meta = meta
-            self._saved_model_path = model_path
+            for model_type in ('graphsage', 'han'):
+                model_path = os.path.join(self.model_dir, f'{model_type}_model.pt')
+                meta_path = os.path.join(self.model_dir, f'{model_type}_meta.pkl')
+
+                if not os.path.exists(model_path) or not os.path.exists(meta_path):
+                    continue
+                with open(meta_path, 'rb') as f:
+                    meta = pickle.load(f)
+                if meta.get('model_type') != model_type:
+                    continue
+                self._saved_meta = meta
+                self._saved_model_path = model_path
+                self._saved_model_type = model_type
+                self._saved_state = torch.load(
+                    model_path, map_location='cpu', weights_only=True)
         except Exception:
-            pass
+            self._saved_state = None
+
+    def _maybe_load_saved_weights(self, model, graph_hash: int, in_dim: int):
+        """训练前尝试加载已保存权重（须模型类型/维度/图hash 全匹配，否则返回 False 走重训）。
+
+        返回 True 表示加载成功，调用方跳过训练直接用缓存嵌入。
+        """
+        try:
+            meta = getattr(self, '_saved_meta', None)
+            if not meta:
+                return False
+            if meta.get('graph_hash', -1) != graph_hash:
+                return False
+            if meta.get('in_dim', in_dim) != in_dim:
+                return False
+            st = getattr(self, '_saved_state', None)
+            if st is None:
+                return False
+            model.load_state_dict(st)
+            logger.info("已从磁盘加载模型权重（图结构匹配，跳过重训）")
+            return True
+        except Exception as e:
+            logger.warning(f"加载保存权重失败(走重训): {e}")
+            return False
     
     @staticmethod
     def _safe_float(val, default=0.0) -> float:

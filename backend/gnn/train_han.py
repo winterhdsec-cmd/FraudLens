@@ -307,13 +307,19 @@ class HANTrainer:
         
         # 3. 准备训练数据
         features = self.graph_builder.get_node_features()
-        adj = self.graph_builder.get_adjacency_matrix()
-        
+        # 元路径邻接：FraudHAN 需要 {元路径: 邻接} 字典（case_account_case 等 4 条，
+        # 真异构）。旧代码用全图邻接 get_adjacency_matrix() 包成 {"default": adj}，
+        # 与模型 meta_paths 完全不匹配 → 所有 HAN 层被跳过、退化为原始特征。
+        meta_adjs = self.graph_builder.get_meta_path_adjacency()
+        if not meta_adjs:
+            raise ValueError("No meta-path adjacency extracted from graph")
+
         if features is None or len(features) == 0:
             raise ValueError("No features extracted from graph")
-        
+
         features_tensor = torch.FloatTensor(features)
-        adj_tensor = torch.FloatTensor(adj)
+        # 统一转为 tensor 字典（键名与 FraudHAN.meta_paths 对应）
+        adj_tensor = {k: torch.FloatTensor(v) for k, v in meta_adjs.items()}
         
         # 4. 创建标签（用于监督训练）
         labels = self._extract_labels(nodes, graph)
@@ -357,8 +363,9 @@ class HANTrainer:
             self.han_model.train()
             self.trainer.optimizer.zero_grad()
             
-            # 前向传播
-            embeddings = self.han_model(features_tensor, {"default": adj_tensor})
+            # 前向传播（FraudHAN.forward 返回 (embeddings, logits) 元组，需拆包；
+            # 旧代码把元组再喂 classifier 必然崩——训练从未真正跑通）
+            embeddings, _ = self.han_model(features_tensor, adj_tensor)
             logits = self.han_model.classifier(embeddings)
             
             # 计算训练损失
@@ -375,7 +382,7 @@ class HANTrainer:
             # 验证
             self.han_model.eval()
             with torch.no_grad():
-                val_embeddings = self.han_model(features_tensor, {"default": adj_tensor})
+                val_embeddings, _ = self.han_model(features_tensor, adj_tensor)
                 val_logits = self.han_model.classifier(val_embeddings)
                 val_preds = val_logits.argmax(dim=1)
                 val_acc = (val_preds[test_idx] == labels_tensor[test_idx]).float().mean().item()

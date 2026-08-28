@@ -22,7 +22,8 @@ async def api_dashboard(current_user: dict = Depends(get_current_user)):
 
 
 @router.get('/trend')
-async def api_dashboard_trend():
+@db_retry()
+async def api_dashboard_trend(current_user: dict = Depends(get_current_user)):
     try:
         from database.dashboard import get_dashboard_data
         data = get_dashboard_data()
@@ -32,12 +33,13 @@ async def api_dashboard_trend():
 
 
 @router.get('/latest-session')
-async def api_latest_session():
+@db_retry()
+async def api_latest_session(current_user: dict = Depends(get_current_user)):
     try:
         sessions = get_sessions()
         if sessions:
             sid = sessions[0]['session_id']
-            detail = get_session_detail(sid)
+            detail = get_session_detail(sid, current_user)
             if detail:
                 return {"success": True, **detail}
         return {"success": True, "session": None, "cases": [], "gangs": []}

@@ -83,8 +83,12 @@ async def api_gang_review_results(
         return resp
     except Exception as e:
         logger.exception('gang review-results failed')
-        # 复核层失败不阻塞前端：返回空结果 + 错误说明
-        return {"success": True, "explanations": [], "review": {"checked_gangs": 0, "suspicious_merges": [], "source": "rule"}, "llm_enabled": False, "error": str(e)[:200]}
+        # 复核层失败：诚实返回 success=False，前端据 error 展示失败态，
+        # 而非 success=True 让前端误判复核成功（原实现吞异常）
+        return JSONResponse(status_code=500, content={
+            "success": False,
+            "error": f"团伙复核失败: {str(e)[:200]}",
+        })
 
 
 @router.post('/detect/gnn')

@@ -59,13 +59,16 @@ async def api_demo_login(request: Request):
         from database.models import User
         demo_user = User.query.filter_by(username='admin').first()
         if not demo_user:
+            # 演示入口：首次启动自动创建 admin（密码支持环境变量覆盖，避免硬编码后门）
+            import os
+            demo_password = os.environ.get('DEMO_ADMIN_PASSWORD', 'admin123')
             demo_user = User(
                 username='admin',
                 display_name='系统管理员',
                 role='admin',
                 department='反诈中心'
             )
-            demo_user.set_password('admin123')
+            demo_user.set_password(demo_password)
             db.session.add(demo_user)
             db.session.commit()
         demo_user.last_login = datetime.utcnow()
@@ -93,8 +96,12 @@ async def api_demo_login(request: Request):
 
 @router.post('/register')
 @db_retry()
-async def api_register(data: RegisterRequest, request: Request):
+async def api_register(data: RegisterRequest, request: Request,
+                       current_user: dict = Depends(get_current_user)):
     try:
+        # 注册为敏感操作：仅 admin 可创建新用户（防止开放注册 → 越权看全量）
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="无权限：仅管理员可创建用户")
         if not data.username or not data.password:
             raise HTTPException(status_code=400, detail="用户名和密码不能为空")
         if len(data.password) < 6:
@@ -150,6 +157,9 @@ async def api_logout(request: Request):
 @router.get('/users')
 @db_retry()
 async def api_list_users(current_user: dict = Depends(get_current_user)):
+    # 用户列表含账号信息，仅 admin 可见（防止 analyst 越权读全量用户）
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="无权限")
     from database.models import User
     users = User.query.order_by(User.created_at.desc()).all()
     return {"success": True, "users": [u.to_dict() for u in users]}
@@ -158,6 +168,9 @@ async def api_list_users(current_user: dict = Depends(get_current_user)):
 @router.get('/logs')
 @db_retry()
 async def api_get_auth_logs(current_user: dict = Depends(get_current_user)):
+    # 操作日志含全站行为，仅 admin 可见
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="无权限")
     from database.models import OperationLog
     logs = OperationLog.query.order_by(OperationLog.created_at.desc()).limit(100).all()
     return {

@@ -141,6 +141,33 @@ def baseline_kmeans(X, ids, n_clusters):
     return {cid: int(l) for cid, l in zip(ids, pred)}
 
 
+def _estimate_n_clusters(X, max_k: int = None, seed: int = 0):
+    """不依赖真值标签的聚类数估计（silhouette 最优 k）。
+
+    修复评估协议泄露：旧实现 KMeans(n_clusters=n_true) 直接把真值团伙数喂给
+    聚类器，等价于泄露答案 → 各基线 F1 虚高且不可比。改为用数据自身轮廓系数
+    搜索 k ∈ [2, min(10, n//2)]，所有基线使用同一估计值，协议诚实可复现。
+    """
+    from sklearn.metrics import silhouette_score
+    import math
+    n = X.shape[0]
+    if n < 3:
+        return 1
+    upper = max_k or min(10, max(2, n // 2))
+    best_k, best_score = 2, -1.0
+    for k in range(2, upper + 1):
+        if k >= n:
+            continue
+        try:
+            labels = KMeans(n_clusters=k, random_state=seed, n_init=10).fit_predict(X)
+            s = silhouette_score(X, labels)
+            if s > best_score:
+                best_score, best_k = s, k
+        except Exception:
+            continue
+    return best_k
+
+
 def baseline_hdbscan(X, ids):
     pred = SkHDBSCAN(min_cluster_size=3, min_samples=2).fit_predict(X)
     return {cid: int(l) for cid, l in zip(ids, pred)}
@@ -413,23 +440,32 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
                                            attr_noise=attr_noise)
     n_true = len(set(gt.values()))
     X, ids = case_feature_matrix(cases)
+    # 评估协议修复：聚类数用 silhouette 估计（不依赖真值标签），
+    # 避免 KMeans(n_clusters=n_true) 直接泄露答案导致 F1 虚高
+    n_est = _estimate_n_clusters(X)
+    if n_est != n_true:
+        notes.append(
+            f"聚类数估计: 估计 k={n_est}（silhouette 最优），真值 k={n_true}——"
+            f"评估协议已修复，不再向聚类器泄露真值团伙数"
+        )
+    else:
+        notes.append(f"聚类数估计: silhouette 最优 k={n_est} 与真值一致（无泄露）")
 
-    notes: List[str] = []
     baselines: Dict[str, Any] = {}
 
     # B1 KMeans
-    baselines["KMeans"] = compute_metrics(gt, baseline_kmeans(X, ids, n_true))
+    baselines["KMeans"] = compute_metrics(gt, baseline_kmeans(X, ids, n_est))
     # B2 HDBSCAN-only
     baselines["HDBSCAN-only"] = compute_metrics(gt, baseline_hdbscan(X, ids))
     # B3 纯语义(BGE/TF-IDF)
-    sem_pred, sem_notes = baseline_semantic(cases, ids, n_true)
+    sem_pred, sem_notes = baseline_semantic(cases, ids, n_est)
     baselines["Semantic"] = compute_metrics(gt, sem_pred)
     notes += sem_notes
     # B4 当前系统(图社区发现, 含资金链)
     cur_pred = baseline_current_system(cases, accounts_tx, use_fund=True)
     baselines["CurrentSystem(fund)"] = compute_metrics(gt, cur_pred)
     # 可选：当前GNN（GraphSAGE 朴素基线，复现塌缩现象）
-    gnn_pred = baseline_gnn(cases, accounts_tx, n_true)
+    gnn_pred = baseline_gnn(cases, accounts_tx, n_est)
     if gnn_pred and "__error__" not in gnn_pred:
         baselines["CurrentGNN(GraphSAGE)"] = compute_metrics(gt, gnn_pred)
         if "__note__" in gnn_pred:
@@ -439,7 +475,7 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
         notes.append(f"当前GNN(GraphSAGE)基线跳过: {err}")
 
     # 当前GNN(HAN 真异构, Stage2 修复后)
-    han_pred = baseline_gnn_han(cases, accounts_tx, n_true)
+    han_pred = baseline_gnn_han(cases, accounts_tx, n_est)
     if han_pred and "__error__" not in han_pred:
         baselines["CurrentGNN(HAN-true)"] = compute_metrics(gt, han_pred)
         if "__note__" in han_pred:
@@ -461,7 +497,7 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
     # A3 双通道消融：去话术语义通道（HAN 仅结构/资金链通道，验证"资金链+话术"双通道增益）
     if "CurrentGNN(HAN-true)" in baselines:
         try:
-            han_pred_notext = baseline_gnn_han(cases, accounts_tx, n_true, use_text_channel=False)
+            han_pred_notext = baseline_gnn_han(cases, accounts_tx, n_est, use_text_channel=False)
             if han_pred_notext and "__error__" not in han_pred_notext:
                 ablation["han_no_text_channel"] = compute_metrics(gt, han_pred_notext)
                 ablation["dual_channel_gain_f1"] = round(
@@ -699,15 +735,17 @@ def run_amlsim_eval(directory: str, ablation_flags=None) -> Dict[str, Any]:
     true_sub = {a: gt[a] for a in eval_ids}
     n_true = len(set(true_sub.values()))
     G, X = _account_graph_and_features(account_ids, edges)
+    # 评估协议一致：k 用 silhouette 估计，不向聚类器泄露真值环数
+    n_est = _estimate_n_clusters(X)
     baselines: Dict[str, Any] = {}
     baselines["LouvainAccount(structure)"] = compute_metrics(
         true_sub, _louvain_account_labels(G, eval_ids))
     baselines["KMeansAccount"] = compute_metrics(
-        true_sub, baseline_kmeans(X, eval_ids, n_true))
+        true_sub, baseline_kmeans(X, eval_ids, n_est))
     baselines["HDBSCANAccount"] = compute_metrics(
         true_sub, baseline_hdbscan(X, eval_ids))
     # GNN 账户中心方法（稀疏邻接，可扩展，不 OOM）
-    gnn_pred = _baseline_gnn_account(account_ids, edges, n_true, X=X)
+    gnn_pred = _baseline_gnn_account(account_ids, edges, n_est, X=X)
     if gnn_pred and "__error__" not in gnn_pred:
         baselines["GNNAccount(GraphSAGE)"] = compute_metrics(true_sub, gnn_pred)
     else:
@@ -718,12 +756,13 @@ def run_amlsim_eval(directory: str, ablation_flags=None) -> Dict[str, Any]:
     sub_edges = [(s, d, amt, t) for (s, d, amt, t) in edges
                  if s in sub_set and d in sub_set]
     Gsub, Xsub = _account_graph_and_features(eval_ids, sub_edges)
+    n_est_sub = _estimate_n_clusters(Xsub)
     subgraph: Dict[str, Any] = {}
     subgraph["LouvainAccount-subgraph"] = compute_metrics(
         true_sub, _louvain_account_labels(Gsub, eval_ids))
     subgraph["KMeansAccount-subgraph"] = compute_metrics(
-        true_sub, baseline_kmeans(Xsub, eval_ids, n_true))
-    gnn_sub = _baseline_gnn_account(eval_ids, sub_edges, n_true, X=Xsub)
+        true_sub, baseline_kmeans(Xsub, eval_ids, n_est_sub))
+    gnn_sub = _baseline_gnn_account(eval_ids, sub_edges, n_est_sub, X=Xsub)
     if gnn_sub and "__error__" not in gnn_sub:
         subgraph["GNNAccount-subgraph(GraphSAGE)"] = compute_metrics(true_sub, gnn_sub)
     else:
@@ -731,7 +770,7 @@ def run_amlsim_eval(directory: str, ablation_flags=None) -> Dict[str, Any]:
 
     return {
         "dataset": {"n_accounts": len(account_ids), "n_laundering": len(eval_ids),
-                    "n_rings": n_true, "directory": directory},
+                    "n_rings": n_true, "n_est": n_est, "directory": directory},
         "baselines": baselines,
         "baselines_subgraph": subgraph,
     }

@@ -23,13 +23,19 @@ async def api_search(q: str = Query('', alias='q'), current_user: dict = Depends
 
 
 @router.get('/advanced')
+@db_retry()
 async def api_advanced_search(type: str = Query('', alias='type'),
-                               value: str = Query('', alias='value')):
+                               value: str = Query('', alias='value'),
+                               current_user: dict = Depends(get_current_user)):
     try:
         if not type or not value:
             raise HTTPException(status_code=400, detail="请指定搜索类型和关键词")
         from database.models import Case
-        cases = Case.query.order_by(Case.created_at.desc()).all()
+        from database.crud import apply_department_scope
+        # 部门 RBAC：非 admin 仅可见本部门案件
+        q = Case.query.order_by(Case.created_at.desc())
+        q = apply_department_scope(Case, q, current_user)
+        cases = q.all()
         results = []
         for c in cases:
             entities = c.extracted_entities or {}

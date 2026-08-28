@@ -32,6 +32,10 @@ class ClusterAgent(AgentProtocol):
         cases = context.get("cases", [])
         use_gnn = context.get("use_gnn", self.use_gnn)
         accounts_tx = context.get("accounts_tx")
+        # 会话绑定：gang_id 携带会话标识，避免跨会话团伙串库（crud 按 gang_id 增量补关联）
+        self._session_token = str(context.get("session_id") or "default")[:20]
+        # 反思调参结果（M2）：orchestrator._adjust_strategy 下传的 cluster_params
+        self._cluster_params = context.get("cluster_params") or {}
         if use_gnn and getattr(self, "gnn_detector", None) is None:
             # 惰性构建（当 use_gnn 与 __init__ 设置不一致时）
             from gnn import GangDetector
@@ -59,6 +63,8 @@ class ClusterAgent(AgentProtocol):
         self.llm = llm_client
         self.embedding_model = embedding_model
         self.use_gnn = use_gnn
+        # 会话标识兜底（run() 会从 context 覆盖；直接调 discover_gangs 时不崩）
+        self._session_token = "default"
         
         # 初始化 Agent 运行时
         self.runtime = AgentRuntime(
@@ -275,7 +281,7 @@ class ClusterAgent(AgentProtocol):
                          f"建议冻结关联收款账户 {len(freeze_candidates)} 个")
 
             gangs.append({
-                "gang_id": f"GANG_{gid:03d}",
+                "gang_id": f"GANG_{self._session_token}_{gid:03d}",
                 "gang_name": f"{most_common}犯罪团伙{gid + 1}号",
                 "total_cases": len(members),
                 "total_amount": total_amount,
@@ -464,8 +470,22 @@ class ClusterAgent(AgentProtocol):
     ) -> Tuple[List[int], float]:
         """执行聚类"""
         method = strategy["method"]
-        params = strategy["params"]
-        
+        params = dict(strategy["params"])
+
+        # 反思调参结果覆盖（M2）：orchestrator._adjust_strategy 下传的 cluster_params，
+        # 如 min_cluster_size / cluster_selection_epsilon 在重算轮覆盖默认值
+        cp = getattr(self, "_cluster_params", None) or {}
+        if method == "hdbscan" and cp:
+            params.update({k: v for k, v in cp.items() if k in ("min_cluster_size", "min_samples", "cluster_selection_epsilon")})
+        elif method == "hdbscan_with_umap" and cp:
+            hdbscan_params = dict(params.get("hdbscan_params", {}))
+            hdbscan_params.update({k: v for k, v in cp.items() if k in ("min_cluster_size", "min_samples", "cluster_selection_epsilon")})
+            params["hdbscan_params"] = hdbscan_params
+
+        # 样本过少时聚类无意义，诚实返回全噪声（0 团伙），避免 KMeans/HDBSCAN 崩溃
+        if len(embeddings) < 3:
+            return [-1] * len(embeddings), 0.0
+
         try:
             if method == "dbscan":
                 from sklearn.cluster import DBSCAN
@@ -490,9 +510,13 @@ class ClusterAgent(AgentProtocol):
                 labels = clusterer.fit_predict(reduced)
             
             else:
-                # 默认使用简单的 KMeans
+                # 默认使用简单的 KMeans（n_clusters 最小为 2，避免 KMeans(n_clusters=0/1) 崩溃
+                # 或产生"全部并为一团"的假团伙）
                 from sklearn.cluster import KMeans
-                n_clusters = min(5, len(embeddings) // 3)
+                n_samples = len(embeddings)
+                n_clusters = min(5, max(2, n_samples // 3))
+                if n_samples < n_clusters:
+                    n_clusters = max(2, n_samples)
                 clusterer = KMeans(n_clusters=n_clusters, random_state=42)
                 labels = clusterer.fit_predict(embeddings)
             
@@ -503,8 +527,10 @@ class ClusterAgent(AgentProtocol):
         
         except Exception as e:
             print(f"聚类失败: {e}")
-            # 返回默认结果（所有样本归为一类）
-            return [0] * len(embeddings), 0.0
+            # 诚实降级：标记所有样本为噪声（-1），由 _generate_gang_info 全部跳过，
+            # 输出 0 团伙而非"全部并为一案的假团伙"；orchestrator 反射层会据此判定
+            # has_enough_gangs=False 并重算/标记异常。
+            return [-1] * len(embeddings), 0.0
     
     def _calculate_quality_score(self, embeddings: np.ndarray, labels: List[int]) -> float:
         """计算聚类质量分数"""
@@ -588,7 +614,7 @@ class ClusterAgent(AgentProtocol):
             most_common_type = max(set(fraud_types), key=fraud_types.count)
             
             gang_info = {
-                "gang_id": f"GANG_{gang_id:03d}",
+                "gang_id": f"GANG_{self._session_token}_{gang_id:03d}",
                 "gang_name": f"{most_common_type}犯罪团伙{gang_id + 1}号",
                 "total_cases": len(gang_cases),
                 "total_amount": total_amount,

@@ -10,8 +10,8 @@
 
 ### 1.1 后端（扎实，核心能力过硬）
 
-- **编排器**：`orchestrator.py` 基于 LangGraph StateGraph 实现 plan → preprocess → analyze → cluster → reflect 条件闭环（不是手写顺序编排器）
-- **GNN**：HAN/GraphSAGE 已真实跑通，有三层实验验证（合成基线 + AMLSim 扩线 + Elliptic 边界）
+- **编排器**：`orchestrator.py` 手写顺序编排器（非 LangGraph），plan → preprocess → analyze → cluster → reflect 条件闭环
+- **GNN**：HAN/GraphSAGE 已跑通，三层实验验证（合成基线 + AMLSim 扩线 + Elliptic 边界）；注意：合成域有效、真实数据域待接入公安案卷验证（外部基准 F1 偏低，见 gnn/*_results.json）
 - **智能体**：analyst、cluster、chat、reflect、specialist、abnormal、demo 共 7 个 Agent
 - **异步**：Celery 任务队列支撑案例自动分析管道
 - **接口**：FastAPI 对外暴露 `/agent-analyze`、`/api/cases`、`/api/gangs` 等 REST 接口

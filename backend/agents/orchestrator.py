@@ -120,9 +120,14 @@ class OrchestratorAgent:
         self.state.status = WorkflowStatus.RUNNING
         self.state.input_data = {"cases": cases, "context": context or {}}
 
+        # 会话标识：优先沿用调用方传入的 session_id（前端/路由生成），保证 gang_id
+        # 等下游标识与会话绑定、跨会话不串库；未传入则按秒级时间戳兜底。
+        _ctx = context or {}
+        session_id = _ctx.get('session_id') or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+
         init: OrchestratorState = {
             "cases": cases,
-            "context": context or {},
+            "context": _ctx,
             "plan": {},
             "preprocessed": [],
             "analyzed_cases": [],
@@ -134,10 +139,10 @@ class OrchestratorAgent:
             "reflection": {},
             "should_retry": False,
             "error": None,
-            "session_id": "",
+            "session_id": session_id,
             "processing_time": 0.0,
             # B-L3：账户资金流转记录，下传聚类节点用于回流闭环检测
-            "accounts_tx": (context or {}).get("accounts_tx"),
+            "accounts_tx": _ctx.get("accounts_tx"),
             # B-L7：四单流转
             "slips": {},
             # B-L9 / B-L13
@@ -153,7 +158,8 @@ class OrchestratorAgent:
 
             analyzed = final.get("analyzed_cases", [])
             gang = final.get("gang_result", {})
-            session_id = f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            # 沿用 init 阶段确定的 session_id（优先调用方传入，避免跨会话串库）
+            session_id = final.get("session_id") or session_id
             processing_time = time.time() - start_time
 
             # B-L7：组装四单流转（警情单/研判单/指令单/反馈单）
@@ -262,6 +268,14 @@ class OrchestratorAgent:
                 result: Dict[str, Any] = {}
                 for ag in analyze_agents:
                     out = ag.run_safe({"case": case})
+                    if out.get("is_error"):
+                        # analyze 异常：保留原始案件字段，仅挂错误标记，避免"空壳进聚类"
+                        # 导致该案件在团伙发现阶段被静默丢弃（M3）。
+                        if not result:
+                            result = dict(case)
+                        result["is_error"] = True
+                        result["error"] = out.get("error", "analyze 异常")
+                        continue
                     result = {**result, **out}
                 for ag in augment_agents:
                     out = ag.run_safe({"case": case, "analyzed": result})
@@ -278,6 +292,10 @@ class OrchestratorAgent:
                 "cases": state["analyzed_cases"],
                 "use_gnn": use_gnn,
                 "accounts_tx": state.get("accounts_tx"),
+                # 会话绑定：让 gang_id 带上会话标识，防止跨会话串库
+                "session_id": state.get("session_id", ""),
+                # 反思调参结果真实下传（M2）：cluster_params 在首轮为空、重算轮有值
+                "cluster_params": (state["strategy"] or {}).get("cluster_params"),
             })
             return {
                 "gang_result": gang_result,
@@ -367,6 +385,18 @@ class OrchestratorAgent:
                 if abn:
                     out["abnormal"] = abn["abnormal"]
                     out["abnormal_detail"] = abn["detail"]
+                elif overall < self.quality_threshold:
+                    # 低置信且无重试机会（关闭反思/迭代已耗尽）：诚实标记而非静默 completed。
+                    # 迭代耗尽场景由 detect_abnormal 的 model_conflict 覆盖；此处兜底首轮低质。
+                    out["abnormal"] = "low_confidence"
+                    out["abnormal_detail"] = {
+                        "reason": f"整体质量分 {overall:.3f} 低于阈值 {self.quality_threshold}，且无重试机会",
+                        "quality_score": overall,
+                        "retry_count": retry_count,
+                        "max_iter": state["max_iter"],
+                        "stage": "reflection",
+                        "action": "人工复核结论后决策（置信度门控不阻断，仅标记）",
+                    }
             except Exception as e:
                 print(f"B-L13 异常检测失败: {e}")
 

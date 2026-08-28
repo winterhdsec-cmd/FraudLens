@@ -98,6 +98,17 @@ async def api_review_case(case_id: str, request: Request,
 
         new_status = body.get('status', '已复核')
         notes = body.get('notes', '')
+        # 状态流转必须走状态机（VALID_STATUS_TRANSITIONS），防止任意跳转
+        from database.crud import update_case_status, VALID_STATUS_TRANSITIONS
+        current_status = case.status or '待分析'
+        allowed = VALID_STATUS_TRANSITIONS.get(current_status, [])
+        if new_status != current_status and new_status not in allowed:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False,
+                         "error": f"非法状态流转：{current_status} → {new_status}"
+                                 f"（允许: {allowed}）"}
+            )
         case.status = new_status
         if notes:
             case.description = (case.description or '') + f'\n[复核备注] {notes}'

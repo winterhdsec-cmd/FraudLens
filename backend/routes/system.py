@@ -46,7 +46,9 @@ async def health_check():
 
 
 @router.post('/agent-analyze')
-async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user: dict = Depends(get_current_user)):
+def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user: dict = Depends(get_current_user)):
+    # 同步 def：全程无 await 的 CPU/IO 阻塞（orchestrator.process 秒级~分钟级），
+    # FastAPI 自动将其调度到线程池，避免阻塞事件循环导致 WebSocket/其他接口卡死（M6）。
     try:
         raw_messages = data.messages
         platform_data = data.platform_data
@@ -83,6 +85,27 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
             inc_analysis()
         except Exception:
             pass
+
+        # G11 同步模式幂等：基于消息内容哈希（不依赖 session_id，因为前端每次
+        # 点击都生成新 session），窗口内相同内容重复提交直接复用，不重复跑、不重复落库。
+        try:
+            from core.idempotency import _claim_sync_analysis
+            _claimed, _dedup_key = _claim_sync_analysis(raw_messages, platform_data)
+            if not _claimed:
+                from core.metrics_exporter import inc_analysis_dedup
+                try:
+                    inc_analysis_dedup()
+                except Exception:
+                    pass
+                return {
+                    "success": True,
+                    "session_id": session_id,
+                    "deduplicated": True,
+                    "message": "相同研判内容已在处理中，已去重（稍后可从会话列表查看结果）",
+                    "dedup_key": _dedup_key,
+                }
+        except Exception as _e:
+            logger.warning(f"同步幂等检查失败(放行): {_e}")
 
         # G7 审计：记录研判发起
         try:

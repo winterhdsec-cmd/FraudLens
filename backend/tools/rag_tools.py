@@ -36,13 +36,52 @@ class SearchKnowledgeTool(Tool):
     description = "在知识库中搜索相关信息，支持向量检索、关键词检索和混合检索"
     input_schema = SearchKnowledgeInput
     
+    async def aexecute(
+        self,
+        query: str,
+        top_k: int = 5,
+        strategy: str = "hybrid"
+    ) -> ToolOutput:
+        """执行搜索（异步版本，支持高级特性）"""
+        try:
+            kb = get_knowledge_base()
+            
+            # 使用异步搜索方法，支持查询改写和重排序
+            results = await kb.search_async(
+                query=query,
+                top_k=top_k,
+                strategy=strategy,
+                enable_rewrite=None,  # 使用默认配置
+                enable_rerank=None
+            )
+            
+            result_data = {
+                "query": query,
+                "strategy": strategy,
+                "results_count": len(results),
+                "results": [
+                    {
+                        "content": r.document.content,
+                        "score": r.score,
+                        "source": r.document.source,
+                        "metadata": r.document.metadata
+                    }
+                    for r in results
+                ]
+            }
+            
+            return ToolOutput(success=True, data=result_data)
+        
+        except Exception as e:
+            return ToolOutput(success=False, error=str(e))
+    
     def execute(
         self,
         query: str,
         top_k: int = 5,
         strategy: str = "hybrid"
     ) -> ToolOutput:
-        """执行搜索"""
+        """执行搜索（同步版本，向后兼容）"""
         try:
             kb = get_knowledge_base()
             
@@ -130,13 +169,47 @@ class RetrieveAndCompressContextTool(Tool):
     description = "检索相关知识并压缩为上下文，用于增强 LLM 生成"
     input_schema = SearchKnowledgeInput
     
+    async def aexecute(
+        self,
+        query: str,
+        top_k: int = 5,
+        strategy: str = "hybrid"
+    ) -> ToolOutput:
+        """执行检索和压缩（异步版本，支持高级特性）"""
+        try:
+            kb = get_knowledge_base()
+            
+            # 使用异步检索，支持查询改写和重排序
+            results = await kb.search_async(
+                query=query,
+                top_k=top_k,
+                strategy=strategy,
+                enable_rewrite=None,
+                enable_rerank=None
+            )
+            
+            # 压缩上下文
+            compressed_context = kb.compress_context(results, max_length=2000)
+            
+            result_data = {
+                "query": query,
+                "context": compressed_context,
+                "results_count": len(results),
+                "context_length": len(compressed_context)
+            }
+            
+            return ToolOutput(success=True, data=result_data)
+        
+        except Exception as e:
+            return ToolOutput(success=False, error=str(e))
+    
     def execute(
         self,
         query: str,
         top_k: int = 5,
         strategy: str = "hybrid"
     ) -> ToolOutput:
-        """执行检索和压缩"""
+        """执行检索和压缩（同步版本，向后兼容）"""
         try:
             kb = get_knowledge_base()
             

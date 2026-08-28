@@ -42,6 +42,14 @@ mysql-data/
 redis-data/
 DockerData/
 
+# 内置 Redis 运行时（dump.rdb / 日志），不入库
+backend/vendor/redis/runtime/
+
+# GNN 数据集与生成语料（GB 级，绝不入库；获取方式见 scripts/ 或 README）
+backend/gnn/amlsim_real/
+backend/data/datasets/
+*.npz
+
 # Drawio backup
 .*.bkp
 
@@ -66,3 +74,14 @@ docker/data.sql
 test_*.py
 request.json
 token.txt
+
+# 临时与备份（含密钥的 env 备份绝不入库）
+tmp/
+*.bak
+*.bak2
+backend/.env.min
+.ui-test/
+
+# 论文： tex/bib 源文件入库，下载的参考文献 PDF 与预览图不入库
+paper/参考文献/*.pdf
+paper/_ref_view/

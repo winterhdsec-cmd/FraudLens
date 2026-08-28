@@ -1,0 +1,19 @@
+# FraudLens — Grafana 数据源（G8, docs/13）
+# 由 grafana 容器在启动时自动加载（provisioning）。
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  # G10：Tempo 分布式追踪数据源（docs/09 #C46）
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: GET

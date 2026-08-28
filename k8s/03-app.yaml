@@ -1,0 +1,123 @@
+# FraudLens 应用层（backend + celery worker）
+# G15: liveness=/health(仅探进程存活) readiness=/ready(探 DB+Redis);滚动更新 maxUnavailable=0 保证零停机
+# G13/G15: 多副本 + HPA 自动扩缩; Celery 已 acks_late + reject_on_worker_lost 保证任务不丢
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraudlens-backend
+  namespace: fraudlens
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fraudlens-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: fraudlens-backend
+    spec:
+      containers:
+      - name: backend
+        image: fraudlens-backend:latest   # 生产替换为私有 registry 镜像地址
+        ports:
+        - containerPort: 5003
+        envFrom:
+        - configMapRef:
+            name: fraudlens-config
+        - secretRef:
+            name: fraudlens-secret
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 5003
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+        # G15 优雅退出: 容器收到 SIGTERM 后 uvicorn 停止接流并等待在途请求;
+        # terminationGracePeriodSeconds 在 Pod 层级设定(见下)
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraudlens-backend
+  namespace: fraudlens
+spec:
+  selector:
+    app: fraudlens-backend
+  ports:
+  - port: 5003
+    targetPort: 5003
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fraudlens-backend
+  namespace: fraudlens
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fraudlens-backend
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraudlens-celery
+  namespace: fraudlens
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fraudlens-celery
+  template:
+    metadata:
+      labels:
+        app: fraudlens-celery
+    spec:
+      containers:
+      - name: celery
+        image: fraudlens-backend:latest
+        command: ["celery", "-A", "celery_app.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--max-tasks-per-child=1000"]
+        envFrom:
+        - configMapRef:
+            name: fraudlens-config
+        - secretRef:
+            name: fraudlens-secret
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 2Gi
+      terminationGracePeriodSeconds: 60

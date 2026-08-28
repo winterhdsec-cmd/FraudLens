@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "description": "B-L4 资金回流闭环评测用账户流转边（合成、无真实敏感信息）。构造 G1 收款账户与两个马甲账户的回流环：main → mule1 → mule2 → main，用于验证 B-L3 回流闭环检测。G2/G3 账户不在本流转集中，应诚实保持 is_reflux=False（不产生假阳性）。",
+    "synthetic": true
+  },
+  "accounts_tx": [
+    {"from_account": "6228888800012345678", "to_account": "6228888800012345901", "amount": 12000, "timestamp": "2026-01-10 09:00:00"},
+    {"from_account": "6228888800012345901", "to_account": "6228888800012345902", "amount": 11800, "timestamp": "2026-01-10 10:00:00"},
+    {"from_account": "6228888800012345902", "to_account": "6228888800012345678", "amount": 11500, "timestamp": "2026-01-10 11:00:00"}
+  ]
+}

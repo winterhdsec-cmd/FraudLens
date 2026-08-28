@@ -1,0 +1,51 @@
+# FraudLens 开发验证覆盖（不提交到生产 compose）
+# 用法：
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# 作用：
+#   1. 复用现有 fraudlens-backend:latest 镜像（含全部第三方依赖），启动时为本次会话补装 langgraph
+#      （#30 LangGraph 反思闭环引入的新依赖，未进 requirements 前临时用此方式，避免全量重装 torch/transformers）
+#   2. 把宿主机当前后端源码整体挂进容器（所有源码目录 + 入口文件），使容器运行的是
+#      与 #30 重构一致的代码（已修复镜像 stale 导致的 /agent-analyze 500：旧 routes 仍引用已移除的 ChiefAgent；
+#      以及挂载 tools 后缺失 rag 包的问题）
+#   3. build: null 禁止 compose 在 up 时重新构建，直接用 :latest
+#
+# 正式修复：langgraph 已加入 backend/requirements.txt（见变更记录 #C4）；镜像 stale 的根因修复需全量重建镜像
+#          （随 #C3 的 rebuild 完成，届时可去掉本覆盖直接用 start.bat）。
+# 注意：仅用于本地接口验证；生产部署仍用 start.bat。镜像专属文件（static/docker/entrypoint.sh/reports）不挂载，由镜像提供。
+
+services:
+  backend:
+    build: null
+    image: fraudlens-backend:latest
+    environment:
+      ENV: "dev"
+    entrypoint:
+      - "sh"
+      - "-c"
+      - "pip install langgraph sentence-transformers -q -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn && /app/entrypoint.sh"
+    volumes:
+      - ./backend/agents:/app/agents
+      - ./backend/routes:/app/routes
+      - ./backend/schemas:/app/schemas
+      - ./backend/core:/app/core
+      - ./backend/tools:/app/tools
+      - ./backend/database:/app/database
+      - ./backend/gnn:/app/gnn
+      - ./backend/rag:/app/rag
+      - ./backend/utils:/app/utils
+      - ./backend/memory:/app/memory
+      - ./backend/data:/app/data
+      - ./backend/tests:/app/tests
+      - ./backend/scripts:/app/scripts
+      - ./backend/bge-large-zh-v1.5:/app/bge-large-zh-v1.5
+      - ./backend/requirements.txt:/app/requirements.txt
+      - ./backend/smoke_stage1.py:/app/smoke_stage1.py
+      - ./backend/smoke_stage2.py:/app/smoke_stage2.py
+      - ./backend/main.py:/app/main.py
+      - ./backend/tasks.py:/app/tasks.py
+      - ./backend/celery_app.py:/app/celery_app.py
+
+  celery:
+    environment:
+      ENV: "dev"

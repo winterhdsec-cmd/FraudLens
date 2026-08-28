@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "description": "FraudLens 业务主链路端到端评测 fixtures（合成、无真实敏感信息）。3 个团伙共 8 案，团伙内通过共享实体（银行账户/手机号/微信/QQ）关联；金额一律用中文写法，避免纯数字串被误抽为 QQ。用于 B-L4 端到端评测闭环：实体抽取 P/R/F1 + 团伙发现 BCubed-F1。",
+    "n_cases": 8,
+    "n_gangs": 3,
+    "synthetic": true
+  },
+  "cases": [
+    {
+      "case_id": "c1",
+      "scam_type": "刷单返利类诈骗",
+      "amount": 12000,
+      "description": "受害人李女士报案，称在微信群看到刷单返利广告，添加客服后被诱导转账。对方提供收款银行账户 6228 8888 0001 2345 678，并让其拨打手机号 138 0000 1111 确认订单。损失约一万二千元。"
+    },
+    {
+      "case_id": "c2",
+      "scam_type": "刷单返利类诈骗",
+      "amount": 8000,
+      "description": "王先生称遭遇刷单返利诈骗，对方使用银行账户 6228 8888 0001 2345 678 收款，并通过手机号 138 0000 1111 联系受害人。损失八千元。"
+    },
+    {
+      "case_id": "c3",
+      "scam_type": "刷单返利类诈骗",
+      "amount": 15000,
+      "description": "赵女士报案，刷单返利骗局，收款账户 6228 8888 0001 2345 678 与前述案件相同，损失一万五千元。"
+    },
+    {
+      "case_id": "c4",
+      "scam_type": "冒充客服类诈骗",
+      "amount": 20000,
+      "description": "受害人孙先生称接到冒充客服退款电话，对方微信号 wxid_fraudkefu001，QQ 800123456 要求加好友办理退款，诱导转账两万元。"
+    },
+    {
+      "case_id": "c5",
+      "scam_type": "冒充客服类诈骗",
+      "amount": 30000,
+      "description": "周女士被冒充客服诈骗，对方微信号 wxid_fraudkefu001、QQ 800123456 以注销会员为由骗走三万元。"
+    },
+    {
+      "case_id": "c6",
+      "scam_type": "冒充客服类诈骗",
+      "amount": 18000,
+      "description": "吴先生报案，冒充客服退款，加微信号 wxid_fraudkefu001 后按指示操作，损失一万八千元。"
+    },
+    {
+      "case_id": "c7",
+      "scam_type": "虚假投资理财类诈骗",
+      "amount": 50000,
+      "description": "郑女士称参与虚假投资理财，平台客服提供入金账户 6217 0000 9999 8888 777，承诺高收益，损失五万元。"
+    },
+    {
+      "case_id": "c8",
+      "scam_type": "虚假投资理财类诈骗",
+      "amount": 35000,
+      "description": "冯先生报案，虚假投资平台，收款银行账户 6217 0000 9999 8888 777 与其朋友所述一致，损失三万五千元。"
+    }
+  ],
+  "ground_truth": {
+    "entities": {
+      "c1": {"bank_accounts": ["6228888800012345678"], "phone_numbers": ["13800001111"], "wechat_ids": [], "qq_numbers": []},
+      "c2": {"bank_accounts": ["6228888800012345678"], "phone_numbers": ["13800001111"], "wechat_ids": [], "qq_numbers": []},
+      "c3": {"bank_accounts": ["6228888800012345678"], "phone_numbers": [], "wechat_ids": [], "qq_numbers": []},
+      "c4": {"bank_accounts": [], "phone_numbers": [], "wechat_ids": ["wxid_fraudkefu001"], "qq_numbers": ["800123456"]},
+      "c5": {"bank_accounts": [], "phone_numbers": [], "wechat_ids": ["wxid_fraudkefu001"], "qq_numbers": ["800123456"]},
+      "c6": {"bank_accounts": [], "phone_numbers": [], "wechat_ids": ["wxid_fraudkefu001"], "qq_numbers": []},
+      "c7": {"bank_accounts": ["6217000099998888777"], "phone_numbers": [], "wechat_ids": [], "qq_numbers": []},
+      "c8": {"bank_accounts": ["6217000099998888777"], "phone_numbers": [], "wechat_ids": [], "qq_numbers": []}
+    },
+    "gangs": [
+      {"gang_id": "G1", "case_ids": ["c1", "c2", "c3"]},
+      {"gang_id": "G2", "case_ids": ["c4", "c5", "c6"]},
+      {"gang_id": "G3", "case_ids": ["c7", "c8"]}
+    ]
+  }
+}

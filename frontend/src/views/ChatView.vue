@@ -9,13 +9,13 @@
       </div>
       <div class="header-actions">
         <button @click="showHistory = !showHistory" class="btn-icon" title="会话历史">
-          <span>📋</span>
+          <span><el-icon><Files /></el-icon></span>
         </button>
         <button @click="newSession" class="btn-icon" title="新会话">
           <span>➕</span>
         </button>
         <button @click="clearSession" class="btn-icon btn-danger" title="清空对话">
-          <span>🗑️</span>
+          <span><el-icon><Delete /></el-icon></span>
         </button>
       </div>
     </div>
@@ -85,20 +85,41 @@
         <div
           v-for="(msg, index) in messages"
           :key="index"
-          :class="['message', msg.role]"
+          :class="['message', msg.role, { streaming: msg.isStreaming }]"
         >
           <div class="message-avatar">
-            <span v-if="msg.role === 'user'">👤</span>
-            <span v-else>🤖</span>
+            <span v-if="msg.role === 'user'"><el-icon><User /></el-icon></span>
+            <span v-else><el-icon><Cpu /></el-icon></span>
           </div>
           <div class="message-content">
-            <div class="message-text" v-html="formatMessage(msg.content)"></div>
+            <!-- 工具调用状态 -->
+            <div v-if="msg.metadata && msg.metadata.tool_status" class="tool-status">
+              <span class="tool-status-icon">⚙️</span>
+              <span class="tool-status-text">{{ msg.metadata.tool_status }}</span>
+            </div>
+            
+            <!-- 消息内容 -->
+            <div class="message-text-wrapper">
+              <div class="message-text" v-html="formatMessage(msg.content)"></div>
+              <!-- 流式打字光标 -->
+              <span v-if="msg.isStreaming && msg.content" class="typing-cursor">▋</span>
+            </div>
+            
+            <!-- 空内容时的加载指示 -->
+            <div v-if="msg.isStreaming && !msg.content" class="streaming-placeholder">
+              <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            
             <div class="message-meta" v-if="msg.metadata && (msg.metadata.intent || msg.metadata.tool_used)">
               <span v-if="msg.metadata.intent" class="meta-tag intent">
-                🎯 {{ msg.metadata.intent }}
+                <el-icon><Aim /></el-icon> {{ msg.metadata.intent }}
               </span>
               <span v-if="msg.metadata.tool_used" class="meta-tag tool">
-                🔧 {{ msg.metadata.tool_used }}
+                <el-icon><Tools /></el-icon> {{ msg.metadata.tool_used }}
               </span>
               <span v-if="msg.metadata.duration_seconds" class="meta-tag duration">
                 ⏱️ {{ msg.metadata.duration_seconds.toFixed(2) }}s
@@ -111,7 +132,7 @@
         </div>
 
         <div v-if="isLoading" class="message assistant loading">
-          <div class="message-avatar">🤖</div>
+          <div class="message-avatar"><el-icon><Cpu /></el-icon></div>
           <div class="message-content">
             <div class="typing-indicator">
               <span></span>
@@ -144,7 +165,7 @@
         </div>
         <div class="input-footer">
           <div class="input-hints">
-            <span class="hint-text">💡 支持查询案件、搜索相似案例、统计分析、知识库检索</span>
+            <span class="hint-text"><el-icon><InfoFilled /></el-icon> 支持查询案件、搜索相似案例、统计分析、知识库检索</span>
           </div>
           <div class="input-actions">
             <button @click="showShortcuts = !showShortcuts" class="btn-shortcut" title="快捷指令">
@@ -334,39 +355,120 @@ export default {
       error.value = null;
       scrollToBottom();
 
+      // 添加助手消息占位符（用于流式更新）
+      const assistantMessage = {
+        role: 'assistant',
+        content: '',
+        metadata: {},
+        timestamp: new Date().toISOString(),
+        isStreaming: true
+      };
+      messages.value.push(assistantMessage);
+
       try {
-        const response = await api.post('/api/chat/message', {
-          message: message,
-          session_id: sessionId.value
+        // 使用 fetch API 读取 SSE 流
+        const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5003';
+        const token = localStorage.getItem('token');
+        
+        const response = await fetch(`${API_BASE}/api/chat/message/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({
+            message: message,
+            session_id: sessionId.value
+          })
         });
 
-        const data = response.data;
-        
-        if (data.session_id) {
-          sessionId.value = data.session_id;
-          updateSessionInfo(data.session_id, message);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
 
-        messages.value.push({
-          role: 'assistant',
-          content: data.response,
-          metadata: {
-            intent: data.intent,
-            tool_used: data.tool_used,
-            duration_seconds: data.metadata?.duration_seconds
-          },
-          timestamp: new Date().toISOString()
-        });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          
+          // 解析 SSE 事件
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留未完成的行
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const eventData = JSON.parse(line.slice(6));
+                
+                // 处理不同类型的事件
+                switch (eventData.type) {
+                  case 'intent':
+                    assistantMessage.metadata.intent = eventData.content;
+                    break;
+                  
+                  case 'tool_start':
+                    assistantMessage.metadata.tool_status = `正在调用: ${eventData.content}`;
+                    break;
+                  
+                  case 'tool_end':
+                    assistantMessage.metadata.tool_status = eventData.content;
+                    break;
+                  
+                  case 'token':
+                    // 流式追加文本内容
+                    assistantMessage.content += eventData.content;
+                    scrollToBottom();
+                    break;
+                  
+                  case 'done':
+                    assistantMessage.isStreaming = false;
+                    if (eventData.metadata) {
+                      assistantMessage.metadata = {
+                        ...assistantMessage.metadata,
+                        ...eventData.metadata
+                      };
+                      if (eventData.metadata.session_id) {
+                        sessionId.value = eventData.metadata.session_id;
+                        updateSessionInfo(eventData.metadata.session_id, message);
+                      }
+                    }
+                    break;
+                  
+                  case 'error':
+                    assistantMessage.content += `\n\n[错误] ${eventData.content}`;
+                    assistantMessage.isStreaming = false;
+                    break;
+                }
+                
+                // 触发响应式更新
+                messages.value = [...messages.value];
+                
+              } catch (parseError) {
+                console.warn('Failed to parse SSE event:', parseError, line);
+              }
+            }
+          }
+        }
+
+        // 确保流结束标记
+        assistantMessage.isStreaming = false;
+        messages.value = [...messages.value];
 
       } catch (err) {
-        console.error('Chat error:', err);
-        error.value = err.response?.data?.detail || '发送消息失败，请重试';
+        console.error('Chat stream error:', err);
+        error.value = err.message || '发送消息失败，请重试';
         
-        messages.value.push({
-          role: 'assistant',
-          content: '抱歉，处理您的消息时出现了问题。请稍后再试。',
-          timestamp: new Date().toISOString()
-        });
+        // 更新助手消息为错误提示
+        assistantMessage.content = '抱歉，处理您的消息时出现了问题。请稍后再试。';
+        assistantMessage.isStreaming = false;
+        messages.value = [...messages.value];
       } finally {
         isLoading.value = false;
         scrollToBottom();
@@ -950,7 +1052,8 @@ export default {
 }
 
 /* 加载动画 */
-.loading .typing-indicator {
+.loading .typing-indicator,
+.streaming-placeholder .typing-indicator {
   display: flex;
   gap: 6px;
   padding: 8px 0;
@@ -982,6 +1085,80 @@ export default {
     transform: translateY(-10px);
     opacity: 1;
   }
+}
+
+/* 流式输出样式 */
+.message.streaming {
+  animation: fadeIn 0.3s ease-in, pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.typing-cursor {
+  display: inline-block;
+  color: var(--accent-cyan);
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  50.01%, 100% {
+    opacity: 0;
+  }
+}
+
+.tool-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(0, 198, 255, 0.08);
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--accent-cyan);
+  animation: slideInLeft 0.3s ease;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tool-status-icon {
+  font-size: 14px;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tool-status-text {
+  font-weight: 500;
 }
 
 /* 输入区域 */

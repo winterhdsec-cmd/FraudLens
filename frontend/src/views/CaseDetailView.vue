@@ -2,11 +2,11 @@
 <div class="view-section">
           <div v-if="!selectedCase" class="empty-state" style="margin-top: 60px;">
             <div class="empty-content">
-              <div class="empty-icon">🔍</div>
+              <div class="empty-icon"><el-icon><Search /></el-icon></div>
               <h3 class="empty-title">请先选择案件</h3>
               <p class="empty-desc">请前往"案件总览"页面选择具体案件，查看详细分析</p>
               <el-button type="primary" size="large" @click="router.push({ name: 'overview' })">
-                <span>📊</span> 前往案件总览
+                <span><el-icon><DataAnalysis /></el-icon></span> 前往案件总览
               </el-button>
             </div>
           </div>
@@ -14,7 +14,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">🔍</span>
+                <span class="title-icon"><el-icon><Search /></el-icon></span>
                 案件详情
               </h2>
               <p class="section-desc">查看选中案件的详细信息、受害人和证据材料</p>
@@ -26,7 +26,7 @@
               <div class="case-header-card">
                 <div class="case-header-top">
                   <div class="case-icon-wrapper">
-                    <span class="case-icon">🔍</span>
+                    <span class="case-icon"><el-icon><Search /></el-icon></span>
                   </div>
                   <div class="case-header-info">
                     <h3 class="case-title">{{ selectedCase.title }}</h3>
@@ -35,18 +35,21 @@
                         {{ selectedCase.status }}
                       </el-tag>
                       <span class="meta-item">
-                        <span class="meta-icon">📋</span>
+                        <span class="meta-icon"><el-icon><Files /></el-icon></span>
                         案件编号：{{ selectedCase.id }}
                       </span>
                       <span class="meta-item">
-                        <span class="meta-icon">📅</span>
+                        <span class="meta-icon"><el-icon><Calendar /></el-icon></span>
                         立案时间：{{ selectedCase.date || '—' }}
                       </span>
                     </div>
                   </div>
                   <div class="case-header-actions">
+                    <el-button type="success" @click="goToWorkbench">
+                      <span><el-icon><Tools /></el-icon></span> 进入工作台
+                    </el-button>
                     <el-button type="primary" @click="router.push({ name: 'report', query: { gangId: selectedCase.gang } })">
-                      <span>📄</span> 生成报告
+                      <span><el-icon><Document /></el-icon></span> 生成报告
                     </el-button>
                   </div>
                 </div>
@@ -76,7 +79,7 @@
                     <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">📝 AI 研判结论</h4>
+                          <h4 class="overview-title"><el-icon><EditPen /></el-icon> AI 研判结论</h4>
                           <div v-if="parsedReport.partA" class="report-part-a">
                             <div v-for="(line, li) in parsedReport.partA.split('\n')" :key="li" class="report-line" :class="{ 'report-heading': line.startsWith('###'), 'report-item': line.match(/^\d+\./) }">
                               <template v-if="line.startsWith('###')">
@@ -101,7 +104,7 @@
                           <p v-else class="overview-content">{{ selectedCase.description }}</p>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">👤 受害人信息</h4>
+                          <h4 class="overview-title"><el-icon><User /></el-icon> 受害人信息</h4>
                           <div class="info-grid">
                             <div class="info-item">
                               <span class="info-label">姓名</span>
@@ -130,7 +133,7 @@
                           </div>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">📞 涉案通讯信息</h4>
+                          <h4 class="overview-title"><el-icon><Phone /></el-icon> 涉案通讯信息</h4>
                           <div class="info-grid">
                             <div class="info-item">
                               <span class="info-label">诈骗号码</span>
@@ -156,7 +159,7 @@
                   <el-tab-pane label="资金流向" name="money">
                     <div class="money-section">
                       <div class="money-header">
-                        <span class="money-icon">💰</span>
+                        <span class="money-icon"><el-icon><Money /></el-icon></span>
                         <span class="money-title">资金流向追踪</span>
                         <el-button type="primary" size="small" @click="navigateTo('capital')" style="margin-left:auto">查看完整图谱</el-button>
                       </div>
@@ -198,7 +201,7 @@
                   <el-tab-pane label="调查进展" name="progress">
                     <div class="method-section">
                       <div class="method-header">
-                        <span class="method-icon">📊</span>
+                        <span class="method-icon"><el-icon><DataAnalysis /></el-icon></span>
                         <span class="method-title">案件调查进展</span>
                       </div>
                       <div class="investigation-timeline">
@@ -223,11 +226,11 @@
                     <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">🎯 案件特征雷达</h4>
+                          <h4 class="overview-title"><el-icon><Aim /></el-icon> 案件特征雷达</h4>
                           <div ref="caseRadarRef" class="case-radar-chart"></div>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">🎯 行为特征分析</h4>
+                          <h4 class="overview-title"><el-icon><Aim /></el-icon> 行为特征分析</h4>
                           <div class="info-grid">
                             <div class="info-item"><span class="info-label">作案时段</span><span class="info-value">{{ selectedCase.peakHours || '—' }}</span></div>
                             <div class="info-item"><span class="info-label">目标群体</span><span class="info-value">{{ selectedCase.targetGroup || '—' }}</span></div>
@@ -236,7 +239,7 @@
                           </div>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">🧠 话术特征</h4>
+                          <h4 class="overview-title"><el-icon><ChatDotRound /></el-icon> 话术特征</h4>
                           <div class="tag-cloud">
                             <el-tag v-for="(kw, i) in (selectedCase.keywords || ['冒充客服','征信诈骗','屏幕共享','安全账户','转账验证'])" :key="i" :type="i % 3 === 0 ? 'danger' : i % 3 === 1 ? 'warning' : 'info'" size="small" style="margin: 4px">{{ kw }}</el-tag>
                           </div>
@@ -248,12 +251,12 @@
                     <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">🔗 关联案件</h4>
+                          <h4 class="overview-title"><el-icon><Link /></el-icon> 关联案件</h4>
                           <p class="overview-content" v-if="selectedCaseGang && selectedCaseGang.related_cases">{{ selectedCaseGang.gang_name }} 共关联 {{ selectedCaseGang.related_cases.length }} 个案件</p>
                           <p class="overview-content" v-else>{{ selectedCase?.gang ? '当前案件所属团伙暂无其他关联案件' : '当前案件暂未关联到任何团伙' }}</p>
                         </div>
                         <div class="overview-section">
-                          <h4 class="overview-title">👥 所属团伙</h4>
+                          <h4 class="overview-title"><el-icon><User /></el-icon> 所属团伙</h4>
                           <div class="tag-cloud">
                             <el-tag v-if="selectedCaseGang" type="danger" size="small" style="margin:4px;cursor:pointer" @click="viewRelatedGang(selectedCaseGang.gang_id || selectedCaseGang.id)">{{ selectedCaseGang.gang_name || selectedCaseGang.name }}</el-tag>
                             <el-tag v-else type="info" size="small">暂未关联团伙</el-tag>
@@ -281,10 +284,10 @@
                     <div class="timeline-section">
                       <div class="case-overview">
                         <div class="overview-section">
-                          <h4 class="overview-title">📋 建议处置措施</h4>
+                          <h4 class="overview-title"><el-icon><Files /></el-icon> 建议处置措施</h4>
                           <div class="suggestion-list">
                             <div class="suggestion-item" v-if="parsedReport.partA">
-                              <span class="suggestion-icon">📋</span>
+                              <span class="suggestion-icon"><el-icon><Files /></el-icon></span>
                               <span>根据AI研判结论，系统已自动生成处置建议。请结合实际情况制定具体措施。</span>
                             </div>
                             <div class="suggestion-item" v-for="(item, idx) in (selectedCase.suggestions || defaultSuggestions)" :key="idx">
@@ -303,11 +306,11 @@
             <div class="detail-sidebar">
               <div class="sidebar-section">
                 <div class="section-title-bar">
-                  <span class="section-icon">📋</span>
+                  <span class="section-icon"><el-icon><Files /></el-icon></span>
                   <span class="section-title-text">证据材料</span>
                 </div>
                 <div class="evidence-list">
-                  <div v-for="(ev, idx) in selectedCase.evidence || caseEvidence" :key="idx" class="evidence-item">
+                  <div v-for="(ev, idx) in (selectedCase.evidence?.length ? selectedCase.evidence : caseEvidence)" :key="idx" class="evidence-item">
                     <span class="evidence-icon">{{ ev.icon }}</span>
                     <div class="evidence-info">
                       <div class="evidence-name">{{ ev.name }}</div>
@@ -318,24 +321,27 @@
                       </div>
                     </div>
                   </div>
+                  <div v-if="!(selectedCase.evidence?.length || caseEvidence.length)" class="evidence-empty">
+                    <el-empty description="暂无证据数据" :image-size="60" />
+                  </div>
                 </div>
               </div>
 
               <div class="sidebar-section">
                 <div class="section-title-bar">
-                  <span class="section-icon">🕵️</span>
+                  <span class="section-icon"><el-icon><View /></el-icon></span>
                   <span class="section-title-text">办案民警</span>
                 </div>
                 <div class="member-list">
                   <div class="member-item">
-                    <span class="member-avatar">👮</span>
+                    <span class="member-avatar"><el-icon><UserFilled /></el-icon></span>
                     <div class="member-info">
                       <span class="member-name">张警官 <span style="font-size:10px;color:#94a3b8">(演示)</span></span>
                       <span class="member-role">主办民警</span>
                     </div>
                   </div>
                   <div class="member-item">
-                    <span class="member-avatar">👮</span>
+                    <span class="member-avatar"><el-icon><UserFilled /></el-icon></span>
                     <div class="member-info">
                       <span class="member-name">李警官 <span style="font-size:10px;color:#94a3b8">(演示)</span></span>
                       <span class="member-role">协办民警</span>
@@ -370,7 +376,7 @@
 
               <div class="sidebar-section">
                 <div class="section-title-bar">
-                  <span class="section-icon">🔗</span>
+                  <span class="section-icon"><el-icon><Link /></el-icon></span>
                   <span class="section-title-text">所属团伙</span>
                 </div>
                 <div class="tag-cloud">
@@ -383,12 +389,12 @@
 
               <div class="sidebar-section">
                 <div class="section-title-bar">
-                  <span class="section-icon">💰</span>
+                  <span class="section-icon"><el-icon><Money /></el-icon></span>
                   <span class="section-title-text">资金流向</span>
                 </div>
                 <div class="sidebar-action">
                   <el-button size="small" style="width:100%" @click="goToCapitalFlow">
-                    <span>💰</span> 查看资金流向图
+                    <span><el-icon><Money /></el-icon></span> 查看资金流向图
                   </el-button>
                 </div>
               </div>
@@ -443,6 +449,13 @@ const {
 const reviewDialogVisible = ref(false)
 const reviewForm = ref({ status: '已复核', notes: '' })
 const reviewSubmitting = ref(false)
+
+// 进入办案工作台（携带 case_id 以便工作台自动选中）
+const goToWorkbench = () => {
+  if (!selectedCase.value) return
+  const cid = selectedCase.value.case_id || selectedCase.value.id
+  router.push({ name: 'workbench', query: cid ? { case_id: cid } : {} })
+}
 
 const selectedCaseGang = computed(() => {
   if (!selectedCase.value || !gangs.value) return null

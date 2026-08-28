@@ -232,6 +232,35 @@ class InputValidator:
             return True  # 未知类型，跳过检查
         
         return isinstance(value, expected)
+    
+    def sanitize_input(self, text: str) -> str:
+        """
+        清理输入文本
+        
+        Args:
+            text: 输入文本
+        
+        Returns:
+            清理后的文本
+        """
+        if not text:
+            return text
+        
+        # 移除HTML标签
+        sanitized = re.sub(r"<[^>]+>", "", text)
+        
+        # 移除SQL注入常见模式
+        sql_patterns = [
+            r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER)\b)",
+            r"(--|;|/\*|\*/)",
+        ]
+        for pattern in sql_patterns:
+            sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE)
+        
+        # 移除多余空白
+        sanitized = re.sub(r"\s+", " ", sanitized).strip()
+        
+        return sanitized
 
 
 class ToolCallValidator:

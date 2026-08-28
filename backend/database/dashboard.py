@@ -63,6 +63,8 @@ def get_dashboard_data():
         pass
 
     total_cases = Case.query.count()
+    demo_cases_count = Case.query.filter(Case.is_demo == True).count()
+    real_cases_count = total_cases - demo_cases_count
     total_gangs = Gang.query.count()
 
     total_amount = db.session.query(func.sum(Case.amount_value)).scalar() or 0.0
@@ -199,6 +201,8 @@ def get_dashboard_data():
 
     data = {
         'total_cases': total_cases,
+        'demo_cases_count': demo_cases_count,
+        'real_cases_count': real_cases_count,
         'total_gangs': total_gangs,
         'total_amount': round(total_amount, 2),
         'total_amount_formatted': total_amount_formatted,

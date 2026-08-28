@@ -9,16 +9,19 @@ import traceback
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from typing import Optional
 
 from .deps import (
     logger, USE_CELERY, ProgressAdapter, progress_store, progress_locks,
-    AnalyzeRequest, get_current_user, log_operation
+    get_current_user, log_operation
 )
+from schemas.analysis import AnalyzeRequest
+from schemas.admin import APIKeyUpdateRequest
 from core.metrics import list_all_metrics
 from core.circuit_breaker import list_circuit_breakers
 from core.checkpoint import get_checkpoint_manager
+from core.llm_client import get_llm_client
+from database import db
 
 router = APIRouter(tags=['系统'])
 
@@ -52,42 +55,105 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
             raise HTTPException(status_code=400, detail="没有收到消息内容或平台数据")
         if USE_CELERY:
             from tasks import run_analysis_task
-            task = run_analysis_task.delay(raw_messages, session_id)
+            from core.idempotency import claim_analysis_task
+            # G11：确定性 task_id + Redis SETNX 去重，窗口内重复提交不重复跑
+            task_id, is_new = claim_analysis_task(session_id, raw_messages, platform_data)
+            if is_new:
+                task = run_analysis_task.apply_async(
+                    args=(raw_messages, session_id, data.accounts_tx), task_id=task_id
+                )
+            try:
+                from core.metrics_exporter import inc_analysis
+                inc_analysis()
+            except Exception:
+                pass
             return {
                 "success": True,
-                "task_id": task.id,
+                "task_id": task_id,
                 "session_id": session_id,
-                "message": "分析任务已提交到队列"
+                "deduplicated": (not is_new),
+                "message": "分析任务已提交到队列" if is_new else "相同参数任务已在队列中，已去重"
             }
         logger.info("=" * 60)
         logger.info("反诈研判官Agent启动智能研判流程 (同步模式)...")
         logger.info(f"会话ID: {session_id}")
         logger.info("=" * 60)
-        
+        try:
+            from core.metrics_exporter import inc_analysis
+            inc_analysis()
+        except Exception:
+            pass
+
+        # G7 审计：记录研判发起
+        try:
+            log_operation(
+                current_user['id'], current_user.get('username', ''),
+                'agent_analyze_start', 'session', session_id,
+                {'mode': 'celery' if USE_CELERY else 'sync'},
+                ip_address=request.client.host if request.client else ''
+            )
+        except Exception as _e:
+            logger.warning(f"研判发起留痕失败: {_e}")
+
         # 使用新的 OrchestratorAgent
         from agents.orchestrator import OrchestratorAgent
-        
+
         progress_adapter = ProgressAdapter(session_id)
         progress_adapter.emit('analysis_progress', {
             'stage': 'init', 'stage_name': '初始化', 'status': 'running',
             'progress': 0, 'progress_percent': 0, 'message': '初始化分析引擎'
         })
-        
-        orchestrator = OrchestratorAgent()
+
+        orchestrator = OrchestratorAgent(llm_client=get_llm_client())
         
         # 将消息格式转换为案件列表
         cases = []
         for msg in raw_messages:
             if isinstance(msg, dict):
-                cases.append(msg)
+                # 兼容聊天格式 {role, content}：把 content 提取为 description，
+                # 否则按通用字段透传（保留 description/case_id 等）
+                content = msg.get("content") or msg.get("description") or ""
+                if content:
+                    extra = {k: v for k, v in msg.items() if k not in ("role", "content")}
+                    cases.append({
+                        "description": content,
+                        "case_id": msg.get("case_id", f"case_{len(cases)}"),
+                        **extra,
+                    })
             elif isinstance(msg, str):
                 cases.append({
                     "description": msg,
                     "case_id": f"case_{len(cases)}"
                 })
         
-        result = orchestrator.process(cases)
-        
+        result = orchestrator.process(cases, context={"accounts_tx": data.accounts_tx})
+
+        # G3 资源级 RBAC：研判产出的案件/团伙按分析人部门归口（行级隔离）
+        try:
+            from database.models import Case as _Case, Gang as _Gang
+            _dept = current_user.get('department', '') or ''
+            _sid = result.get('session_id', session_id)
+            _Case.query.filter_by(session_id=_sid).update(
+                {_Case.department: _dept}, synchronize_session=False)
+            _Gang.query.filter_by(session_id=_sid).update(
+                {_Gang.department: _dept}, synchronize_session=False)
+            db.session.commit()
+        except Exception as _e:
+            db.session.rollback()
+            logger.warning(f"研判部门归口失败(不影响返回): {_e}")
+
+        # G7 审计：发起研判已记录于下方；此处记一次"分析完成"
+        try:
+            log_operation(
+                current_user['id'], current_user.get('username', ''),
+                'agent_analyze_complete', 'session', session_id,
+                {'total_cases': result.get('statistics', {}).get('total_cases', 0),
+                 'total_gangs': len(result.get('gangs', []))},
+                ip_address=request.client.host if request.client else ''
+            )
+        except Exception as _e:
+            logger.warning(f"研判完成留痕失败: {_e}")
+
         progress_adapter.emit('analysis_complete', {
             'success': result.get('status') == 'completed',
             'total_cases': result.get('statistics', {}).get('total_cases', 0),
@@ -98,8 +164,58 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
         logger.info("=" * 60)
         logger.info("智能研判完成！")
         logger.info("=" * 60)
-        
+
+        # A4.2 冻卡决策持久化（独立 try，失败不影响研判返回）
+        try:
+            from database.crud import persist_freeze_decisions
+            _gangs = result.get('gangs', [])
+            persist_freeze_decisions(
+                _gangs,
+                session_id=result.get('session_id', session_id),
+            )
+            # G8：冻卡决策计数
+            try:
+                from core.metrics_exporter import inc_freeze
+                inc_freeze(len(_gangs))
+            except Exception:
+                pass
+        except Exception as _e:
+            logger.warning(f"冻卡决策落库失败(不影响研判返回): {_e}")
+
+        # 【P0 修复】研判产出的团伙-案件关联必须落库 GangCaseRelation
+        # 旧版只写 Gang 表 + FreezeDecision，但 GangCaseRelation 是空的，
+        # 导致前端 getCaseGang 永远返回 undefined，案件卡片不显示所属团伙。
+        try:
+            from database.crud import save_gang, _cache_clear
+            _gangs_for_rel = result.get('gangs', []) or []
+            _saved_count = 0
+            for g in _gangs_for_rel:
+                # gang_detector / cluster_agent 产出的是 case_ids（字符串数组），
+                # save_gang 已兼容该格式，并自动生成关联理由。
+                # 补充 relation_type 标记来源为 GNN 研判
+                g.setdefault('relation_type', 'gnn_cluster')
+                # 用团伙置信度作为默认 similarity
+                if 'confidence' in g and 'case_ids' in g:
+                    g.setdefault('relation_reasons', {})
+                try:
+                    save_gang(g, session_id=result.get('session_id', session_id))
+                    _saved_count += 1
+                except Exception as _ge:
+                    logger.warning(f"团伙 {g.get('gang_id')} 关联落库失败: {_ge}")
+            if _saved_count:
+                logger.info(f"团伙-案件关联已落库: {_saved_count} 个团伙")
+                _cache_clear()  # 清除 gangs 列表缓存，让前端立即看到新关联
+        except Exception as _e:
+            logger.warning(f"团伙关联落库失败(不影响研判返回): {_e}")
+
         # 转换结果格式以兼容前端
+        # REQ-S7 失败边界诚实提示：把 orchestrator 已算出的 abnormal / 低质量分
+        # 透传为前端可渲染的 warnings（不再硬编码空数组），并附带四单流转 slips。
+        try:
+            from agents.schemas import build_warnings
+            warnings = build_warnings(result)
+        except Exception:
+            warnings = []
         return {
             'success': result.get('status') == 'completed',
             'total_cases': result.get('statistics', {}).get('total_cases', 0),
@@ -113,7 +229,10 @@ async def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user
             'processing_info': {
                 'processing_time': result.get('statistics', {}).get('processing_time', 0)
             },
-            'warnings': [],
+            'slips': result.get('slips', {}),
+            'abnormal': result.get('abnormal', 'none'),
+            'abnormal_detail': result.get('abnormal_detail'),
+            'warnings': warnings,
             'error': result.get('error'),
             'message': '分析完成' if result.get('status') == 'completed' else '分析失败'
         }
@@ -187,8 +306,8 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
     try:
         if USE_CELERY:
             try:
-                import redis as _redis
-                r = _redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
+                from core.redis_pool import get_redis_client
+                r = get_redis_client()
                 pubsub = r.pubsub()
                 pubsub.subscribe(f'progress:{session_id}')
                 while True:
@@ -231,10 +350,7 @@ async def websocket_progress(websocket: WebSocket, session_id: str):
 _KEY_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'key.env')
 
 
-class APIKeyUpdateRequest(BaseModel):
-    api_key: str
-    base_url: Optional[str] = None
-    model: Optional[str] = None
+# APIKeyUpdateRequest 已迁移至 schemas.admin（T3 / docs/13 G17）
 
 
 def _read_key_env() -> dict:

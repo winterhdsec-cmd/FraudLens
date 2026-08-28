@@ -2,11 +2,11 @@
 <div class="view-section">
   <div v-if="!gangs.length" class="empty-state" style="margin-top: 60px;">
     <div class="empty-content">
-      <div class="empty-icon">📈</div>
+      <div class="empty-icon"><el-icon><TrendCharts /></el-icon></div>
       <h3 class="empty-title">暂无分析数据</h3>
       <p class="empty-desc">请先进行智能研判分析，系统将自动生成团伙特征、资金流向和关联关系分析</p>
       <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
-        <span>📝</span> 前往录入研判
+        <span><el-icon><EditPen /></el-icon></span> 前往录入研判
       </el-button>
     </div>
   </div>
@@ -14,7 +14,7 @@
     <div class="section-header">
       <div class="header-left">
         <h2 class="section-title">
-          <span class="title-icon">📈</span>
+          <span class="title-icon"><el-icon><TrendCharts /></el-icon></span>
           深度分析
         </h2>
         <p class="section-desc">选择团伙进行专项分析</p>
@@ -47,7 +47,7 @@
 
             <div class="analysis-card">
               <div class="analysis-header">
-                <span class="analysis-icon">🎯</span>
+                <span class="analysis-icon"><el-icon><Aim /></el-icon></span>
                 <span class="analysis-title">团伙特征雷达</span>
                 <span class="analysis-subtitle">AI智能分析</span>
               </div>
@@ -63,14 +63,14 @@
 
             <div class="analysis-card">
               <div class="analysis-header">
-                <span class="analysis-icon">📈</span>
+                <span class="analysis-icon"><el-icon><TrendCharts /></el-icon></span>
                 <span class="analysis-title">团伙话术分析</span>
                 <span class="analysis-subtitle">AI智能分析</span>
               </div>
               <div class="analysis-content">
                 <div class="pattern-grid">
                   <div class="pattern-card">
-                    <div class="pattern-icon">🎯</div>
+                    <div class="pattern-icon"><el-icon><Aim /></el-icon></div>
                     <div class="pattern-info">
                       <span class="pattern-title">诈骗类型</span>
                       <span class="pattern-value">{{ currentGangPattern.scamType }}</span>
@@ -78,7 +78,7 @@
                     </div>
                   </div>
                   <div class="pattern-card">
-                    <div class="pattern-icon">💰</div>
+                    <div class="pattern-icon"><el-icon><Money /></el-icon></div>
                     <div class="pattern-info">
                       <span class="pattern-title">涉案总金额</span>
                       <span class="pattern-value">{{ currentGangPattern.totalAmount }}</span>
@@ -86,7 +86,7 @@
                     </div>
                   </div>
                   <div class="pattern-card">
-                    <div class="pattern-icon">👥</div>
+                    <div class="pattern-icon"><el-icon><User /></el-icon></div>
                     <div class="pattern-info">
                       <span class="pattern-title">关联案件</span>
                       <span class="pattern-value">{{ currentGangPattern.caseCount }}起</span>
@@ -94,7 +94,7 @@
                     </div>
                   </div>
                   <div class="pattern-card">
-                    <div class="pattern-icon">📊</div>
+                    <div class="pattern-icon"><el-icon><DataAnalysis /></el-icon></div>
                     <div class="pattern-info">
                       <span class="pattern-title">风险等级</span>
                       <span class="pattern-value" :style="{ color: currentGangPattern.riskColor }">{{ currentGangPattern.riskLabel }}</span>
@@ -107,7 +107,7 @@
 
             <div class="analysis-card">
               <div class="analysis-header">
-                <span class="analysis-icon">📊</span>
+                <span class="analysis-icon"><el-icon><DataAnalysis /></el-icon></span>
                 <span class="analysis-title">技术手段先进性</span>
               </div>
               <div class="analysis-content">
@@ -129,7 +129,7 @@
 
             <div class="analysis-card money-flow-card" :class="{ collapsed: isMoneyFlowCollapsed }">
               <div class="analysis-header">
-                <span class="analysis-icon">💰</span>
+                <span class="analysis-icon"><el-icon><Money /></el-icon></span>
                 <span class="analysis-title">资金流向追踪</span>
                 <span class="flow-badge">AI分析</span>
                 <el-button link class="collapse-btn" @click="isMoneyFlowCollapsed = !isMoneyFlowCollapsed">
@@ -147,28 +147,28 @@
                   </div>
                   <div class="flow-metrics">
                     <div class="metric-item">
-                      <div class="metric-icon">💰</div>
+                      <div class="metric-icon"><el-icon><Money /></el-icon></div>
                       <div class="metric-info">
                         <span class="metric-label">涉案金额</span>
                         <span class="metric-value danger">{{ currentGangPattern.totalAmount }}</span>
                       </div>
                     </div>
                     <div class="metric-item">
-                      <div class="metric-icon">📊</div>
+                      <div class="metric-icon"><el-icon><DataAnalysis /></el-icon></div>
                       <div class="metric-info">
                         <span class="metric-label">中转层级</span>
                         <span class="metric-value">{{ currentFlowMetrics.max_level }}层</span>
                       </div>
                     </div>
                     <div class="metric-item">
-                      <div class="metric-icon">🌏</div>
+                      <div class="metric-icon"><el-icon><Earth /></el-icon></div>
                       <div class="metric-info">
                         <span class="metric-label">境外流向</span>
                         <span class="metric-value warning">{{ currentFlowMetrics.overseas_pct }}%</span>
                       </div>
                     </div>
                     <div class="metric-item">
-                      <div class="metric-icon">🏦</div>
+                      <div class="metric-icon"><el-icon><OfficeBuilding /></el-icon></div>
                       <div class="metric-info">
                         <span class="metric-label">涉案账户</span>
                         <span class="metric-value">{{ currentFlowMetrics.total_accounts }}个</span>
@@ -181,7 +181,7 @@
 
             <div class="analysis-card">
               <div class="analysis-header">
-                <span class="analysis-icon">🧬</span>
+                <span class="analysis-icon"><el-icon><Connection /></el-icon></span>
                 <span class="analysis-title">语义指纹分析</span>
                 <span class="analysis-subtitle">跨案件话术模式识别</span>
               </div>
@@ -207,7 +207,7 @@
 
             <div class="analysis-card">
               <div class="analysis-header">
-                <span class="analysis-icon">🌍</span>
+                <span class="analysis-icon"><el-icon><Earth /></el-icon></span>
                 <span class="analysis-title">跨区域作案特征</span>
               </div>
               <div class="analysis-content">
@@ -229,7 +229,7 @@
         <div class="analysis-row">
           <div class="analysis-card full-width">
             <div class="analysis-header">
-              <span class="analysis-icon">🏛️</span>
+              <span class="analysis-icon"><el-icon><OfficeBuilding /></el-icon></span>
               <span class="analysis-title">团伙组织结构</span>
               <span class="analysis-subtitle">AI智能分析</span>
             </div>
@@ -269,7 +269,34 @@
         <div class="analysis-row">
           <div class="analysis-card full-width">
             <div class="analysis-header">
-              <span class="analysis-icon">🔗</span>
+              <span class="analysis-icon"><el-icon><Grid /></el-icon></span>
+              <span class="analysis-title">案件-团伙关联证据</span>
+              <span class="analysis-subtitle">可解释关联 · 每起案件的归团伙理由</span>
+            </div>
+            <div class="analysis-content">
+              <div v-if="currentGangRelationEvidence.length" class="relation-evidence-list">
+                <div v-for="ev in currentGangRelationEvidence" :key="ev.caseId" class="relation-evidence-item">
+                  <div class="ev-head">
+                    <span class="ev-case-id">{{ ev.caseId }}</span>
+                    <el-tag size="small" :type="ev.tagType" effect="light">{{ ev.typeLabel }}</el-tag>
+                    <span v-if="ev.similarity" class="ev-sim">置信度 {{ (ev.similarity * 100).toFixed(0) }}%</span>
+                  </div>
+                  <div class="ev-reason">{{ ev.reason || 'GNN 聚类关联' }}</div>
+                  <div v-if="ev.entities.length" class="ev-entities">
+                    <span class="ev-entities-label">命中实体:</span>
+                    <el-tag v-for="(ent, i) in ev.entities" :key="i" size="small" type="info" effect="plain">{{ ent }}</el-tag>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="ev-empty">该团伙暂无关联案件证据（请先执行团伙检测）</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="analysis-row">
+          <div class="analysis-card full-width">
+            <div class="analysis-header">
+              <span class="analysis-icon"><el-icon><Link /></el-icon></span>
               <span class="analysis-title">关联关系图谱</span>
               <span class="analysis-subtitle">力导向布局 · 可拖拽缩放</span>
             </div>
@@ -477,6 +504,52 @@ const currentGangPattern = computed(() => {
     riskColor: riskColorVal,
     riskLabel: riskLabelVal
   }
+})
+
+// 案件-团伙关联证据：从 related_cases / relation_reasons / matched_entities_map 提取
+// relation_type 映射到展示标签
+const RELATION_TYPE_META = {
+  share_account: { label: '共享账户', tagType: 'danger' },
+  share_perpetrator: { label: '共享嫌疑人', tagType: 'warning' },
+  share_phone: { label: '共享电话', tagType: 'warning' },
+  reflux: { label: '资金回流', tagType: 'danger' },
+  similar_text: { label: '话术相似', tagType: 'success' },
+  gnn_cluster: { label: 'GNN聚类', tagType: 'info' },
+  manual: { label: '人工关联', tagType: 'info' }
+}
+const currentGangRelationEvidence = computed(() => {
+  const g = currentGang.value
+  if (!g) return []
+  const reasons = g.relation_reasons || {}
+  const entitiesMap = g.matched_entities_map || {}
+  const related = g.related_cases || []
+  // 兼容 related_cases 为对象数组（带 reason/relation_type/matched_entities）或字符串数组
+  if (Array.isArray(related) && related.length && typeof related[0] === 'object') {
+    return related.map(c => {
+      const meta = RELATION_TYPE_META[c.relation_type] || RELATION_TYPE_META.gnn_cluster
+      return {
+        caseId: c.case_id || c.caseId || '',
+        typeLabel: meta.label,
+        tagType: meta.tagType,
+        similarity: c.similarity || 0,
+        reason: c.reason || reasons[c.case_id] || '',
+        entities: c.matched_entities || entitiesMap[c.case_id] || []
+      }
+    })
+  }
+  // 字符串数组：用 case_ids + relation_reasons 拼装
+  const ids = g.caseIds || g.case_ids || []
+  return ids.map(cid => {
+    const meta = RELATION_TYPE_META.gnn_cluster
+    return {
+      caseId: cid,
+      typeLabel: meta.label,
+      tagType: meta.tagType,
+      similarity: 0,
+      reason: reasons[cid] || '',
+      entities: entitiesMap[cid] || []
+    }
+  })
 })
 
 const currentFlowPath = computed(() => {
@@ -978,6 +1051,65 @@ watch(currentGang, () => {
   flex-direction: column;
   gap: 24px;
   animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.relation-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.relation-evidence-item {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-elevated, #f9fafb);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.relation-evidence-item:hover {
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+}
+.ev-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.ev-case-id {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary, #1f2937);
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+.ev-sim {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+.ev-reason {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary, #374151);
+  margin-bottom: 8px;
+}
+.ev-entities {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ev-entities-label {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-right: 4px;
+}
+.ev-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 13px;
 }
 .analysis-row {
   display: grid;

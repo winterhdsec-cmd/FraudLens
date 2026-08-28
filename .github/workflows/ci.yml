@@ -1,0 +1,35 @@
+name: FraudLens CI
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pytest + lightweight deps
+        # 仅装轻量依赖（不拉 torch/langgraph），保证 CI 快速且绿色。
+        run: pip install pytest pydantic pydantic-settings fastapi redis
+      - name: Run safe test subset (no torch/langgraph)
+        # 仅跑不依赖 torch/langgraph/MySQL 的单元测试，保证 CI 绿色：
+        #  - test_registry / test_schemas：纯 pydantic，验证 Agent 注册表与 T3 共享契约
+        #  - test_redis_sentinel：mock redis，验证 G14 透明故障转移客户端工厂
+        #  - test_wave2_quality：零依赖指标/幂等/JSON 日志单测
+        #  - test_config_env：验证多环境 profile（dev/staging/prod）差异化默认值
+        # 含 langgraph 的 test_orchestrator_registry 与含 torch 的 test_amlsim_adapter
+        # 在 Docker 容器内联调，不在此跑。
+        run: |
+          pytest tests/test_registry.py \
+                 tests/test_schemas.py \
+                 tests/test_redis_sentinel.py \
+                 tests/test_wave2_quality.py \
+                 tests/test_config_env.py -q

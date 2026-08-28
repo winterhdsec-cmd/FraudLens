@@ -1,89 +1,35 @@
-import os
-import torch
 import numpy as np
 import hdbscan
-from transformers import AutoTokenizer, AutoModel
 from tools.response import logger
+from core.embedding import get_embedding_model
 
 
 class FraudAnalysisEngine:
+    """反诈分析引擎（话术语义聚类）。
+
+    工程整改(T1): 不再用 transformers 独立加载第二份 BGE 模型,
+    而是复用 core.embedding 的全局单例(get_embedding_model),
+    从而保证全系统只有一份 Embedding 模型(消除双加载器技术债 P1)。
+    若 Embedding 模型不可用,core.embedding 内部会走 hash 降级,引擎不崩。
+    """
+
     def __init__(self):
-        # 【关键步骤 1】确定模型绝对路径
-        # 模型文件夹位于 backend/bge-large-zh-v1.5
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_name = "bge-large-zh-v1.5"
-        model_path = os.path.join(base_dir, model_name)
-
-        logger.info(f"正在检查模型路径: {model_path}")
-
-        # 【关键步骤 2】严格检查文件是否存在，避免模糊报错
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(
-                f"❌ 错误：找不到模型文件夹 '{model_path}'。\n"
-                f"请确认：\n"
-                f"1. 'bge-large-zh-v1.5' 文件夹是否在 backend 目录下？\n"
-                f"2. 文件夹内是否有 'config.json' 和 'pytorch_model.bin' (或 .safetensors)？"
-            )
-
-        # 检查关键文件
-        required_files = ['config.json', 'tokenizer.json']
-        # 兼容 .bin 或 .safetensors
-        has_weights = any(f for f in os.listdir(model_path) if f.endswith('.bin') or f.endswith('.safetensors'))
-
-        if not all(os.path.exists(os.path.join(model_path, f)) for f in required_files) or not has_weights:
-            raise FileNotFoundError(f"❌ 错误：模型文件夹不完整，缺少关键配置文件或权重文件。")
-
-        logger.info("路径检查通过，正在加载模型...")
-
         try:
-            # 【关键步骤 3】加载 Tokenizer 和 Model
-            # 使用 local_files_only=True 强制读取本地，防止联网尝试失败
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
-                local_files_only=True
-            )
-            self.model = AutoModel.from_pretrained(
-                model_path,
-                local_files_only=True,
-                torch_dtype=torch.float32
-            )
-            self.model.eval()  # 设置为评估模式
-            logger.info("模型加载成功！引擎就绪。")
-
+            self._embedder = get_embedding_model()
+            logger.info("反诈引擎已复用 core.embedding 单例 BGE 模型（双加载器已收敛）")
         except Exception as e:
-            logger.error(f"模型加载失败：{e}")
-            logger.info("建议：尝试重新下载模型文件夹，确保文件未损坏。")
-            raise e
+            logger.warning(f"反诈引擎获取 Embedding 模型失败,将走 hash 降级: {e}")
+            self._embedder = None
 
     def encode(self, texts, normalize=True, batch_size=32):
-        """
-        批量推理：自动将大列表切分为 batch_size 大小的子批次
-        """
+        """批量编码:委托给 core.embedding 单例,保证全系统只有一份 BGE。"""
         if not texts:
             return np.array([])
 
-        all_embeddings = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            inputs = self.tokenizer(
-                batch,
-                padding=True,
-                truncation=True,
-                return_tensors="pt",
-                max_length=512
-            )
-            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-            with torch.no_grad():
-                outputs = self.model(**inputs)
-            attention_mask = inputs['attention_mask']
-            token_embeddings = outputs.last_hidden_state
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-            sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-            mean_pooled = sum_embeddings / sum_mask
-            all_embeddings.append(mean_pooled.cpu().numpy())
+        if self._embedder is None:
+            self._embedder = get_embedding_model()
 
-        embeddings = np.vstack(all_embeddings) if len(all_embeddings) > 1 else all_embeddings[0]
+        embeddings = self._embedder.encode(texts, batch_size=batch_size)
 
         if normalize:
             norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -111,7 +57,7 @@ class FraudAnalysisEngine:
 
         logger.info(f"正在处理 {len(messages)} 条消息...")
 
-        # 1. 向量化
+        # 1. 向量化（复用 core.embedding 单例）
         embeddings = self.encode(messages)
 
         if embeddings.shape[0] == 0:
@@ -145,7 +91,7 @@ class FraudAnalysisEngine:
         }
 
 
-# 全局初始化
+# 全局初始化（失败不再让 engine 为 None,而是优雅降级）
 try:
     engine = FraudAnalysisEngine()
 except Exception as e:

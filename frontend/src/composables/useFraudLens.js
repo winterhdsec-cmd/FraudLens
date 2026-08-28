@@ -1,9 +1,19 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart, PieChart, RadarChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent, TitleComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+echarts.use([BarChart, LineChart, PieChart, RadarChart, GridComponent, LegendComponent, TooltipComponent, TitleComponent, CanvasRenderer])
 import { useRouter, useRoute } from 'vue-router'
 import { store } from '../store.js'
 import { useCachedLoader } from './useAppState.js'
+import {
+  defaultMethodFlow, defaultKeywords, gangIcons,
+  getParticleStyle, getRiskType, getEventType, getFeatureIcon,
+  parseRawAmount, formatAmountRaw, formatCaseAmountText
+} from './utils.js'
+import { useAuth } from './useAuth.js'
 import api, {
   startAnalysis as apiStartAnalysis,
   fetchCases,
@@ -20,15 +30,35 @@ import api, {
   resolveAlert,
   importCSV,
   importExcel,
+  importFundFlow,
   seedData,
   searchCases,
-  getMe
+  getMe,
+  fetchGangReviewResults
 } from '../api.js'
 
 export function useFraudLens() {
   const router = useRouter()
   const route = useRoute()
   const { cachedLoad, invalidateCache } = useCachedLoader()
+
+  // ===== 认证模块（拆分自 useFraudLens） =====
+  // 注意：onLoginSuccess 引用后续定义的加载函数，闭包调用时求值（登录发生在组件挂载后，已定义）
+  const auth = useAuth({
+    store,
+    route,
+    apiLogin,
+    apiDemoLogin,
+    ElMessage,
+    onLoginSuccess: async () => {
+      reloadCasesAndGangs()
+      loadFlowMetrics()
+      const name = route.name
+      if (name === 'dashboard') loadDashboard()
+      if (name === 'alerts') loadAlerts()
+      if (name === 'groups') loadGangReview()
+    }
+  })
 
   const activeMenu = computed(() => route.name || 'input')
   const loading = ref(false)
@@ -40,8 +70,19 @@ export function useFraudLens() {
   const analysisStartTime = ref(0)
   const inputText = ref('')
   const uploadedImages = ref([])
+  // 资金流水导入（真实材料接入 Phase4）：随 /agent-analyze 的 accounts_tx 提交
+  const fundFlowTx = ref([])
+  const fundFlowFileName = ref('')
   const gangs = ref([])
   const cases = ref([])
+  // ===== 复核解释层（gang_reviewer Skill A/B）=====
+  // explanations: 每团伙的并案依据；review: 可疑误并探测结果
+  const gangReview = ref({ explanations: [], review: null, llmEnabled: false, error: '' })
+  const gangReviewLoading = ref(false)
+  // REQ-S7 失败边界诚实提示：后端透传的异常卡 / 告警 / 四单流转
+  const analysisAbnormal = ref({ abnormal: 'none', detail: null })
+  const analysisWarnings = ref([])
+  const analysisSlips = ref(null)
   const selectedGang = ref(null)
   const selectedCase = ref(null)
   const viewMode = ref('card')
@@ -112,10 +153,15 @@ export function useFraudLens() {
   const dashboardStatusChartRef = ref(null)
   const dashboardBarChartRef = ref(null)
   const dashboardTrendChartRef = ref(null)
+  const dashboardRadarChartRef = ref(null)
   let dashboardRiskChart = null
   let dashboardStatusChart = null
   let dashboardBarChart = null
   let dashboardTrendChart = null
+  let dashboardRadarChart = null
+  // 饼图点击联动：risk / status 过滤
+  const dashboardRiskFilter = ref('')
+  const dashboardStatusFilter = ref('')
 
   const reportConfig = ref({
     type: 'gang',
@@ -127,90 +173,6 @@ export function useFraudLens() {
     includeSuggestion: true
   })
   const reportPreview = ref(false)
-
-  const loginForm = ref({ username: '', password: '' })
-  const loginLoading = ref(false)
-  const loginError = ref('')
-
-  const loginProgress = ref(0)
-  let loginProgressTimer = null
-
-  const handleLogin = async () => {
-    if (!loginForm.value.username.trim() || !loginForm.value.password.trim()) {
-      loginError.value = '请输入用户名和密码'
-      return
-    }
-    loginLoading.value = true
-    loginProgress.value = 0
-    loginError.value = ''
-    loginProgressTimer = setInterval(() => {
-      if (loginProgress.value < 85) loginProgress.value += Math.random() * 3
-    }, 600)
-    try {
-      const data = await apiLogin(loginForm.value.username, loginForm.value.password)
-      if (data.success) {
-        loginProgress.value = 100
-        store.login(data.user || { username: loginForm.value.username }, data.access_token || data.token, data.refresh_token)
-        loginForm.value = { username: '', password: '' }
-        clearInterval(loginProgressTimer)
-        loginLoading.value = false
-        loginError.value = ''
-        ElMessage.success('登录成功')
-        reloadCasesAndGangs()
-        loadFlowMetrics()
-        const routeName = route.name
-        if (routeName === 'dashboard') loadDashboard()
-        if (routeName === 'alerts') loadAlerts()
-        return
-      } else {
-        loginError.value = data.message || '登录失败，请重试'
-      }
-    } catch (err) {
-      loginError.value = err.response?.data?.message || err.message || '登录失败，请检查网络连接'
-    } finally {
-      clearInterval(loginProgressTimer)
-      loginLoading.value = false
-    }
-  }
-
-  const handleDemoLogin = async () => {
-    loginLoading.value = true
-    loginProgress.value = 0
-    loginError.value = ''
-    loginProgressTimer = setInterval(() => {
-      if (loginProgress.value < 85) loginProgress.value += Math.random() * 3
-    }, 600)
-    try {
-      const data = await apiDemoLogin()
-      if (data.success) {
-        loginProgress.value = 100
-        store.login(data.user || { username: 'admin' }, data.access_token || data.token, data.refresh_token)
-        loginForm.value = { username: '', password: '' }
-        clearInterval(loginProgressTimer)
-        loginLoading.value = false
-        loginError.value = ''
-        ElMessage.success('演示登录成功')
-        reloadCasesAndGangs()
-        loadFlowMetrics()
-        const routeName = route.name
-        if (routeName === 'dashboard') loadDashboard()
-        if (routeName === 'alerts') loadAlerts()
-        return
-      } else {
-        loginError.value = data.message || '演示登录失败'
-      }
-    } catch (err) {
-      loginError.value = err.response?.data?.detail || err.message || '演示登录失败'
-    } finally {
-      clearInterval(loginProgressTimer)
-      loginLoading.value = false
-    }
-  }
-
-  const handleLogout = () => {
-    store.logout()
-    ElMessage.success('已安全退出')
-  }
 
   const apiSources = ref({
     bank: { connected: false, records: 0, lastSync: '' },
@@ -235,15 +197,9 @@ export function useFraudLens() {
     }, 0)
   })
 
-  const totalAmountFormatted = computed(() => {
-    const amount = totalAmount.value
-    if (amount >= 100) {
-      return `¥${amount.toFixed(1)}万`
-    }
-    return `¥${amount.toFixed(2)}万`
-  })
+  const totalAmountFormatted = computed(() => formatAmountRaw(totalAmount.value))
 
-  const successRate = ref(92)
+  const successRate = ref(null)
 
   const textLineCount = computed(() => {
     return inputText.value.split('\n').filter(line => line.trim()).length
@@ -299,7 +255,7 @@ export function useFraudLens() {
       const base = gang.comprehensive_score || gang.confidence || 50
       return {
         name,
-        confidence: Math.min(99, Math.max(40, base + (i * 5) - 10)),
+        confidence: Math.min(99, Math.max(0, base)),
         color: colors[i],
         desc: ['话术模板标准化程度', '资金流转层级数量', '团伙成员社交关系', '跨省跨境作案能力', '反侦察技术水平', '目标人群定位能力'][i]
       }
@@ -307,13 +263,7 @@ export function useFraudLens() {
   })
 
   const caseEvidence = computed(() => {
-    if (!selectedCase.value) return []
-    return [
-      { icon: '📱', name: '通话记录' + (selectedCase.value.victim_phone ? '(' + selectedCase.value.victim_phone.slice(0, 3) + '****' + selectedCase.value.victim_phone.slice(-4) + ')' : ''), status: '已验证' },
-      { icon: '💳', name: '转账凭证(' + (selectedCase.value.amount || '待核实') + ')', status: '已验证' },
-      { icon: '📧', name: '聊天记录' + (selectedCase.value.keywords?.length ? '(' + selectedCase.value.keywords.slice(0, 2).join('/') + ')' : ''), status: '已验证' },
-      { icon: '🖥️', name: '涉案设备', status: '核实中' }
-    ]
+    return []
   })
 
   const investigationSteps = computed(() => {
@@ -334,46 +284,7 @@ export function useFraudLens() {
     return steps
   })
 
-  const defaultMethodFlow = [
-    { title: '获取信任', desc: '冒充客服，准确报出受害人信息' },
-    { title: '制造恐慌', desc: '声称账户异常，影响征信' },
-    { title: '诱导转账', desc: '要求转账至"安全账户"验证' },
-    { title: '完成诈骗', desc: '资金到账后立即失联' }
-  ]
-
-  const defaultKeywords = ['冒充客服', '征信诈骗', '安全账户', '转账验证']
-
-  const getParticleStyle = (i) => {
-    const size = Math.random() * 4 + 2
-    const duration = Math.random() * 20 + 10
-    const delay = Math.random() * 10
-    return {
-      width: `${size}px`,
-      height: `${size}px`,
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      animationDuration: `${duration}s`,
-      animationDelay: `${delay}s`
-    }
-  }
-
-  const getRiskType = (level) => {
-    const map = { S: 'danger', A: 'warning', B: 'info', C: 'success' }
-    return map[level] || 'info'
-  }
-
-  const getEventType = (type) => {
-    const map = { '作案': 'danger', '转移': 'warning', '洗钱': 'warning', '活动': 'info' }
-    return map[type] || 'info'
-  }
-
   const getGangById = (id) => gangs.value.find(g => g.id === id)
-
-  const getFeatureIcon = (idx) => {
-    const icons = ['💬', '💰', '🔗', '🌍', '🔧', '🎯']
-    return icons[idx] || '📊'
-  }
-
   const getReportTitle = () => {
     const titles = {
       gang: '团伙分析报告',
@@ -475,24 +386,6 @@ export function useFraudLens() {
     return false
   }
 
-  const gangIcons = ['🦈', '🐺', '🦊', '🐍', '🐯', '🦅']
-
-  const parseRawAmount = (g) => {
-    if (g.total_amount_value != null && g.total_amount_value > 0) return g.total_amount_value
-    const raw = g.total_amount_involved || g.total_amount || g.amount || ''
-    if (typeof raw === 'number') return raw
-    const match = raw.match(/[\d.]+/)
-    const num = match ? parseFloat(match[0]) : 0
-    return raw.includes('万') ? num * 10000 : num
-  }
-
-  const formatAmountRaw = (num) => {
-    if (num >= 10000) {
-      return '¥' + (num / 10000).toFixed(1) + '万'
-    }
-    return '¥' + num.toLocaleString()
-  }
-
   const startAnalysis = async () => {
     if (!inputText.value.trim()) return
     loading.value = true
@@ -545,7 +438,7 @@ export function useFraudLens() {
         }
       }, 1000)
 
-      const response = await apiStartAnalysis(messages, sessionId)
+      const response = await apiStartAnalysis(messages, sessionId, fundFlowTx.value)
 
       if (response.success) {
         if (response.task_id) {
@@ -563,6 +456,13 @@ export function useFraudLens() {
         const rawCases = (response.raw_cases || []).map(c => mapCaseForAnalysis(c))
         cases.value = rawCases
         lastImportedCaseIds.value = rawCases.map(c => c.case_id || c.id).filter(Boolean)
+
+        // REQ-S7：捕获后端透传的失败边界信息（异常卡 / 告警 / 四单流转）
+        analysisAbnormal.value = response.abnormal && response.abnormal.abnormal
+          ? response.abnormal
+          : { abnormal: response.abnormal || 'none', detail: response.abnormal_detail || null }
+        analysisWarnings.value = Array.isArray(response.warnings) ? response.warnings : []
+        analysisSlips.value = response.slips || null
 
         selectedCase.value = cases.value[0] || null
         const gangCount = response.gangs?.length || 0
@@ -685,40 +585,23 @@ export function useFraudLens() {
   }
 
   const toggleApiSource = (source) => {
-    if (apiSources.value[source].connected) {
-      ElMessage.success(`${source === 'bank' ? '银行风控' : source === 'police' ? '110报警平台' : '反诈平台'}已连接`)
-    }
+    ElMessage.info('外部数据源接入功能开发中')
   }
 
   const syncApiData = (source) => {
-    ElMessage.success('数据同步中...')
-    setTimeout(() => {
-      apiSources.value[source].lastSync = '刚刚'
-      ElMessage.success('数据同步完成')
-    }, 1500)
+    ElMessage.warning('数据同步功能开发中')
   }
 
   const fetchBankData = () => {
-    apiDataPreview.value.push(
-      { source: '银行风控', type: '交易流水', content: '账户 ***1234 异常转账记录', time: '2024-03-20 14:30', status: '已验证' },
-      { source: '银行风控', type: '账户信息', content: '涉案账户开户人信息', time: '2024-03-20 14:25', status: '待验证' }
-    )
-    ElMessage.success('已获取银行风控数据')
+    ElMessage.warning('该数据源接入功能开发中，暂不可用')
   }
 
   const fetchPoliceData = () => {
-    apiDataPreview.value.push(
-      { source: '110平台', type: '警情信息', content: '诈骗类警情推送 #20240320001', time: '2024-03-20 10:15', status: '已验证' }
-    )
-    ElMessage.success('已获取110报警平台数据')
+    ElMessage.warning('该数据源接入功能开发中，暂不可用')
   }
 
   const fetchAntiFraudData = () => {
-    apiDataPreview.value.push(
-      { source: '反诈平台', type: '黑名单', content: '涉案号码 138****5678 已入库', time: '2024-03-20 09:00', status: '已验证' },
-      { source: '反诈平台', type: '涉案账户', content: '账户 ***5678 已标记', time: '2024-03-20 09:05', status: '已验证' }
-    )
-    ElMessage.success('已获取反诈平台数据')
+    ElMessage.warning('该数据源接入功能开发中，暂不可用')
   }
 
   const importApiData = () => {
@@ -891,7 +774,33 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
           data_update_frequency: data.data_update_frequency ?? data.data?.data_update_frequency ?? '',
           data_updated_at: data.data_updated_at ?? data.data?.data_updated_at ?? ''
         }
+        // 从 gangs.radar_data 聚合团伙能力画像（7 维均值）
+        const radarMap = {}
+        const radarNames = ['诈骗话术成熟度', '资金分散程度', '成员关联密度', '跨区域作案特征', '技术手段先进性', '受害者画像精准度', '反侦察能力']
+        for (const g of (gangs.value || [])) {
+          const rd = g.radar_data || g.radarData || {}
+          for (const [k, v] of Object.entries(rd)) {
+            if (typeof v === 'number') {
+              if (!radarMap[k]) radarMap[k] = []
+              radarMap[k].push(v)
+            }
+          }
+        }
+        const gangRadar = radarNames
+          .filter(k => radarMap[k] && radarMap[k].length)
+          .map(k => ({
+            name: k,
+            value: Math.round(radarMap[k].reduce((a, b) => a + b, 0) / radarMap[k].length)
+          }))
+        // 无完整维度时用综合分兜底
+        if (!gangRadar.length && gangs.value?.length) {
+          const score = gangs.value[0].comprehensive_score || 60
+          gangRadar.push({ name: '综合能力', value: Math.min(99, score) })
+        }
+        dashboardData.value.gang_radar = gangRadar
         nextTick(() => initDashboardCharts())
+        // Overview 页的"涉案金额趋势"图依赖 monthly_trend，数据到位后一并渲染
+        if (route.name === 'overview') nextTick(() => initCharts())
       } else {
         ElMessage.error('获取看板数据失败: ' + (data.message || '服务器返回异常'))
       }
@@ -928,6 +837,11 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
             data: riskData
           }]
         })
+        // 点击扇区 → 联动过滤最新案件（风险等级）
+        dashboardRiskChart.on('click', (params) => {
+          const label = params.name
+          dashboardRiskFilter.value = dashboardRiskFilter.value === label ? '' : label
+        })
         dashboardRiskChart.resize()
       } else if (dashboardRiskChart) {
         dashboardRiskChart.dispose()
@@ -952,6 +866,11 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e2e8f0' } },
             data: statusData
           }]
+        })
+        // 点击扇区 → 联动过滤最新案件（案件状态）
+        dashboardStatusChart.on('click', (params) => {
+          const label = params.name
+          dashboardStatusFilter.value = dashboardStatusFilter.value === label ? '' : label
         })
         dashboardStatusChart.resize()
       } else if (dashboardStatusChart) {
@@ -1055,6 +974,49 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
         dashboardTrendChart.dispose()
         dashboardTrendChart = null
       }
+
+      // ===== 团伙能力画像雷达图 =====
+      const radarSource = (dashboardData.value.gang_radar || [])
+      if (dashboardRadarChartRef.value && radarSource.length) {
+        if (dashboardRadarChart) dashboardRadarChart.dispose()
+        dashboardRadarChart = echarts.init(dashboardRadarChartRef.value)
+        const indicators = radarSource.map(d => ({ name: d.name, max: 100 }))
+        const seriesData = radarSource.map(d => d.value)
+        const maxV = Math.max(...seriesData, 30)
+        dashboardRadarChart.setOption({
+          backgroundColor: 'transparent',
+          tooltip: { trigger: 'item' },
+          radar: {
+            indicator: indicators,
+            radius: '62%',
+            center: ['50%', '52%'],
+            splitNumber: 4,
+            axisName: { color: '#bcc6d6', fontSize: 11 },
+            axisLine: { lineStyle: { color: 'rgba(0, 212, 255, 0.25)' } },
+            splitLine: { lineStyle: { color: 'rgba(0, 212, 255, 0.12)' } },
+            splitArea: {
+              areaStyle: {
+                color: ['rgba(0, 212, 255, 0.02)', 'rgba(0, 212, 255, 0.05)']
+              }
+            }
+          },
+          series: [{
+            type: 'radar',
+            data: [{
+              value: seriesData,
+              name: '能力强度',
+              areaStyle: { color: 'rgba(0, 212, 255, 0.18)' },
+              lineStyle: { color: '#00d4ff', width: 2 },
+              itemStyle: { color: '#00d4ff' },
+              symbolSize: 4
+            }]
+          }]
+        })
+        dashboardRadarChart.resize()
+      } else if (dashboardRadarChart) {
+        dashboardRadarChart.dispose()
+        dashboardRadarChart = null
+      }
     })
   }
 
@@ -1112,6 +1074,60 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
   }
   const addFlowRecord = (row) => {
     ElMessage.info('追加资金流向功能：' + row.source_account + ' → ' + row.target_account)
+  }
+
+  // ---- 团伙复核解释层（并案依据 / 误并案探测） ----
+  // 默认纯规则模式（毫秒级）；useLlm=true 走 LLM 增强（慢，前端需 loading）
+  const gangReviewUseLlm = ref(false)
+  const loadGangReview = async (forceRefresh = false) => {
+    if (!store.isLoggedIn) return
+    if (gangReviewLoading.value) return
+    gangReviewLoading.value = true
+    try {
+      const useLlm = gangReviewUseLlm.value
+      const key = 'gangReview_' + (useLlm ? 'llm' : 'rule')
+      const ttl = useLlm ? 300000 : 180000
+      const r = await cachedLoad(key, () => fetchGangReviewResults(useLlm), forceRefresh ? 0 : ttl)
+      if (r && r.success) {
+        gangReview.value = {
+          explanations: Array.isArray(r.explanations) ? r.explanations : [],
+          review: r.review || null,
+          llmEnabled: !!r.llm_enabled,
+          checkedGangs: r.checked_gangs || 0,
+          error: r.error || ''
+        }
+      } else {
+        gangReview.value = { explanations: [], review: null, llmEnabled: false, error: (r && r.error) || '复核接口返回异常' }
+      }
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.response?.data?.error || e?.message || String(e)
+      console.error('[loadGangReview] 加载失败:', detail)
+      gangReview.value = { explanations: [], review: null, llmEnabled: false, error: detail }
+    } finally {
+      gangReviewLoading.value = false
+    }
+  }
+  // gang_id -> explanation（供卡片渲染）
+  const gangReviewMap = computed(() => {
+    const m = {}
+    for (const e of gangReview.value.explanations) {
+      if (e && e.gang_id) m[e.gang_id] = e
+    }
+    return m
+  })
+  // gang_id -> 可疑误并信息（供卡片告警 + 页顶横幅）
+  const suspiciousMergeMap = computed(() => {
+    const m = {}
+    const list = gangReview.value.review?.suspicious_merges || []
+    for (const s of list) {
+      if (s && s.gang_id) m[s.gang_id] = s
+    }
+    return m
+  })
+  const suspiciousMerges = computed(() => gangReview.value.review?.suspicious_merges || [])
+  const toggleGangReviewLlm = async (val) => {
+    gangReviewUseLlm.value = !!val
+    await loadGangReview(true)
   }
 
   const loadDispatchOrders = async (forceRefresh = false) => {
@@ -1385,7 +1401,22 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       tech_level: g.tech_level || '', script_type: g.script_type || '',
       description: g.description || '',
       fingerprint: Array.isArray(g.fingerprint) ? g.fingerprint : [],
+      // P0 修复：caseIds 必须兼容 case_ids(字符串数组) 与 related_cases(对象数组) 两种格式，
+      // 否则 getCaseGang 永远返回 undefined，案件卡片不显示所属团伙。
+      caseIds: Array.isArray(g.case_ids) && g.case_ids.length
+        ? [...g.case_ids]
+        : Array.isArray(g.caseIds) && g.caseIds.length
+          ? [...g.caseIds]
+          : (Array.isArray(g.related_cases) ? g.related_cases.map(c => c.case_id || c) : []),
+      case_ids: Array.isArray(g.case_ids) && g.case_ids.length
+        ? [...g.case_ids]
+        : (Array.isArray(g.related_cases) ? g.related_cases.map(c => c.case_id || c) : []),
+      // 关联可解释性字段：reason / matched_entities / relation_type
       related_cases: Array.isArray(g.related_cases) ? g.related_cases : [],
+      relation_reasons: g.relation_reasons || {},
+      matched_entities_map: g.matched_entities_map || {},
+      radar_data: g.radar_data || g.radarData || {},
+      radarData: g.radar_data || g.radarData || {},
       leader_name: g.leader_name || '',
       leader_role: g.leader_role || '',
       sub_leader: g.sub_leader || '',
@@ -1410,6 +1441,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       id: c.case_id, case_id: c.case_id,
       title: c.title || (c.victim || c.victim_name || '当事人') + '被诈骗案',
       amount: c.amount, amount_value: c.amount_value || 0,
+      amountText: formatCaseAmountText(c),
       scam_type: c.scam_type || '', type: c.scam_type || '',
       status: c.status || '已立案', risk_level: c.risk_level || '',
       victimName: c.victim || c.victim_name || '',
@@ -1441,8 +1473,17 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       cases: g.total_cases || 0,
       total_cases: g.total_cases || 0,
       case_count: g.case_count || g.total_cases || 0,
-      caseIds: (g.related_cases || []).map(c => c.case_id || c),
+      caseIds: Array.isArray(g.case_ids) && g.case_ids.length
+        ? [...g.case_ids]
+        : Array.isArray(g.caseIds) && g.caseIds.length
+          ? [...g.caseIds]
+          : (Array.isArray(g.related_cases) ? g.related_cases.map(c => c.case_id || c) : []),
+      case_ids: Array.isArray(g.case_ids) && g.case_ids.length
+        ? [...g.case_ids]
+        : (Array.isArray(g.related_cases) ? g.related_cases.map(c => c.case_id || c) : []),
       related_cases: g.related_cases || [],
+      relation_reasons: g.relation_reasons || {},
+      matched_entities_map: g.matched_entities_map || {},
       tags: Array.isArray(g.fingerprint)
         ? g.fingerprint.filter(Boolean)
         : g.fingerprint
@@ -1549,6 +1590,10 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       } else {
         console.error('[reloadCasesAndGangs] fetchGangs failed:', gangsRes)
       }
+      // 案件/团伙数据到位后，若正停留在 overview，重绘饼图（数据源 cases）
+      if (route.name === 'overview' && cases.value.length) {
+        nextTick(() => initCharts())
+      }
     } catch (e) {
       const detail = e?.response?.data?.detail || e?.response?.data?.error || e?.message || String(e)
       console.warn('[reloadCasesAndGangs] 刷新数据失败:', detail)
@@ -1572,6 +1617,9 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     if (newVal === 'details' && store.isLoggedIn) {
       reloadCasesAndGangs()
     }
+    if (newVal === 'groups' && store.isLoggedIn) {
+      loadGangReview()
+    }
   })
 
   onMounted(async () => {
@@ -1583,11 +1631,12 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
         store.logout()
       }
     }
-    if (routeName === 'dashboard') loadDashboard()
-    if (routeName === 'alerts') loadAlerts()
     if (store.isLoggedIn) {
       loadFlowMetrics()
       await reloadCasesAndGangs()
+      if (routeName === 'dashboard') loadDashboard()
+      if (routeName === 'alerts') loadAlerts()
+      if (routeName === 'groups') loadGangReview()
       if (cases.value.length === 0) {
       try {
         await ElMessageBox.confirm(
@@ -1619,7 +1668,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
   })
 
   onUnmounted(() => {
-    if (loginProgressTimer) clearInterval(loginProgressTimer)
+    auth.clearLoginProgressTimer()
     disposeAllCharts()
     disconnectSocket()
   })
@@ -1631,6 +1680,31 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     dashboardRiskChart = dashboardStatusChart = dashboardBarChart = dashboardTrendChart = pieChart = lineChart = null
   }
 
+  // ---- 资金流水导入（真实材料接入 Phase4） ----
+  const importFundFlowFile = async (file) => {
+    try {
+      const res = await importFundFlow(file)
+      if (res && res.success) {
+        fundFlowTx.value = res.accounts_tx || []
+        fundFlowFileName.value = file.name || ''
+        ElMessage.success(`已导入 ${fundFlowTx.value.length} 笔资金流水，将参与资金链与回流闭环研判`)
+        return res
+      }
+      ElMessage.error((res && res.error) || '资金流水解析失败')
+    } catch (e) {
+      ElMessage.error('资金流水导入失败：' + (e.message || e))
+    }
+    return null
+  }
+
+  const clearFundFlow = () => {
+    fundFlowTx.value = []
+    fundFlowFileName.value = ''
+  }
+
+  // 认证模块解构（接口保持与拆分前一致）
+  const { loginForm, loginLoading, loginError, loginProgress, handleLogin, handleDemoLogin, handleLogout } = auth
+
   return {
     store,
     activeMenu,
@@ -1640,6 +1714,17 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     uploadedImages,
     gangs,
     cases,
+    gangReview,
+    gangReviewLoading,
+    gangReviewUseLlm,
+    gangReviewMap,
+    suspiciousMergeMap,
+    suspiciousMerges,
+    loadGangReview,
+    toggleGangReviewLlm,
+    analysisAbnormal,
+    analysisWarnings,
+    analysisSlips,
     lastImportedCaseIds,
     recentCases,
     selectedGang,
@@ -1677,6 +1762,9 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     dashboardStatusChartRef,
     dashboardBarChartRef,
     dashboardTrendChartRef,
+    dashboardRadarChartRef,
+    dashboardRiskFilter,
+    dashboardStatusFilter,
     reportConfig,
     reportPreview,
     loginForm,
@@ -1725,6 +1813,10 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     handleDemoLogin,
     handleLogout,
     startAnalysis,
+    fundFlowTx,
+    fundFlowFileName,
+    importFundFlowFile,
+    clearFundFlow,
     goToResults,
     getCaseGang,
     getCaseTitle,
@@ -1740,6 +1832,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     printReport,
     downloadReport,
     loadDashboard,
+    initCharts,
     loadAlerts,
     loadFlowData,
     loadFlowMetrics,
@@ -1758,5 +1851,4 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     viewCaseFromDashboard,
     initCharts
   }
-
 }

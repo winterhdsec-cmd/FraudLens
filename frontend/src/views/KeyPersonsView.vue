@@ -2,7 +2,7 @@
 <div class="view-section">
           <div class="section-header">
             <div class="header-left">
-              <h2 class="section-title"><span class="title-icon">👤</span>重点人员库</h2>
+              <h2 class="section-title"><span class="title-icon"><el-icon><User /></el-icon></span>重点人员库</h2>
               <p class="section-desc">前科人员 / 高危人员管理，研判时自动碰撞比对</p>
             </div>
             <div class="header-actions">
@@ -38,7 +38,7 @@
           </div>
           <div v-if="!keyPersons.length && !personSearch" class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">👤</div>
+              <div class="empty-icon"><el-icon><User /></el-icon></div>
               <h3 class="empty-title">暂无重点人员</h3>
               <p class="empty-desc">研判分析中碰撞到的人员会自动添加到重点人员库</p>
             </div>

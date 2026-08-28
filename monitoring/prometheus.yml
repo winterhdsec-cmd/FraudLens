@@ -1,0 +1,20 @@
+# FraudLens — Prometheus 抓取配置（G8, docs/13）
+# 抓取目标：backend 的 /api/metrics/prometheus（零依赖文本端点）
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: fraudlens-monitor
+
+scrape_configs:
+  - job_name: 'fraudlens-backend'
+    metrics_path: /api/metrics/prometheus
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['backend:5003']
+        labels:
+          service: backend
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

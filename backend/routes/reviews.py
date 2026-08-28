@@ -16,7 +16,7 @@ router = APIRouter(prefix='/api/reviews', tags=['复核'])
 @db_retry()
 async def api_pending_reviews(current_user: dict = Depends(get_current_user)):
     try:
-        cases = get_all_cases()
+        cases = get_all_cases(current_user)
         flagged_cases = []
         reviewed_ids = set()
         for c in cases:

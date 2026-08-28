@@ -1,0 +1,54 @@
+# FraudLens Ingress（G1 全链路 TLS / G16 部署加固）
+# 前置: 集群已装 ingress-nginx;TLS 证书由 cert-manager(ClusterIssuer) 或手动 secret 提供。
+# 本文件为模板,host/secret 名按实际域名调整。
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fraudlens-ingress
+  namespace: fraudlens
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # G1 HSTS 仅在 TLS 启用后下发;cert-manager 自动续期
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - fraudlens.example.com
+    secretName: fraudlens-tls
+  rules:
+  - host: fraudlens.example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: fraudlens-backend
+            port:
+              number: 5003
+      - path: /agent-analyze
+        pathType: Prefix
+        backend:
+          service:
+            name: fraudlens-backend
+            port:
+              number: 5003
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: fraudlens-backend
+            port:
+              number: 5003
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fraudlens-frontend
+            port:
+              number: 80

@@ -37,13 +37,6 @@
             融合大模型语义理解、深度无监督聚类与模块化协同分析架构，
             实现从数据接入 → 语义分析 → 团伙挖掘 → 报告生成的全流程智能化研判
           </p>
-          <div class="hero-stats">
-            <div class="stat-item" v-for="(stat, i) in heroStats" :key="i">
-              <div class="stat-icon">{{ stat.icon }}</div>
-              <div class="stat-number">{{ animatedStats[i] || 0 }}{{ stat.suffix }}</div>
-              <div class="stat-label">{{ stat.label }}</div>
-            </div>
-          </div>
           <div class="hero-core-tags">
             <span class="core-tag" v-for="t in heroTags" :key="t">{{ t }}</span>
           </div>
@@ -56,82 +49,111 @@
           </div>
         </div>
         <div class="hero-visual">
-          <div class="mini-network">
-            <svg viewBox="0 0 300 300" class="network-svg">
-              <defs>
-                <filter id="net-glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                <linearGradient id="line-grad-1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="rgba(0,212,255,0.05)"/><stop offset="50%" stop-color="rgba(0,212,255,0.45)"/><stop offset="100%" stop-color="rgba(0,212,255,0.05)"/></linearGradient>
-                <linearGradient id="line-grad-2" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(139,92,246,0.05)"/><stop offset="50%" stop-color="rgba(139,92,246,0.35)"/><stop offset="100%" stop-color="rgba(139,92,246,0.05)"/></linearGradient>
-                <linearGradient id="line-grad-3" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="rgba(245,158,11,0.05)"/><stop offset="50%" stop-color="rgba(245,158,11,0.3)"/><stop offset="100%" stop-color="rgba(245,158,11,0.05)"/></linearGradient>
-              </defs>
+          <!-- === 指挥中心大屏：实时数据 + 关系图谱 + 预警流（mock 数据，未登录即可见） === -->
+          <div class="command-deck">
+            <!-- 顶部：大字号核心指标（4 个滚动数字） -->
+            <div class="deck-metrics">
+              <div class="metric-card" v-for="(m, i) in deckMetrics" :key="i" :class="m.cls">
+                <div class="metric-icon">{{ m.icon }}</div>
+                <div class="metric-value">
+                  <span class="num" :data-target="m.value">{{ deckAnimated[i] || 0 }}</span>
+                  <span class="unit">{{ m.unit }}</span>
+                </div>
+                <div class="metric-label">{{ m.label }}</div>
+                <div class="metric-bar"><div class="metric-bar-fill" :style="{ width: m.bar + '%' }"></div></div>
+              </div>
+            </div>
 
-              <!-- 背景径向网格 -->
-              <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0,212,255,0.03)" stroke-width="0.5"/>
-              <circle cx="150" cy="150" r="100" fill="none" stroke="rgba(0,212,255,0.04)" stroke-width="0.5"/>
-              <circle cx="150" cy="150" r="60" fill="none" stroke="rgba(0,212,255,0.05)" stroke-width="0.5"/>
+            <!-- 中部：动态关系图谱（更大、更炫，含流光节点） -->
+            <div class="deck-graph">
+              <div class="deck-graph-header">
+                <span class="dot-pulse"></span>
+                <span>实时团伙关联图谱 · LIVE</span>
+                <span class="graph-stat">当前 31 个团伙 / 142 节点</span>
+              </div>
+              <div class="deck-graph-canvas">
+                <svg viewBox="0 0 400 320" class="deck-network-svg">
+                  <defs>
+                    <filter id="deck-glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    <radialGradient id="deck-core" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#ef4444" stop-opacity="1"/>
+                      <stop offset="100%" stop-color="#dc2626" stop-opacity="0.6"/>
+                    </radialGradient>
+                  </defs>
+                  <!-- 网格底图 -->
+                  <g opacity="0.06" stroke="#00d4ff" stroke-width="0.5">
+                    <line x1="0" y1="80" x2="400" y2="80"/>
+                    <line x1="0" y1="160" x2="400" y2="160"/>
+                    <line x1="0" y1="240" x2="400" y2="240"/>
+                    <line x1="100" y1="0" x2="100" y2="320"/>
+                    <line x1="200" y1="0" x2="200" y2="320"/>
+                    <line x1="300" y1="0" x2="300" y2="320"/>
+                  </g>
+                  <!-- 关系连线（流光动画） -->
+                  <g class="conn-layer">
+                    <line x1="200" y1="160" x2="80" y2="80" stroke="url(#line-grad-1)" stroke-width="1.5" class="dline l1"/>
+                    <line x1="200" y1="160" x2="320" y2="100" stroke="url(#line-grad-1)" stroke-width="1.5" class="dline l2"/>
+                    <line x1="200" y1="160" x2="60" y2="220" stroke="url(#line-grad-2)" stroke-width="1.5" class="dline l3"/>
+                    <line x1="200" y1="160" x2="340" y2="240" stroke="url(#line-grad-2)" stroke-width="1.5" class="dline l4"/>
+                    <line x1="80" y1="80" x2="320" y2="100" stroke="rgba(0,212,255,0.15)" stroke-width="0.8" class="dline-w"/>
+                    <line x1="60" y1="220" x2="340" y2="240" stroke="rgba(139,92,246,0.12)" stroke-width="0.8" class="dline-w"/>
+                    <line x1="200" y1="160" x2="160" y2="40" stroke="url(#line-grad-3)" stroke-width="1.5" class="dline l5"/>
+                    <line x1="200" y1="160" x2="240" y2="280" stroke="url(#line-grad-3)" stroke-width="1.5" class="dline l6"/>
+                  </g>
+                  <!-- 节点 -->
+                  <g class="nodes-layer">
+                    <circle cx="200" cy="160" r="22" fill="url(#deck-core)" filter="url(#deck-glow)" class="dcore">
+                      <animate attributeName="r" values="22;24;22" dur="2.5s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="200" cy="160" r="6" fill="white" opacity="0.4"/>
+                    <text x="200" y="166" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">G12</text>
 
-              <!-- 背景连接线（带流光动画） -->
-              <g class="conn-layer">
-                <line x1="150" y1="150" x2="50" y2="80" stroke="url(#line-grad-1)" stroke-width="1.5" class="conn-line c1"/>
-                <line x1="150" y1="150" x2="250" y2="90" stroke="url(#line-grad-1)" stroke-width="1.5" class="conn-line c2"/>
-                <line x1="150" y1="150" x2="70" y2="230" stroke="url(#line-grad-2)" stroke-width="1.5" class="conn-line c3"/>
-                <line x1="150" y1="150" x2="240" y2="240" stroke="url(#line-grad-2)" stroke-width="1.5" class="conn-line c4"/>
-                <line x1="150" y1="150" x2="170" y2="50" stroke="url(#line-grad-3)" stroke-width="1.5" class="conn-line c5"/>
-                <line x1="150" y1="150" x2="180" y2="260" stroke="url(#line-grad-3)" stroke-width="1.5" class="conn-line c6"/>
-                <line x1="50" y1="80" x2="250" y2="90" stroke="rgba(0,212,255,0.07)" stroke-width="0.8" class="conn-line-weak"/>
-                <line x1="70" y1="230" x2="240" y2="240" stroke="rgba(0,212,255,0.07)" stroke-width="0.8" class="conn-line-weak"/>
-                <line x1="50" y1="80" x2="170" y2="50" stroke="rgba(139,92,246,0.06)" stroke-width="0.8" class="conn-line-weak"/>
-                <line x1="240" y1="240" x2="180" y2="260" stroke="rgba(139,92,246,0.06)" stroke-width="0.8" class="conn-line-weak"/>
-              </g>
+                    <circle cx="80" cy="80" r="10" fill="#f59e0b" opacity="0.85" filter="url(#deck-glow)" class="dnode n1"><animate attributeName="r" values="10;12;10" dur="3s" begin="0.3s" repeatCount="indefinite"/></circle>
+                    <text x="80" y="58" text-anchor="middle" fill="#fbbf24" font-size="9">杀猪盘</text>
 
-              <!-- 核心节点 -->
-              <circle cx="150" cy="150" r="20" fill="#ef4444" opacity="0.9" filter="url(#net-glow)" class="net-core">
-                <animate attributeName="r" values="20;22;20" dur="3s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="150" cy="150" r="28" fill="none" stroke="#ef4444" stroke-width="1" opacity="0.25" class="core-ring">
-                <animate attributeName="r" values="26;34;26" dur="3s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.25;0.08;0.25" dur="3s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="150" cy="150" r="36" fill="none" stroke="#ef4444" stroke-width="0.5" opacity="0.12" class="core-ring-2">
-                <animate attributeName="r" values="34;44;34" dur="3s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.12;0.03;0.12" dur="3s" repeatCount="indefinite"/>
-              </circle>
+                    <circle cx="320" cy="100" r="9" fill="#8b5cf6" opacity="0.85" filter="url(#deck-glow)" class="dnode n2"><animate attributeName="r" values="9;11;9" dur="3.2s" begin="0.6s" repeatCount="indefinite"/></circle>
+                    <text x="320" y="78" text-anchor="middle" fill="#a78bfa" font-size="9">刷单</text>
 
-              <!-- 卫星节点 -->
-              <circle cx="50" cy="80" r="12" fill="#00d4ff" opacity="0.85" filter="url(#net-glow)" class="net-sat s1">
-                <animate attributeName="cx" values="50;55;50" dur="5s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="80;75;80" dur="5s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="250" cy="90" r="12" fill="#00d4ff" opacity="0.85" filter="url(#net-glow)" class="net-sat s2">
-                <animate attributeName="cx" values="250;245;250" dur="4.5s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="90;85;90" dur="4.5s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="70" cy="230" r="11" fill="#f59e0b" opacity="0.85" filter="url(#net-glow)" class="net-sat s3">
-                <animate attributeName="cx" values="70;75;70" dur="5.5s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="230;225;230" dur="5.5s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="240" cy="240" r="11" fill="#f59e0b" opacity="0.85" filter="url(#net-glow)" class="net-sat s4">
-                <animate attributeName="cx" values="240;235;240" dur="4s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="240;245;240" dur="4s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="170" cy="50" r="10" fill="#8b5cf6" opacity="0.85" filter="url(#net-glow)" class="net-sat s5">
-                <animate attributeName="cx" values="170;175;170" dur="6s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="50;45;50" dur="6s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx="180" cy="260" r="10" fill="#8b5cf6" opacity="0.85" filter="url(#net-glow)" class="net-sat s6">
-                <animate attributeName="cx" values="180;185;180" dur="5.2s" repeatCount="indefinite"/>
-                <animate attributeName="cy" values="260;255;260" dur="5.2s" repeatCount="indefinite"/>
-              </circle>
+                    <circle cx="60" cy="220" r="11" fill="#10b981" opacity="0.85" filter="url(#deck-glow)" class="dnode n3"><animate attributeName="r" values="11;13;11" dur="2.8s" begin="0.9s" repeatCount="indefinite"/></circle>
+                    <text x="60" y="248" text-anchor="middle" fill="#34d399" font-size="9">冒充公检法</text>
 
-              <!-- 节点的内发光小点 -->
-              <circle cx="150" cy="150" r="6" fill="white" opacity="0.3"/>
-              <circle cx="50" cy="80" r="4" fill="white" opacity="0.3"/>
-              <circle cx="250" cy="90" r="4" fill="white" opacity="0.3"/>
-              <circle cx="70" cy="230" r="3.5" fill="white" opacity="0.25"/>
-              <circle cx="240" cy="240" r="3.5" fill="white" opacity="0.25"/>
-              <circle cx="170" cy="50" r="3" fill="white" opacity="0.25"/>
-              <circle cx="180" cy="260" r="3" fill="white" opacity="0.25"/>
-            </svg>
+                    <circle cx="340" cy="240" r="8" fill="#00d4ff" opacity="0.85" filter="url(#deck-glow)" class="dnode n4"><animate attributeName="r" values="8;10;8" dur="3.4s" begin="1.2s" repeatCount="indefinite"/></circle>
+                    <text x="340" y="268" text-anchor="middle" fill="#4be0ff" font-size="9">投资理财</text>
+
+                    <circle cx="160" cy="40" r="6" fill="#ec4899" opacity="0.85" filter="url(#deck-glow)" class="dnode n5"><animate attributeName="r" values="6;8;6" dur="3.6s" begin="1.5s" repeatCount="indefinite"/></circle>
+                    <text x="160" y="22" text-anchor="middle" fill="#f472b6" font-size="9">裸聊</text>
+
+                    <circle cx="240" cy="280" r="7" fill="#06b6d4" opacity="0.85" filter="url(#deck-glow)" class="dnode n6"><animate attributeName="r" values="7;9;7" dur="3.1s" begin="1.8s" repeatCount="indefinite"/></circle>
+                    <text x="240" y="302" text-anchor="middle" fill="#22d3ee" font-size="9">贷款</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 底部：实时预警滚动条 -->
+            <div class="deck-alerts">
+              <div class="alerts-header">
+                <span class="alert-dot"></span>
+                <span>实时预警流</span>
+                <span class="alerts-count">5 起待处置</span>
+              </div>
+              <div class="alerts-track">
+                <div class="alerts-slide">
+                  <span class="alert-item a-high"><span class="at">12:08</span>武汉·张某被诱导"刷单返利" 涉案 ¥8.6万 · 关联团伙 G12</span>
+                  <span class="alert-item a-mid"><span class="at">11:54</span>长沙·李某"投资理财" 涉案 ¥32.4万 · 已冻结账户 3 个</span>
+                  <span class="alert-item a-high"><span class="at">11:42</span>郑州·王某"冒充公检法" 涉案 ¥15.2万 · 紧急派单</span>
+                  <span class="alert-item a-low"><span class="at">11:31</span>合肥·赵某"虚假贷款" 涉案 ¥4.8万 · 待审核</span>
+                  <span class="alert-item a-mid"><span class="at">11:18</span>南昌·孙某"杀猪盘" 涉案 ¥21.7万 · 复盘研判</span>
+                  <span class="alert-item a-high"><span class="at">11:05</span>福州·周某"杀猪盘" 涉案 ¥56.3万 · 已立案</span>
+                  <span class="alert-item a-mid"><span class="at">10:52</span>广州·吴某"裸聊敲诈" 涉案 ¥3.2万 · 建议冻结</span>
+                  <span class="alert-item a-high"><span class="at">12:08</span>武汉·张某被诱导"刷单返利" 涉案 ¥8.6万 · 关联团伙 G12</span>
+                  <span class="alert-item a-mid"><span class="at">11:54</span>长沙·李某"投资理财" 涉案 ¥32.4万 · 已冻结账户 3 个</span>
+                  <span class="alert-item a-high"><span class="at">11:42</span>郑州·王某"冒充公检法" 涉案 ¥15.2万 · 紧急派单</span>
+                  <span class="alert-item a-low"><span class="at">11:31</span>合肥·赵某"虚假贷款" 涉案 ¥4.8万 · 待审核</span>
+                  <span class="alert-item a-mid"><span class="at">11:18</span>南昌·孙某"杀猪盘" 涉案 ¥21.7万 · 复盘研判</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -651,15 +673,16 @@ const navSections = [
   { id: 'outlook', label: '展望' },
 ]
 
-const heroStats = [
-  { icon: '📊', value: 77, suffix: '+', label: '分析案件' },
-  { icon: '👥', value: 12, suffix: '', label: '识别团伙' },
-  { icon: '⚡', value: 12, suffix: 's', label: '平均响应' },
-  { icon: '🎯', value: 92, suffix: '%', label: '模型准确率' },
-]
-const animatedStats = ref([0, 0, 0, 0])
-
 const heroTags = ['模块化协同分析', '大模型研判', '无监督聚类', '语义指纹', 'NLP语义分析']
+
+// === 指挥中心大屏数据（mock） ===
+const deckMetrics = [
+  { icon: '📊', value: 229,    unit: '起',  label: '在库案件',     bar: 88, cls: 'm-blue' },
+  { icon: '👥', value: 31,     unit: '个',  label: '已识团伙',     bar: 72, cls: 'm-purple' },
+  { icon: '⚡', value: 12,     unit: '秒',  label: '研判响应',     bar: 94, cls: 'm-amber' },
+  { icon: '🎯', value: 91.5,   unit: '%',  label: 'F1 准确率',    bar: 91, cls: 'm-green' },
+]
+const deckAnimated = ref([0, 0, 0, 0])
 
 const bgData = [
   { value: '63.2万', label: '全国电诈立案数（2024全年）', color: '#EF4444', source: '公安部2024年统计公报' },
@@ -907,20 +930,28 @@ function updateScrollProgress() {
   scrollProgress.value = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0
 }
 
-function animateHeroNumbers() {
-  heroStats.forEach((s, idx) => {
-    const dur = 2000, steps = 60, inc = s.value / steps
+// 指挥中心大屏数字滚动（支持小数，如 91.5）
+function animateDeckNumbers() {
+  deckMetrics.forEach((m, idx) => {
+    const dur = 1800, steps = 60, inc = m.value / steps
     let cur = 0
     const iv = setInterval(() => {
       cur += inc
-      if (cur >= s.value) { animatedStats.value[idx] = s.value; clearInterval(iv) }
-      else animatedStats.value[idx] = Math.floor(cur)
+      if (cur >= m.value) {
+        deckAnimated.value[idx] = m.value
+        clearInterval(iv)
+      } else {
+        // 91.5 这种显示 1 位小数
+        deckAnimated.value[idx] = m.value % 1 !== 0
+          ? Math.round(cur * 10) / 10
+          : Math.floor(cur)
+      }
     }, dur / steps)
   })
 }
 
 onMounted(() => {
-  animateHeroNumbers()
+  animateDeckNumbers()
   window.addEventListener('scroll', handleScroll)
   window.addEventListener('scroll', updateScrollProgress)
   const obs = new IntersectionObserver((entries) => {
@@ -940,7 +971,7 @@ onMounted(() => {
     })
   })
   setTimeout(() => {
-    animateHeroNumbers()
+    animateDeckNumbers()
   }, 600)
 })
 
@@ -1006,7 +1037,7 @@ onUnmounted(() => {
               linear-gradient(90deg, rgba(0,198,255,0.02) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 50px 50px, 50px 50px;
 }
-.hero-content { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; max-width: 1300px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+.hero-content { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 50px; max-width: 1300px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
 .hero-text { display: flex; flex-direction: column; gap: 16px; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
@@ -1062,10 +1093,110 @@ onUnmounted(() => {
 .btn-secondary:hover { background: rgba(0,229,255,0.08); transform: translateY(-3px); border-color: rgba(0,229,255,0.5); }
 .btn-lg { padding: 15px 34px; font-size: 15px; border-radius: 14px; }
 
-/* Hero 右侧可视化区域 */
-.hero-visual { position: relative; display: flex; justify-content: center; align-items: center; min-height: 380px; }
-.mini-network { position: absolute; width: 260px; height: 260px; bottom: 10%; right: 15%; opacity: 0.6; }
-.network-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px rgba(0,198,255,0.1)); }
+/* Hero 右侧可视化区域 —— 指挥中心大屏（command-deck） */
+.hero-visual { position: relative; display: flex; justify-content: center; align-items: center; min-height: 460px; width: 100%; }
+.command-deck {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(160deg, rgba(13, 26, 46, 0.92), rgba(10, 23, 41, 0.88));
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.06), inset 0 1px 0 rgba(0, 212, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.command-deck::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.6), transparent);
+}
+.command-deck::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(0, 212, 255, 0.08), transparent 60%);
+  pointer-events: none;
+}
+
+/* === 顶部 4 个大指标 === */
+.deck-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.metric-card {
+  position: relative; padding: 10px 8px 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  border-radius: 8px;
+  text-align: center;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.metric-card:hover { transform: translateY(-1px); border-color: rgba(0, 212, 255, 0.3); }
+.metric-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.5;
+}
+.metric-card.m-blue   { color: #00d4ff; }
+.metric-card.m-purple { color: #8b5cf6; }
+.metric-card.m-amber  { color: #f59e0b; }
+.metric-card.m-green  { color: #10b981; }
+.metric-icon { font-size: 12px; margin-bottom: 2px; opacity: 0.85; }
+.metric-value { display: flex; align-items: baseline; justify-content: center; gap: 2px; line-height: 1; }
+.metric-value .num { font-size: 22px; font-weight: 800; color: currentColor; font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace; text-shadow: 0 0 12px currentColor; }
+.metric-value .unit { font-size: 11px; color: var(--color-text-3, #8a93a1); font-weight: 500; }
+.metric-label { font-size: 10px; color: var(--color-text-3, #8a93a1); margin-top: 3px; letter-spacing: 0.3px; }
+.metric-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: rgba(0, 212, 255, 0.06); }
+.metric-bar-fill { height: 100%; background: currentColor; opacity: 0.55; transition: width 1.2s ease; }
+
+/* === 中部：实时团伙关联图谱 === */
+.deck-graph { display: flex; flex-direction: column; min-height: 0; }
+.deck-graph-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--color-text-3, #8a93a1);
+  padding: 0 2px 6px; letter-spacing: 0.3px;
+}
+.deck-graph-header > span:nth-child(2) { color: var(--color-text-2, #bcc6d6); font-weight: 600; }
+.graph-stat { margin-left: auto; font-size: 10px; color: var(--color-primary, #00d4ff); }
+.dot-pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: dotPulse 1.6s ease-in-out infinite;
+}
+@keyframes dotPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+.deck-graph-canvas { height: 260px; position: relative; }
+.deck-network-svg { width: 100%; height: 100%; display: block; }
+.dline { stroke-dasharray: 200; stroke-dashoffset: 200; animation: dlineFlow 3s ease-in-out infinite; }
+.dline.l1 { animation-delay: 0s; } .dline.l2 { animation-delay: 0.4s; } .dline.l3 { animation-delay: 0.8s; }
+.dline.l4 { animation-delay: 1.2s; } .dline.l5 { animation-delay: 1.6s; } .dline.l6 { animation-delay: 2.0s; }
+.dline-w { animation: dlineFade 5s ease-in-out infinite; }
+@keyframes dlineFlow { 0% { stroke-dashoffset: 200; } 100% { stroke-dashoffset: -200; } }
+@keyframes dlineFade { 0%,100% { opacity: 0.06; } 50% { opacity: 0.18; } }
+.dcore { filter: drop-shadow(0 0 14px rgba(239,68,68,0.7)); }
+
+/* === 底部：实时预警滚动条 === */
+.deck-alerts { display: flex; flex-direction: column; gap: 4px; }
+.alerts-header { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-text-3, #8a93a1); padding: 0 2px; }
+.alerts-header > span:nth-child(2) { color: var(--color-text-2, #bcc6d6); font-weight: 600; }
+.alerts-count { margin-left: auto; font-size: 10px; color: #ef4444; }
+.alert-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: alertBlink 1s ease-in-out infinite; }
+@keyframes alertBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.alerts-track { overflow: hidden; height: 28px; position: relative; background: rgba(0, 0, 0, 0.2); border-radius: 6px; }
+.alerts-track::before, .alerts-track::after { content: ''; position: absolute; top: 0; bottom: 0; width: 30px; z-index: 2; pointer-events: none; }
+.alerts-track::before { left: 0; background: linear-gradient(90deg, rgba(0,0,0,0.3), transparent); }
+.alerts-track::after { right: 0; background: linear-gradient(270deg, rgba(0,0,0,0.3), transparent); }
+.alerts-slide { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: alertsScroll 30s linear infinite; }
+.alerts-slide:hover { animation-play-state: paused; }
+@keyframes alertsScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.alert-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 18px; font-size: 11px; color: var(--color-text-2, #bcc6d6); border-right: 1px solid rgba(255,255,255,0.05); }
+.alert-item .at { color: var(--color-text-3, #8a93a1); font-family: 'JetBrains Mono', monospace; }
+.alert-item.a-high { color: #fca5a5; }
+.alert-item.a-mid  { color: #fcd34d; }
+.alert-item.a-low  { color: #93c5fd; }
+.alert-item.a-high::before, .alert-item.a-mid::before, .alert-item.a-low::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.alert-item.a-high::before { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.alert-item.a-mid::before  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.alert-item.a-low::before  { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
 .net-core { filter: drop-shadow(0 0 12px rgba(239,68,68,0.6)); }
 .conn-line { stroke-dasharray: 200; stroke-dashoffset: 200; animation: lineFlow 4s ease-in-out infinite; }
 .conn-line-weak { animation: lineFade 6s ease-in-out infinite; }

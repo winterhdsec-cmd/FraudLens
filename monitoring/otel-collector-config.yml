@@ -1,0 +1,27 @@
+# FraudLens — OpenTelemetry Collector 配置（G10, docs/09 #C46）
+# 接收 backend 的 OTLP 追踪，批处理后导出到 Tempo（Grafana 原生追踪后端）。
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  logging:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp, logging]

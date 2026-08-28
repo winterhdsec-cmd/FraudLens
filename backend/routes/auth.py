@@ -10,9 +10,9 @@ from database import db
 from .deps import (
     get_current_user, get_token_from_header, decode_token,
     create_token, create_refresh_token, log_operation, db_retry,
-    LoginRequest, RegisterRequest, RefreshRequest,
     _TOKEN_BLACKLIST
 )
+from schemas.auth import LoginRequest, RegisterRequest, RefreshRequest
 
 router = APIRouter(prefix='/api/auth', tags=['认证'])
 

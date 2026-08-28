@@ -2,7 +2,7 @@
 <div class="view-section">
           <div class="section-header">
             <div class="header-left">
-              <h2 class="section-title"><span class="title-icon">📋</span>预警落地派单</h2>
+              <h2 class="section-title"><span class="title-icon"><el-icon><Files /></el-icon></span>预警落地派单</h2>
               <p class="section-desc">预警生成 → 派单到辖区 → 签收 → 处置反馈</p>
             </div>
             <div class="header-actions">
@@ -42,7 +42,7 @@
           </div>
           <div v-if="!dispatchOrders.length && !dispatchStatusFilter" class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon">📋</div>
+              <div class="empty-icon"><el-icon><Files /></el-icon></div>
               <h3 class="empty-title">暂无派单记录</h3>
               <p class="empty-desc">预警生成后，系统将自动创建派单并分配到辖区</p>
             </div>

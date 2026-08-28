@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from database.crud import get_all_cases
-from .deps import get_current_user, log_operation, MergeConfirmRequest, db_retry
+from .deps import get_current_user, log_operation, db_retry
+from schemas.merge import MergeConfirmRequest
 
 router = APIRouter(prefix='/api/merges', tags=['合并'])
 
@@ -41,6 +42,8 @@ async def api_confirm_merge(data: MergeConfirmRequest, request: Request,
         log_operation(current_user['id'], current_user.get('username', ''),
                       'confirm_merge', 'merge', f"{data.case_id_a}+{data.case_id_b}", ip_address=ip)
         return {"success": True, "message": "合并成功"}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 

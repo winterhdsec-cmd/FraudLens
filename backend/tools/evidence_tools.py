@@ -23,6 +23,100 @@ class ValidateEvidenceInput(ToolInput):
     evidence_value: str = Field(..., description="证据值")
 
 
+def normalize_spaced_digits(text: str) -> str:
+    """
+    规范化数字文本，使正则能匹配脏数据：
+      1. 折叠数字簇内部空白：'6228 8888 0001' → '622888880001'
+      2. 全角数字 → 半角：'６２２８' → '6228'
+      3. 全角空格 → 半角空格
+    仅折叠数字之间的空白，不影响 '5 万元' 等结构。
+    """
+    if not text:
+        return text
+    # 全角数字 → 半角
+    text = text.translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+    # 全角空格 → 半角
+    text = text.replace('\u3000', ' ')
+    # 折叠数字间空白
+    text = re.sub(r'(?<=\d)\s+(?=\d)', '', text)
+    return text
+
+
+def _dedupe_keep_order(seq):
+    seen = set()
+    out = []
+    for x in seq:
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+
+# 聚类/研判共用的"统一实体格式"（analyst 产出、cluster 消费）
+UNIFIED_ENTITY_KEYS = [
+    "bank_accounts", "phone_numbers", "wechat_ids", "qq_numbers",
+    "id_cards", "ip_addresses", "amounts", "transfer_times", "victims",
+]
+
+
+def extract_entities_regex(text: str) -> Dict[str, Any]:
+    """
+    本地正则抽取（零出域、无 LLM）。返回统一格式 dict：
+    {
+      bank_accounts, phone_numbers, wechat_ids, qq_numbers,
+      id_cards, ip_addresses, amounts, transfer_times, victims, scam_type
+    }
+    处理带空格/分段数字、全角字符；修复 qq 与 phone 正则重叠（11 位手机号不再误判为 QQ）。
+    """
+    text = normalize_spaced_digits(text)
+    tool = ExtractEvidenceTool()
+    out = tool.execute(text)
+    regex_ev = out.data.get("extracted_evidence", {}) if out.success else {}
+
+    phone_vals = regex_ev.get("phone", {}).get("values", [])
+    qq_raw = regex_ev.get("qq", {}).get("values", [])
+    # 修复重叠：手机号（11 位）从 qq 集合中剔除
+    phone_set = set(phone_vals)
+    qq_vals = [q for q in qq_raw if q not in phone_set]
+
+    # 从身份证号中剔除银行卡号（避免 18 位身份证与 16-19 位银行卡重叠）
+    bank_vals = regex_ev.get("bank_account", {}).get("values", [])
+    id_card_vals = regex_ev.get("id_card", {}).get("values", [])
+    id_set = set(id_card_vals)
+    bank_vals = [b for b in bank_vals if b not in id_set]
+
+    # 金额归一化（去掉单位，转 float）
+    amount_raw = regex_ev.get("amount", {}).get("values", [])
+    amount_vals = []
+    for a in amount_raw:
+        try:
+            num_str = re.sub(r'[^\d.]', '', a)
+            val = float(num_str) if num_str else 0.0
+            if '万' in a and val < 1000:  # "5万元" → 50000
+                val *= 10000
+            amount_vals.append(f"{val:.2f}")
+        except Exception:
+            amount_vals.append(a)
+
+    unified = {
+        "bank_accounts": bank_vals,
+        "phone_numbers": phone_vals,
+        "wechat_ids": regex_ev.get("wechat", {}).get("values", []),
+        "qq_numbers": qq_vals,
+        "id_cards": id_card_vals,
+        "ip_addresses": regex_ev.get("ip_address", {}).get("values", []),
+        "amounts": amount_vals,
+        "transfer_times": regex_ev.get("transfer_time", {}).get("values", []),
+        "victims": [],
+        "scam_type": "未知",
+    }
+    # 去重保序
+    for k in unified:
+        if isinstance(unified[k], list):
+            unified[k] = _dedupe_keep_order(unified[k])
+    return unified
+
+
 class ExtractEvidenceTool(Tool):
     """从文本中提取关键证据"""
     
@@ -63,12 +157,22 @@ class ExtractEvidenceTool(Tool):
         "url": {
             "pattern": r'https?://[^\s<>"]+|www\.[^\s<>"]+',
             "description": "URL链接"
+        },
+        "amount": {
+            "pattern": r'(?<!\d)(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?\s*(?:元|万元|万|RMB|￥|人民币)',
+            "description": "金额（支持 5,000元 / 5万元 / 5万 / 5.5元）"
+        },
+        "transfer_time": {
+            "pattern": r'(?<!\d)(?:20\d{2})[-/年.]\d{1,2}[-/月.]\d{1,2}(?:[日\sT]\d{1,2}[:时]\d{1,2}(?:[:分]\d{1,2})?)?',
+            "description": "转账时间（2025-01-01 / 2025/1/1 12:00 / 2025年1月1日）"
         }
     }
     
     def execute(self, text: str, evidence_types: List[str] = None) -> ToolOutput:
         """执行提取"""
         try:
+            # 折叠数字簇内部空白，使带空格/分段数字（如 '6228 8888 0001'）可被连续数字正则命中
+            text = normalize_spaced_digits(text)
             if evidence_types is None:
                 evidence_types = list(self.PATTERNS.keys())
             

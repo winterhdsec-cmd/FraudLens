@@ -25,7 +25,7 @@
     <div class="input-main-card">
       <div class="input-zone">
         <div class="input-icon-ring">
-          <span class="input-big-icon">📝</span>
+          <el-icon class="input-big-icon"><EditPen /></el-icon>
         </div>
         <div class="input-title">案件文本录入</div>
         <div class="input-subtitle">粘贴 <span class="input-link">聊天记录</span>、<span class="input-link">报警笔录</span> 或 <span class="input-link">涉案描述</span></div>
@@ -40,21 +40,21 @@
         <div class="input-toolbar-row">
           <div class="input-toolbar-left">
             <el-button size="small" @click="clearInput">
-              <span style="font-size:14px">🗑️</span> 清空
+              <el-icon><Delete /></el-icon> 清空
             </el-button>
             <el-button size="small" type="primary" @click="loadDemo" plain>
-              <span style="font-size:14px">📋</span> 加载测试案情
+              <el-icon><Files /></el-icon> 加载测试案情
             </el-button>
           </div>
           <div class="input-toolbar-right">
-            <span class="input-hint">💡 建议包含：涉案时间、金额、联系方式、作案手法等关键信息</span>
+            <span class="input-hint"><el-icon style="vertical-align:-2px"><InfoFilled /></el-icon> 建议包含：涉案时间、金额、联系方式、作案手法等关键信息</span>
           </div>
         </div>
       </div>
 
       <div class="input-features">
         <div class="input-feature-item">
-          <span class="input-feature-icon">🔍</span>
+          <el-icon class="input-feature-icon"><Search /></el-icon>
           <div class="input-feature-info">
             <span class="input-feature-title">关键词提取</span>
             <span class="input-feature-desc">自动识别涉案要素</span>
@@ -62,7 +62,7 @@
         </div>
         <div class="input-feature-divider"></div>
         <div class="input-feature-item">
-          <span class="input-feature-icon">🤖</span>
+          <el-icon class="input-feature-icon"><Cpu /></el-icon>
           <div class="input-feature-info">
             <span class="input-feature-title">AI 研判分析</span>
             <span class="input-feature-desc">模块化协同分析推理</span>
@@ -70,7 +70,7 @@
         </div>
         <div class="input-feature-divider"></div>
         <div class="input-feature-item">
-          <span class="input-feature-icon">📊</span>
+          <el-icon class="input-feature-icon"><DataAnalysis /></el-icon>
           <div class="input-feature-info">
             <span class="input-feature-title">结构化输出</span>
             <span class="input-feature-desc">自动归类案件要素</span>
@@ -82,24 +82,24 @@
     <div class="input-sidebar">
       <div class="input-tips-card">
         <div class="input-tips-header">
-          <span class="input-tips-icon">💡</span>
+          <el-icon class="input-tips-icon"><InfoFilled /></el-icon>
           <span class="input-tips-title">录入要点检测</span>
         </div>
         <div class="input-tips-list">
           <div class="input-tips-item" :class="{ active: hasTime }">
-            <span class="input-tips-num">{{ hasTime ? '✅' : '⬜' }}</span>
+            <span class="input-tips-num">{{ hasTime ? '✓' : '○' }}</span>
             <span>涉案时间</span>
           </div>
           <div class="input-tips-item" :class="{ active: hasAmount }">
-            <span class="input-tips-num">{{ hasAmount ? '✅' : '⬜' }}</span>
+            <span class="input-tips-num">{{ hasAmount ? '✓' : '○' }}</span>
             <span>涉案金额</span>
           </div>
           <div class="input-tips-item" :class="{ active: hasPhone }">
-            <span class="input-tips-num">{{ hasPhone ? '✅' : '⬜' }}</span>
+            <span class="input-tips-num">{{ hasPhone ? '✓' : '○' }}</span>
             <span>联系方式</span>
           </div>
           <div class="input-tips-item" :class="{ active: hasMethod }">
-            <span class="input-tips-num">{{ hasMethod ? '✅' : '⬜' }}</span>
+            <span class="input-tips-num">{{ hasMethod ? '✓' : '○' }}</span>
             <span>作案手法</span>
           </div>
         </div>
@@ -107,7 +107,7 @@
 
       <div class="input-tips-card">
         <div class="input-tips-header">
-          <span class="input-tips-icon">🔍</span>
+          <el-icon class="input-tips-icon"><Search /></el-icon>
           <span class="input-tips-title">关键词预览</span>
         </div>
         <div class="input-tips-body">
@@ -115,8 +115,35 @@
             <el-tag v-for="kw in extractedKeywords" :key="kw" size="small" type="info" style="margin:2px">{{ kw }}</el-tag>
           </div>
           <div v-else class="input-keywords-empty">
-            <span class="input-keywords-empty-icon">📝</span>
-            <span class="input-keywords-empty-text">输入文本后自动分析</span>
+            <el-icon class="input-keywords-empty-icon"><EditPen /></el-icon>
+            <span class="input-keywords-empty-text">输入文本后自动提取关键词</span>
+            <span class="input-keywords-empty-hint">例如：冒充客服 · 征信 · 安全账户 · 转账验证</span>
+          </div>
+        </div>
+      </div>
+      <div class="input-tips-card">
+        <div class="input-tips-header">
+          <el-icon class="input-tips-icon"><Money /></el-icon>
+          <span class="input-tips-title">资金流水（可选）</span>
+        </div>
+        <div class="input-tips-body">
+          <el-upload
+            :auto-upload="true"
+            :show-file-list="false"
+            accept=".csv,.txt,.xlsx"
+            :http-request="handleFundFlowUpload"
+            class="ff-upload"
+          >
+            <el-button size="small" type="warning" plain>
+              <el-icon><Money /></el-icon> 上传资金流水 CSV
+            </el-button>
+          </el-upload>
+          <div v-if="fundFlowFileName" class="ff-status">
+            <el-tag size="small" type="success">已附加 {{ fundFlowTx.length }} 笔 · {{ fundFlowFileName }}</el-tag>
+            <el-button size="small" text type="danger" @click="clearFundFlow">清除</el-button>
+          </div>
+          <div v-else class="input-keywords-empty-text" style="margin-top:8px">
+            上传银行/AMLSim 流水，自动参与资金链与回流闭环研判
           </div>
         </div>
       </div>
@@ -124,6 +151,7 @@
   </div>
 
   <div class="action-bar">
+    <div v-if="fundFlowFileName" class="ff-action-hint"><el-icon style="vertical-align:-2px"><Money /></el-icon> 已附加 {{ fundFlowTx.length }} 笔资金流水，将参与资金链/回流闭环研判</div>
     <el-button
       class="analyze-btn"
       type="primary"
@@ -132,7 +160,7 @@
       :disabled="!inputText.trim()"
       @click="startAnalysis"
     >
-      <span class="btn-icon">🚀</span>
+      <span class="btn-icon"><el-icon><Promotion /></el-icon></span>
       <span>{{ loading ? 'AI 正在深度研判...' : '开始智能研判' }}</span>
     </el-button>
   </div>
@@ -144,8 +172,13 @@ import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
   activeMenu, clearInput, extractedKeywords, hasAmount, hasMethod, hasPhone,
-  hasTime, inputText, loadDemo, loading, startAnalysis, textLineCount
+  hasTime, inputText, loadDemo, loading, startAnalysis, textLineCount,
+  fundFlowTx, fundFlowFileName, importFundFlowFile, clearFundFlow
 } = state
+
+const handleFundFlowUpload = (options) => {
+  importFundFlowFile(options.file)
+}
 </script>
 
 <style scoped>
@@ -193,11 +226,11 @@ const {
   font-family: inherit;
 }
 
-.input-textarea::placeholder { color: #475569; }
+.input-textarea::placeholder { color: var(--color-text-3); }
 
 .input-textarea:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 20px rgba(0,212,255,0.12);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
   background: rgba(255,255,255,0.06);
 }
 
@@ -252,18 +285,18 @@ const {
 .input-tips-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(0,198,255,0.08);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-1);
   border-radius: 8px;
   font-size: 13px;
-  color: var(--text-muted);
-  transition: all 0.3s ease;
+  color: var(--color-text-2);
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .input-tips-item.active {
-  border-color: rgba(16,185,129,0.3);
-  background: rgba(16,185,129,0.08);
-  color: #10b981;
+  border-color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
 }
 
 .input-tips-num { flex-shrink: 0; font-size: 14px; }
@@ -272,17 +305,33 @@ const {
 
 .input-keywords { display: flex; flex-wrap: wrap; gap: 4px; }
 
-.input-keywords-empty { text-align: center; padding: 16px 0; }
+.input-keywords-empty { text-align: center; padding: 18px 0; }
 
-.input-keywords-empty-icon { display: block; font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
+.input-keywords-empty-icon { display: block; font-size: 26px; margin-bottom: 6px; color: var(--color-text-4); opacity: 0.8; }
 
-.input-keywords-empty-text { font-size: 12px; color: var(--text-muted); }
+.input-keywords-empty-text { font-size: 12px; color: var(--color-text-3); display: block; }
+
+.input-keywords-empty-hint { font-size: 11px; color: var(--color-text-4); display: block; margin-top: 4px; line-height: 1.5; }
 
 .action-bar { display: flex; justify-content: center; margin-top: 24px; }
 
-.analyze-btn { min-width: 220px; height: 48px; font-size: 16px; animation: input-pulse-glow 2s ease-in-out infinite; }
+.analyze-btn { min-width: 220px; height: 48px; font-size: 16px; font-weight: 500; }
 
 .btn-icon { margin-right: 6px; }
+
+.ff-upload { display: inline-block; }
+
+.ff-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+.ff-action-hint {
+  font-size: 12px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+}
 
 @keyframes input-pulse-ring {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.2); }

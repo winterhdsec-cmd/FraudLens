@@ -1,0 +1,11 @@
+# FraudLens — Grafana 面板自动加载（G8, docs/13）
+apiVersion: 1
+providers:
+  - name: 'FraudLens'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

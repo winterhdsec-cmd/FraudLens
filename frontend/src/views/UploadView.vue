@@ -3,7 +3,7 @@
     <div class="section-header">
       <div class="header-left">
         <h2 class="section-title">
-          <span class="title-icon">📂</span>
+          <span class="title-icon"><el-icon><Folder /></el-icon></span>
           文件证据上传
         </h2>
         <p class="section-desc">上传聊天截图、转账凭证、警情文档，系统自动提取文字并研判</p>
@@ -31,18 +31,18 @@
           >
             <div class="upload-content">
               <div class="upload-icon-ring">
-                <span class="upload-big-icon">📤</span>
+                <span class="upload-big-icon"><el-icon><Upload /></el-icon></span>
               </div>
               <div class="upload-title">拖拽文件到此处</div>
               <div class="upload-subtitle">或 <span class="upload-link">点击选择文件</span></div>
               <div class="upload-hints">
-                <span class="uh-item">📷 图片 JPG/PNG</span>
+                <span class="uh-item"><el-icon><Camera /></el-icon> 图片 JPG/PNG</span>
                 <span class="uh-divider">|</span>
-                <span class="uh-item">📄 文档 TXT/CSV</span>
+                <span class="uh-item"><el-icon><Document /></el-icon> 文档 TXT/CSV</span>
                 <span class="uh-divider">|</span>
-                <span class="uh-item">📝 Word DOCX</span>
+                <span class="uh-item"><el-icon><EditPen /></el-icon> Word DOCX</span>
                 <span class="uh-divider">|</span>
-                <span class="uh-item">📑 PDF 文档</span>
+                <span class="uh-item"><el-icon><DocumentCopy /></el-icon> PDF 文档</span>
               </div>
               <div class="upload-limit">单文件最大 10MB</div>
             </div>
@@ -51,7 +51,7 @@
 
         <div class="upload-features">
           <div class="uf-item">
-            <span class="uf-icon">🔍</span>
+            <span class="uf-icon"><el-icon><Search /></el-icon></span>
             <div class="uf-info">
               <span class="uf-title">OCR 文字识别</span>
               <span class="uf-desc">自动提取图片中的文字</span>
@@ -59,7 +59,7 @@
           </div>
           <div class="uf-divider"></div>
           <div class="uf-item">
-            <span class="uf-icon">🧠</span>
+            <span class="uf-icon"><el-icon><ChatDotRound /></el-icon></span>
             <div class="uf-info">
               <span class="uf-title">多模态视觉理解</span>
               <span class="uf-desc">复杂截图/表格直接交给AI</span>
@@ -67,7 +67,7 @@
           </div>
           <div class="uf-divider"></div>
           <div class="uf-item">
-            <span class="uf-icon">🤖</span>
+            <span class="uf-icon"><el-icon><Cpu /></el-icon></span>
             <div class="uf-info">
               <span class="uf-title">AI 研判分析</span>
               <span class="uf-desc">提取内容自动进入研判</span>
@@ -79,13 +79,13 @@
           <span class="mode-label">图片分析模式：</span>
           <el-radio-group v-model="analyzeMode" size="small">
             <el-radio-button value="auto">
-              <span class="mode-opt">🤖 智能选择</span>
+              <span class="mode-opt"><el-icon><Cpu /></el-icon> 智能选择</span>
             </el-radio-button>
             <el-radio-button value="ocr">
-              <span class="mode-opt">📝 快速OCR</span>
+              <span class="mode-opt"><el-icon><EditPen /></el-icon> 快速OCR</span>
             </el-radio-button>
             <el-radio-button value="vision">
-              <span class="mode-opt">🧠 多模态理解</span>
+              <span class="mode-opt"><el-icon><ChatDotRound /></el-icon> 多模态理解</span>
             </el-radio-button>
           </el-radio-group>
           <span class="mode-hint" v-if="analyzeMode === 'auto'">自动判断：简单文字用OCR，复杂截图用视觉模型</span>
@@ -105,7 +105,7 @@
               <div class="ul-preview">
                 <img v-if="item.type === 'image'" :src="item.url" alt="preview" />
                 <div v-else class="ul-file-icon">
-                  <span class="ulf-icon">{{ item.type === 'pdf' ? '📑' : '📄' }}</span>
+                  <span class="ulf-icon">{{ item.type === 'pdf' ? '<el-icon><DocumentCopy /></el-icon>' : '<el-icon><Document /></el-icon>' }}</span>
                   <span class="ulf-ext">{{ item.name.split('.').pop().toUpperCase() }}</span>
                 </div>
               </div>
@@ -121,7 +121,7 @@
 
         <div v-else class="upload-tips-card tech-card">
           <div class="ut-header">
-            <span class="ut-icon">💡</span>
+            <span class="ut-icon"><el-icon><InfoFilled /></el-icon></span>
             <span class="ut-title">上传提示</span>
           </div>
           <div class="ut-list">
@@ -151,7 +151,7 @@
         :disabled="!uploadedFiles.length"
         @click="runAnalysis"
       >
-        <span class="btn-icon">🔍</span>
+        <span class="btn-icon"><el-icon><Search /></el-icon></span>
         <span>{{ loading ? 'AI 正在处理文件...' : '开始识别分析' }}</span>
       </el-button>
     </div>

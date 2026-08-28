@@ -7,7 +7,7 @@
       </div>
       <div class="search-box">
         <el-input v-model="searchKeyword" placeholder="搜索案件/团伙名称..." size="small" clearable style="width:220px" @input="onSearch">
-          <template #prefix><span>🔍</span></template>
+          <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
       </div>
       <div class="graph-tabs" v-if="hasFlowData">

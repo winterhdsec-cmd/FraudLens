@@ -114,6 +114,13 @@ def approve(flow_id: str, approver_id: int, approver_name: str,
             raise ValueError(f"当前层级审批人应为 {node_config.get('user_name', expected_user)}，"
                              f"您（{approver_name}）无权审批此层级")
 
+    # 自审自批防护：申请人不得审批自己发起的流程（admin 作为信任代理除外）
+    if flow.applicant_id and approver_id == flow.applicant_id:
+        from database.models import User
+        _approver = db.session.get(User, approver_id)
+        if not _approver or _approver.role != 'admin':
+            raise ValueError("申请人不能审批自己发起的流程，请交由他人审批")
+
     # 记录审批节点
     node = ApprovalNode(
         flow_id=flow_id,

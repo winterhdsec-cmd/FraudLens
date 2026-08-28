@@ -42,3 +42,30 @@ def claim_analysis_task(session_id, raw_messages, platform_data):
         return tid, bool(claimed)
     except Exception:
         return tid, True
+
+
+# 同步模式（USE_CELERY=false）幂等窗口，秒级即可覆盖"双击/重复提交"
+_SYNC_TTL = int(os.getenv("SYNC_DEDUP_TTL", "120"))
+
+
+def _claim_sync_analysis(raw_messages, platform_data):
+    """同步研判内容级去重：返回 (是否拿到执行权, dedup_key)。
+
+    键仅由消息内容哈希决定（不含 session_id——前端每次点击生成新 session，
+    若含 session 则幂等被击穿）。窗口内第二笔相同内容提交返回 False。
+    Redis 不可用时放行（不阻断业务）。
+    """
+    payload = json.dumps(
+        {"m": raw_messages, "p": platform_data},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    key = "sync:analyze:" + hashlib.sha1(payload.encode("utf-8")).hexdigest()
+    r = _client()
+    if r is None:
+        return True, key
+    try:
+        claimed = r.set(f"celery:dedup:{key}", "1", nx=True, ex=_SYNC_TTL)
+        return bool(claimed), key
+    except Exception:
+        return True, key

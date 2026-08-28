@@ -403,13 +403,19 @@ async def api_create_investigation(case_id: str, request: Request,
         extra_cases = body.get('extra_cases', [])
 
         # 案件状态校验：需处于"待研判/研判中/侦查中"
+        from_status = case.lifecycle_status or '待立案'
+        if from_status == '已归档':
+            # 终态案件禁止直接发起研判（需先重新立案走状态机，避免"已归档却研判中"矛盾）
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "已归档案件不可直接发起研判，请先通过状态流转重新立案"}
+            )
         if case.lifecycle_status not in ('待研判', '研判中', '侦查中', '研判完成', '待立案', '已立案'):
             # 自动流转到"研判中"
-            from_status = case.lifecycle_status or '待立案'
             if '研判中' in CASE_TRANSITIONS.get(from_status, []):
                 case.lifecycle_status = '研判中'
                 _record_transition(case_id, from_status, '研判中', current_user, '发起研判')
-            elif from_status not in ('研判中',):
+            else:
                 logger.info(f"案件 {case_id} 当前状态 {from_status}，仍允许发起研判")
 
         # 构造研判输入快照
@@ -729,10 +735,23 @@ async def api_submit_freeze_order(order_id: str, request: Request,
 def _default_approval_chain(amount: float, current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
     """按金额生成缺省审批链（<10万 单级；10-100万 两级；>100万 三级）。
 
-    注：缺省链使用当前用户作为占位审批人（演示用）。真实部署应从组织架构查询实际审批人。
+    审批人从库中选取 admin（优先非申请人本人）；仅存在申请人为 admin 时
+    回退该 admin，由引擎的"admin 信任代理"放行——避免申请人自审自批。
     """
-    uid = current_user.get('id')
-    uname = current_user.get('username', '') or current_user.get('display_name', '')
+    from database.models import User
+    # 优先选"非当前用户的 admin"作为各级审批人
+    approver = User.query.filter_by(role='admin').filter(
+        User.id != current_user.get('id')
+    ).order_by(User.id.asc()).first()
+    if not approver:
+        # 全库只有申请人一个 admin：回退申请人（admin 代审语义），演示可用
+        approver = User.query.filter_by(role='admin').order_by(User.id.asc()).first()
+    if not approver:
+        approver = User.query.order_by(User.id.asc()).first()
+    if not approver:
+        raise ValueError('系统无可用审批人，无法创建审批链')
+    uid = approver.id
+    uname = approver.username or approver.display_name or '审批人'
     if amount < 100000:
         return [{"level": 1, "role": "主办单位负责人", "user_id": uid, "user_name": uname}]
     elif amount < 1000000:

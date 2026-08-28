@@ -52,7 +52,26 @@ def run_analysis_task(self, messages, session_id, accounts_tx=None):
                     "case_id": f"case_{len(cases)}"
                 })
 
-        result = orchestrator.process(cases, context={"accounts_tx": accounts_tx})
+        result = orchestrator.process(cases, context={"accounts_tx": accounts_tx, "session_id": session_id})
+
+        # 与同步路由（routes/system.py）对齐：研判产出的团伙/冻卡决策必须落库，
+        # 否则 Celery 模式下前端 overview 查不到团伙与案件关联（M4）。
+        try:
+            from database.crud import persist_freeze_decisions, save_gang, _cache_clear
+            _sid = result.get('session_id', session_id)
+            persist_freeze_decisions(result.get('gangs', []) or [], session_id=_sid)
+            _saved = 0
+            for g in (result.get('gangs', []) or []):
+                g.setdefault('relation_type', 'gnn_cluster')
+                try:
+                    save_gang(g, session_id=_sid)
+                    _saved += 1
+                except Exception as _ge:
+                    print(f"团伙 {g.get('gang_id')} 关联落库失败: {_ge}")
+            if _saved:
+                _cache_clear()
+        except Exception as _e:
+            print(f"Celery 研判落库失败(不影响返回): {_e}")
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'complete',

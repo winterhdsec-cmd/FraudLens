@@ -24,7 +24,7 @@ async def api_get_sessions(current_user: dict = Depends(get_current_user)):
 @db_retry()
 async def api_get_session_detail_route(session_id: str, current_user: dict = Depends(get_current_user)):
     try:
-        detail = get_session_detail(session_id)
+        detail = get_session_detail(session_id, current_user)
         if detail:
             return {"success": True, **detail}
         return JSONResponse(status_code=404, content={"success": False, "error": "会话不存在"})

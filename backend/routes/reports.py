@@ -69,14 +69,20 @@ async def api_gang_report(gang_id: str, current_user: dict = Depends(get_current
 @router.get('/download/{filename}')
 async def api_download_report(filename: str, current_user: dict = Depends(get_current_user)):
     try:
+        # 路径穿越防护：仅允许纯文件名（不含路径分隔符/相对路径），防止 ../ 逃逸读任意文件
+        if os.path.basename(filename) != filename or '..' in filename:
+            return JSONResponse(status_code=400, content={"success": False, "error": "非法文件名"})
         # G7 审计：下载报告留痕
         try:
             log_operation(current_user['id'], current_user.get('username', ''),
                 'download_report', 'file', filename, {}, ip_address='')
         except Exception:
             pass
-        reports_dir = os.path.join(os.path.dirname(__file__), '..', 'reports')
-        filepath = os.path.join(reports_dir, filename)
+        reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'reports'))
+        filepath = os.path.abspath(os.path.join(reports_dir, filename))
+        # 双重校验：最终路径必须仍在 reports 目录内
+        if os.path.commonpath([reports_dir, filepath]) != reports_dir:
+            return JSONResponse(status_code=400, content={"success": False, "error": "非法文件名"})
         if not os.path.exists(filepath):
             return JSONResponse(status_code=404, content={"success": False, "error": "文件不存在"})
         return FileResponse(filepath, filename=filename)

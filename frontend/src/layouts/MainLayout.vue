@@ -45,7 +45,7 @@
 
     <!-- 顶栏（一级分组导航） -->
     <header class="app-header" v-if="!isFullPage">
-      <div class="header-left">
+      <div class="app-header-left">
         <div class="mini-logo" @click="router.push({ name: 'dashboard' })">
           <div class="logo-icon-wrapper small"><div class="logo-ring"></div><div class="logo-icon"><el-icon><Aim /></el-icon></div></div>
           <span class="mini-logo-text">反诈情报<span class="mini-logo-accent">FraudLens</span></span>
@@ -57,7 +57,7 @@
           </el-menu-item>
         </el-menu>
       </div>
-      <div class="header-right">
+      <div class="app-header-right">
         <span class="top-time">{{ nowStr }}</span>
         <span class="top-user"><el-icon><User /></el-icon> {{ currentUsername }}</span>
         <el-icon class="collapse-btn" :size="18" @click="collapsed = !collapsed">
@@ -326,7 +326,7 @@ const goToCaseDetail = (caseId) => {
   background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.35), transparent);
   pointer-events: none;
 }
-.header-left { display: flex; align-items: center; height: 100%; min-width: 0; gap: 4px; }
+.app-header-left { display: flex; align-items: center; height: 100%; min-width: 0; gap: 4px; flex: 1; }
 .mini-logo { cursor: pointer; display: flex; align-items: center; padding: 0 14px 0 4px; height: 100%; gap: 10px; border-right: 1px solid var(--color-divider); margin-right: 8px; }
 .logo-icon-wrapper.small { position: relative; width: 30px; height: 30px; margin: 0; flex-shrink: 0; }
 .logo-icon-wrapper.small .logo-icon { width: 30px; height: 30px; font-size: 16px; border-radius: 8px; box-shadow: var(--shadow-sm), 0 0 14px var(--dark-color-primary-glow-soft); }
@@ -374,10 +374,10 @@ const goToCaseDetail = (caseId) => {
   box-shadow: 0 0 6px var(--dark-color-primary-glow);
 }
 .top-menu .el-submenu__title { float: none !important; height: 52px; line-height: 52px; padding: 0 14px; }
-.header-right { display: flex; align-items: center; gap: 16px; color: var(--color-text-3); font-size: 12px; white-space: nowrap; }
-.header-right .top-time { font-variant-numeric: tabular-nums; }
-.header-right .collapse-btn { cursor: pointer; color: var(--color-text-2); transition: color var(--transition-fast); }
-.header-right .collapse-btn:hover { color: var(--color-primary); }
+.app-header-right { display: flex; align-items: center; gap: 16px; color: var(--color-text-3); font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+.app-header-right .top-time { font-variant-numeric: tabular-nums; }
+.app-header-right .collapse-btn { cursor: pointer; color: var(--color-text-2); transition: color var(--transition-fast); }
+.app-header-right .collapse-btn:hover { color: var(--color-primary); }
 
 /* ====== 顶栏（面包屑） ====== */
 /* ====== 多标签页 ====== */

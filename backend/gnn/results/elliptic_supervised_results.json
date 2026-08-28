@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "n_accounts": 203769,
+    "n_edges": 234355,
+    "n_labeled": 46564,
+    "n_train": 27615,
+    "n_test": 18949,
+    "n_train_anomaly": 3060,
+    "n_test_anomaly": 1485,
+    "split": "temporal (train timestep≤31, test >31)",
+    "source": "Elliptic (Webber et al., KDD 2019)",
+    "note": "域内有监督评测：证明拿到标注后能否工作，不混淆为零样本通用能力"
+  },
+  "methods": {
+    "GCN(features+graph)": {
+      "precision": 0.4722,
+      "recall": 0.703,
+      "f1": 0.5649,
+      "fpr_误报率": 0.0668,
+      "auc": 0.8909,
+      "n_test": 18949,
+      "n_test_anomaly": 1485
+    },
+    "MLP(features only)": {
+      "precision": 0.3986,
+      "recall": 0.7111,
+      "f1": 0.5109,
+      "fpr_误报率": 0.0912,
+      "auc": 0.8929,
+      "n_test": 18949,
+      "n_test_anomaly": 1485
+    }
+  }
+}

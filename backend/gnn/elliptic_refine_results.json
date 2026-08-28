@@ -1,0 +1,74 @@
+{
+  "setting": "refinement: 10 illicit anchors, 2-hop, cap 2000, 5 trials",
+  "note": "真实 Elliptic 图扩线设定；锚点取自标签模拟 AML 告警；非真实警务验证通过",
+  "trials": [
+    {
+      "trial": 0,
+      "n_sub": 80,
+      "n_labeled": 57,
+      "illicit_ratio": 0.65,
+      "KMeans_f1": 0.736,
+      "Louvain_f1": 0.5,
+      "HAN_f1": 0.6214,
+      "HAN_nmi": 0.003
+    },
+    {
+      "trial": 1,
+      "n_sub": 204,
+      "n_labeled": 137,
+      "illicit_ratio": 0.5539,
+      "KMeans_f1": 0.7152,
+      "Louvain_f1": 0.6012,
+      "HAN_f1": 0.6233,
+      "HAN_nmi": 0.0313
+    },
+    {
+      "trial": 2,
+      "n_sub": 173,
+      "n_labeled": 119,
+      "illicit_ratio": 0.578,
+      "KMeans_f1": 0.7519,
+      "Louvain_f1": 0.7375,
+      "HAN_f1": 0.7329,
+      "HAN_nmi": 0.308
+    },
+    {
+      "trial": 3,
+      "n_sub": 275,
+      "n_labeled": 160,
+      "illicit_ratio": 0.5164,
+      "KMeans_f1": 0.6827,
+      "Louvain_f1": 0.4755,
+      "HAN_f1": 0.5382,
+      "HAN_nmi": 0.0043
+    },
+    {
+      "trial": 4,
+      "n_sub": 330,
+      "n_labeled": 215,
+      "illicit_ratio": 0.6333,
+      "KMeans_f1": 0.7117,
+      "Louvain_f1": 0.4727,
+      "HAN_f1": 0.7125,
+      "HAN_nmi": 0.0662
+    }
+  ],
+  "summary": {
+    "KMeans": {
+      "mean": 0.7195,
+      "std": 0.0262
+    },
+    "Louvain": {
+      "mean": 0.5574,
+      "std": 0.1135
+    },
+    "HAN": {
+      "mean": 0.6457,
+      "std": 0.0786
+    },
+    "illicit_ratio": {
+      "mean": 0.5863,
+      "std": 0.0554
+    }
+  }
+}

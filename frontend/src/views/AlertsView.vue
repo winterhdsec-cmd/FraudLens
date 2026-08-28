@@ -3,14 +3,14 @@
   <div class="section-header">
     <div class="header-left">
       <h2 class="section-title">
-        <span class="title-icon">🔔</span>
+        <span class="title-icon"><el-icon><Bell /></el-icon></span>
         预警中心
       </h2>
       <p class="section-desc">实时监控诈骗预警信息，快速响应处置</p>
     </div>
     <div class="header-right">
       <el-button size="small" @click="loadAlerts" :loading="alertsLoading">
-        <span>🔄</span> 刷新
+        <span><el-icon><Refresh /></el-icon></span> 刷新
       </el-button>
     </div>
   </div>
@@ -75,7 +75,7 @@
           >处置</el-button>
           <el-button
             size="small"
-            @click="state.showCreateDispatch = true"
+            @click="router.push({ name: 'dispatch' })"
           >一键派单</el-button>
         </div>
       </div>
@@ -84,7 +84,7 @@
         <div class="entities-title">匹配实体:</div>
         <div class="entities-list">
           <div v-for="(entity, idx) in alert.matched_entities" :key="idx" class="entity-item">
-            <span class="entity-icon">🔗</span>
+            <span class="entity-icon"><el-icon><Link /></el-icon></span>
             <span class="entity-text">{{ getEntityLabel(entity) }}</span>
           </div>
         </div>
@@ -107,7 +107,7 @@
 
       <div class="card-footer">
         <div class="footer-left">
-          <span class="footer-icon">🕐</span>
+          <span class="footer-icon"><el-icon><Clock /></el-icon></span>
           <span class="footer-time">{{ formatTime(alert.created_at) }}</span>
         </div>
         <div v-if="alert.matched_case_id" class="footer-right">
@@ -120,7 +120,7 @@
 
   <div v-else-if="!alertsLoading" class="empty-state">
     <div class="empty-content">
-      <div class="empty-icon">🔔</div>
+      <div class="empty-icon"><el-icon><Bell /></el-icon></div>
       <h3 class="empty-title">暂无预警信息</h3>
       <p class="empty-desc">系统运行正常，暂无待处理的诈骗预警</p>
     </div>
@@ -130,7 +130,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, alerts, alertsLoading, cases, getAlertType, getConfidenceColor, handleResolveAlert,

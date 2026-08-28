@@ -1,0 +1,20 @@
+# FraudLens — HA 叠加层（仅与 --profile ha 配合时生效）
+#
+# 用法（一条命令启用主从 + 哨兵 + 透明故障转移）：
+#   docker compose -f docker-compose.yml -f docker-compose.ha.yml --profile ha up -d --no-build
+#
+# 本文件只给 backend / celery 注入哨兵地址，触发 core/redis_pool.get_redis_client()
+# 进入哨兵模式（自动发现当前 master，实现 master 故障后的透明重连）。
+# 不传本文件时（默认 `docker compose up`）REDIS_SENTINEL_HOSTS 为空，保持直连模式，
+# 默认行为完全不受影响。
+
+services:
+  backend:
+    environment:
+      REDIS_SENTINEL_HOSTS: "redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379"
+      REDIS_SENTINEL_SERVICE_NAME: "mymaster"
+
+  celery:
+    environment:
+      REDIS_SENTINEL_HOSTS: "redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379"
+      REDIS_SENTINEL_SERVICE_NAME: "mymaster"

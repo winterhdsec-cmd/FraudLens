@@ -1,0 +1,57 @@
+\documentclass[border=8pt]{standalone}
+\usepackage{ctex}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[
+    band/.style={draw=black, rounded corners=4pt, minimum width=13.4cm,
+      minimum height=0.85cm, align=center, font=\small},
+    col/.style={draw=black, rounded corners=4pt, minimum width=3.6cm,
+      minimum height=7.0cm, font=\small},
+    colhdr/.style={draw=black, rounded corners=2pt, minimum width=3.6cm,
+      minimum height=0.55cm, align=center, font=\small\bfseries,
+      text width=3.2cm, inner sep=2pt},
+    box/.style={draw=black, rounded corners=2pt, fill=white,
+      minimum width=3.3cm, minimum height=0.85cm, align=center, font=\footnotesize,
+      inner sep=4pt, text width=3.0cm},
+    lbl/.style={font=\small\bfseries},
+    arrow/.style={->, >=stealth, thick}
+  ]
+    \node[band, fill=white] (GOAL) at (0,4.3)
+      {\textbf{目标层：培养 AI 辅助研判决策与算法边界认知}};
+    \node[col, fill=white] (YAN) at (-4.7,0) {};
+    \node[col, fill=white] (XUN) at (0,0) {};
+    \node[col, fill=white] (PING) at (4.7,0) {};
+    \node[colhdr, fill=white] at ([yshift=-0.5cm]YAN.north) {研 · 剖析真实系统};
+    \node[colhdr, fill=white] at ([yshift=-0.5cm]XUN.north) {训 · 四环节实验链};
+    \node[colhdr, fill=white] at ([yshift=-0.5cm]PING.north) {评 · 过程+产物};
+    \node[box] at ([yshift=1.475cm]YAN.center)
+      {\textbf{以系统为研对象}\\\footnotesize 可运行原型系统};
+    \node[box] at ([yshift=-0.325cm]YAN.center)
+      {\textbf{复现与剖析}\\\footnotesize 沿两级闭环逐段复现};
+    \node[box] at ([yshift=-2.125cm]YAN.center)
+      {\textbf{技术构成拆解}\\\footnotesize 图建模·表示·编排};
+    \node[box] at ([yshift=1.835cm]XUN.center)
+      {\textbf{Lab1 案情分析}\\\footnotesize 研判流程·认识系统};
+    \node[box] at ([yshift=0.395cm]XUN.center)
+      {\textbf{Lab2 串并案}\\\footnotesize 人工 vs AI 对比};
+    \node[box] at ([yshift=-1.045cm]XUN.center)
+      {\textbf{Lab3 冻卡决策}\\\footnotesize 门控·伦理权衡};
+    \node[box] at ([yshift=-2.485cm]XUN.center)
+      {\textbf{Lab4 边界反思}\\\footnotesize 失败·诚实反思};
+    \node[box] at ([yshift=1.475cm]PING.center)
+      {\textbf{过程评价 40\%}\\\footnotesize 任务完成度·协作};
+    \node[box] at ([yshift=-0.325cm]PING.center)
+      {\textbf{产物评价 60\%}\\\footnotesize 报告·代码·答辩};
+    \node[box] at ([yshift=-2.125cm]PING.center)
+      {\textbf{素养观测}\\\footnotesize 思政与伦理映射};
+    \node[band, fill=white] (SUP) at (0,-4.3)
+      {\textbf{支撑：可复现实验 + 诚实边界认知 + 课程思政与伦理}};
+    \draw[arrow] ([xshift=-4.7cm]GOAL.south) -- (YAN.north);
+    \draw[arrow] (GOAL.south) -- (XUN.north);
+    \draw[arrow] ([xshift=4.7cm]GOAL.south) -- (PING.north);
+    \draw[arrow] ([xshift=-4.7cm]SUP.north) -- (YAN.south);
+    \draw[arrow] (SUP.north) -- (XUN.south);
+    \draw[arrow] ([xshift=4.7cm]SUP.north) -- (PING.south);
+  \end{tikzpicture}
+\end{document}

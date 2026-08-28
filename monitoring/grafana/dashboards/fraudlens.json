@@ -1,0 +1,49 @@
+{
+  "title": "FraudLens 可观测面板",
+  "uid": "fraudlens",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "HTTP 请求速率 (req/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total[5m])) by (status)", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "P95 请求耗时 (秒)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 3, "type": "stat", "title": "累计研判任务",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+      "targets": [ { "expr": "sum(analysis_total)" } ]
+    },
+    {
+      "id": 4, "type": "stat", "title": "累计检测团伙",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+      "targets": [ { "expr": "sum(gangs_detected_total)" } ]
+    },
+    {
+      "id": 5, "type": "stat", "title": "累计冻卡决策",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "targets": [ { "expr": "sum(freeze_decisions_total)" } ]
+    },
+    {
+      "id": 6, "type": "stat", "title": "累计 LLM 降级次数",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "targets": [ { "expr": "sum(llm_degradation_total)" } ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Celery 待处理任务数",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [ { "expr": "celery_pending_tasks", "legendFormat": "pending" } ]
+    }
+  ]
+}

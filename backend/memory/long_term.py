@@ -31,9 +31,8 @@ class LongTermMemory:
             if redis_client is not None:
                 self.redis = redis_client
             else:
-                from core.config import settings
-                import redis
-                self.redis = redis.from_url(settings.REDIS_URI)
+                from core.redis_pool import get_redis_client
+                self.redis = get_redis_client()
                 # 验证连接
                 self.redis.ping()
             logger.info("LongTermMemory: Redis connected")

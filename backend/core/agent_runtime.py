@@ -87,16 +87,19 @@ class AgentRuntime:
         self.on_reflection: Optional[Callable] = None
     
     @property
-    def llm(self) -> AsyncOpenAI:
-        """延迟初始化LLM客户端"""
+    def llm(self) -> Optional[AsyncOpenAI]:
+        """延迟初始化LLM客户端（经 G2 统一网关；关闭/缺密钥时返回 None）"""
         if self._llm is None:
-            if not settings.DEEPSEEK_API_KEY:
-                raise ValueError("DEEPSEEK_API_KEY not configured")
-            self._llm = AsyncOpenAI(
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
-                timeout=self.timeout
-            )
+            from .llm_client import get_llm_client
+            self._llm = get_llm_client()
+            # G8：云端 LLM 不可用 → 降级到本地规则兜底，记一次降级事件
+            if self._llm is None and not getattr(self, "_degrade_counted", False):
+                self._degrade_counted = True
+                try:
+                    from core.metrics_exporter import inc_degrade
+                    inc_degrade()
+                except Exception:
+                    pass
         return self._llm
     
     def register_tool(self, tool: Tool):
@@ -468,7 +471,12 @@ class AgentRuntime:
         """调用 LLM（带重试和指数退避）"""
         temperature = temperature or settings.LLM_TEMPERATURE
         max_tokens = max_tokens or settings.LLM_MAX_TOKENS
-        
+
+        if self.llm is None:
+            raise RuntimeError(
+                "云端 LLM 未启用（DISABLE_CLOUD_LLM=1 或缺少密钥），无法完成该智能调用"
+            )
+
         for attempt in range(self.max_retries):
             try:
                 response = await self.llm.chat.completions.create(

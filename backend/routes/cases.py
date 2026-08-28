@@ -9,14 +9,15 @@ from fastapi.responses import JSONResponse
 from database.crud import (
     get_all_cases, get_case_by_id, get_case_stats,
     update_case_status, create_case, delete_case,
-    update_case, search_cases_enhanced
+    update_case, search_cases_enhanced, save_case
 )
 import json
 
 from database import db
-from database.models import Case, Gang, GangCaseRelation
-from database.p1_models import CapitalFlow
+from database.models import Case, Gang, GangCaseRelation, AlertRecord
+from database.p1_models import CapitalFlow, DispatchOrder, KeyPerson
 from .deps import get_current_user, log_operation, db_retry
+from tools.response import logger
 
 def _radar_cache_get(key):
     try:
@@ -46,7 +47,7 @@ router = APIRouter(prefix='/api/cases', tags=['案件'])
 @db_retry()
 async def api_get_cases(current_user: dict = Depends(get_current_user)):
     try:
-        cases = get_all_cases()
+        cases = get_all_cases(current_user)
         return {"success": True, "cases": cases, "total": len(cases)}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
@@ -257,7 +258,7 @@ async def api_search_cases(q: str = '', current_user: dict = Depends(get_current
 @router.get('/{case_id}')
 async def api_get_case(case_id: str, current_user: dict = Depends(get_current_user)):
     try:
-        case = get_case_by_id(case_id)
+        case = get_case_by_id(case_id, current_user)
         if case:
             return {"success": True, "case": case}
         return JSONResponse(status_code=404, content={"success": False, "error": "案件不存在"})
@@ -307,12 +308,154 @@ async def api_create_case(request: Request,
                            current_user: dict = Depends(get_current_user)):
     try:
         body = await request.json()
-        case = create_case(body)
+        case = create_case(body, current_user.get('department', ''))
         ip = request.client.host if request.client else ''
         log_operation(current_user['id'], current_user.get('username', ''),
                       'create', 'case', case['case_id'], ip_address=ip)
         return {"success": True, "case": case}
     except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.post('/from-text')
+async def api_create_cases_from_text(request: Request,
+                                     current_user: dict = Depends(get_current_user)):
+    """笔录 / OCR 文本 → 抽取结构化案件并批量落库（REQ-S1.4 落库链路）。
+
+    请求体: {"text": "受害人张三报警称...", "source": "笔录/OCR"}
+    纯正则零出域抽取，落库复用 save_case（含 extracted_entities → Person 关联），
+    新案默认 status='待分析'，可直接进入 orchestrator 研判链路。
+    """
+    try:
+        body = await request.json()
+        text = (body.get('text') or '').strip()
+        source = body.get('source') or '笔录/OCR'
+        if not text:
+            raise HTTPException(status_code=400, detail="缺少 text 文本")
+
+        # 懒导入，避免 routes 包加载时触发 agents 重依赖
+        from agents.text_to_cases import text_to_cases
+        cases = text_to_cases(text, source=source)
+        if not cases:
+            return {"success": True, "created": 0, "case_ids": [],
+                    "message": "未从文本中识别到案件"}
+
+        saved_ids = []
+        for c in cases:
+            try:
+                case = save_case(c)  # 复用落库；status 默认'待分析'，实体→Person 关联
+                saved_ids.append(case.case_id)
+            except Exception as e:
+                logger.warning(f"单案落库失败 {c.get('case_id')}: {e}")
+
+        ip = request.client.host if request.client else ''
+        log_operation(current_user['id'], current_user.get('username', ''),
+                      'create_from_text', 'case', ','.join(saved_ids[:20]),
+                      {'count': len(saved_ids), 'source': source}, ip_address=ip)
+        return {"success": True, "created": len(saved_ids),
+                "case_ids": saved_ids, "cases": cases}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.delete('/demo')
+async def api_delete_demo_cases(request: Request,
+                                 current_user: dict = Depends(get_current_user)):
+    """清空所有演示数据（is_demo=True 的案件及其关联数据）。需要 admin 权限。"""
+    if (current_user.get('role') or '') != 'admin':
+        return JSONResponse(status_code=403, content={"success": False, "error": "需要管理员权限"})
+    try:
+        demo_cases = db.session.query(Case).filter(Case.is_demo == True).all()
+        demo_case_ids = [c.case_id for c in demo_cases]
+        if not demo_case_ids:
+            return {"success": True, "deleted_cases": 0, "deleted_related": 0}
+
+        deleted_related = 0
+        demo_id_set = set(demo_case_ids)
+
+        # 资金流
+        try:
+            n = db.session.query(CapitalFlow).filter(
+                CapitalFlow.case_id.in_(demo_case_ids)
+            ).delete(synchronize_session=False)
+            deleted_related += n or 0
+        except Exception as e:
+            logger.warning(f"清理资金流失败: {e}")
+        # 派单
+        try:
+            n = db.session.query(DispatchOrder).filter(
+                DispatchOrder.case_id.in_(demo_case_ids)
+            ).delete(synchronize_session=False)
+            deleted_related += n or 0
+        except Exception as e:
+            logger.warning(f"清理派单失败: {e}")
+        # 预警（case_id 或 matched_case_id 命中演示案件）
+        try:
+            n = db.session.query(AlertRecord).filter(
+                db.or_(
+                    AlertRecord.case_id.in_(demo_case_ids),
+                    AlertRecord.matched_case_id.in_(demo_case_ids),
+                )
+            ).delete(synchronize_session=False)
+            deleted_related += n or 0
+        except Exception as e:
+            logger.warning(f"清理预警失败: {e}")
+        # 团伙关联 + 删除已无关联的孤儿团伙（演示数据创建的团伙）
+        try:
+            n = db.session.query(GangCaseRelation).filter(
+                GangCaseRelation.case_id.in_(demo_case_ids)
+            ).delete(synchronize_session=False)
+            deleted_related += n or 0
+            remaining_gang_ids = {
+                r[0] for r in db.session.query(GangCaseRelation.gang_id).distinct().all()
+            }
+            for g in db.session.query(Gang).all():
+                if g.gang_id not in remaining_gang_ids:
+                    db.session.delete(g)
+                    deleted_related += 1
+        except Exception as e:
+            logger.warning(f"清理团伙关联失败: {e}")
+        # 重点人员：从 case_ids 中移除演示案件引用，无剩余引用则删除
+        try:
+            for p in db.session.query(KeyPerson).all():
+                ids = p.case_ids if isinstance(p.case_ids, list) else []
+                remaining = [cid for cid in ids if cid not in demo_id_set]
+                if remaining == ids:
+                    continue
+                if remaining:
+                    p.case_ids = remaining
+                else:
+                    db.session.delete(p)
+                    deleted_related += 1
+        except Exception as e:
+            logger.warning(f"清理重点人员失败: {e}")
+        # 案件本体
+        deleted_cases = db.session.query(Case).filter(
+            Case.case_id.in_(demo_case_ids)
+        ).delete(synchronize_session=False)
+
+        db.session.commit()
+
+        # 清列表缓存，避免脏读
+        try:
+            from database.crud import _cache_clear
+            _cache_clear()
+        except Exception:
+            pass
+
+        ip = request.client.host if request.client else ''
+        log_operation(current_user['id'], current_user.get('username', ''),
+                      'delete_demo', 'cases', f'{deleted_cases} demo cases',
+                      ip_address=ip)
+        return {
+            "success": True,
+            "deleted_cases": deleted_cases or 0,
+            "deleted_related": deleted_related,
+        }
+    except Exception as e:
+        db.session.rollback()
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 

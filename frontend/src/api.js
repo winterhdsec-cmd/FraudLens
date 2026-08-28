@@ -157,8 +157,20 @@ api.interceptors.response.use(
 )
 
 // ========== Analysis ==========
-export async function startAnalysis(messages, sessionId) {
-  const response = await api.post('/agent-analyze', { messages: messages, session_id: sessionId, platform_data: {} })
+export async function startAnalysis(messages, sessionId, accountsTx) {
+  const body = { messages: messages, session_id: sessionId, platform_data: {} }
+  if (accountsTx && accountsTx.length) {
+    body.accounts_tx = accountsTx
+  }
+  const response = await api.post('/agent-analyze', body)
+  return response.data
+}
+
+// ========== Fund flow import (真实材料接入 Phase4) ==========
+export async function importFundFlow(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await api.post('/api/import-fund-flow', form, { timeout: 120000 })
   return response.data
 }
 
@@ -215,6 +227,12 @@ export async function fetchGangs() {
 
 export async function fetchGangDetail(gangId) {
   const response = await api.get(`/api/gangs/${gangId}`)
+  return response.data
+}
+
+// AI 并案复核层（Skill A 解释 + Skill B 误并探测）
+export async function fetchGangReviewResults(useLlm = false) {
+  const response = await api.get('/api/gangs/review-results', { params: { use_llm: useLlm ? 1 : 0 }, timeout: 150000 })
   return response.data
 }
 
@@ -381,6 +399,150 @@ export async function clearChatSession(sessionId) {
 
 export async function listChatIntents() {
   const response = await api.get('/api/chat/intents')
+  return response.data
+}
+
+// ========== 办案工作流（Phase R1/E2） ==========
+
+// 案件生命周期
+export async function getCaseLifecycle(caseId) {
+  const response = await api.get(`/api/workflow/cases/${caseId}/lifecycle`)
+  return response.data
+}
+
+export async function transitionCaseStatus(caseId, toStatus, reason = '') {
+  const response = await api.post(`/api/workflow/cases/${caseId}/transition`, { to_status: toStatus, reason })
+  return response.data
+}
+
+export async function getCaseTimeline(caseId) {
+  const response = await api.get(`/api/workflow/cases/${caseId}/timeline`)
+  return response.data
+}
+
+// 研判任务
+export async function listInvestigations(caseId = '', limit = 50) {
+  const response = await api.get('/api/workflow/investigations', { params: { case_id: caseId, limit } })
+  return response.data
+}
+
+export async function getInvestigation(taskId) {
+  const response = await api.get(`/api/workflow/investigations/${taskId}`)
+  return response.data
+}
+
+export async function createInvestigation(caseId, payload = {}) {
+  const response = await api.post(`/api/workflow/cases/${caseId}/investigations`, payload)
+  return response.data
+}
+
+export async function downloadInvestigationReport(taskId, format = 'pdf') {
+  // 文件下载：用 blob
+  const response = await api.get(`/api/workflow/investigations/${taskId}/report`, {
+    params: { format },
+    responseType: 'blob'
+  })
+  return response
+}
+
+// 止付冻结工单
+export async function listFreezeOrders(caseId = '', status = '', limit = 50) {
+  const response = await api.get('/api/workflow/freeze-orders', { params: { case_id: caseId, status, limit } })
+  return response.data
+}
+
+export async function getFreezeOrder(orderId) {
+  const response = await api.get(`/api/workflow/freeze-orders/${orderId}`)
+  return response.data
+}
+
+export async function createFreezeOrder(payload) {
+  const response = await api.post('/api/workflow/freeze-orders', payload)
+  return response.data
+}
+
+export async function submitFreezeOrder(orderId, approvalChain = null) {
+  const response = await api.post(`/api/workflow/freeze-orders/${orderId}/submit`, { approval_chain: approvalChain })
+  return response.data
+}
+
+export async function executeFreezeOrder(orderId) {
+  const response = await api.post(`/api/workflow/freeze-orders/${orderId}/execute`)
+  return response.data
+}
+
+export async function cancelFreezeOrder(orderId, reason = '') {
+  const response = await api.post(`/api/workflow/freeze-orders/${orderId}/cancel`, { reason })
+  return response.data
+}
+
+export async function getFreezeReceipts(orderId) {
+  const response = await api.get(`/api/workflow/freeze-orders/${orderId}/receipts`)
+  return response.data
+}
+
+export async function downloadFreezeDoc(orderId, format = 'pdf') {
+  const response = await api.get(`/api/workflow/freeze-orders/${orderId}/document`, {
+    params: { format },
+    responseType: 'blob'
+  })
+  return response
+}
+
+// HITL 复核任务
+export async function listReviews(caseId = '', status = '', limit = 50) {
+  const response = await api.get('/api/workflow/reviews', { params: { case_id: caseId, status, limit } })
+  return response.data
+}
+
+export async function getReviewTask(reviewId) {
+  const response = await api.get(`/api/workflow/reviews/${reviewId}`)
+  return response.data
+}
+
+export async function assignReview(reviewId, payload) {
+  const response = await api.post(`/api/workflow/reviews/${reviewId}/assign`, payload)
+  return response.data
+}
+
+export async function addReviewOpinion(reviewId, payload) {
+  const response = await api.post(`/api/workflow/reviews/${reviewId}/opinions`, payload)
+  return response.data
+}
+
+export async function resolveReview(reviewId, payload) {
+  const response = await api.post(`/api/workflow/reviews/${reviewId}/resolve`, payload)
+  return response.data
+}
+
+// 通用审批流
+export async function listPendingApprovals() {
+  const response = await api.get('/api/workflow/approvals/pending')
+  return response.data
+}
+
+export async function getApprovalFlow(flowId) {
+  const response = await api.get(`/api/workflow/approvals/${flowId}`)
+  return response.data
+}
+
+export async function approveFlow(flowId, comment = '') {
+  const response = await api.post(`/api/workflow/approvals/${flowId}/approve`, { comment })
+  return response.data
+}
+
+export async function rejectFlow(flowId, comment = '') {
+  const response = await api.post(`/api/workflow/approvals/${flowId}/reject`, { comment })
+  return response.data
+}
+
+export async function cancelApprovalFlow(flowId, reason = '') {
+  const response = await api.post(`/api/workflow/approvals/${flowId}/cancel`, { reason })
+  return response.data
+}
+
+export async function listApprovals(businessType = '', status = '', limit = 50) {
+  const response = await api.get('/api/workflow/approvals', { params: { business_type: businessType, status, limit } })
   return response.data
 }
 

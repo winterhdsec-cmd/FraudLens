@@ -1,0 +1,97 @@
+digraph FraudLensWorkflow {
+  // ===== 全局：声明式自动布局，不写任何坐标 =====
+  graph [
+    rankdir=TB,
+    bgcolor=white,
+    dpi=300,
+    nodesep=0.4,
+    ranksep=0.7,
+    fontname="Microsoft YaHei",
+    label="",
+  ];
+  node [
+    shape=box,
+    style="rounded,filled",
+    fillcolor=white,
+    color=black,
+    penwidth=0.6,
+    fontsize=10,
+    fontname="Microsoft YaHei",
+    width=1.9,
+    height=0.55,
+  ];
+  edge [
+    fontname="Microsoft YaHei",
+    fontsize=9,
+    color=black,
+    penwidth=0.7,
+    labelfontsize=9,
+    labelfontname="Microsoft YaHei",
+  ];
+
+  // ===== 阶段1：学情 / 案情输入（左列）=====
+  subgraph cluster_s {
+    label="阶段 1 · 学情 / 案情输入";
+    style=filled;
+    fillcolor="#EFEFEF";
+    color=black;
+    penwidth=0.5;
+    fontsize=11;
+    fontname="Microsoft YaHei";
+    s1 [label="选择实验\nLab（1–4）"];
+    s2 [label="提交案情 / 启动研判"];
+    s3 [label="失败场景诚实反思"];
+  }
+
+  // ===== 阶段2：FraudLens 系统内核（中列）=====
+  subgraph cluster_m {
+    label="阶段 2 · FraudLens 系统内核";
+    style=filled;
+    fillcolor="#E2E2E2";
+    color=black;
+    penwidth=0.7;
+    fontsize=11;
+    fontname="Microsoft YaHei";
+    m1 [label="预处理\n案情清洗 / 字段对齐"];
+    m2 [label="BGE 嵌入 + HAN 构图\n语义 / 结构双通道"];
+    m3 [label="LangGraph 反思闭环\nplan → preprocess → analyze\n→ cluster → reflect"];
+  }
+
+  // ===== 阶段3：人机协同决策（右列）=====
+  subgraph cluster_d {
+    label="阶段 3 · 人机协同决策";
+    style=filled;
+    fillcolor="#EFEFEF";
+    color=black;
+    penwidth=0.5;
+    fontsize=11;
+    fontname="Microsoft YaHei";
+    d1 [label="规则 vs AI 建议对比\nLab1 / Lab2"];
+    d2 [label="冻卡决策与伦理权衡\nLab3"];
+    d3 [label="边界认知与诚实反思\nLab4"];
+  }
+
+  // ===== 列内纵向流程 =====
+  s1 -> s2 -> s3;
+  m1 -> m2 -> m3;
+  d1 -> d2 -> d3;
+
+  // ===== 跨栏水平箭头（标签由引擎放在边中点）=====
+  s3 -> m3 [label="案情输入", constraint=false];
+  m3 -> d3 [label="候选结果", constraint=false];
+
+  // ===== 底部审计 / 评价条 =====
+  audit [
+    label="审计日志 → 加权评价量表 + 思政 / 伦理映射 → 回流“研—训—评”",
+    shape=box,
+    style="rounded,filled",
+    fillcolor="#D9D9D9",
+    color=black,
+    penwidth=0.7,
+    fontsize=9,
+    width=5.5,
+    height=0.5,
+  ];
+  d3 -> audit [label="决策记录", constraint=false];
+  audit -> s3 [label="评价 / 反思回流", style=dashed, constraint=false];
+}

@@ -148,5 +148,10 @@ class Tracer:
 
 
 # 全局实例
-logger = StructuredLogger("fraudlens")
+try:
+    from core.config import settings
+    _log_level = getattr(logging, str(getattr(settings, "LOG_LEVEL", "INFO")).upper(), logging.INFO)
+except Exception:
+    _log_level = logging.INFO
+logger = StructuredLogger("fraudlens", level=_log_level)
 tracer = Tracer("fraudlens")

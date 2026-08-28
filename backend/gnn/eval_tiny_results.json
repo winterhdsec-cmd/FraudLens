@@ -1,0 +1,77 @@
+{
+  "tiny_amlsim": {
+    "dataset": {
+      "n_accounts": 144,
+      "n_laundering": 144,
+      "n_rings": 12,
+      "directory": "/tmp/tiny_amlsim"
+    },
+    "baselines": {
+      "LouvainAccount(structure)": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 12,
+        "n_cases": 144
+      },
+      "KMeansAccount": {
+        "nmi": 0.13458209660954037,
+        "ari": -0.0014757969303423849,
+        "precision": 0.07602611940298508,
+        "recall": 0.2058080808080808,
+        "f1": 0.11103542234332427,
+        "n_clusters": 12,
+        "n_cases": 144
+      },
+      "HDBSCANAccount": {
+        "nmi": 0.05836684586143038,
+        "ari": -0.00497814824462389,
+        "precision": 0.07392290249433106,
+        "recall": 0.2058080808080808,
+        "f1": 0.10877544210877545,
+        "n_clusters": 5,
+        "n_cases": 144
+      },
+      "GNNAccount(GraphSAGE)": {
+        "nmi": 0.1329981806338774,
+        "ari": -0.0012711904603796495,
+        "precision": 0.07632704984387649,
+        "recall": 0.8333333333333334,
+        "f1": 0.1398453225977328,
+        "n_clusters": 12,
+        "n_cases": 144
+      }
+    },
+    "baselines_subgraph": {
+      "LouvainAccount-subgraph": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 12,
+        "n_cases": 144
+      },
+      "KMeansAccount-subgraph": {
+        "nmi": 0.13458209660954037,
+        "ari": -0.0014757969303423849,
+        "precision": 0.07602611940298508,
+        "recall": 0.2058080808080808,
+        "f1": 0.11103542234332427,
+        "n_clusters": 12,
+        "n_cases": 144
+      },
+      "GNNAccount-subgraph(GraphSAGE)": {
+        "nmi": 0.1329981806338774,
+        "ari": -0.0012711904603796495,
+        "precision": 0.07632704984387649,
+        "recall": 0.8333333333333334,
+        "f1": 0.1398453225977328,
+        "n_clusters": 12,
+        "n_cases": 144
+      }
+    }
+  }
+}

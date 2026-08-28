@@ -11,6 +11,7 @@ from fastapi import APIRouter, UploadFile, File, Query, Depends
 from fastapi.responses import JSONResponse
 
 from .deps import get_current_user
+from core.llm_client import wrap_messages  # G2 脱敏
 
 router = APIRouter(prefix='/api', tags=['文件'])
 
@@ -25,17 +26,37 @@ _llm_client = None
 _llm_model = None
 
 
+def _store_raw_to_minio(filename: str, content: bytes):
+    """A4.1 (#C13): 原始上传件存 minio（证据留痕，数据不出域）。
+
+    minio 不可用（SDK 缺失 / 服务未起）时返回 (None, None)，调用方退回本地，不报错。
+    """
+    try:
+        from core.object_store import put_object, is_enabled
+    except Exception:
+        return None, None
+    if not is_enabled() or not content:
+        return None, None
+    import hashlib
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    h = hashlib.md5(content).hexdigest()[:8]
+    key = f"raw/{ts}_{h}_{filename}"
+    # 存成功后返回后端代理下载地址（数据不出域：外部经 /api/object/{key} 取，避免 presigned 暴露 minio host 致签名失效）
+    if put_object(key, content, content_type="application/octet-stream"):
+        return key, f"/api/object/{key}"
+    return None, None
+
+
 def _get_llm_client():
-    """获取 LLM 客户端（用于文本后处理）"""
+    """获取 LLM 客户端（G2 统一网关；关闭/缺密钥返回 (None, None)）"""
     global _llm_client, _llm_model
     if _llm_client is not None:
         return _llm_client, _llm_model
-    api_key = os.getenv("DEEPSEEK_API_KEY", "")
-    base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    from core.llm_client import get_llm_client
+    client = get_llm_client(sync=True)
     _llm_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-    if api_key and api_key != "mock-key":
-        from openai import OpenAI
-        _llm_client = OpenAI(api_key=api_key, base_url=base_url)
+    _llm_client = client  # 可能为 None（关闭/缺密钥）
     return _llm_client, _llm_model
 
 
@@ -74,7 +95,7 @@ def _clean_chat_text(raw_text: str) -> str:
         from tools.response import logger
         response = client.chat.completions.create(
             model=model,
-            messages=[{"role": "user", "content": prompt}],
+            messages=wrap_messages([{"role": "user", "content": prompt}]),
             temperature=0.1,
             max_tokens=2048,
             timeout=30
@@ -194,7 +215,9 @@ async def api_extract_text(file: UploadFile = File(...), current_user: dict = De
             return JSONResponse(status_code=400, content={
                 "success": False, "error": f"不支持的文件格式: {ext}"
             })
-        return {"success": True, "text": text, "filename": filename, "source": source}
+        object_key, object_url = _store_raw_to_minio(filename, content)
+        return {"success": True, "text": text, "filename": filename, "source": source,
+                "object_key": object_key, "object_url": object_url}
     except Exception as e:
         print(f"[ERROR] 文件处理失败: {e}")
         import traceback
@@ -217,7 +240,9 @@ async def api_ocr_image(file: UploadFile = File(...), current_user: dict = Depen
         from tools.ocr import ocr_image
         content = await file.read()
         text = ocr_image(content)
-        return {"success": True, "text": text, "filename": file.filename, "source": "ocr"}
+        object_key, object_url = _store_raw_to_minio(filename, content)
+        return {"success": True, "text": text, "filename": file.filename, "source": "ocr",
+                "object_key": object_key, "object_url": object_url}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
@@ -366,3 +391,154 @@ async def api_vision_analyze(
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# ──────────────────────────────────────────────
+#  端点5: 资金流水批量导入（真实材料接入 Phase4）
+# ──────────────────────────────────────────────
+@router.post('/import-fund-flow')
+async def api_import_fund_flow(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """导入银行/AMLSim 资金流水 CSV/Excel → accounts_tx，供 /agent-analyze 资金链/回流闭环消费。
+
+    返回 accounts_tx 列表 + 统计；best-effort 落库 ImportedFundFlow 表（合规留痕），失败不阻塞导入。
+    """
+    from gnn.adapters.fund_flow_io import parse_fund_flow_file
+    from database.models import ImportedFundFlow
+    from database import db
+    try:
+        filename = file.filename or 'flow.csv'
+        content = await file.read()
+        accounts_tx, stats = parse_fund_flow_file(filename, content)
+        if not accounts_tx:
+            return JSONResponse(status_code=400, content={
+                "success": False,
+                "error": "未解析到任何资金流转记录（请检查列名是否含发送/接收账户，如 "
+                         "SENDER_ACCOUNT_ID/RECEIVER_ACCOUNT_ID 或 付款账号/收款账号）"
+            })
+        # best-effort 落库（合规留痕）；失败仅告警，不阻塞研判
+        try:
+            ImportedFundFlow.__table__.create(bind=db.engine, checkfirst=True)
+            for tx in accounts_tx:
+                db.session.add(ImportedFundFlow(
+                    operator=current_user.get('username', ''),
+                    source_file=filename,
+                    from_account=str(tx.get('from_account')),
+                    to_account=str(tx.get('to_account')),
+                    amount=float(tx.get('amount') or 0),
+                    tx_timestamp=str(tx.get('timestamp') or ''),
+                    raw=tx,
+                ))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            from tools.response import logger
+            logger.warning(f"[FundFlow] 落库失败（已跳过，不影响本次研判）: {e}")
+        object_key, object_url = _store_raw_to_minio(filename, content)
+        return {
+            "success": True,
+            "accounts_tx": accounts_tx,
+            "stats": stats,
+            "object_key": object_key,
+            "object_url": object_url,
+            "note": "已将资金流水解析为 accounts_tx；可随 /agent-analyze 的 accounts_tx 字段提交，参与资金链/回流闭环研判",
+        }
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+# ──────────────────────────────────────────────
+#  端点6: 案卷材料 → 结构化 cases（B-L6 4.1 真实材料接入）
+# ──────────────────────────────────────────────
+@router.post('/parse-case')
+async def api_parse_case(
+    file: UploadFile = File(None),
+    text: str = Query(None, description='直接传案卷文本（与 file 二选一）'),
+    current_user: dict = Depends(get_current_user),
+):
+    """B-L6 4.1：案卷材料（docx/pdf/图片/文本）→ 结构化 cases。
+
+    返回主链路可消费的 cases 列表（含 extracted_entities 供聚类关联）。
+    默认零出域：仅本地正则 + 文档标注行解析，不调 LLM。
+    诚实边界：输出 source 固定为 "extracted_from_document"，脱敏账户如实保留、不补全。
+    """
+    try:
+        content = None
+        filename = ""
+        raw_text = None
+        if file is not None:
+            filename = file.filename or ''
+            ext = os.path.splitext(filename)[1].lower()
+            content = await file.read()
+            if ext == '.docx':
+                raw_text = extract_docx_in_order(content)
+            elif ext == '.pdf':
+                raw_text = _extract_pdf_content(content)
+            elif ext in IMAGE_EXTENSIONS:
+                from tools.ocr import ocr_image
+                ocr_txt = ocr_image(content)
+                raw_text = _clean_chat_text(ocr_txt) if ocr_txt else ocr_txt
+            elif ext in TEXT_EXTENSIONS:
+                raw_text = content.decode('utf-8', errors='ignore')
+            else:
+                return JSONResponse(status_code=400, content={
+                    "success": False, "error": f"不支持的格式: {ext}（支持 docx/pdf/图片/csv/txt）"
+                })
+            source = f"file:{ext.lstrip('.')}"
+        elif text:
+            raw_text = text
+            filename = "inline_text"
+            source = "text"
+        else:
+            return JSONResponse(status_code=400, content={
+                "success": False, "error": "请提供 file（上传材料）或 text（直接文本）之一"
+            })
+
+        if not raw_text or not raw_text.strip():
+            return JSONResponse(status_code=400, content={
+                "success": False,
+                "error": "未能从材料中提取到文本（图片 OCR 可能失败，请重试或改用文本/PDF）"
+            })
+
+        from gnn.adapters.case_document_io import parse_case_document, extract_docx_in_order
+        cases = parse_case_document(raw_text)
+
+        object_key, object_url = (None, None)
+        if content is not None:
+            object_key, object_url = _store_raw_to_minio(filename, content)
+
+        stats = {
+            "n_cases": len(cases),
+            "scam_types": _dedupe([c["scam_type"] for c in cases if c["scam_type"] != "未知"]),
+            "total_accounts": sum(len(c["extracted_entities"].get("bank_accounts", [])) for c in cases),
+            "total_phones": sum(len(c["extracted_entities"].get("phone_numbers", [])) for c in cases),
+        }
+        return {
+            "success": True,
+            "cases": cases,
+            "stats": stats,
+            "source": source,
+            "filename": filename,
+            "object_key": object_key,
+            "object_url": object_url,
+            "note": "已将案卷材料结构化为主链路 cases；可随 /agent-analyze 的 cases 字段提交。脱敏账户如实保留，未补全。",
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/object/{key:path}')
+async def api_get_object(key: str, current_user: dict = Depends(get_current_user)):
+    """A4.1 (#C13): 经后端代理下载 minio 对象（数据不出域，前端不直连 minio）。"""
+    from core.object_store import get_object, is_enabled
+    from fastapi.responses import Response
+    if not is_enabled():
+        return JSONResponse(status_code=404, content={"success": False, "error": "对象存储不可用"})
+    data = get_object(key)
+    if data is None:
+        return JSONResponse(status_code=404, content={"success": False, "error": "对象不存在"})
+    fname = key.split('/')[-1]
+    return Response(content=data, media_type="application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{fname}"'})

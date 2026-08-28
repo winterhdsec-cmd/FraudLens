@@ -11,14 +11,16 @@
 
 </div>
 
+> 📚 **项目文档中心**：进度与规范统一收录在 [`docs/INDEX.md`](./docs/INDEX.md) —— 代码进度看 [`docs/代码进度_CodeStatus.md`](./docs/代码进度_CodeStatus.md)，论文/专利进度看 [`docs/论文与答辩准备_Paper.md`](./docs/论文与答辩准备_Paper.md)。
+
 ## 📋 项目简介
 
 FraudLens 是一个面向反诈中心的智能研判系统，采用先进的 Multi-Agent 架构，集成了图神经网络（GNN）、检索增强生成（RAG）、大语言模型（LLM）等技术，实现诈骗案件的智能分析、团伙发现和风险预警。
 
 ### 核心特性
 
-- 🤖 **Multi-Agent 智能架构**：基于 LangGraph 风格的工作流编排，支持多 Agent 协作
-- 🧠 **GNN 团伙发现**：使用 GraphSAGE 进行图学习，Louvain 社区检测发现诈骗团伙
+- 🤖 **Multi-Agent 智能架构**：基于 LangGraph `StateGraph` 的多智能体反思闭环编排（规划→预处理→分析→聚类→反思，反思节点条件边回连），支持 Agent 协作
+- 🧠 **GNN 团伙发现**：使用 HAN（异构图注意力网络）进行案件级团伙聚类，含 5 条元路径双通道融合（结构通道 + BGE 文本通道），GraphCL 无监督预训练；Louvain 社区检测作为降级基线
 - 📚 **RAG 知识库**：文档处理、向量化存储、多路召回（向量/关键词/混合检索）
 - 💬 **AI 对话助手**：支持多轮对话、工具调用、记忆系统、意图识别
 - 🔒 **安全防护**：Prompt 注入检测、输入验证、工具沙箱、熔断器保护
@@ -71,7 +73,7 @@ FraudLens 是一个面向反诈中心的智能研判系统，采用先进的 Mul
 - **缓存**: Redis 7.0
 - **任务队列**: Celery 5.3
 - **LLM**: OpenAI API (DeepSeek) + LangChain
-- **图神经网络**: PyTorch + PyTorch Geometric (GraphSAGE/GAT)
+- **图神经网络**: PyTorch + PyTorch Geometric（GraphSAGE / **真异构 HAN（资金链感知元路径）**）；含**资金回流闭环检测**与**客观置信度门控**（高置信建议冻结，低置信待人工复核）；OCR 原件与导出报告存**本地 minio 对象存储**（数据不出域）
 - **NLP**: Transformers + Sentence-BERT (BGE)
 - **OCR**: EasyOCR
 - **安全**: JWT 认证 + 输入验证 + Prompt 注入检测

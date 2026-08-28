@@ -1,0 +1,265 @@
+{
+  "base_url": "http://localhost:5003",
+  "duration_per_level": 15,
+  "concurrency_levels": [
+    10,
+    50,
+    100
+  ],
+  "rate_limit": "60 req/60s/user",
+  "timestamp": "2026-07-30 04:41:54",
+  "results": [
+    {
+      "scenario": "demo-login",
+      "concurrency": 10,
+      "stats": {
+        "total": 6537,
+        "success": 73,
+        "fail": 6464,
+        "rate_limited_429": 6464,
+        "real_errors": 0,
+        "qps": 434.8375248247224,
+        "success_qps": 4.855918511886911,
+        "avg_ms": 22.8698114272575,
+        "p95_ms": 39.22909999982949,
+        "p95_success_ms": 126.35880000016186,
+        "avg_success_ms": 97.81173698625587,
+        "min_ms": 1.344000000244705,
+        "max_ms": 734.8007999999027,
+        "error_rate": 98.8832797919535,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "cases-list",
+      "concurrency": 10,
+      "stats": {
+        "total": 5893,
+        "success": 75,
+        "fail": 5818,
+        "rate_limited_429": 5818,
+        "real_errors": 0,
+        "qps": 391.3555385707717,
+        "success_qps": 4.9807679268297775,
+        "avg_ms": 25.41671036823107,
+        "p95_ms": 40.65250000076048,
+        "p95_success_ms": 352.3936000001413,
+        "avg_success_ms": 271.4822026666783,
+        "min_ms": 1.9249999995736289,
+        "max_ms": 362.554999999702,
+        "error_rate": 98.72730358051926,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "dashboard",
+      "concurrency": 10,
+      "stats": {
+        "total": 6981,
+        "success": 16,
+        "fail": 6965,
+        "rate_limited_429": 6965,
+        "real_errors": 0,
+        "qps": 464.43221923777367,
+        "success_qps": 1.0644485758207103,
+        "avg_ms": 21.39690018622061,
+        "p95_ms": 38.28909999992902,
+        "p95_success_ms": 42.568300000311865,
+        "avg_success_ms": 24.689962500019647,
+        "min_ms": 1.4350999999805936,
+        "max_ms": 56.79480000071635,
+        "error_rate": 99.77080647471709,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "health",
+      "concurrency": 10,
+      "stats": {
+        "total": 2834,
+        "success": 2834,
+        "fail": 0,
+        "rate_limited_429": 0,
+        "real_errors": 0,
+        "qps": 188.0191940396077,
+        "success_qps": 188.0191940396077,
+        "avg_ms": 53.04277339449945,
+        "p95_ms": 75.0105999995867,
+        "p95_success_ms": 75.0105999995867,
+        "avg_success_ms": 53.04277339449945,
+        "min_ms": 11.17210000029445,
+        "max_ms": 327.26999999977124,
+        "error_rate": 0.0,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "demo-login",
+      "concurrency": 50,
+      "stats": {
+        "total": 6288,
+        "success": 64,
+        "fail": 6224,
+        "rate_limited_429": 6224,
+        "real_errors": 0,
+        "qps": 416.07164880835614,
+        "success_qps": 4.234825942069783,
+        "avg_ms": 119.60666634859754,
+        "p95_ms": 155.4060999997091,
+        "p95_success_ms": 601.5641999993022,
+        "avg_success_ms": 299.31440312496704,
+        "min_ms": 24.934099999882164,
+        "max_ms": 631.5235000001849,
+        "error_rate": 98.9821882951654,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "cases-list",
+      "concurrency": 50,
+      "stats": {
+        "total": 5780,
+        "success": 48,
+        "fail": 5732,
+        "rate_limited_429": 5732,
+        "real_errors": 0,
+        "qps": 382.60080349609245,
+        "success_qps": 3.177307710694193,
+        "avg_ms": 130.14564574394544,
+        "p95_ms": 164.01270000005752,
+        "p95_success_ms": 1068.475899999612,
+        "avg_success_ms": 477.6115499999302,
+        "min_ms": 43.67739999997866,
+        "max_ms": 1184.8222999997233,
+        "error_rate": 99.16955017301038,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "dashboard",
+      "concurrency": 50,
+      "stats": {
+        "total": 6371,
+        "success": 16,
+        "fail": 6355,
+        "rate_limited_429": 6355,
+        "real_errors": 0,
+        "qps": 421.7498021297821,
+        "success_qps": 1.0591738869999237,
+        "avg_ms": 118.02308749019166,
+        "p95_ms": 145.30899999954272,
+        "p95_success_ms": 388.53389999985666,
+        "avg_success_ms": 145.40346875003252,
+        "min_ms": 28.131999999459367,
+        "max_ms": 415.37139999945794,
+        "error_rate": 99.74886203107832,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "health",
+      "concurrency": 50,
+      "stats": {
+        "total": 8066,
+        "success": 1640,
+        "fail": 6426,
+        "rate_limited_429": 0,
+        "real_errors": 6426,
+        "qps": 525.3620859196153,
+        "success_qps": 106.81797928442462,
+        "avg_ms": 94.11177152244187,
+        "p95_ms": 306.0191999993549,
+        "p95_success_ms": 365.0213999999323,
+        "avg_success_ms": 236.23885030487722,
+        "min_ms": 5.709099999876344,
+        "max_ms": 484.0362000004461,
+        "error_rate": 79.66774113563105,
+        "real_error_rate": 79.66774113563105
+      }
+    },
+    {
+      "scenario": "demo-login",
+      "concurrency": 100,
+      "stats": {
+        "total": 8478,
+        "success": 77,
+        "fail": 8401,
+        "rate_limited_429": 8133,
+        "real_errors": 268,
+        "qps": 560.2585272596644,
+        "success_qps": 5.088453243570908,
+        "avg_ms": 177.59699981127187,
+        "p95_ms": 341.7228000007526,
+        "p95_success_ms": 754.0407999995296,
+        "avg_success_ms": 381.8985259740657,
+        "min_ms": 7.963000000017928,
+        "max_ms": 840.3573000005053,
+        "error_rate": 99.09176692616182,
+        "real_error_rate": 3.161122906345836
+      }
+    },
+    {
+      "scenario": "cases-list",
+      "concurrency": 100,
+      "stats": {
+        "total": 10139,
+        "success": 49,
+        "fail": 10090,
+        "rate_limited_429": 10090,
+        "real_errors": 0,
+        "qps": 670.2587263468721,
+        "success_qps": 3.2392422912512804,
+        "avg_ms": 148.51555755005518,
+        "p95_ms": 303.1963999992513,
+        "p95_success_ms": 668.0689999993774,
+        "avg_success_ms": 324.68522857145996,
+        "min_ms": 34.211600000162434,
+        "max_ms": 762.6207000002978,
+        "error_rate": 99.51671762501233,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "dashboard",
+      "concurrency": 100,
+      "stats": {
+        "total": 9989,
+        "success": 16,
+        "fail": 9973,
+        "rate_limited_429": 9973,
+        "real_errors": 0,
+        "qps": 658.6727745570848,
+        "success_qps": 1.055036979969302,
+        "avg_ms": 150.95427141855743,
+        "p95_ms": 289.74490000018704,
+        "p95_success_ms": 287.65260000000126,
+        "avg_success_ms": 153.16593749975027,
+        "min_ms": 11.777900000197405,
+        "max_ms": 438.9339999997901,
+        "error_rate": 99.8398238061868,
+        "real_error_rate": 0.0
+      }
+    },
+    {
+      "scenario": "health",
+      "concurrency": 100,
+      "stats": {
+        "total": 2529,
+        "success": 2529,
+        "fail": 0,
+        "rate_limited_429": 0,
+        "real_errors": 0,
+        "qps": 162.93147075281902,
+        "success_qps": 162.93147075281902,
+        "avg_ms": 603.8764317121394,
+        "p95_ms": 805.6928999994852,
+        "p95_success_ms": 805.6928999994852,
+        "avg_success_ms": 603.8764317121394,
+        "min_ms": 27.076499999566295,
+        "max_ms": 951.2008000001515,
+        "error_rate": 0.0,
+        "real_error_rate": 0.0
+      }
+    }
+  ]
+}

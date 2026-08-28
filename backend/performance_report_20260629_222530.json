@@ -1,0 +1,104 @@
+{
+  "test_time": "2026-06-29T22:25:30.081418",
+  "base_url": "http://localhost:5004",
+  "summary": {
+    "total_requests": 145,
+    "success_count": 80,
+    "error_count": 65,
+    "success_rate": "55.17%"
+  },
+  "detailed_results": {
+    "health": {
+      "endpoint": "/health",
+      "method": "GET",
+      "total_requests": 50,
+      "success_count": 50,
+      "error_count": 0,
+      "success_rate": "100.00%",
+      "concurrent_requests": 10,
+      "response_times": {
+        "min": 0.0024318695068359375,
+        "max": 0.2861442565917969,
+        "avg": 0.031312479972839355,
+        "median": 0.009404659271240234,
+        "p95": 0.28374409675598145,
+        "p99": 0.2861442565917969
+      },
+      "throughput": "31.94 req/s"
+    },
+    "cases_list": {
+      "endpoint": "/api/cases?page=1&per_page=10",
+      "method": "GET",
+      "total_requests": 30,
+      "success_count": 30,
+      "error_count": 0,
+      "success_rate": "100.00%",
+      "concurrent_requests": 5,
+      "response_times": {
+        "min": 0.0181124210357666,
+        "max": 0.31560802459716797,
+        "avg": 0.07164787451426188,
+        "median": 0.05648958683013916,
+        "p95": 0.29645872116088867,
+        "p99": 0.31560802459716797
+      },
+      "throughput": "13.96 req/s"
+    },
+    "statistics": {
+      "endpoint": "/api/dashboard",
+      "method": "GET",
+      "total_requests": 30,
+      "success_count": 0,
+      "error_count": 30,
+      "success_rate": "0.00%",
+      "concurrent_requests": 5,
+      "response_times": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "throughput": "0 req/s"
+    },
+    "chat": {
+      "endpoint": "/api/chat/message",
+      "method": "POST",
+      "total_requests": 15,
+      "success_count": 0,
+      "error_count": 15,
+      "success_rate": "0.00%",
+      "concurrent_requests": 3,
+      "response_times": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "throughput": "0 req/s"
+    },
+    "gangs": {
+      "endpoint": "/api/gangs",
+      "method": "GET",
+      "total_requests": 20,
+      "success_count": 0,
+      "error_count": 20,
+      "success_rate": "0.00%",
+      "concurrent_requests": 3,
+      "response_times": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "throughput": "0 req/s"
+    }
+  },
+  "rating": "优秀 (A)",
+  "comment": "系统响应速度极快，性能优异"
+}

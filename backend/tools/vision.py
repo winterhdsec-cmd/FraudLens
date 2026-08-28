@@ -7,6 +7,7 @@ import base64
 import io
 from typing import Optional, Dict, Any, List
 from tools.response import logger
+from core.llm_client import mask_messages  # G2 脱敏
 
 
 VISION_MODELS = ['deepseek-vl2', 'deepseek-vl', 'gpt-4o', 'gpt-4-vision-preview', 'qwen-vl-plus', 'qwen-vl-max']
@@ -78,7 +79,7 @@ class VisionAnalyzer:
                 content = self._build_content(image_data, prompt, format)
                 response = client.chat.completions.create(
                     model=model_name,
-                    messages=[{"role": "user", "content": content}],
+                    messages=mask_messages([{"role": "user", "content": content}]),
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout=30

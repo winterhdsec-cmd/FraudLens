@@ -11,28 +11,16 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), 'key.env'))
 
 from database import db, init_db
-from flask import Flask as _Flask
 from celery_app import celery_app
 from celery import Task
 
 
-# ---------- Global Flask App (pushed once, keeps Flask-SQLAlchemy working in Celery workers) ----------
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME", "fraudlens")
-_flask_app = _Flask(__name__)
-_flask_app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
-)
-_flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-init_db(_flask_app)
-_flask_app.app_context().push()
+# ---------- 初始化 SQLAlchemy 2.0（去除 Flask 依赖，消除 P0 架构异味） ----------
+init_db()
 
 
 @celery_app.task(bind=True, name='tasks.run_analysis_task')
-def run_analysis_task(self, messages, session_id):
+def run_analysis_task(self, messages, session_id, accounts_tx=None):
     """Full analysis pipeline using OrchestratorAgent."""
     try:
         from agents.orchestrator import OrchestratorAgent
@@ -64,13 +52,20 @@ def run_analysis_task(self, messages, session_id):
                     "case_id": f"case_{len(cases)}"
                 })
 
-        result = orchestrator.process(cases)
+        result = orchestrator.process(cases, context={"accounts_tx": accounts_tx})
 
         self.update_state(state='PROGRESS', meta={
             'stage': 'complete',
             'progress': 100,
             'message': '分析完成'
         })
+
+        # REQ-S7 失败边界诚实提示：透传 abnormal / 低质量分派生 warnings + 四单流转 slips
+        try:
+            from agents.schemas import build_warnings
+            warnings = build_warnings(result)
+        except Exception:
+            warnings = []
 
         return {
             'success': result.get('status') == 'completed',
@@ -85,7 +80,10 @@ def run_analysis_task(self, messages, session_id):
             'processing_info': {
                 'processing_time': result.get('statistics', {}).get('processing_time', 0)
             },
-            'warnings': [],
+            'slips': result.get('slips', {}),
+            'abnormal': result.get('abnormal', 'none'),
+            'abnormal_detail': result.get('abnormal_detail'),
+            'warnings': warnings,
             'error': result.get('error'),
             'message': '分析完成' if result.get('status') == 'completed' else '分析失败'
         }

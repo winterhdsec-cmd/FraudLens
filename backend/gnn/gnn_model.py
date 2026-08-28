@@ -30,42 +30,46 @@ class GraphSAGELayer(nn.Module):
     def forward(self, features: torch.Tensor, adj: torch.Tensor) -> torch.Tensor:
         """
         前向传播
-        
+
         Args:
             features: 节点特征矩阵 [num_nodes, in_dim]
-            adj: 邻接矩阵 [num_nodes, num_nodes]
-            
+            adj: 邻接矩阵 [num_nodes, num_nodes]，支持 dense 和 sparse
+
         Returns:
             更新后的节点特征 [num_nodes, out_dim]
         """
-        # 聚合邻居信息
-        if self.aggregator_type == 'mean':
-            # 均值聚合
+        # 聚合邻居信息（支持稀疏矩阵，解决大规模图 OOM 问题）
+        # 注意：torch 2.x 中 CSR 张量的 .is_sparse 可能为 False，故用 layout 判定（稠密=torch.strided）
+        if adj.layout != torch.strided:
+            n_nodes = features.shape[0]
+            # 行度数用 bincount 直接从 COO 行索引统计，避免稀疏布局下度数张量仍稀疏导致 clamp 失败
+            adj_coo = adj.to_sparse_coo() if adj.layout == torch.sparse_csr else adj
+            row_idx = adj_coo.indices()[0]
+            deg = torch.bincount(row_idx, minlength=n_nodes).to(features.dtype).unsqueeze(1)
+            deg = torch.clamp(deg, min=1.0)
+            neighbor_agg = torch.sparse.mm(adj_coo, features)   # 稠密 (N, in_dim)
+            agg = neighbor_agg / deg if self.aggregator_type == 'mean' else neighbor_agg
+        else:
             neighbor_agg = torch.matmul(adj, features)
             degree = torch.sum(adj, dim=1, keepdim=True)
-            degree = torch.clamp(degree, min=1.0)  # 避免除零
-            agg = neighbor_agg / degree
-        elif self.aggregator_type == 'gcn':
-            # GCN风格聚合
-            agg = torch.matmul(adj, features)
-        else:
-            agg = torch.matmul(adj, features)
-        
+            degree = torch.clamp(degree, min=1.0)
+            agg = neighbor_agg / degree if self.aggregator_type == 'mean' else neighbor_agg
+
         # 变换聚合结果
         agg = self.aggregator(agg)
-        
+
         # 拼接当前节点特征和聚合结果
         concat = torch.cat([features, agg], dim=1)
-        
+
         # 更新节点特征
         output = self.update(concat)
-        
+
         # 归一化
         output = self.norm(output)
-        
+
         # 激活函数
         output = F.relu(output)
-        
+
         return output
 
 

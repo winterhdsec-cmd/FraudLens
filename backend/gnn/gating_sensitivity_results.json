@@ -1,0 +1,192 @@
+{
+  "config": {
+    "gate": 0.5,
+    "gangs": [
+      "G1_true",
+      "G2_true",
+      "G3_true",
+      "F1_false_highscale_noreflux",
+      "F2_false_low"
+    ],
+    "note": "经验加权(启发式)置信度门控系数敏感性；非真实数据验证，仅结构稳健性分析"
+  },
+  "schemes": {
+    "current(0.30/0.20/0.20/0.30)": {
+      "weights": [
+        0.3,
+        0.2,
+        0.2,
+        0.3
+      ],
+      "gang_confidences": {
+        "G1_true": 0.87,
+        "G2_true": 0.73,
+        "G3_true": 0.36,
+        "F1_false_highscale_noreflux": 0.58,
+        "F2_false_low": 0.1
+      },
+      "metrics": {
+        "false_freeze_rate": 0.2,
+        "miss_rate": 0.2,
+        "false_freeze_n": 1,
+        "miss_n": 1,
+        "total": 5
+      }
+    },
+    "uniform(0.25x4)": {
+      "weights": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "gang_confidences": {
+        "G1_true": 0.85,
+        "G2_true": 0.7,
+        "G3_true": 0.375,
+        "F1_false_highscale_noreflux": 0.625,
+        "F2_false_low": 0.1
+      },
+      "metrics": {
+        "false_freeze_rate": 0.2,
+        "miss_rate": 0.2,
+        "false_freeze_n": 1,
+        "miss_n": 1,
+        "total": 5
+      }
+    },
+    "scale_heavy(0.40/0.15/0.15/0.30)": {
+      "weights": [
+        0.4,
+        0.15,
+        0.15,
+        0.3
+      ],
+      "gang_confidences": {
+        "G1_true": 0.885,
+        "G2_true": 0.745,
+        "G3_true": 0.375,
+        "F1_false_highscale_noreflux": 0.575,
+        "F2_false_low": 0.11
+      },
+      "metrics": {
+        "false_freeze_rate": 0.2,
+        "miss_rate": 0.2,
+        "false_freeze_n": 1,
+        "miss_n": 1,
+        "total": 5
+      }
+    },
+    "reflux_heavy(0.20/0.15/0.15/0.50)": {
+      "weights": [
+        0.2,
+        0.15,
+        0.15,
+        0.5
+      ],
+      "gang_confidences": {
+        "G1_true": 0.905,
+        "G2_true": 0.805,
+        "G3_true": 0.255,
+        "F1_false_highscale_noreflux": 0.415,
+        "F2_false_low": 0.07
+      },
+      "metrics": {
+        "false_freeze_rate": 0.0,
+        "miss_rate": 0.2,
+        "false_freeze_n": 0,
+        "miss_n": 1,
+        "total": 5
+      }
+    },
+    "amount_heavy(0.20/0.40/0.20/0.20)": {
+      "weights": [
+        0.2,
+        0.4,
+        0.2,
+        0.2
+      ],
+      "gang_confidences": {
+        "G1_true": 0.84,
+        "G2_true": 0.68,
+        "G3_true": 0.4,
+        "F1_false_highscale_noreflux": 0.68,
+        "F2_false_low": 0.1
+      },
+      "metrics": {
+        "false_freeze_rate": 0.2,
+        "miss_rate": 0.2,
+        "false_freeze_n": 1,
+        "miss_n": 1,
+        "total": 5
+      }
+    },
+    "acc_heavy(0.20/0.20/0.40/0.20)": {
+      "weights": [
+        0.2,
+        0.2,
+        0.4,
+        0.2
+      ],
+      "gang_confidences": {
+        "G1_true": 0.82,
+        "G2_true": 0.66,
+        "G3_true": 0.38,
+        "F1_false_highscale_noreflux": 0.66,
+        "F2_false_low": 0.1
+      },
+      "metrics": {
+        "false_freeze_rate": 0.2,
+        "miss_rate": 0.2,
+        "false_freeze_n": 1,
+        "miss_n": 1,
+        "total": 5
+      }
+    }
+  },
+  "montecarlo_perturbation": {
+    "n_trials": 200,
+    "false_freeze_rate_mean": 0.2,
+    "false_freeze_rate_std": 0.0,
+    "miss_rate_mean": 0.2,
+    "miss_rate_std": 0.0,
+    "note": "手工权重 ±0.05 扰动下，误冻率/漏冻率波动很小，说明系数对噪声稳健；但绝对水平（尤其高规模无回流难例）由权重结构决定，非自适应学习所得。"
+  },
+  "threshold_sweep_current_weights": [
+    {
+      "gate": 0.3,
+      "false_freeze_rate": 0.2,
+      "miss_rate": 0.0,
+      "false_freeze_n": 1,
+      "miss_n": 0
+    },
+    {
+      "gate": 0.4,
+      "false_freeze_rate": 0.2,
+      "miss_rate": 0.2,
+      "false_freeze_n": 1,
+      "miss_n": 1
+    },
+    {
+      "gate": 0.5,
+      "false_freeze_rate": 0.2,
+      "miss_rate": 0.2,
+      "false_freeze_n": 1,
+      "miss_n": 1
+    },
+    {
+      "gate": 0.6,
+      "false_freeze_rate": 0.0,
+      "miss_rate": 0.2,
+      "false_freeze_n": 0,
+      "miss_n": 1
+    },
+    {
+      "gate": 0.7,
+      "false_freeze_rate": 0.0,
+      "miss_rate": 0.2,
+      "false_freeze_n": 0,
+      "miss_n": 1
+    }
+  ]
+}

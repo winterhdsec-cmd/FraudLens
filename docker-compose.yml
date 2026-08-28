@@ -13,7 +13,9 @@ services:
       - mysql-data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./docker/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      # G13 主库：创建复制账号（binlog+GTID 经 command 传入，避免 Windows 挂载 .cnf 被 MySQL 因 world-writable 忽略）
+      - ./docker/mysql/init-repl.sql:/docker-entrypoint-initdb.d/03-repl.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --gtid-mode=ON --enforce-gtid-consistency=ON
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-20051223}"]
       interval: 10s
@@ -34,11 +36,30 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fraudlens}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fraudlens123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - "5003:5003"
     environment:
@@ -47,6 +68,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:-20051223}
       DB_NAME: ${DB_NAME:-fraudlens}
+      ENV: ${ENV:-production}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
@@ -55,6 +77,16 @@ services:
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-fraudlens-jwt-secret-key-2024}
       PORT: 5003
+      # G4：CORS 源白名单（逗号分隔；留空回退 localhost 安全源）
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      # G1：TLS（置 1 启用 443 + HSTS；默认 0 由 gen_tls.sh 生成自签证书）
+      TLS_ENABLED: ${TLS_ENABLED:-0}
+      # G2：云端 LLM 默认关闭（数据不出域）；演示需云端智能时置 0
+      DISABLE_CLOUD_LLM: ${DISABLE_CLOUD_LLM:-0}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fraudlens}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fraudlens123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-fraudlens}
     depends_on:
       mysql:
         condition: service_healthy
@@ -65,12 +97,28 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # G13/G14 部署：backend 首次启动需加载 BGE(~GB)+EasyOCR(~100MB)，放宽启动宽限避免 up 误判 unhealthy
+      start_period: 180s
     volumes:
       - ./backend/reports:/app/reports
       - bge-model:/app/bge-large-zh-v1.5
       - easyocr-model:/root/.EasyOCR/model
       - static-files:/app/static-shared
+      # 源码实时挂载（开发模式，修改本地代码即时生效，无需重建镜像）
+      - ./backend/agents:/app/agents
+      - ./backend/core:/app/core
+      - ./backend/database:/app/database
+      - ./backend/gnn:/app/gnn
+      - ./backend/rag:/app/rag
+      - ./backend/routes:/app/routes
+      - ./backend/tools:/app/tools
+      - ./backend/schemas:/app/schemas
+      - ./backend/memory:/app/memory
+      - ./backend/migrations:/app/migrations
+      - ./backend/main.py:/app/main.py
+      - ./backend/celery_app.py:/app/celery_app.py
+      - ./backend/tasks.py:/app/tasks.py
+      - ./backend/key.env:/app/key.env:ro
 
   seed:
     image: fraudlens-backend:latest
@@ -88,11 +136,238 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/tls.inc:/etc/nginx/conf.d/tls.inc:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
       - static-files:/app/static:ro
+    environment:
+      TLS_ENABLED: ${TLS_ENABLED:-0}
     depends_on:
       backend:
+        condition: service_healthy
+
+  # ── G8：可观测基础设施（Prometheus 抓取 + Grafana 面板） ──
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-fraudlens}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+
+  # ── G10：分布式追踪链路（OpenTelemetry Collector + Grafana Tempo） ──
+  # 注意：与 Prometheus/Grafana 一致，首次需从 Docker Hub 拉取镜像（本机网络不可达时
+  # 仅影响追踪可视化，不影响 backend 业务——OTel 默认关闭、缺包即 no-op）。
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yml"]
+    ports:
+      - "4317:4317"   # OTLP gRPC（backend 默认导出端点）
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - ./monitoring/otel-collector-config.yml:/etc/otel-collector-config.yml:ro
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:latest
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./monitoring/tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP / Grafana 查询入口（容器网络内 4317 供 collector 推送，不映射宿主机）
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: celery -A celery_app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=2 --max-tasks-per-child=1000
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-20051223}
+      DB_NAME: ${DB_NAME:-fraudlens}
+      ENV: ${ENV:-production}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      TLS_ENABLED: ${TLS_ENABLED:-0}
+      DISABLE_CLOUD_LLM: ${DISABLE_CLOUD_LLM:-0}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fraudlens}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fraudlens123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-fraudlens}
+    volumes:
+      # 源码实时挂载（与 backend 保持一致）
+      - ./backend/agents:/app/agents
+      - ./backend/core:/app/core
+      - ./backend/database:/app/database
+      - ./backend/gnn:/app/gnn
+      - ./backend/rag:/app/rag
+      - ./backend/routes:/app/routes
+      - ./backend/tools:/app/tools
+      - ./backend/schemas:/app/schemas
+      - ./backend/memory:/app/memory
+      - ./backend/migrations:/app/migrations
+      - ./backend/main.py:/app/main.py
+      - ./backend/celery_app.py:/app/celery_app.py
+      - ./backend/tasks.py:/app/tasks.py
+      - ./backend/key.env:/app/key.env:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # ── G13 MySQL 异步主从（profile=ha，--profile ha 时启用） ──
+  mysql-replica:
+    image: mysql:8.0
+    restart: unless-stopped
+    profiles: ["ha"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-20051223}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "13308:3306"
+    volumes:
+      - mysql-replica-data:/var/lib/mysql
+      # G13 从库：复制账号在主库；本容器首次启动由 03-replica.sh 执行 CHANGE MASTER（GTID/server-id 经 command 传入）
+      - ./docker/mysql/replica-init.sh:/docker-entrypoint-initdb.d/03-replica.sh:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --server-id=2 --relay-log=relay-bin --read-only --gtid-mode=ON --enforce-gtid-consistency=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-20051223}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ── G14 Redis 哨兵（1 主 2 从 3 哨兵；主为 redis 服务，应用仍连 redis:6379） ──
+  redis-replica-1:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["ha"]
+    command: redis-server --replicaof redis 6379 --requirepass ${REDIS_PASSWORD:-20051223} --masterauth ${REDIS_PASSWORD:-20051223}
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-replica-data-1:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD:-20051223}' ping 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-replica-2:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["ha"]
+    command: redis-server --replicaof redis 6379 --requirepass ${REDIS_PASSWORD:-20051223} --masterauth ${REDIS_PASSWORD:-20051223}
+    ports:
+      - "6382:6379"
+    volumes:
+      - redis-replica-data-2:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD:-20051223}' ping 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-sentinel-1:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["ha"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
+    command: ["/bin/sh", "/etc/redis/sentinel-entrypoint.sh"]
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./docker/redis/sentinel-entrypoint.sh:/etc/redis/sentinel-entrypoint.sh:ro
+      - redis-sentinel-data-1:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-sentinel-2:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["ha"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
+    command: ["/bin/sh", "/etc/redis/sentinel-entrypoint.sh"]
+    ports:
+      - "26380:26379"
+    volumes:
+      - ./docker/redis/sentinel-entrypoint.sh:/etc/redis/sentinel-entrypoint.sh:ro
+      - redis-sentinel-data-2:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-sentinel-3:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["ha"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
+    command: ["/bin/sh", "/etc/redis/sentinel-entrypoint.sh"]
+    ports:
+      - "26381:26379"
+    volumes:
+      - ./docker/redis/sentinel-entrypoint.sh:/etc/redis/sentinel-entrypoint.sh:ro
+      - redis-sentinel-data-3:/data
+    depends_on:
+      redis:
         condition: service_healthy
 
 volumes:
@@ -101,3 +376,14 @@ volumes:
   bge-model:
   easyocr-model:
   static-files:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+  tempo-data:
+  # G13 / G14 HA 数据卷
+  mysql-replica-data:
+  redis-replica-data-1:
+  redis-replica-data-2:
+  redis-sentinel-data-1:
+  redis-sentinel-data-2:
+  redis-sentinel-data-3:

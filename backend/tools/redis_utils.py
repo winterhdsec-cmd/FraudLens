@@ -21,19 +21,11 @@ def get_redis():
         except Exception:
             _redis_client = None
     try:
-        import redis as _redis
-        host = os.getenv("REDIS_HOST", "localhost")
-        port = int(os.getenv("REDIS_PORT", "6379"))
-        db = int(os.getenv("REDIS_DB", "0"))
-        password = os.getenv("REDIS_PASSWORD", None)
-        _redis_client = _redis.Redis(
-            host=host, port=port, db=db,
-            password=password or None,
-            socket_connect_timeout=2,
-            decode_responses=True
-        )
-        _redis_client.ping()
-        logger.info(f"Redis 连接成功 ({host}:{port}/{db})")
+        from core.redis_pool import get_redis_client
+        client = get_redis_client(socket_timeout=2.0)
+        client.ping()
+        _redis_client = client
+        logger.info("Redis 连接成功 (哨兵感知客户端)")
         return _redis_client
     except Exception as e:
         logger.warning(f"Redis 不可用，将使用内存存储: {e}")

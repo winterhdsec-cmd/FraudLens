@@ -8,6 +8,7 @@ from datetime import datetime
 import asyncio
 
 from openai import AsyncOpenAI
+from core.llm_client import wrap_messages  # G2 脱敏网关
 from core.state import AgentState, AgentStatus
 from core.logger import logger, tracer
 from core.config import settings
@@ -15,6 +16,7 @@ from core.security import get_prompt_injection_detector, get_input_validator
 from core.circuit_breaker import get_circuit_breaker, CircuitBreakerOpenError
 from core.metrics import get_metrics_collector
 from core.checkpoint import get_checkpoint_manager
+from core.planning import PlanningModule
 from tools.base import ToolRegistry
 from tools.database_tools import QueryCasesTool, SearchSimilarCasesTool, GetCaseDetailTool
 from tools.statistics_tools import GetStatisticsTool
@@ -79,20 +81,23 @@ class ChatAgent:
         # 检查点管理（用于状态持久化）
         self.checkpoint_manager = get_checkpoint_manager()
         
+        # 规划模块（用于复杂任务分解和执行）
+        self.planning_module = PlanningModule(llm_client=self.llm, chat_agent=self)
+        
         logger.info("ChatAgent initialized", tools=list(self.tools.list_tools().keys()))
     
     @property
     def llm(self) -> Optional[AsyncOpenAI]:
-        """延迟初始化LLM客户端"""
+        """延迟初始化LLM客户端（经 G2 统一网关：默认关闭、启用脱敏）"""
         if self._llm is None:
-            if not settings.DEEPSEEK_API_KEY:
-                logger.warning("DEEPSEEK_API_KEY not configured, LLM features disabled")
-                return None
-            self._llm = AsyncOpenAI(
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
-                timeout=60
-            )
+            from core.llm_client import get_llm_client
+            client = get_llm_client()
+            if client is None:
+                logger.warning(
+                    "云端 LLM 已关闭或未配置（DISABLE_CLOUD_LLM=1 或缺少密钥），"
+                    "ChatAgent 智能回复将降级为本地规则"
+                )
+            self._llm = client
         return self._llm
     
     def start_session(self, session_id: str = None):
@@ -112,6 +117,163 @@ class ChatAgent:
         self._save_checkpoint("session_started")
         
         return self.session_id
+    
+    async def chat_stream(self, user_message: str, context: Dict[str, Any] = None):
+        """
+        流式处理用户消息（生成器）
+        
+        Args:
+            user_message: 用户输入
+            context: 额外上下文
+        
+        Yields:
+            流式响应片段
+        """
+        with tracer.span("chat_agent.chat_stream", session_id=self.session_id, user_msg=user_message[:100]):
+            if not self.session_id:
+                self.start_session()
+            
+            start_time = datetime.utcnow()
+            
+            # 安全检查
+            validation_result = self.input_validator.validate_text_input(user_message, max_length=5000)
+            if not validation_result["is_valid"]:
+                yield {"type": "error", "content": "您的输入包含不合法内容，请检查后重试。"}
+                return
+            
+            injection_check = self.prompt_injection_detector.detect(user_message)
+            if not injection_check["is_safe"]:
+                user_message = self.prompt_injection_detector.sanitize(user_message)
+            
+            # 添加到短期记忆
+            self.short_term_memory.add_message("user", user_message)
+            self.state.add_message("user", user_message)
+            
+            # 意图识别
+            intent = await self._identify_intent(user_message)
+            yield {"type": "intent", "content": intent.get("intent", "")}
+            
+            # 判断是否需要规划（复杂任务）
+            needs_planning = self._needs_planning(user_message, intent)
+            
+            if needs_planning:
+                yield {"type": "planning_start", "content": "正在制定执行计划..."}
+                
+                # 创建并执行计划
+                plan = await self.planning_module.create_and_execute_plan(
+                    goal=user_message,
+                    context=context
+                )
+                
+                yield {
+                    "type": "planning_end", 
+                    "content": f"计划执行完成: {plan.completed_steps}/{plan.total_steps} 步骤",
+                    "metadata": {
+                        "plan_id": plan.plan_id,
+                        "subtasks_count": len(plan.subtasks),
+                        "completed": plan.completed_steps,
+                        "total": plan.total_steps
+                    }
+                }
+                
+                # 基于计划结果生成回复
+                tool_result = {
+                    "plan_completed": True,
+                    "subtask_results": [
+                        {"task": t.description, "status": t.status.name, "result": str(t.result)[:200] if t.result else None}
+                        for t in plan.subtasks
+                    ]
+                }
+            else:
+                # 简单任务，直接执行工具
+                tool_result = None
+                if intent.get("should_use_tool"):
+                    yield {"type": "tool_start", "content": intent.get("tool_name", "")}
+                    tool_result = await self._execute_tool(intent)
+                    yield {"type": "tool_end", "content": "工具执行完成"}
+            
+            # 流式生成回复
+            full_response = ""
+            async for chunk in self._generate_response_stream(
+                user_message=user_message,
+                intent=intent,
+                tool_result=tool_result,
+                context=context
+            ):
+                full_response += chunk
+                yield {"type": "token", "content": chunk}
+            
+            # 完成
+            self.short_term_memory.add_message("assistant", full_response)
+            self.state.add_message("assistant", full_response)
+            
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            yield {
+                "type": "done",
+                "content": "",
+                "metadata": {
+                    "session_id": self.session_id,
+                    "intent": intent.get("intent"),
+                    "tool_used": intent.get("tool_name"),
+                    "duration_seconds": duration
+                }
+            }
+    
+    async def _generate_response_stream(
+        self,
+        user_message: str,
+        intent: Dict[str, Any],
+        tool_result: Optional[Dict[str, Any]],
+        context: Optional[Dict[str, Any]]
+    ):
+        """流式生成回复"""
+        # 准备上下文
+        conversation_context = self.short_term_memory.get_context(max_tokens=2000)
+        
+        tool_context = ""
+        if tool_result and tool_result.get("success"):
+            tool_context = f"\n\n工具执行结果:\n{json.dumps(tool_result.get('data'), ensure_ascii=False, indent=2)}"
+        
+        if not self.llm:
+            # 无 LLM 时返回简单响应
+            response = self._generate_simple_response(intent, tool_result)
+            for char in response:
+                yield char
+                await asyncio.sleep(0.01)
+            return
+        
+        response_prompt = f"""你是一个反诈中心的AI助手，负责回答关于诈骗案件的问题。
+
+对话历史:
+{conversation_context}
+
+用户最新消息: {user_message}
+{tool_context}
+
+请根据以上信息，用友好、专业的语气回复用户。
+如果工具返回了数据，请用清晰的方式总结关键信息。
+如果是闲聊，请友好回应并引导到反诈相关话题。
+"""
+        
+        try:
+            # 使用流式 API
+            stream = await self.llm.chat.completions.create(
+                model="deepseek-chat",
+                messages=wrap_messages([{"role": "user", "content": response_prompt}]),
+                temperature=0.7,
+                max_tokens=1000,
+                stream=True
+            )
+            
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                    
+        except Exception as e:
+            logger.error("LLM stream generation failed", error=str(e))
+            response = self._generate_simple_response(intent, tool_result)
+            for char in response:
+                yield char
     
     async def chat(self, user_message: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
         """
@@ -167,62 +329,70 @@ class ChatAgent:
             )
             
             try:
-                # 2. 意图识别和工具选择
-                intent = await self._identify_intent(user_message)
-                
-                # 3. 执行工具调用（如果需要）
-                tool_result = None
-                if intent.get("should_use_tool"):
-                    tool_result = await self._execute_tool(intent)
-                
-                # 4. 生成回复
-                response = await self._generate_response(
-                    user_message=user_message,
-                    intent=intent,
-                    tool_result=tool_result,
-                    context=context
-                )
-                
+                # 优先使用真正的 ReAct 循环（原生 Function Calling）
+                # 失败时回退到原意图识别流水线
+                use_react = self.llm is not None
+                if use_react:
+                    response, intent, tool_used = await self._react_chat(
+                        user_message=user_message,
+                        context=context
+                    )
+                else:
+                    # 无 LLM 时走原降级路径
+                    intent = await self._identify_intent(user_message)
+                    tool_result = None
+                    if intent.get("should_use_tool"):
+                        tool_result = await self._execute_tool(intent)
+                    response = await self._generate_response(
+                        user_message=user_message,
+                        intent=intent,
+                        tool_result=tool_result,
+                        context=context
+                    )
+                    tool_used = intent.get("tool_name") if tool_result else None
+
                 # 5. 添加到记忆
                 self.short_term_memory.add_message("assistant", response)
                 self.state.add_message("assistant", response)
-                
+
                 # 6. 保存到向量记忆（用于长期检索）
                 self.vector_memory.add_memory(
                     content=f"用户: {user_message}\n助手: {response}",
                     metadata={
                         "session_id": self.session_id,
                         "timestamp": datetime.utcnow().isoformat(),
-                        "intent": intent.get("intent")
+                        "intent": intent.get("intent") if isinstance(intent, dict) else None
                     }
                 )
-                
+
                 # 7. 检查是否需要压缩到长期记忆（当短期记忆超过阈值时）
                 if len(self.short_term_memory.messages) >= 10:
                     self._compress_to_long_term_memory()
-                
+
                 duration = (datetime.utcnow() - start_time).total_seconds()
-                
+
                 # 记录成功指标
                 self.metrics_collector.record_task(task_id, True, duration, {
-                    "intent": intent.get("intent"),
-                    "tool_used": intent.get("should_use_tool")
+                    "intent": intent.get("intent") if isinstance(intent, dict) else None,
+                    "tool_used": bool(tool_used)
                 })
-                self.metrics_collector.update_confidence(intent.get("confidence", 0.5))
-                
+                self.metrics_collector.update_confidence(
+                    intent.get("confidence", 0.5) if isinstance(intent, dict) else 0.5
+                )
+
                 logger.info(
                     "Chat response generated",
                     session_id=self.session_id,
-                    intent=intent.get("intent"),
-                    tool_used=intent.get("should_use_tool"),
+                    intent=intent.get("intent") if isinstance(intent, dict) else None,
+                    tool_used=tool_used,
                     duration_seconds=duration
                 )
-                
+
                 return {
                     "session_id": self.session_id,
                     "response": response,
-                    "intent": intent.get("intent"),
-                    "tool_used": intent.get("tool_name"),
+                    "intent": intent.get("intent") if isinstance(intent, dict) else None,
+                    "tool_used": tool_used,
                     "metadata": {
                         "duration_seconds": duration,
                         "message_count": len(self.short_term_memory.messages)
@@ -307,7 +477,7 @@ class ChatAgent:
             try:
                 response = await self.llm.chat.completions.create(
                     model="deepseek-chat",
-                    messages=[{"role": "user", "content": intent_prompt}],
+                    messages=wrap_messages([{"role": "user", "content": intent_prompt}]),
                     temperature=0.3,
                     max_tokens=500
                 )
@@ -395,6 +565,41 @@ class ChatAgent:
             "should_use_tool": False,
             "confidence": 0.5
         }
+    
+    def _needs_planning(self, message: str, intent: Dict[str, Any]) -> bool:
+        """
+        判断是否需要复杂任务规划
+        
+        Args:
+            message: 用户消息
+            intent: 识别的意图
+        
+        Returns:
+            是否需要规划
+        """
+        # 复杂任务关键词
+        complex_keywords = [
+            "分析", "详细分析", "全面分析", "综合分析",
+            "报告", "生成报告", "写报告",
+            "对比", "比较", "分析对比",
+            "团伙", "犯罪网络", "组织",
+            "模式", "规律", "趋势"
+        ]
+        
+        # 检查是否包含复杂任务关键词
+        if any(kw in message for kw in complex_keywords):
+            # 检查意图置信度（低置信度可能需要多步骤）
+            confidence = intent.get("confidence", 0.5)
+            if confidence < 0.7:
+                return True
+            
+            # 检查是否涉及多个工具
+            tool_name = intent.get("tool_name")
+            if not tool_name:
+                # 没有明确工具，可能需要规划
+                return True
+        
+        return False
     
     async def _execute_tool(self, intent: Dict[str, Any]) -> Dict[str, Any]:
         """执行工具调用（使用ToolSandbox安全执行）"""
@@ -548,7 +753,7 @@ class ChatAgent:
             try:
                 response = await self.llm.chat.completions.create(
                     model="deepseek-chat",
-                    messages=[{"role": "user", "content": response_prompt}],
+                    messages=wrap_messages([{"role": "user", "content": response_prompt}]),
                     temperature=0.7,
                     max_tokens=1000
                 )
@@ -651,6 +856,256 @@ class ChatAgent:
         self.short_term_memory.clear()
         logger.info("Chat history cleared", session_id=self.session_id)
     
+    async def _react_chat(
+        self,
+        user_message: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> tuple:
+        """
+        真正的 ReAct 循环（原生 Function Calling）
+
+        流程：Thought → Action(tool_call) → Observation(tool_result) → Reflection
+        最多迭代 max_iterations 轮，避免无限循环。
+
+        Returns:
+            (response_text, intent_dict, tool_used_name)
+        """
+        max_iterations = self.state.max_iterations if hasattr(self.state, "max_iterations") else 5
+        tool_schemas = self.tools.to_openai_schemas()
+
+        # 构造系统提示词
+        system_prompt = (
+            "你是反诈中心的 AI 助手 FraudLens。你可以调用工具查询案件、统计、知识库等。\n"
+            "请按以下原则工作：\n"
+            "1. 先判断用户问题是否需要调用工具；不需要时直接回答。\n"
+            "2. 调用工具时给出明确的参数；同一工具避免重复调用相同参数。\n"
+            "3. 拿到工具结果后，用清晰、专业的语言总结关键信息，不要原样堆砌 JSON。\n"
+            "4. 涉及金额、身份证、银行卡等敏感信息时，注意脱敏呈现。\n"
+            "5. 回答控制在 500 字以内，分点说明更佳。"
+        )
+
+        # 组装初始消息
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # 注入短期记忆上下文（保留多轮语义）
+        try:
+            history_ctx = self.short_term_memory.get_context(max_tokens=1500)
+            if history_ctx:
+                messages.append({
+                    "role": "system",
+                    "content": f"对话历史（最近若干轮）:\n{history_ctx}"
+                })
+        except Exception as e:
+            logger.warning("Short-term memory context build failed", error=str(e))
+
+        # 注入 RAG 检索上下文（如果用户问题与反诈知识相关）
+        try:
+            rag_context = await self._maybe_rag_retrieve(user_message)
+            if rag_context:
+                messages.append({
+                    "role": "system",
+                    "content": f"相关知识参考:\n{rag_context}"
+                })
+        except Exception as e:
+            logger.warning("RAG context injection failed", error=str(e))
+
+        # 用户消息
+        messages.append({"role": "user", "content": user_message})
+
+        intent: Dict[str, Any] = {"intent": "react_chat", "confidence": 0.9}
+        tool_used_name: Optional[str] = None
+        final_response = ""
+
+        for iteration in range(max_iterations):
+            logger.info(
+                "ReAct iteration",
+                session_id=self.session_id,
+                iteration=iteration + 1
+            )
+
+            try:
+                # 调用 LLM（带 tools 参数，启用 Function Calling）
+                # 注意：DeepSeek 兼容 OpenAI tools 接口
+                llm_resp = await self.llm.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=wrap_messages(messages),
+                    tools=tool_schemas if tool_schemas else None,
+                    tool_choice="auto" if tool_schemas else None,
+                    temperature=0.5,
+                    max_tokens=1000
+                )
+            except Exception as e:
+                logger.error("ReAct LLM call failed", iteration=iteration + 1, error=str(e))
+                # 降级到规则路径
+                fallback_intent = await self._identify_intent(user_message)
+                fallback_tool_result = None
+                if fallback_intent.get("should_use_tool"):
+                    fallback_tool_result = await self._execute_tool(fallback_intent)
+                final_response = await self._generate_response(
+                    user_message, fallback_intent, fallback_tool_result, context
+                )
+                return final_response, fallback_intent, fallback_intent.get("tool_name")
+
+            choice = llm_resp.choices[0]
+            message = choice.message
+
+            # 把 assistant 消息追加到历史（包含可能的 tool_calls）
+            assistant_msg: Dict[str, Any] = {"role": "assistant", "content": message.content or ""}
+            if message.tool_calls:
+                assistant_msg["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in message.tool_calls
+                ]
+            messages.append(assistant_msg)
+
+            # 情况 A：没有工具调用 → 终止循环，content 即为最终回复
+            if not message.tool_calls:
+                final_response = message.content or ""
+                # 如果迭代 0 就没工具调用，仍尝试标注意图
+                if iteration == 0:
+                    intent = {
+                        "intent": "直接回答",
+                        "should_use_tool": False,
+                        "confidence": 0.9
+                    }
+                break
+
+            # 情况 B：有工具调用 → 依次执行并回填 tool 消息
+            for tc in message.tool_calls:
+                tool_name = tc.function.name
+                try:
+                    tool_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                except json.JSONDecodeError as e:
+                    logger.warning("Tool args JSON parse failed", tool=tool_name, error=str(e))
+                    tool_args = {}
+
+                # 记录首个工具到 intent 元数据
+                if tool_used_name is None:
+                    tool_used_name = tool_name
+                    intent = {
+                        "intent": "工具调用",
+                        "should_use_tool": True,
+                        "tool_name": tool_name,
+                        "tool_input": tool_args,
+                        "confidence": 0.9
+                    }
+
+                logger.info(
+                    "ReAct tool call",
+                    tool=tool_name,
+                    args=tool_args,
+                    iteration=iteration + 1
+                )
+
+                # 执行工具（沙箱）
+                tool_output = await self._execute_tool({
+                    "tool_name": tool_name,
+                    "tool_input": tool_args
+                })
+
+                # 记录工具调用指标
+                self.metrics_collector.record_tool_call(
+                    tool_name=tool_name,
+                    success=tool_output.get("success", False),
+                    latency=0
+                )
+
+                # 序列化工具结果
+                try:
+                    obs_content = json.dumps(
+                        tool_output.get("data", tool_output),
+                        ensure_ascii=False,
+                        default=str
+                    )
+                except Exception:
+                    obs_content = str(tool_output)
+
+                # 限制观测内容长度，避免上下文爆炸
+                if len(obs_content) > 4000:
+                    obs_content = obs_content[:4000] + "...(已截断)"
+
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": obs_content
+                })
+
+            # 进入下一轮，让 LLM 基于观测结果继续推理或给出最终答复
+
+        else:
+            # 达到最大迭代仍有工具调用，强制让 LLM 给出收尾回复
+            logger.warning(
+                "ReAct reached max iterations, forcing final response",
+                max_iterations=max_iterations
+            )
+            try:
+                llm_resp = await self.llm.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=wrap_messages(messages + [{
+                        "role": "system",
+                        "content": "已达最大推理轮数，请基于已有信息直接给出最终答复（不再调用工具）。"
+                    }]),
+                    temperature=0.5,
+                    max_tokens=800
+                )
+                final_response = llm_resp.choices[0].message.content or ""
+            except Exception as e:
+                logger.error("ReAct final response failed", error=str(e))
+                final_response = "已调用工具获取信息，但生成最终回复时出错。请稍后重试。"
+
+        # 保底：如果 LLM 未给出任何内容
+        if not final_response.strip():
+            final_response = "已为您处理请求。"
+
+        return final_response, intent, tool_used_name
+
+    async def _maybe_rag_retrieve(self, user_message: str) -> Optional[str]:
+        """
+        判断用户消息是否需要 RAG 检索，若是则返回压缩后的知识上下文。
+        仅当消息长度 >= 6 且包含反诈相关关键词时触发，避免闲聊也走 RAG。
+        """
+        if len(user_message) < 6:
+            return None
+
+        rag_keywords = [
+            "诈骗", "欺诈", "反诈", "套路", "话术", "洗钱", "引流", "跑分",
+            "刷单", "杀猪盘", "冒充", "冒充公检法", "短信", "钓鱼", "网赌",
+            "知识库", "案例", "防范", "识别", "手法"
+        ]
+        if not any(kw in user_message for kw in rag_keywords):
+            return None
+
+        try:
+            search_tool = self.tools.get("search_knowledge")
+            if not search_tool:
+                return None
+            result = search_tool(query=user_message, top_k=3, strategy="hybrid")
+            if not result.success or not result.data:
+                return None
+
+            docs = result.data.get("documents") or result.data.get("results") or []
+            if not docs:
+                return None
+
+            parts = []
+            for d in docs[:3]:
+                content = d.get("content") or d.get("text") or ""
+                title = d.get("title", "知识片段")
+                if content:
+                    parts.append(f"- [{title}] {content[:300]}")
+
+            return "\n".join(parts) if parts else None
+        except Exception as e:
+            logger.warning("RAG retrieve in ReAct failed", error=str(e))
+            return None
+
     def _compress_to_long_term_memory(self):
         """将短期记忆压缩到长期记忆"""
         if not self.session_id:

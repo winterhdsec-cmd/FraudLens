@@ -11,11 +11,12 @@ from core.state import AgentState
 from core.tool_sandbox import ToolSandbox
 from tools.base import ToolRegistry
 from tools.database_tools import SearchSimilarCasesTool, GetCaseDetailTool
-from tools.evidence_tools import ExtractEvidenceTool
+from tools.evidence_tools import ExtractEvidenceTool, extract_entities_regex
 from tools.risk_tools import AssessRiskTool
+from agents.protocol import AgentProtocol
 
 
-class AnalystAgent:
+class AnalystAgent(AgentProtocol):
     """
     案件分析智能体
     
@@ -25,7 +26,18 @@ class AnalystAgent:
     3. 评估风险等级
     4. 生成分析报告
     """
-    
+
+    # Agent 注册表契约（B1.1 / B1.3）
+    name = "analyst"
+    stage = "analyze"
+
+    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """AgentProtocol 入口：分析单案。context={"case": <dict>}。"""
+        case = context.get("case")
+        if case is None:
+            return {"is_error": True, "error": "missing case", "agent": self.name}
+        return self.analyze(case)
+
     def __init__(self, llm_client=None):
         self.llm = llm_client
         
@@ -91,9 +103,15 @@ class AnalystAgent:
         if not case_text:
             return self._create_fallback_result("缺少案件描述")
         
-        # 1. 提取证据
-        evidence_result = self.tools["extract_evidence"].execute(text=case_text)
-        extracted_entities = evidence_result.data.get("extracted_evidence", {}) if evidence_result.success else {}
+        # 1. 提取证据（B-L1：本地增强正则打底，可选 LLM 语义补全，统一格式）
+        extracted_entities = extract_entities_regex(case_text)
+        if self.llm:
+            try:
+                llm_ents = await self._extract_entities_llm(case_text)
+                if llm_ents:
+                    extracted_entities = self._merge_entities(extracted_entities, llm_ents)
+            except Exception:
+                pass  # 降级：保留本地正则结果，不影响主流程
         
         # 2. 搜索相似案件
         similar_cases = []
@@ -133,7 +151,7 @@ class AnalystAgent:
             "keywords": self._extract_keywords(extracted_entities),
             "steps": [],
             "roles": [],
-            "extracted_entities": self._format_entities(extracted_entities),
+            "extracted_entities": extracted_entities,
             "similar_cases": similar_cases,
             "warning": None
         }
@@ -182,9 +200,10 @@ class AnalystAgent:
 """
         
         try:
+            from core.llm_client import wrap_messages
             response = await self.llm.chat.completions.create(
                 model="deepseek-chat",
-                messages=[{"role": "user", "content": prompt}],
+                messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.7,
                 max_tokens=1500
             )
@@ -238,12 +257,73 @@ class AnalystAgent:
         
         return "\n".join(report_parts)
     
+    async def _extract_entities_llm(self, case_text: str) -> Dict[str, Any]:
+        """
+        B-L1：用云端 LLM 补全语义层实体（诈骗类型/受害人/金额/转账时间/社交账号等）。
+        安全：prompt 经 wrap_messages 脱敏，敏感明文不出域；标识符仍以本地正则为准，这里只补充正则难以覆盖的语义字段。
+        返回统一格式 dict 的子集；解析失败返回 {}。
+        """
+        from core.llm_client import wrap_messages
+        prompt = f"""你是一名反诈研判助手。请从以下报案文本中抽取结构化实体，仅输出 JSON（不要解释）：
+{{
+  "scam_type": "诈骗类型（如 冒充客服类诈骗/刷单返利类诈骗/虚假投资理财类诈骗 等）",
+  "victims": ["受害人姓名或称呼，无则空数组"],
+  "amounts": ["涉案金额（保留原文写法，如 5万元/12000元，无则空数组）"],
+  "transfer_times": ["转账时间，无则空数组"],
+  "wechat_ids": ["微信号，无则空数组"],
+  "qq_numbers": ["QQ号，无则空数组"]
+}}
+报案文本：
+{case_text[:2000]}
+"""
+        try:
+            response = await self.llm.chat.completions.create(
+                model="deepseek-chat",
+                messages=wrap_messages([{"role": "user", "content": prompt}]),
+                temperature=0.2,
+                max_tokens=800,
+            )
+            content = response.choices[0].message.content or ""
+            # 容错：截取第一个 {...} 块
+            start = content.find("{")
+            end = content.rfind("}")
+            if start == -1 or end == -1:
+                return {}
+            obj = json.loads(content[start:end + 1])
+            return obj
+        except Exception:
+            return {}
+
+    @staticmethod
+    def _merge_entities(base: Dict[str, Any], llm: Dict[str, Any]) -> Dict[str, Any]:
+        """合并本地正则(base) 与 LLM 语义补全(llm)。标识符以本地为准，LLM 仅补充缺失项。"""
+        merged = dict(base)
+        # 语义字段：LLM 非空则覆盖（scam_type/victims/amounts/transfer_times）
+        # 注意 base 的 scam_type 默认 "未知" 视为空，允许 LLM 覆盖
+        for k in ("scam_type", "victims", "amounts", "transfer_times"):
+            v = llm.get(k)
+            base_val = merged.get(k)
+            base_empty = (base_val is None) or (isinstance(base_val, str) and base_val == "未知") or (isinstance(base_val, list) and not base_val)
+            if isinstance(v, list) and v:
+                merged[k] = v
+            elif isinstance(v, str) and v and base_empty:
+                merged[k] = v
+        # 社交账号：LLM 作为补充（本地遗漏时）
+        for k in ("wechat_ids", "qq_numbers"):
+            lv = llm.get(k) or []
+            if isinstance(lv, list) and lv:
+                merged[k] = list(dict.fromkeys(list(merged.get(k, [])) + lv))
+        return merged
+
     def _extract_keywords(self, extracted_entities: Dict) -> List[str]:
-        """提取关键词"""
+        """提取关键词（适配统一格式：标识符为列表、scam_type 为字符串）"""
         keywords = []
-        for entity_type, entity_data in extracted_entities.items():
-            if isinstance(entity_data, dict):
-                keywords.append(entity_data.get("description", entity_type))
+        for k in ("scam_type", "bank_accounts", "phone_numbers", "wechat_ids", "qq_numbers", "amounts"):
+            v = extracted_entities.get(k)
+            if isinstance(v, list) and v:
+                keywords.append(str(v[0]))
+            elif isinstance(v, str) and v and v != "未知":
+                keywords.append(v)
         return keywords[:5]
     
     def _format_entities(self, extracted_entities: Dict) -> Dict[str, Any]:

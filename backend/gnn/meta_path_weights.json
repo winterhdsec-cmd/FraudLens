@@ -1,0 +1,230 @@
+{
+  "meta_paths": [
+    "case_account_case",
+    "case_perpetrator_case",
+    "case_type_case",
+    "case_city_case",
+    "case_text_case"
+  ],
+  "records": [
+    {
+      "cross": 0.0,
+      "seed": 42,
+      "betas": {
+        "case_account_case": 0.23286890983581543,
+        "case_perpetrator_case": 0.257645845413208,
+        "case_type_case": 0.2168309986591339,
+        "case_city_case": 0.2618618905544281,
+        "case_text_case": 0.030792376026511192
+      }
+    },
+    {
+      "cross": 0.0,
+      "seed": 7,
+      "betas": {
+        "case_account_case": 0.2520451247692108,
+        "case_perpetrator_case": 0.25660455226898193,
+        "case_type_case": 0.213701993227005,
+        "case_city_case": 0.259304404258728,
+        "case_text_case": 0.018343940377235413
+      }
+    },
+    {
+      "cross": 0.0,
+      "seed": 123,
+      "betas": {
+        "case_account_case": 0.2300122082233429,
+        "case_perpetrator_case": 0.25168824195861816,
+        "case_type_case": 0.22191722691059113,
+        "case_city_case": 0.2613067924976349,
+        "case_text_case": 0.03507549315690994
+      }
+    },
+    {
+      "cross": 0.0,
+      "seed": 256,
+      "betas": {
+        "case_account_case": 0.26756396889686584,
+        "case_perpetrator_case": 0.29913681745529175,
+        "case_type_case": 0.2078501582145691,
+        "case_city_case": 0.2101789265871048,
+        "case_text_case": 0.015270153991878033
+      }
+    },
+    {
+      "cross": 0.0,
+      "seed": 1024,
+      "betas": {
+        "case_account_case": 0.23589424788951874,
+        "case_perpetrator_case": 0.26690590381622314,
+        "case_type_case": 0.23218147456645966,
+        "case_city_case": 0.25161853432655334,
+        "case_text_case": 0.013399849645793438
+      }
+    },
+    {
+      "cross": 0.2,
+      "seed": 42,
+      "betas": {
+        "case_account_case": 0.23493532836437225,
+        "case_perpetrator_case": 0.28849267959594727,
+        "case_type_case": 0.24544158577919006,
+        "case_city_case": 0.20540711283683777,
+        "case_text_case": 0.0257232878357172
+      }
+    },
+    {
+      "cross": 0.2,
+      "seed": 7,
+      "betas": {
+        "case_account_case": 0.13611020147800446,
+        "case_perpetrator_case": 0.2767050862312317,
+        "case_type_case": 0.27955058217048645,
+        "case_city_case": 0.2957644760608673,
+        "case_text_case": 0.011869652196764946
+      }
+    },
+    {
+      "cross": 0.2,
+      "seed": 123,
+      "betas": {
+        "case_account_case": 0.221554234623909,
+        "case_perpetrator_case": 0.221613809466362,
+        "case_type_case": 0.25796714425086975,
+        "case_city_case": 0.2604132890701294,
+        "case_text_case": 0.03845152258872986
+      }
+    },
+    {
+      "cross": 0.2,
+      "seed": 256,
+      "betas": {
+        "case_account_case": 0.23156024515628815,
+        "case_perpetrator_case": 0.26482900977134705,
+        "case_type_case": 0.29145216941833496,
+        "case_city_case": 0.19671757519245148,
+        "case_text_case": 0.015441020019352436
+      }
+    },
+    {
+      "cross": 0.2,
+      "seed": 1024,
+      "betas": {
+        "case_account_case": 0.18217533826828003,
+        "case_perpetrator_case": 0.282435804605484,
+        "case_type_case": 0.25860390067100525,
+        "case_city_case": 0.25383928418159485,
+        "case_text_case": 0.0229457076638937
+      }
+    },
+    {
+      "cross": 0.4,
+      "seed": 42,
+      "betas": {
+        "case_account_case": 0.2143719494342804,
+        "case_perpetrator_case": 0.2291710525751114,
+        "case_type_case": 0.2719094455242157,
+        "case_city_case": 0.2522420883178711,
+        "case_text_case": 0.032305408269166946
+      }
+    },
+    {
+      "cross": 0.4,
+      "seed": 7,
+      "betas": {
+        "case_account_case": 0.1477186381816864,
+        "case_perpetrator_case": 0.2934177815914154,
+        "case_type_case": 0.24034760892391205,
+        "case_city_case": 0.2994328737258911,
+        "case_text_case": 0.019083095714449883
+      }
+    },
+    {
+      "cross": 0.4,
+      "seed": 123,
+      "betas": {
+        "case_account_case": 0.15787017345428467,
+        "case_perpetrator_case": 0.24032573401927948,
+        "case_type_case": 0.267135888338089,
+        "case_city_case": 0.2891799509525299,
+        "case_text_case": 0.04548827186226845
+      }
+    },
+    {
+      "cross": 0.4,
+      "seed": 256,
+      "betas": {
+        "case_account_case": 0.2233237326145172,
+        "case_perpetrator_case": 0.22952015697956085,
+        "case_type_case": 0.3000919818878174,
+        "case_city_case": 0.2247261255979538,
+        "case_text_case": 0.02233796752989292
+      }
+    },
+    {
+      "cross": 0.4,
+      "seed": 1024,
+      "betas": {
+        "case_account_case": 0.23046526312828064,
+        "case_perpetrator_case": 0.23274657130241394,
+        "case_type_case": 0.2617666721343994,
+        "case_city_case": 0.2473025768995285,
+        "case_text_case": 0.027718888595700264
+      }
+    }
+  ],
+  "summary": {
+    "0.0": {
+      "mean": {
+        "case_account_case": 0.24367689192295075,
+        "case_perpetrator_case": 0.2663962721824646,
+        "case_type_case": 0.21849637031555175,
+        "case_city_case": 0.24885410964488983,
+        "case_text_case": 0.022576362639665604
+      },
+      "std": {
+        "case_account_case": 0.01584870162571884,
+        "case_perpetrator_case": 0.01911136396059925,
+        "case_type_case": 0.00919355324021041,
+        "case_city_case": 0.022005068508819663,
+        "case_text_case": 0.00973696068338524
+      },
+      "n": 5
+    },
+    "0.2": {
+      "mean": {
+        "case_account_case": 0.20126706957817078,
+        "case_perpetrator_case": 0.2668152779340744,
+        "case_type_case": 0.2666030764579773,
+        "case_city_case": 0.24242834746837616,
+        "case_text_case": 0.02288623806089163
+      },
+      "std": {
+        "case_account_case": 0.042049699365530054,
+        "case_perpetrator_case": 0.026734046258043185,
+        "case_type_case": 0.018516817701976964,
+        "case_city_case": 0.041104916768043606,
+        "case_text_case": 0.010333524402143924
+      },
+      "n": 5
+    },
+    "0.4": {
+      "mean": {
+        "case_account_case": 0.19474995136260986,
+        "case_perpetrator_case": 0.2450362592935562,
+        "case_type_case": 0.2682503193616867,
+        "case_city_case": 0.2625767230987549,
+        "case_text_case": 0.029386726394295692
+      },
+      "std": {
+        "case_account_case": 0.038888075665829275,
+        "case_perpetrator_case": 0.027415558513254987,
+        "case_type_case": 0.021500706757859523,
+        "case_city_case": 0.03097934602532496,
+        "case_text_case": 0.01032484818267896
+      },
+      "n": 5
+    }
+  },
+  "honest_note": "本实验在合成案件数据上训练 HAN 并提取语义注意力 beta_i，用于验证元路径重要性排序。结果为合成数据上的可解释性分析，不构成真实警务数据验证。"
+}

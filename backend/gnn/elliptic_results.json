@@ -1,0 +1,31 @@
+{
+  "dataset": "Elliptic Bitcoin AML (Weber et al. 2019, HF mirror)",
+  "n_nodes_sampled": 3000,
+  "n_labeled_illicit_licit": 2147,
+  "note": "真实外部交易图下采样连通分量；非公安案卷；用于外部有效性佐证，非真实验证通过",
+  "KMeans_features": {
+    "nmi": 0.0035,
+    "ari": -0.0095,
+    "f1_illicit": 0.0127
+  },
+  "Louvain": {
+    "nmi": 0.0062,
+    "ari": 0.0002,
+    "f1_illicit": 0.1538
+  },
+  "HAN": {
+    "nmi": 0.0022,
+    "ari": -0.0017,
+    "f1_illicit": 0.016
+  },
+  "RGCN": {
+    "nmi": 0.0027,
+    "ari": 0.0006,
+    "f1_illicit": 0.018
+  },
+  "GAT": {
+    "nmi": 0.001,
+    "ari": -0.0005,
+    "f1_illicit": 0.0148
+  }
+}

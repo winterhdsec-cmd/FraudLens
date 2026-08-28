@@ -1,0 +1,69 @@
+{
+  "setting": "Elliptic refinement: 10 illicit anchors, 2-hop, cap 2000, 5 trials, kmin=4",
+  "note": "Path B 实验 3：Elliptic 真实图复跑 A2/C（无监督）。锚点取自标签模拟 AML 告警；Elliptic 无金额/时序，规则 C 退化为 R3短环+R5特征离群；非真实警务验证通过。",
+  "trials": [
+    {
+      "trial": 0,
+      "n_sub": 80,
+      "n_labeled": 57,
+      "illicit_ratio": 0.65,
+      "A2_kcore_f1": 0.0,
+      "C_rule_AUC": 0.3324,
+      "C_rule_prec@20%": 0.75
+    },
+    {
+      "trial": 1,
+      "n_sub": 204,
+      "n_labeled": 137,
+      "illicit_ratio": 0.5539,
+      "A2_kcore_f1": 0.0,
+      "C_rule_AUC": 0.1396,
+      "C_rule_prec@20%": 0.325
+    },
+    {
+      "trial": 2,
+      "n_sub": 173,
+      "n_labeled": 119,
+      "illicit_ratio": 0.578,
+      "A2_kcore_f1": 0.0,
+      "C_rule_AUC": 0.1103,
+      "C_rule_prec@20%": 0.2353
+    },
+    {
+      "trial": 3,
+      "n_sub": 275,
+      "n_labeled": 160,
+      "illicit_ratio": 0.5164,
+      "A2_kcore_f1": 0.0,
+      "C_rule_AUC": 0.4886,
+      "C_rule_prec@20%": 0.3273
+    },
+    {
+      "trial": 4,
+      "n_sub": 330,
+      "n_labeled": 215,
+      "illicit_ratio": 0.6333,
+      "A2_kcore_f1": 0.0,
+      "C_rule_AUC": 0.2086,
+      "C_rule_prec@20%": 0.303
+    }
+  ],
+  "summary": {
+    "A2_kcore_f1": {
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "C_rule_AUC": {
+      "mean": 0.2559,
+      "std": 0.1557
+    },
+    "C_rule_prec20": {
+      "mean": 0.3881,
+      "std": 0.2057
+    },
+    "illicit_ratio": {
+      "mean": 0.5863,
+      "std": 0.0554
+    }
+  }
+}

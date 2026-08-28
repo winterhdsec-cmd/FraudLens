@@ -1,0 +1,41 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_anchor_rings": 60,
+    "k_hop": 2,
+    "max_nodes": 8000,
+    "n_subgraph_nodes": 7978,
+    "epochs": 100,
+    "lr": 0.001,
+    "alpha": 0.5,
+    "hidden": 64,
+    "latent": 32,
+    "n_neg_samples": 1000,
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 分支 B：无监督 GAE 重构误差异常检测（DOMINANT 化）。重构误差为可疑度线索非洗钱判定；AMLSim 为公开合成基准，不构成真实验证通过。"
+  },
+  "results": {
+    "topk_hit": {
+      "top5%": {
+        "k": 398,
+        "hits_in_rings": 110,
+        "ring_coverage": 0.0296,
+        "precision_at_k": 0.2764
+      },
+      "top10%": {
+        "k": 797,
+        "hits_in_rings": 255,
+        "ring_coverage": 0.0687,
+        "precision_at_k": 0.3199
+      },
+      "top20%": {
+        "k": 1595,
+        "hits_in_rings": 552,
+        "ring_coverage": 0.1486,
+        "precision_at_k": 0.3461
+      }
+    },
+    "auc": 0.386
+  },
+  "elapsed_s": 20.6
+}

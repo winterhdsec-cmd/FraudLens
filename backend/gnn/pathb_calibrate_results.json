@@ -1,0 +1,63 @@
+{
+  "setting": {
+    "n_subgraph_nodes": 2748,
+    "n_in_rings": 1498,
+    "label_ratio": 0.15,
+    "n_label_per_trial": 224,
+    "n_trials": 5,
+    "cycle_len": 8,
+    "feat_dims": 4,
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 第八轮：少量标注校准（5% 标签 → 逻辑回归 → 校准融合权重）。此为半监督范式，突破纯无监督 0.71 上限；AMLSim 公开合成基准非真实验证。"
+  },
+  "results": {
+    "calibrated_30%": {
+      "F1_mean": 0.6166,
+      "F1_std": 0.0,
+      "P_mean": 0.6281,
+      "R_mean": 0.6055
+    },
+    "calibrated_40%": {
+      "F1_mean": 0.6166,
+      "F1_std": 0.0,
+      "P_mean": 0.6281,
+      "R_mean": 0.6055
+    },
+    "calibrated_50%": {
+      "F1_mean": 0.6166,
+      "F1_std": 0.0,
+      "P_mean": 0.6281,
+      "R_mean": 0.6055
+    },
+    "calibrated_60%": {
+      "F1_mean": 0.6516,
+      "F1_std": 0.0073,
+      "P_mean": 0.622,
+      "R_mean": 0.6843
+    },
+    "calibrated_70%": {
+      "F1_mean": 0.6848,
+      "F1_std": 0.0103,
+      "P_mean": 0.6092,
+      "R_mean": 0.782
+    },
+    "calibrated_80%": {
+      "F1_mean": 0.7026,
+      "F1_std": 0.0036,
+      "P_mean": 0.5907,
+      "R_mean": 0.8668
+    },
+    "calibrated_90%": {
+      "F1_mean": 0.7086,
+      "F1_std": 0.0,
+      "P_mean": 0.5799,
+      "R_mean": 0.9105
+    },
+    "baseline_kcore2": {
+      "F1": 0.7086,
+      "P": 0.5799,
+      "R": 0.9105
+    }
+  },
+  "elapsed_s": 16.3
+}

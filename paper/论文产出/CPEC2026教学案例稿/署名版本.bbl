@@ -1,0 +1,104 @@
+\begin{thebibliography}{12}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax\else
+  \urlstyle{same}\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\doi{\begingroup \urlstyle{same}\Url}
+  \def\cstr{\begingroup \urlstyle{same}\Url}
+\else
+  \def\doi#1{\href{https://doi.org/#1}{\nolinkurl{#1}}}
+  \def\cstr#1{\href{https://cstr.cn/#1}{\nolinkurl{#1}}}
+\fi
+
+\bibitem[李清勇\ 等(2024)李清勇和等]{edu_liqingyong2024}
+李清勇，等.
+\newblock
+  私教还是枪手：基于通用大语言模型的计算机实践教学探索与反思\allowbreak[J].
+\newblock 实验技术与管理，2024，41\allowbreak （5）：1-8.
+
+\bibitem[张金\
+  等(2024)张金，宫晓利，高小鹏和等]{edu_zhangjin2024}
+张金，宫晓利，高小鹏，等.
+\newblock
+  基于通用大语言模型的计算机系统创新实验设计\allowbreak[J].
+\newblock 实验技术与管理，2024，41\allowbreak （10）：1-9.
+
+\bibitem[向尕\ 等(2022)向尕和等]{edu_xiangga2022}
+向尕，等.
+\newblock
+  新工科背景下“解决复杂工程问题”能力培养研究——以信息安全专业综合实习为例\allowbreak[J].
+\newblock 软件导刊，2022，21\allowbreak （9）：211-218.
+
+\bibitem[蒋宗礼(2016)]{edu_jiangzongli2016}
+蒋宗礼.
+\newblock
+  本科工程教育：聚焦学生解决复杂工程问题能力的培养\allowbreak[J].
+\newblock 中国大学教学，2016\allowbreak （11）：27-30,84.
+
+\bibitem[{LangChain}(2024)]{langgraph2024}
+{LangChain}.
+\newblock LangGraph：building stateful multi-agent applications with
+  LLMs\allowbreak[EB/OL].
+\newblock \allowbreak （2024）\allowbreak[2026-07-31].
+\newblock \url{https://github.com/langchain-ai/langgraph}.
+
+\bibitem[Hamilton et~al.(2017)Hamilton，Ying，and
+  Leskovec]{hamilton2017graphsage}
+Hamilton W~L，Ying R，Leskovec J.
+\newblock Inductive representation learning on large
+  graphs\allowbreak[C]//\allowbreak
+Advances in neural information processing systems（NeurIPS）.
+\newblock 2017.
+
+\bibitem[Dou et~al.(2020)Dou，Liu，Sun，Deng，Peng，and
+  Yu]{dou2020caregnn}
+Dou Yingtong，Liu Zhiwei，Sun Li，et~al.
+\newblock Enhancing graph neural networks by a label propagation algorithm for
+  fraud detection\allowbreak[C/OL]//\allowbreak
+Proceedings of the ACM international conference on information \& knowledge
+  management（CIKM）.
+\newblock 2020：2589-2592.
+\newblock DOI:\doi{10.1145/3340531.3412716}.
+
+\bibitem[Wang et~al.(2019)Wang，Ji，Shi，Wang，Ye，Cui，and
+  Yu]{wang2019han}
+Wang Xiao，Ji Houye，Shi Chuan，et~al.
+\newblock Heterogeneous graph attention network\allowbreak[C/OL]//\allowbreak
+The world wide web conference（WWW）.
+\newblock 2019：2022-2032.
+\newblock DOI:\doi{10.1145/3308558.3313562}.
+
+\bibitem[Shinn et~al.(2023)Shinn，Cassano，Gopinath，Narasimhan，and
+  Yao]{shinn2023reflexion}
+Shinn N，Cassano F，Gopinath A，et~al.
+\newblock Reflexion：language agents with verbal reinforcement
+  learning\allowbreak[C]//\allowbreak
+Advances in neural information processing systems（NeurIPS）.
+\newblock 2023.
+
+\bibitem[Weber
+  et~al.(2019)Weber，Domeniconi，Chen，Weidele，Bellei，Robinson，and
+  Leiserson]{weber2019elliptic}
+Weber M，Domeniconi G，Chen Jie，et~al.
+\newblock Anti-money laundering in bitcoin：experimenting with graph
+  convolutional networks for financial forensics\allowbreak[C/OL]//\allowbreak
+2019.
+\newblock DOI:\doi{10.48550/arXiv.1908.02591}.
+
+\bibitem[Weber
+  et~al.(2018)Weber，Domeniconi，Chen，Weidele，Bellei，Robinson，and
+  Leiserson]{weber2018amlfirstlook}
+Weber M，Domeniconi G，Chen Jie，et~al.
+\newblock Scalable graph learning for anti-money laundering：a first
+  look\allowbreak[C/OL]//\allowbreak
+2018.
+\newblock DOI:\doi{10.48550/arXiv.1812.00076}.
+
+\bibitem[李剑(2024)]{edu_lijian2024}
+李剑.
+\newblock
+  网络空间安全专业研究生课程思政教育的探索与实践\allowbreak[J].
+\newblock 信息安全研究，2024，10\allowbreak （2）：190-192.
+
+\end{thebibliography}

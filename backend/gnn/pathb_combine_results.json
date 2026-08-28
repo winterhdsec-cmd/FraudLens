@@ -1,0 +1,111 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_anchor_rings": 60,
+    "k_hop": 2,
+    "max_nodes": 8000,
+    "kmin": 4,
+    "n_subgraph_nodes": 7978,
+    "n_in_rings": 3714,
+    "ring_ratio": 0.4655,
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 实验 1：A2×C 交叉验证。A2 出核心子图候选，C 规则在候选内排序。固定参数不调优；AMLSim 公开合成基准，不构成真实验证通过。"
+  },
+  "results": {
+    "A2_kcore(kmin=4)_F1": 0.14133917183058983,
+    "C_rule_AUC": 0.6374,
+    "C_rule_top5%": {
+      "k": 398,
+      "hits_in_rings": 215,
+      "ring_coverage": 0.0579,
+      "precision_at_k": 0.5402
+    },
+    "C_rule_top10%": {
+      "k": 797,
+      "hits_in_rings": 464,
+      "ring_coverage": 0.1249,
+      "precision_at_k": 0.5822
+    },
+    "C_rule_top20%": {
+      "k": 1595,
+      "hits_in_rings": 984,
+      "ring_coverage": 0.2649,
+      "precision_at_k": 0.6169
+    },
+    "A2C_core_rule_AUC": 0.6027,
+    "A2C_core_top5%": {
+      "k": 398,
+      "hits_in_rings": 239,
+      "ring_coverage": 0.0644,
+      "precision_at_k": 0.6005
+    },
+    "A2C_core_top10%": {
+      "k": 797,
+      "hits_in_rings": 498,
+      "ring_coverage": 0.1341,
+      "precision_at_k": 0.6248
+    },
+    "A2C_core_top20%": {
+      "k": 1595,
+      "hits_in_rings": 1013,
+      "ring_coverage": 0.2728,
+      "precision_at_k": 0.6351
+    },
+    "A2C_gang_mean_rule": {
+      "n_gangs": 25,
+      "top_gangs": [
+        {
+          "gang": 7,
+          "mean_rule": 0.352,
+          "size": 77
+        },
+        {
+          "gang": 24,
+          "mean_rule": 0.345,
+          "size": 63
+        },
+        {
+          "gang": 10,
+          "mean_rule": 0.336,
+          "size": 161
+        },
+        {
+          "gang": 14,
+          "mean_rule": 0.33,
+          "size": 207
+        },
+        {
+          "gang": 18,
+          "mean_rule": 0.325,
+          "size": 116
+        },
+        {
+          "gang": 13,
+          "mean_rule": 0.322,
+          "size": 369
+        },
+        {
+          "gang": 3,
+          "mean_rule": 0.321,
+          "size": 1282
+        },
+        {
+          "gang": 5,
+          "mean_rule": 0.321,
+          "size": 160
+        },
+        {
+          "gang": 16,
+          "mean_rule": 0.318,
+          "size": 177
+        },
+        {
+          "gang": 2,
+          "mean_rule": 0.318,
+          "size": 161
+        }
+      ]
+    }
+  },
+  "elapsed_s": 34.0
+}

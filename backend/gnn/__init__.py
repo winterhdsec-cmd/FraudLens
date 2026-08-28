@@ -2,6 +2,7 @@
 GNN团伙发现模块
 - 异构图构建
 - GraphSAGE模型
+- HAN异构图注意力网络模型
 - 社区检测
 - 团伙检测主控制器
 - 异步推理队列
@@ -10,6 +11,7 @@ GNN团伙发现模块
 """
 from .graph_builder import FraudGraphBuilder
 from .gnn_model import GraphSAGE
+from .han_model import SemanticAttention, HANLayer, HAN, FraudHAN, GraphCLTrainer
 from .community import CommunityDetector
 from .gang_detector import GangDetector
 from .inference_queue import InferenceQueue, get_inference_queue, TaskStatus
@@ -19,6 +21,11 @@ from .monitor import InferenceMonitor, get_monitor, InferenceTimer
 __all__ = [
     'FraudGraphBuilder',
     'GraphSAGE',
+    'SemanticAttention',
+    'HANLayer',
+    'HAN',
+    'FraudHAN',
+    'GraphCLTrainer',
     'CommunityDetector',
     'GangDetector',
     'InferenceQueue',

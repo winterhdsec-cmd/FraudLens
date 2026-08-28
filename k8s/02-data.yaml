@@ -1,0 +1,109 @@
+# FraudLens 数据层（MySQL / Redis）StatefulSet
+# 起步单副本即可运行；主从/哨兵为生产高可用扩展，见下方注释。
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fraudlens-mysql
+  namespace: fraudlens
+spec:
+  serviceName: fraudlens-mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraudlens-mysql
+  template:
+    metadata:
+      labels:
+        app: fraudlens-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fraudlens-secret
+              key: DB_PASSWORD
+        - name: MYSQL_DATABASE
+          value: fraudlens
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+  # G13 高可用(MySQL 主从): 另起 fraudlens-mysql-replica(异步复制) + 读流量按 role 分流
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraudlens-mysql
+  namespace: fraudlens
+spec:
+  selector:
+    app: fraudlens-mysql
+  ports:
+  - port: 3306
+    targetPort: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fraudlens-redis
+  namespace: fraudlens
+spec:
+  serviceName: fraudlens-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraudlens-redis
+  template:
+    metadata:
+      labels:
+        app: fraudlens-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        args: ["--requirepass", "$(REDIS_PASSWORD)"]
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fraudlens-secret
+              key: REDIS_PASSWORD
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  # G14 高可用(Redis Sentinel): 1主2从3哨兵,避免缓存单点
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraudlens-redis
+  namespace: fraudlens
+spec:
+  selector:
+    app: fraudlens-redis
+  ports:
+  - port: 6379
+    targetPort: 6379

@@ -1,6 +1,7 @@
 """
 RAG 知识库系统 - 基于腾讯 WeKnora 最佳实践
 支持文档处理、多路召回、上下文压缩
+集成高级特性：语义切分、查询改写、重排序
 """
 import os
 import json
@@ -11,6 +12,11 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from core.logger import logger, tracer
+from core.embedding import get_embedding_model
+from core.config import settings
+from .semantic_chunking import SemanticChunker
+from .query_rewrite import QueryRewriter
+from .reranker import RerankPipeline
 
 
 @dataclass
@@ -213,9 +219,18 @@ class KnowledgeBase:
     2. 向量索引
     3. 多路召回（向量检索 + 关键词检索）
     4. 上下文压缩
+    5. 高级特性：语义切分、查询改写、重排序
     """
     
-    def __init__(self, embedding_model=None, storage_path: str = None):
+    def __init__(
+        self,
+        embedding_model=None,
+        storage_path: str = None,
+        enable_semantic_chunking: bool = False,
+        enable_query_rewrite: bool = False,
+        enable_reranking: bool = False,
+        llm_client=None
+    ):
         self.embedding_model = embedding_model
         self.storage_path = storage_path or "data/knowledge_base"
         
@@ -225,6 +240,39 @@ class KnowledgeBase:
         
         # 文档处理器
         self.processor = DocumentProcessor(embedding_model=embedding_model)
+        
+        # 高级特性开关
+        self.enable_semantic_chunking = enable_semantic_chunking
+        self.enable_query_rewrite = enable_query_rewrite
+        self.enable_reranking = enable_reranking
+        
+        # 初始化高级模块
+        if enable_semantic_chunking:
+            self.semantic_chunker = SemanticChunker(
+                embedding_model=embedding_model,
+                max_chunk_size=500,
+                min_chunk_size=100,
+                similarity_threshold=0.7
+            )
+            logger.info("Semantic chunking enabled")
+        else:
+            self.semantic_chunker = None
+        
+        if enable_query_rewrite:
+            self.query_rewriter = QueryRewriter(llm_client=llm_client)
+            logger.info("Query rewrite enabled")
+        else:
+            self.query_rewriter = None
+        
+        if enable_reranking:
+            self.rerank_pipeline = RerankPipeline(
+                cross_encoder_model=None,  # 可以传入预训练模型
+                lambda_param=0.7,
+                embedding_model=embedding_model
+            )
+            logger.info("Reranking enabled")
+        else:
+            self.rerank_pipeline = None
         
         # 确保存储目录存在
         os.makedirs(self.storage_path, exist_ok=True)
@@ -244,8 +292,13 @@ class KnowledgeBase:
             文档ID
         """
         with tracer.span("kb.add_document", source=source, content_length=len(content)):
-            # 生成文档ID
-            doc_id = hashlib.md5(f"{content}_{datetime.utcnow().isoformat()}".encode()).hexdigest()
+            # 生成文档ID（基于内容去重，移除时间戳避免重复入库）
+            doc_id = hashlib.md5(content.encode()).hexdigest()
+
+            # 去重检查：相同内容不重复入库
+            if doc_id in self.documents:
+                logger.info("Document already exists, skip", doc_id=doc_id)
+                return doc_id
             
             # 提取元数据
             doc_metadata = self.processor.extract_metadata(content, source)
@@ -260,11 +313,20 @@ class KnowledgeBase:
                 source=source
             )
             
-            # 切分文档
-            chunks = self.processor.split_document(content)
-            
-            # 向量化
-            embeddings = self.processor.embed_chunks(chunks)
+            # 切分文档（支持语义切分）
+            if self.enable_semantic_chunking and self.semantic_chunker:
+                semantic_chunks = self.semantic_chunker.chunk(content)
+                chunks = [sc.text for sc in semantic_chunks]
+                # 使用语义切分自带的 embedding
+                embeddings = []
+                for sc in semantic_chunks:
+                    if sc.embedding is not None:
+                        embeddings.append(sc.embedding)
+                    else:
+                        embeddings.append(self.processor.embed_chunks([sc.text])[0])
+            else:
+                chunks = self.processor.split_document(content)
+                embeddings = self.processor.embed_chunks(chunks)
             
             # 创建 chunk 对象
             for i, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
@@ -291,9 +353,14 @@ class KnowledgeBase:
             
             return doc_id
     
-    def search(self, query: str, top_k: int = 5, strategy: str = "vector") -> List[RetrievalResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        strategy: str = "vector"
+    ) -> List[RetrievalResult]:
         """
-        检索相关文档
+        检索相关文档（同步版本，向后兼容）
         
         Args:
             query: 查询文本
@@ -316,6 +383,95 @@ class KnowledgeBase:
                 return self._hybrid_search(query, top_k)
             else:
                 return self._vector_search(query, top_k)
+    
+    async def search_async(
+        self,
+        query: str,
+        top_k: int = 5,
+        strategy: str = "vector",
+        enable_rewrite: bool = None,
+        enable_rerank: bool = None
+    ) -> List[RetrievalResult]:
+        """
+        检索相关文档（异步版本，支持查询改写和重排序）
+        
+        Args:
+            query: 查询文本
+            top_k: 返回数量
+            strategy: 检索策略 - "vector"(向量检索), "keyword"(关键词), "hybrid"(混合)
+            enable_rewrite: 是否启用查询改写（None 使用默认配置）
+            enable_rerank: 是否启用重排序（None 使用默认配置）
+        
+        Returns:
+            检索结果列表
+        """
+        with tracer.span("kb.search_async", query=query[:100], top_k=top_k, strategy=strategy):
+            if not self.chunks:
+                logger.warning("Knowledge base is empty")
+                return []
+            
+            # 确定是否启用改写和重排序
+            use_rewrite = enable_rewrite if enable_rewrite is not None else self.enable_query_rewrite
+            use_rerank = enable_rerank if enable_rerank is not None else self.enable_reranking
+            
+            # 查询改写
+            if use_rewrite and self.query_rewriter:
+                try:
+                    rewritten_queries = await self.query_rewriter.rewrite(query, strategy="hyde")
+                    logger.info("Query rewritten", original=query, variants=len(rewritten_queries))
+                except Exception as e:
+                    logger.warning("Query rewrite failed", error=str(e))
+                    rewritten_queries = [query]
+            else:
+                rewritten_queries = [query]
+            
+            # 多路召回
+            all_results = []
+            for q in rewritten_queries:
+                if strategy == "vector":
+                    results = self._vector_search(q, top_k * 2)
+                elif strategy == "keyword":
+                    results = self._keyword_search(q, top_k * 2)
+                elif strategy == "hybrid":
+                    results = self._hybrid_search(q, top_k * 2)
+                else:
+                    results = self._vector_search(q, top_k * 2)
+                all_results.extend(results)
+            
+            # 去重（按 chunk_id）
+            seen_ids = set()
+            unique_results = []
+            for r in all_results:
+                chunk_id = r.document.chunk_id or r.document.doc_id
+                if chunk_id not in seen_ids:
+                    seen_ids.add(chunk_id)
+                    unique_results.append(r)
+            
+            # 重排序
+            if use_rerank and self.rerank_pipeline and len(unique_results) > 0:
+                try:
+                    reranked = self.rerank_pipeline.rerank(
+                        query=query,
+                        documents=unique_results,
+                        top_k=top_k,
+                        use_mmr=True
+                    )
+                    # 转换回 RetrievalResult 格式
+                    results = []
+                    for rr in reranked:
+                        results.append(RetrievalResult(
+                            document=rr.document,
+                            score=rr.reranked_score,
+                            highlight=rr.document.content[:100] if hasattr(rr.document, 'content') else None
+                        ))
+                    logger.info("Reranking completed", num_results=len(results))
+                    return results
+                except Exception as e:
+                    logger.warning("Reranking failed, using original results", error=str(e))
+            
+            # 按分数排序并返回 top_k
+            unique_results.sort(key=lambda x: x.score, reverse=True)
+            return unique_results[:top_k]
     
     def _vector_search(self, query: str, top_k: int) -> List[RetrievalResult]:
         """向量检索"""
@@ -510,7 +666,20 @@ def get_knowledge_base() -> KnowledgeBase:
     """获取全局知识库实例"""
     global _knowledge_base
     if _knowledge_base is None:
-        _knowledge_base = KnowledgeBase()
+        # 获取真实的 Embedding 模型
+        embedding_model = get_embedding_model()
+        
+        # 获取 LLM 客户端用于查询改写
+        from core.llm_client import get_llm_client
+        llm_client = get_llm_client() if settings.DEEPSEEK_API_KEY else None
+        
+        _knowledge_base = KnowledgeBase(
+            embedding_model=embedding_model,
+            enable_semantic_chunking=True,
+            enable_query_rewrite=True,
+            enable_reranking=True,
+            llm_client=llm_client
+        )
         # 尝试加载已存在的知识库
         _knowledge_base.load()
     return _knowledge_base

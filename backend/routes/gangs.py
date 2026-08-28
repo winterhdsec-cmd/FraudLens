@@ -3,33 +3,88 @@ Gang routes.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from typing import Optional, List
 
 from database import db
 from database.models import Gang, Case, GraphNode, GraphEdge
-from database.crud import get_all_gangs, get_gang_by_id
+from database.crud import get_all_gangs, get_gang_by_id, persist_freeze_decisions, get_freeze_decisions
 from routes.cases import _compute_gang_radar
-from .deps import get_current_user, db_retry
+from .deps import get_current_user, db_retry, log_operation
+from schemas.analysis import GNNDetectRequest
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/api/gangs', tags=['团伙'])
 
 
-class GNNDetectRequest(BaseModel):
-    """GNN团伙发现请求"""
-    use_gnn: bool = True
-    training_epochs: int = 100
-    community_method: str = 'louvain'
-
+# GNNDetectRequest 已迁移至 schemas.analysis（T3 / docs/13 G17）
 
 @router.get('')
 @db_retry()
 async def api_get_gangs(current_user: dict = Depends(get_current_user)):
     try:
-        gangs = get_all_gangs()
+        gangs = get_all_gangs(current_user)
         return {"success": True, "gangs": gangs, "total": len(gangs)}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@router.get('/freeze-decisions')
+@db_retry()
+async def api_get_freeze_decisions(
+    gate: str = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """民警复核台：查询历史冻卡决策（A4.2，ADR-7 合规落地）。"""
+    try:
+        recs = get_freeze_decisions(gate_decision=gate)
+        return {"success": True, "decisions": recs, "total": len(recs)}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# AI 复核层结果缓存（Skill A 解释 + Skill B 误并探测）
+_review_cache = {}
+
+
+@router.get('/review-results')
+@db_retry()
+async def api_gang_review_results(
+    use_llm: int = Query(0, description='1=启用 LLM 增强（慢），默认纯规则毫秒级'),
+    current_user: dict = Depends(get_current_user),
+):
+    """并案复核层：对全部团伙输出「并案依据解释」（Skill A）与「可疑误并清单」（Skill B）。
+
+    纯增量的复核展示接口，不影响聚类主链路；LLM 不可用时自动规则降级，绝不 500。
+    """
+    import time as _t
+    from agents.gang_reviewer import review_gangs_sync
+    key = f"review_{int(bool(use_llm))}"
+    ttl = 60 if use_llm else 300
+    now = _t.time()
+    cached = _review_cache.get(key)
+    if cached and now - cached['ts'] < ttl:
+        return cached['data']
+    try:
+        from database.crud import get_all_cases
+        gangs = get_all_gangs(current_user)
+        cases = get_all_cases(current_user)
+        cases_map = {(c.get('case_id') or c.get('id')): c for c in cases if c}
+        # total_amount 序列化为字符串（如 '765700'），skill 内需要数值
+        for g in gangs:
+            tv = g.get('total_amount_value')
+            try:
+                g['total_amount'] = float(tv) if tv else float(str(g.get('total_amount') or 0).replace('元', '').replace('¥', '').replace(',', '').strip())
+            except (ValueError, TypeError):
+                g['total_amount'] = 0
+        result = review_gangs_sync(gangs, cases_map, enable_llm=bool(use_llm))
+        resp = {"success": True, "checked_gangs": len(gangs), **result}
+        _review_cache[key] = {'data': resp, 'ts': now}
+        return resp
+    except Exception as e:
+        logger.exception('gang review-results failed')
+        # 复核层失败不阻塞前端：返回空结果 + 错误说明
+        return {"success": True, "explanations": [], "review": {"checked_gangs": 0, "suspicious_merges": [], "source": "rule"}, "llm_enabled": False, "error": str(e)[:200]}
 
 
 @router.post('/detect/gnn')
@@ -37,17 +92,76 @@ async def api_detect_gangs_gnn(
     request: GNNDetectRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """使用GNN进行团伙发现"""
+    """使用GNN进行团伙发现
+
+    改进点（P0 修复）：
+    1. 补全传给 detector 的字段：accounts / perpetrators / extracted_entities，
+       让资金链通道（share_account / fund_flow / 回流闭环）真正生效
+    2. 检测结果通过 save_gang 落库 GangCaseRelation（旧版只写 FreezeDecision）
+    3. 关联带可解释性字段（relation_type / reason / matched_entities）
+    """
     try:
+        # G7 审计：记录 GNN 团伙发现发起
+        try:
+            log_operation(
+                current_user['id'], current_user.get('username', ''),
+                'gnn_detect_start', 'gang', '',
+                {'use_gnn': request.use_gnn, 'community_method': request.community_method},
+                ip_address=''
+            )
+        except Exception as _e:
+            logger.warning(f"GNN发现留痕失败: {_e}")
+
         # 从数据库获取所有案件
         cases_db = db.session.query(Case).all()
-        
+
         if not cases_db:
             return {"success": False, "error": "没有案件数据"}
-        
-        # 转换为字典格式
+
+        # 一次性加载所有案件的 Person / Account / Phone，避免 N+1 查询
+        from database.models import Person, Account, Phone
+        case_ids_all = [c.case_id for c in cases_db]
+        persons_by_case = {}
+        for p in db.session.query(Person).filter(Person.case_id.in_(case_ids_all)).all():
+            persons_by_case.setdefault(p.case_id, []).append(p)
+        person_ids_all = [p.id for ps in persons_by_case.values() for p in ps]
+        accounts_by_person = {}
+        for a in db.session.query(Account).filter(Account.person_id.in_(person_ids_all)).all():
+            accounts_by_person.setdefault(a.person_id, []).append(a)
+        phones_by_person = {}
+        for ph in db.session.query(Phone).filter(Phone.person_id.in_(person_ids_all)).all():
+            phones_by_person.setdefault(ph.person_id, []).append(ph)
+
+        # 转换为字典格式（补全 detector 所需的全部字段）
         cases = []
         for case in cases_db:
+            persons = persons_by_case.get(case.case_id, [])
+            suspects = [p for p in persons if (p.role or '').lower() in ('suspect', 'perpetrator')]
+            victims = [p for p in persons if (p.role or '').lower() == 'victim']
+
+            # 汇总账户（来自所有相关人员）
+            all_accounts = []
+            for p in persons:
+                for a in accounts_by_person.get(p.id, []):
+                    all_accounts.append({
+                        'account_number': a.account_number,
+                        'bank_name': a.bank_name,
+                        'risk_level': a.risk_level,
+                        'owner': p.name,
+                        'owner_role': p.role,
+                    })
+
+            # 汇总电话
+            all_phones = []
+            for p in persons:
+                for ph in phones_by_person.get(p.id, []):
+                    all_phones.append({
+                        'phone_number': ph.phone_number,
+                        'carrier': ph.carrier,
+                        'owner': p.name,
+                        'owner_role': p.role,
+                    })
+
             cases.append({
                 'case_id': case.case_id,
                 'victim_name': case.victim_name,
@@ -58,31 +172,75 @@ async def api_detect_gangs_gnn(
                 'scam_type': case.scam_type,
                 'amount_value': case.amount_value,
                 'risk_score': case.risk_score,
-                'description': case.description
+                'description': case.description,
+                # 新增：让资金链通道生效的关键字段
+                'accounts': all_accounts,
+                'perpetrators': [{'name': s.name, 'phone': s.phone, 'gender': s.gender, 'age': s.age}
+                                 for s in suspects],
+                'victims': [{'name': v.name, 'phone': v.phone} for v in victims],
+                'phones': all_phones,
+                'extracted_entities': case.extracted_entities or {},
+                'ai_report': case.ai_report or '',
+                'created_at': case.created_at.isoformat() if case.created_at else None,
             })
-        
+
         # 使用GNN进行团伙发现
         from gnn import GangDetector
         detector = GangDetector(
             community_method=request.community_method
         )
-        
+
         result = detector.detect(
             cases=cases,
             use_gnn=request.use_gnn,
             training_epochs=request.training_epochs
         )
-        
+
+        # A4.2 冻卡决策持久化（独立 try，失败不影响研判返回）
+        try:
+            _gangs = result.get('gangs', [])
+            persist_freeze_decisions(_gangs)
+            # G8：团伙数 + 冻卡决策数 计数
+            try:
+                from core.metrics_exporter import inc_gangs, inc_freeze
+                inc_gangs(len(_gangs))
+                inc_freeze(len(_gangs))
+            except Exception:
+                pass
+        except Exception as _e:
+            logger.warning(f"冻卡决策落库失败(不影响研判返回): {_e}")
+
+        # 【P0 修复】GNN 检测结果落库 GangCaseRelation
+        # 旧版只写 FreezeDecision，团伙-案件关联完全丢失，刷新即消失
+        try:
+            from database.crud import save_gang, _cache_clear
+            _saved_count = 0
+            for g in result.get('gangs', []) or []:
+                g.setdefault('relation_type', 'gnn_cluster')
+                # 用团伙置信度作为默认 similarity
+                if 'confidence' in g:
+                    g.setdefault('relation_reasons', {})
+                try:
+                    save_gang(g, session_id=f"gnn_detect_{current_user.get('id', '')}")
+                    _saved_count += 1
+                except Exception as _ge:
+                    logger.warning(f"团伙 {g.get('gang_id')} 关联落库失败: {_ge}")
+            if _saved_count:
+                logger.info(f"GNN 检测团伙-案件关联已落库: {_saved_count} 个团伙")
+                _cache_clear()
+        except Exception as _e:
+            logger.warning(f"GNN 团伙关联落库失败(不影响返回): {_e}")
+
         # 获取图可视化数据
         graph_data = detector.get_graph_visualization_data()
-        
+
         return {
             "success": True,
             "gangs": result['gangs'],
             "stats": result['stats'],
             "graph": graph_data
         }
-        
+
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -95,7 +253,7 @@ async def api_detect_gangs_gnn(
 @router.get('/{gang_id}')
 async def api_get_gang(gang_id: str, current_user: dict = Depends(get_current_user)):
     try:
-        gang = get_gang_by_id(gang_id)
+        gang = get_gang_by_id(gang_id, current_user)
         if gang:
             return {"success": True, "gang": gang}
         return JSONResponse(status_code=404, content={"success": False, "error": "团伙不存在"})

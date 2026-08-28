@@ -1,0 +1,79 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_accounts": 43614,
+    "n_edges": 4403119,
+    "n_rings": 1305,
+    "n_clusters_used": 1306,
+    "gnn_epochs": 50,
+    "note": "盲扫全图：无锚点、无子图限制，方法须从全图结构/特征恢复 1305 个洗钱环。"
+  },
+  "honest_note": "AMLSim 全图盲扫：背景(约4.3万)为单一大类，pairwise F1 对背景碎片化极敏感；本实验把引用常量 0.002 落成真实可复现数值，并测试加权/剪枝缓解，诚实记录是否改善。不构成真实验证通过。",
+  "results": {
+    "Louvain(binary)": {
+      "f1": 0.1147,
+      "precision": 0.4907,
+      "recall": 0.0649,
+      "ring_only_f1": 0.0052,
+      "nmi": 0.1713,
+      "ari": 0.0001
+    },
+    "raw_features+KMeans": {
+      "f1": 0.0043,
+      "precision": 0.7378,
+      "recall": 0.0022,
+      "ring_only_f1": 0.0017,
+      "nmi": 0.3195,
+      "ari": 0.0015
+    },
+    "untrained_GNN+KMeans": {
+      "f1": 0.0019,
+      "precision": 0.4901,
+      "recall": 0.001,
+      "ring_only_f1": 0.0016,
+      "nmi": 0.2952,
+      "ari": -0.0
+    },
+    "trained_GNN+KMeans": {
+      "f1": 0.0021,
+      "precision": 0.4814,
+      "recall": 0.001,
+      "ring_only_f1": 0.0017,
+      "nmi": 0.2917,
+      "ari": -0.0
+    },
+    "trained_GNN_weighted+KMeans": {
+      "f1": 0.0031,
+      "precision": 0.4395,
+      "recall": 0.0015,
+      "ring_only_f1": 0.0017,
+      "nmi": 0.267,
+      "ari": -0.0004
+    },
+    "pruned_Louvain": {
+      "f1": 0.0566,
+      "precision": 0.4225,
+      "recall": 0.0303,
+      "ring_only_f1": 0.0043,
+      "nmi": 0.1796,
+      "ari": -0.0005
+    },
+    "pruned_raw+KMeans": {
+      "f1": 0.0111,
+      "precision": 0.6525,
+      "recall": 0.0056,
+      "ring_only_f1": 0.0015,
+      "nmi": 0.341,
+      "ari": 0.0039
+    },
+    "pruned_trained_GNN+KMeans": {
+      "f1": 0.0022,
+      "precision": 0.4007,
+      "recall": 0.0011,
+      "ring_only_f1": 0.0016,
+      "nmi": 0.3224,
+      "ari": -0.0001
+    }
+  },
+  "elapsed_sec": 181.5
+}

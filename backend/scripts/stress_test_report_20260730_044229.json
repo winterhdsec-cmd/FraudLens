@@ -1,0 +1,32 @@
+{
+  "base_url": "http://localhost:5003",
+  "duration_per_level": 15,
+  "concurrency_levels": [
+    50
+  ],
+  "rate_limit": "60 req/60s/user",
+  "timestamp": "2026-07-30 04:42:29",
+  "results": [
+    {
+      "scenario": "health",
+      "concurrency": 50,
+      "stats": {
+        "total": 2391,
+        "success": 2391,
+        "fail": 0,
+        "rate_limited_429": 0,
+        "real_errors": 0,
+        "qps": 155.83543277748498,
+        "success_qps": 155.83543277748498,
+        "avg_ms": 317.42410869929614,
+        "p95_ms": 410.2776999998241,
+        "p95_success_ms": 410.2776999998241,
+        "avg_success_ms": 317.42410869929614,
+        "min_ms": 11.62209999984043,
+        "max_ms": 603.6802999997235,
+        "error_rate": 0.0,
+        "real_error_rate": 0.0
+      }
+    }
+  ]
+}

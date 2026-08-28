@@ -2,7 +2,7 @@
 <div class="view-section">
   <div class="section-header">
     <div class="header-left">
-      <h2 class="section-title"><span class="title-icon">💰</span>资金流向追踪</h2>
+      <h2 class="section-title"><span class="title-icon"><el-icon><Money /></el-icon></span>资金流向追踪</h2>
       <p class="section-desc">按层级展示涉案资金流转链路，支持截图导出</p>
     </div>
     <div class="header-actions">
@@ -12,7 +12,7 @@
       <el-input v-model="flowSearchCaseId" placeholder="输入案件编号" style="width:170px" size="small" clearable @clear="loadFlowData" @keyup.enter="loadFlowData" />
       <el-button type="primary" size="small" @click="loadFlowData">查询</el-button>
       <el-button v-if="capitalFlows.length" :type="screenshotMode ? 'success' : 'default'" size="small" @click="toggleScreenshotMode">
-        <span>{{ screenshotMode ? '📷 退出截图' : '📷 截图模式' }}</span>
+        <span>{{ screenshotMode ? '<el-icon><Camera /></el-icon> 退出截图' : '<el-icon><Camera /></el-icon> 截图模式' }}</span>
       </el-button>
     </div>
   </div>
@@ -29,20 +29,20 @@
                 <span v-if="recentCount" class="bh-tab-count">{{ recentCount }}</span>
               </span>
               <span class="bh-tab" :class="{ active: caseFilterMode === 'all' }" @click="caseFilterMode = 'all'">
-                📋 全部案件
+                <el-icon><Files /></el-icon> 全部案件
                 <span class="bh-tab-count">{{ (cases.value || []).length }}</span>
               </span>
             </div>
           </div>
           <div class="bh-right">
-            <el-button size="small" @click="loadCases" :loading="caseLoading">🔄 刷新列表</el-button>
+            <el-button size="small" @click="loadCases" :loading="caseLoading"><el-icon><Refresh /></el-icon> 刷新列表</el-button>
           </div>
         </div>
         <div v-if="caseLoading" class="empty-state" style="padding:60px 20px">
-          <div class="empty-content"><div class="empty-icon" style="animation:pulse 1.5s infinite">🔍</div><h3 class="empty-title">加载中...</h3><p class="empty-desc">正在获取案件数据</p></div>
+          <div class="empty-content"><div class="empty-icon" style="animation:pulse 1.5s infinite"><el-icon><Search /></el-icon></div><h3 class="empty-title">加载中...</h3><p class="empty-desc">正在获取案件数据</p></div>
         </div>
         <div v-else-if="!caseList.length" class="empty-state" style="padding:60px 20px">
-          <div class="empty-content"><div class="empty-icon">📂</div><h3 class="empty-title">暂无案件数据</h3><p class="empty-desc">请先通过文本录入或文件上传导入案件</p></div>
+          <div class="empty-content"><div class="empty-icon"><el-icon><Folder /></el-icon></div><h3 class="empty-title">暂无案件数据</h3><p class="empty-desc">请先通过文本录入或文件上传导入案件</p></div>
         </div>
         <div v-else class="case-browser-table">
           <div class="cbt-header">
@@ -65,7 +65,7 @@
             </span>
             <span class="cbt-col col-victim">{{ c.victim_name || '—' }}</span>
             <span class="cbt-col col-action">
-              <el-button size="small" type="primary" plain @click="browseToCase(c.case_id || c.id)">💰 查看资金流向</el-button>
+              <el-button size="small" type="primary" plain @click="browseToCase(c.case_id || c.id)"><el-icon><Money /></el-icon> 查看资金流向</el-button>
             </span>
           </div>
         </div>
@@ -75,7 +75,7 @@
     <template v-else-if="!capitalFlows.length">
       <div class="empty-state">
         <div class="empty-content">
-          <div class="empty-icon">💰</div>
+          <div class="empty-icon"><el-icon><Money /></el-icon></div>
           <h3 class="empty-title">暂无资金流向数据</h3>
           <p class="empty-desc">案件 <strong>{{ flowSearchCaseId }}</strong> 暂无资金流向记录</p>
           <el-button size="small" @click="flowSearchCaseId = ''" style="margin-top:12px">← 返回案件列表</el-button>
@@ -86,14 +86,14 @@
       <div class="flow-summary" :class="{ 'screenshot-mode': screenshotMode }">
         <div class="summary-row">
           <div class="summary-item">
-            <span class="si-icon">📋</span>
+            <span class="si-icon"><el-icon><Files /></el-icon></span>
             <div class="si-body">
               <span class="si-label">案件编号</span>
               <span class="si-value">{{ flowSearchCaseId || '—' }}</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="si-icon">📄</span>
+            <span class="si-icon"><el-icon><Document /></el-icon></span>
             <div class="si-body">
               <span class="si-label">案件名称</span>
               <span class="si-value">{{ currentCaseTitle }}</span>
@@ -102,28 +102,28 @@
         </div>
         <div class="summary-row">
           <div class="summary-item">
-            <span class="si-icon">🏦</span>
+            <span class="si-icon"><el-icon><OfficeBuilding /></el-icon></span>
             <div class="si-body">
               <span class="si-label">涉案账户</span>
               <span class="si-value accent">{{ graphNodes.length }}个</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="si-icon">📊</span>
+            <span class="si-icon"><el-icon><DataAnalysis /></el-icon></span>
             <div class="si-body">
               <span class="si-label">资金层级</span>
               <span class="si-value accent">{{ maxFlowLevel }}层</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="si-icon">💰</span>
+            <span class="si-icon"><el-icon><Money /></el-icon></span>
             <div class="si-body">
               <span class="si-label">总涉案金额</span>
               <span class="si-value accent">{{ formatTotalAmount }}</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="si-icon">🔄</span>
+            <span class="si-icon"><el-icon><Refresh /></el-icon></span>
             <div class="si-body">
               <span class="si-label">交易笔数</span>
               <span class="si-value accent">{{ capitalFlows.length }}笔</span>
@@ -146,7 +146,7 @@
         />
         <div v-else class="empty-state" style="height:540px;display:flex;align-items:center;justify-content:center">
           <div class="empty-content">
-            <div class="empty-icon">📊</div>
+            <div class="empty-icon"><el-icon><DataAnalysis /></el-icon></div>
             <h3 class="empty-title">暂无链路图数据</h3>
             <p class="empty-desc">请先查询案件以生成资金流向链路图</p>
           </div>

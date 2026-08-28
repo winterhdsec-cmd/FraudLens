@@ -8,10 +8,10 @@ from datetime import datetime
 
 from core.agent_runtime import AgentRuntime
 from core.state import AgentState
-from gnn import GangDetector
+from agents.protocol import AgentProtocol
 
 
-class ClusterAgent:
+class ClusterAgent(AgentProtocol):
     """
     团伙发现智能体
     
@@ -22,6 +22,38 @@ class ClusterAgent:
     4. 评估聚类质量
     5. 反思并调整（如果质量不佳）
     """
+
+    # Agent 注册表契约（B1.1 / B1.3）
+    name = "cluster"
+    stage = "cluster"
+
+    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """AgentProtocol 入口：团伙发现。context={"cases": [...], "use_gnn": bool, "accounts_tx": [...]}。"""
+        cases = context.get("cases", [])
+        use_gnn = context.get("use_gnn", self.use_gnn)
+        accounts_tx = context.get("accounts_tx")
+        if use_gnn and getattr(self, "gnn_detector", None) is None:
+            # 惰性构建（当 use_gnn 与 __init__ 设置不一致时）
+            from gnn import GangDetector
+            self.gnn_detector = GangDetector(
+                embedding_dim=64, hidden_dim=32, num_layers=2, community_method='louvain'
+            )
+        result = self.discover_gangs(cases, use_gnn=use_gnn, accounts_tx=accounts_tx)
+        # 复核解释层（Skill A/B）：对成功的团伙划分追加"并案依据解释 + 误并复查"
+        # 纯增量、不侵入聚类主链路；LLM 不可用时规则降级，绝不抛异常中断。
+        try:
+            gangs = result.get("gangs") or []
+            if gangs:
+                from .gang_reviewer import review_gangs_sync
+                cases_map = {str(c.get("case_id") or c.get("id")): c for c in cases}
+                known_pairs = context.get("known_distinct_pairs") or []
+                review = review_gangs_sync(gangs, cases_map, known_distinct_pairs)
+                result["review"] = review.get("review", {})
+                result["explanations"] = review.get("explanations", [])
+                result["llm_enabled"] = review.get("llm_enabled", False)
+        except Exception as e:
+            print(f"[cluster_agent] 复核层跳过（不中断主流程）: {e}")
+        return result
     
     def __init__(self, llm_client=None, embedding_model=None, use_gnn=True):
         self.llm = llm_client
@@ -37,8 +69,9 @@ class ClusterAgent:
             enable_reflection=True
         )
         
-        # 初始化GNN检测器
+        # 初始化GNN检测器（惰性导入，避免无 torch 环境 import 即崩）
         if self.use_gnn:
+            from gnn import GangDetector
             self.gnn_detector = GangDetector(
                 embedding_dim=64,
                 hidden_dim=32,
@@ -46,23 +79,30 @@ class ClusterAgent:
                 community_method='louvain'
             )
     
-    def discover_gangs(self, cases: List[Dict[str, Any]], use_gnn: bool = None) -> Dict[str, Any]:
+    def discover_gangs(self, cases: List[Dict[str, Any]], use_gnn: bool = None, accounts_tx: Any = None) -> Dict[str, Any]:
         """
         发现诈骗团伙
-        
+
         Args:
             cases: 案件列表，每个案件包含 description, case_id 等
             use_gnn: 是否使用GNN（None表示使用默认设置）
-        
+            accounts_tx: 账户间资金流转记录（可选，B-L3 资金回流闭环检测用）
+
         Returns:
             团伙发现结果
         """
         if not cases:
             return {"gangs": [], "total_gangs": 0}
-        
+
+        # B-L2：实体关联聚类优先（按共享账户/手机号/微信/QQ 并案，结果可解释）
+        # 仅在存在跨案共享实体时才生效；否则交回 GNN/embedding 兜底。
+        entity_result = self._cluster_by_entities(cases, accounts_tx=accounts_tx)
+        if entity_result is not None:
+            return entity_result
+
         # 确定是否使用GNN
         should_use_gnn = use_gnn if use_gnn is not None else self.use_gnn
-        
+
         # 如果使用GNN且有足够数据
         if should_use_gnn and hasattr(self, 'gnn_detector') and len(cases) >= 3:
             try:
@@ -72,12 +112,16 @@ class ClusterAgent:
                     use_gnn=True,
                     training_epochs=100
                 )
-                
-                # 添加方法标记
+
+                # 添加方法标记 + 补齐编排层契约字段（detect 顶层无 total_gangs/quality_score）
                 result['method'] = 'gnn'
+                result['total_gangs'] = result.get('stats', {}).get(
+                    'total_gangs', len(result.get('gangs', []))
+                )
+                # stats 当前不含轮廓系数，暂以 0.5 占位；待 GNN 暴露 silhouette 后替换
                 result['quality_score'] = result.get('stats', {}).get('silhouette_score', 0.5)
                 result['strategy'] = {'method': 'gnn', 'params': {}}
-                
+
                 return result
             except Exception as e:
                 print(f"GNN团伙发现失败: {e}，回退到传统聚类")
@@ -112,6 +156,222 @@ class ClusterAgent:
             "method": "traditional_clustering"
         }
     
+    # ------------------------------------------------------------------ #
+    # B-L2：实体关联聚类（按共享账户/手机号/微信/QQ 并案，可解释）
+    # ------------------------------------------------------------------ #
+    def _cluster_by_entities(self, cases: List[Dict[str, Any]], accounts_tx: Any = None) -> Optional[Dict[str, Any]]:
+        """
+        按共享实体关联并案：以案件为点、共享实体为边建二部图，并查集求连通分量。
+        仅在存在跨案共享实体时返回结果；否则返回 None（交回 GNN/embedding 兜底）。
+        B-L3：对产出的团伙附加资金回流闭环检测（需 accounts_tx）。
+        """
+        link_types = ["bank_accounts", "phone_numbers", "wechat_ids", "qq_numbers"]
+        ent_to_cases: Dict[tuple, List[int]] = {}
+        for i, c in enumerate(cases):
+            ents = c.get("extracted_entities", {}) or {}
+            for t in link_types:
+                for v in (ents.get(t) or []):
+                    v = str(v).strip()
+                    if v:
+                        ent_to_cases.setdefault((t, v), []).append(i)
+
+        # 仅保留被 ≥2 案共享的实体作为"并案证据"
+        shared = {k: idxs for k, idxs in ent_to_cases.items() if len(idxs) >= 2}
+        if not shared:
+            return None
+
+        # 并查集
+        parent = list(range(len(cases)))
+
+        def find(x: int) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        def union(a: int, b: int):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[ra] = rb
+
+        for idxs in shared.values():
+            for o in idxs[1:]:
+                union(idxs[0], o)
+
+        groups: Dict[int, List[int]] = {}
+        for i in range(len(cases)):
+            groups.setdefault(find(i), []).append(i)
+
+        gang_groups = [m for m in groups.values() if len(m) >= 2]
+        if not gang_groups:
+            return None
+
+        # B-L3：资金回流闭环检测（复用 graph_builder 的 fund_flow 有向图 + networkx 环检测）
+        reflux_map = self._detect_reflux(cases, gang_groups, shared, accounts_tx)
+        gangs = self._generate_entity_gang_info(cases, gang_groups, shared, reflux_map=reflux_map)
+        return {
+            "gangs": gangs,
+            "total_gangs": len(gangs),
+            "quality_score": 1.0,
+            "strategy": {"method": "entity_association"},
+            "method": "entity_association",
+        }
+
+    def _generate_entity_gang_info(
+        self,
+        cases: List[Dict[str, Any]],
+        gang_groups: List[List[int]],
+        shared: Dict[tuple, List[int]],
+        reflux_map: Optional[Dict[int, Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """生成实体关联团伙信息（含 evidence_chain、entities 汇总与 B-L3 回流闭环字段）"""
+        gangs = []
+        for gid, members in enumerate(gang_groups):
+            member_set = set(members)
+
+            # B-L3：回流闭环信息（缺 accounts_tx 时 is_reflux=False，诚实不造假）
+            rf = (reflux_map or {}).get(gid, {"cycles": [], "is_reflux": False, "freeze_candidates": []})
+            reflux_cycles = rf.get("cycles", [])
+            is_reflux = bool(rf.get("is_reflux", False))
+            freeze_candidates = rf.get("freeze_candidates", [])
+            # 证据链：哪些共享实体把本团伙的案件连起来
+            evidence_chain = []
+            for (t, v), idxs in shared.items():
+                if member_set.issuperset(set(idxs)):
+                    evidence_chain.append({
+                        "type": t,
+                        "value": v,
+                        "case_ids": [cases[i].get("case_id") for i in idxs],
+                    })
+
+            # 诈骗类型：优先多数案 scam_type
+            fraud_types = []
+            for i in members:
+                ft = cases[i].get("scam_type")
+                if not ft or ft == "未知":
+                    ft = (cases[i].get("extracted_entities", {}) or {}).get("scam_type", "未知")
+                fraud_types.append(ft)
+            filtered = [f for f in fraud_types if f and f != "未知"]
+            most_common = max(set(filtered), key=filtered.count) if filtered else "未知"
+
+            # 汇总团伙实体
+            ent_pool: Dict[str, set] = {}
+            for i in members:
+                ents = cases[i].get("extracted_entities", {}) or {}
+                for t in ("bank_accounts", "phone_numbers", "wechat_ids", "qq_numbers", "id_cards"):
+                    for v in (ents.get(t) or []):
+                        ent_pool.setdefault(t, set()).add(str(v))
+
+            total_amount = sum(float(cases[i].get("amount", 0) or 0) for i in members)
+            risk_scores = [float(cases[i].get("risk_score", 0) or 0) for i in members]
+            avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
+
+            desc = (
+                f"基于共享实体（账户/手机号/社交账号）关联发现的{most_common}犯罪团伙，"
+                f"涉及{len(members)}起案件"
+            )
+            if is_reflux:
+                desc += (f"；检测到资金回流闭环（{len(reflux_cycles)} 个环），"
+                         f"建议冻结关联收款账户 {len(freeze_candidates)} 个")
+
+            gangs.append({
+                "gang_id": f"GANG_{gid:03d}",
+                "gang_name": f"{most_common}犯罪团伙{gid + 1}号",
+                "total_cases": len(members),
+                "total_amount": total_amount,
+                "avg_risk_score": avg_risk,
+                "risk_level": "HIGH" if avg_risk >= 80 else "MEDIUM" if avg_risk >= 60 else "LOW",
+                "fraud_type": most_common,
+                "case_ids": [cases[i].get("case_id") for i in members],
+                "entities": {t: sorted(vs) for t, vs in ent_pool.items() if vs},
+                "evidence_chain": evidence_chain,
+                # B-L3：资金回流闭环（客观、可复现，依赖 fund_flow 方向）
+                "reflux_cycles": reflux_cycles,
+                "is_reflux": is_reflux,
+                "freeze_candidates": freeze_candidates,
+                "description": desc,
+            })
+        return gangs
+
+    # ------------------------------------------------------------------ #
+    # B-L3：资金回流闭环检测（复用 graph_builder 的 fund_flow 有向图）
+    # ------------------------------------------------------------------ #
+    def _detect_reflux(
+        self,
+        cases: List[Dict[str, Any]],
+        gang_groups: List[List[int]],
+        shared: Dict[tuple, List[int]],
+        accounts_tx: Any = None,
+    ) -> Dict[int, Dict[str, Any]]:
+        """对每个实体关联团伙做资金回流闭环检测。
+
+        复用 gnn.graph_builder.FraudGraphBuilder 的 fund_flow 有向子图 + networkx.simple_cycles，
+        与 gang_detector.detect_reflux_cycles 同口径（仅依赖图拓扑与 fund_flow 方向，客观可复现）。
+        仅当提供 accounts_tx（账户间资金流转记录）时才可能产生闭环边；缺失时诚实返回 is_reflux=False。
+        """
+        import networkx as nx
+
+        empty = lambda: {gid: {"cycles": [], "is_reflux": False, "freeze_candidates": []}
+                         for gid in range(len(gang_groups))}
+        try:
+            from gnn.graph_builder import FraudGraphBuilder
+        except Exception as e:
+            print(f"B-L3 导入 FraudGraphBuilder 失败: {e}")
+            return empty()
+
+        result = empty()
+        if not accounts_tx:
+            return result  # 无资金流转记录 → 无闭环，不造假
+
+        # 把每个 case 的 bank_accounts 投影为图的 account 节点
+        gb_cases = []
+        for c in cases:
+            cc = dict(c)
+            ents = c.get("extracted_entities", {}) or {}
+            cc["accounts"] = list(ents.get("bank_accounts", []) or [])
+            gb_cases.append(cc)
+
+        try:
+            builder = FraudGraphBuilder(use_db=False, use_cache=False, use_text_channel=False)
+            builder.build_graph(gb_cases, accounts_tx=accounts_tx)
+            DG = builder.get_fund_flow_digraph()
+            if DG.number_of_nodes() == 0:
+                return result
+            try:
+                all_cycles = list(nx.simple_cycles(DG))
+            except Exception:
+                all_cycles = []
+        except Exception as e:
+            print(f"B-L3 回流检测建图失败: {e}")
+            return result
+
+        for gid, members in enumerate(gang_groups):
+            acc_set = set()
+            for i in members:
+                ents = cases[i].get("extracted_entities", {}) or {}
+                for a in (ents.get("bank_accounts") or []):
+                    acc_set.add(f"account_{a}")
+            # 资金流闭包：种子账户沿 fund_flow 正向/反向可达的所有账户
+            acc_domain = set(acc_set)
+            for s in acc_set:
+                if s in DG:
+                    try:
+                        acc_domain |= set(nx.descendants(DG, s))
+                        acc_domain |= set(nx.ancestors(DG, s))
+                    except Exception:
+                        pass
+            cycles = [cyc for cyc in all_cycles if acc_domain.issuperset(set(cyc))]
+            # 去前缀（"account_" 为 8 字符），输出可读账户号
+            clean_cycles = [[a[8:] if a.startswith("account_") else a for a in cyc] for cyc in cycles]
+            freeze = sorted({a[8:] if a.startswith("account_") else a
+                             for cyc in cycles for a in cyc})
+            result[gid] = {
+                "cycles": clean_cycles,
+                "is_reflux": len(cycles) > 0,
+                "freeze_candidates": freeze,
+            }
+        return result
+
     def _encode_texts(self, texts: List[str]) -> np.ndarray:
         """编码文本为向量"""
         if not self.embedding_model:

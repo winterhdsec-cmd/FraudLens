@@ -3,7 +3,7 @@
           <div class="section-header">
             <div class="header-left">
               <h2 class="section-title">
-                <span class="title-icon">📄</span>
+                <span class="title-icon"><el-icon><Document /></el-icon></span>
                 分析报告生成
               </h2>
               <p class="section-desc">一键生成标准化的案件分析报告，支持多种格式导出</p>
@@ -52,21 +52,21 @@
               </div>
               <div class="config-footer">
                 <el-button type="primary" class="generate-btn" @click="generateReport" :loading="generatingReport">
-                  <span>🚀</span> 生成报告
+                  <span><el-icon><Promotion /></el-icon></span> 生成报告
                 </el-button>
               </div>
             </div>
 
             <div class="report-preview-panel tech-card">
               <div class="preview-header">
-                <span class="preview-icon">👁️</span>
+                <span class="preview-icon"><el-icon><View /></el-icon></span>
                 <span class="preview-title">报告预览</span>
                 <div class="preview-actions" v-if="reportPreview">
                   <el-button size="small" @click="printReport">
-                    <span>🖨️</span> 打印
+                    <span><el-icon><Printer /></el-icon></span> 打印
                   </el-button>
                   <el-button size="small" type="primary" @click="downloadReport">
-                    <span>📥</span> 下载
+                    <span><el-icon><Download /></el-icon></span> 下载
                   </el-button>
                 </div>
               </div>
@@ -74,7 +74,7 @@
                 <div class="report-document" v-if="reportPreview">
                   <div class="doc-header">
                     <div class="doc-logo">
-                      <span class="logo-icon">🛡️</span>
+                      <span class="logo-icon"><el-icon><Lock /></el-icon></span>
                       <span class="logo-text">反诈情报分析系统</span>
                     </div>
                     <div class="doc-title">{{ getReportTitle() }}</div>
@@ -205,7 +205,7 @@
                 </div>
 
                 <div class="preview-empty" v-else>
-                  <div class="empty-icon">📄</div>
+                  <div class="empty-icon"><el-icon><Document /></el-icon></div>
                   <div class="empty-text">请配置报告参数并点击"生成报告"</div>
                 </div>
               </div>

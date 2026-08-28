@@ -1,0 +1,140 @@
+{
+  "honest_note": "合成数据方法论证明：训练后账户 GNN 在信号明确时可高 F1 恢复团伙。AMLSim 原始全图 F1≈0.0016（信号被淹没）仅作难度基线，不构成真实验证（docs/06 金律）。",
+  "results": {
+    "B_baseline": {
+      "setting": "B",
+      "weighted": false,
+      "n_layers": 2,
+      "out_dim": 32,
+      "epochs": 80,
+      "use_supcon": false,
+      "raw_features+KMeans": {
+        "f1": 0.14381885595096022,
+        "precision": 0.9015672867735204,
+        "recall": 0.07814207650273224,
+        "nmi": 0.21362936582074155,
+        "ari": 0.029979406417659872
+      },
+      "gnn+KMeans(full)": {
+        "f1": 0.11676735699526211,
+        "precision": 0.8412714794365034,
+        "recall": 0.06273762795351343,
+        "nmi": 0.20764949589807674,
+        "ari": 0.016321349826439745
+      },
+      "ring_subgraph": {
+        "ring_subgraph_raw": {
+          "f1": 0.057526366251198474,
+          "precision": 0.040376850605652756,
+          "recall": 0.1,
+          "nmi": 0.3829966178072811,
+          "ari": -0.0024852811367161724
+        },
+        "ring_subgraph_gnn": {
+          "f1": 0.18485237483953784,
+          "precision": 0.15031315240083507,
+          "recall": 0.24,
+          "nmi": 0.5551406246001135,
+          "ari": 0.14043748791391295
+        },
+        "ring_subgraph_louvain": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "nmi": 1.0,
+          "ari": 1.0
+        }
+      }
+    },
+    "E1_weighted": {
+      "setting": "E1",
+      "weighted": true,
+      "n_layers": 3,
+      "out_dim": 64,
+      "epochs": 300,
+      "use_supcon": false,
+      "raw_features+KMeans": {
+        "f1": 0.14381885595096022,
+        "precision": 0.9015672867735204,
+        "recall": 0.07814207650273224,
+        "nmi": 0.21362936582074155,
+        "ari": 0.029979406417659872
+      },
+      "gnn+KMeans(full)": {
+        "f1": 0.10589626796184916,
+        "precision": 0.8048527241925788,
+        "recall": 0.056676672054183024,
+        "nmi": 0.22750521828916734,
+        "ari": 0.010075302121712204
+      },
+      "ring_subgraph": {
+        "ring_subgraph_raw": {
+          "f1": 0.057526366251198474,
+          "precision": 0.040376850605652756,
+          "recall": 0.1,
+          "nmi": 0.3829966178072811,
+          "ari": -0.0024852811367161724
+        },
+        "ring_subgraph_gnn": {
+          "f1": 0.6479663394109397,
+          "precision": 0.559322033898305,
+          "recall": 0.77,
+          "nmi": 0.8853549457872526,
+          "ari": 0.6299540369438904
+        },
+        "ring_subgraph_louvain": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "nmi": 1.0,
+          "ari": 1.0
+        }
+      }
+    },
+    "E2_weighted_supcon": {
+      "setting": "E2",
+      "weighted": true,
+      "n_layers": 3,
+      "out_dim": 64,
+      "epochs": 300,
+      "use_supcon": true,
+      "raw_features+KMeans": {
+        "f1": 0.14381885595096022,
+        "precision": 0.9015672867735204,
+        "recall": 0.07814207650273224,
+        "nmi": 0.21362936582074155,
+        "ari": 0.029979406417659872
+      },
+      "gnn+KMeans(full)": {
+        "f1": 0.11115533134700814,
+        "precision": 0.8138289494408568,
+        "recall": 0.05965135072731471,
+        "nmi": 0.23132552774524692,
+        "ari": 0.011864839000493314
+      },
+      "ring_subgraph": {
+        "ring_subgraph_raw": {
+          "f1": 0.057526366251198474,
+          "precision": 0.040376850605652756,
+          "recall": 0.1,
+          "nmi": 0.3829966178072811,
+          "ari": -0.0024852811367161724
+        },
+        "ring_subgraph_gnn": {
+          "f1": 0.6988636363636364,
+          "precision": 0.6089108910891089,
+          "recall": 0.82,
+          "nmi": 0.9052190998831746,
+          "ari": 0.6836058994682452
+        },
+        "ring_subgraph_louvain": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "nmi": 1.0,
+          "ari": 1.0
+        }
+      }
+    }
+  }
+}

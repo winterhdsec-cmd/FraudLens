@@ -1,0 +1,50 @@
+# FraudLens K8s 基础资源配置
+# 适用范围：生产级部署加固（docs/13 G16）。开发验证仍用 docker-compose。
+# 敏感配置务必通过外部密钥管理注入(Sealed Secrets / External Secrets / Vault)，
+# 本文件 Secret 仅为占位模板，严禁提交真实密码到仓库。
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fraudlens
+  labels:
+    app: fraudlens
+    # 资源级 RBAC 隔离维度：不同警种/支队可用独立 namespace 或 department 标签
+    tier: anti-fraud
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraudlens-config
+  namespace: fraudlens
+data:
+  PORT: "5003"
+  DB_HOST: "fraudlens-mysql"
+  DB_PORT: "3306"
+  DB_USER: "root"
+  DB_NAME: "fraudlens"
+  REDIS_HOST: "fraudlens-redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  DISABLE_CLOUD_LLM: "0"          # 默认关闭云端 LLM（数据不出域）
+  TLS_ENABLED: "0"
+  MINIO_ENDPOINT: "fraudlens-minio:9000"
+  MINIO_BUCKET: "fraudlens"
+  CORS_ALLOWED_ORIGINS: ""
+  # G2 脱敏网关开关（tools/mask.py）默认开启，启用云端 LLM 时强制脱敏
+  CLOUD_LLM_MASK: "1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: fraudlens-secret
+  namespace: fraudlens
+type: Opaque
+stringData:
+  # TODO(生产): 用 sealed-secrets/kubeseal 加密后提交;或走 External Secrets 从云 KMS 拉取
+  DB_PASSWORD: "CHANGE_ME_db"
+  REDIS_PASSWORD: "CHANGE_ME_redis"
+  JWT_SECRET_KEY: "CHANGE_ME_jwt"
+  DEEPSEEK_API_KEY: ""            # 留空即走本地规则，不触达公网
+  MINIO_ROOT_USER: "fraudlens"
+  MINIO_ROOT_PASSWORD: "CHANGE_ME_minio"

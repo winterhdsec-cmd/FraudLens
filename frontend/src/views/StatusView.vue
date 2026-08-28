@@ -3,14 +3,14 @@
   <div class="section-header">
     <div class="header-left">
       <h2 class="section-title">
-        <span class="title-icon">📊</span>
+        <span class="title-icon"><el-icon><DataAnalysis /></el-icon></span>
         系统数据监控
       </h2>
       <p class="section-desc">实时监控各功能模块数据接入状态</p>
     </div>
     <div class="header-right">
       <el-button size="small" @click="refreshAll" :loading="refreshing">
-        <span>🔄</span> 刷新
+        <el-icon><Refresh /></el-icon> 刷新
       </el-button>
     </div>
   </div>

@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 
 from fastapi import Depends, HTTPException, Request
-from pydantic import BaseModel
 
 from sqlalchemy.exc import OperationalError, InterfaceError as SAInterfaceError, InvalidRequestError, DisconnectionError
 import pymysql.err
@@ -38,8 +37,8 @@ _TOKEN_BLACKLIST: set = set()
 USE_CELERY = os.getenv("USE_CELERY", "auto").lower()
 if USE_CELERY == "auto":
     try:
-        import redis as _redis_check
-        r = _redis_check.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, socket_connect_timeout=1)
+        from core.redis_pool import get_redis_client
+        r = get_redis_client(socket_timeout=1.0)
         r.ping()
         r.close()
         from celery_app import celery_app as _celery_app_check
@@ -60,31 +59,10 @@ else:
     USE_CELERY = False
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class RegisterRequest(BaseModel):
-    username: str
-    password: str
-    display_name: str = ''
-    role: str = 'police'
-    department: str = ''
-    phone: str = ''
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-class MergeConfirmRequest(BaseModel):
-    case_id_a: str
-    case_id_b: str
-    gang_id: str
-
-class AnalyzeRequest(BaseModel):
-    messages: list = []
-    platform_data: dict = {}
-    session_id: Optional[str] = None
-
+# 以下请求模型已迁移至共享契约包 `schemas`（T3 / docs/13 G17），路由统一从 schemas 导入：
+#   from schemas.auth import LoginRequest, RegisterRequest, RefreshRequest
+#   from schemas.analysis import AnalyzeRequest
+#   from schemas.merge import MergeConfirmRequest
 
 def create_token(user_id: Any, extra_claims: Optional[Dict[str, Any]] = None,
                  expires_delta: Optional[timedelta] = None) -> str:
@@ -268,8 +246,8 @@ class ProgressAdapter:
             progress_store[self.session_id].append(entry)
         if USE_CELERY:
             try:
-                import redis as _redis
-                r = _redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=int(os.getenv('REDIS_PORT', '6379')), password=os.getenv('REDIS_PASSWORD', None) or None, db=int(os.getenv('REDIS_DB', '0')))
+                from core.redis_pool import get_redis_client
+                r = get_redis_client()
                 r.publish(f'progress:{self.session_id}', json.dumps(entry, default=str))
                 r.close()
             except Exception as e:

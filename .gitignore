@@ -46,6 +46,9 @@ DockerData/
 # 内置 Redis 运行时（dump.rdb / 日志），不入库
 backend/vendor/redis/runtime/
 
+# Agent 反思 checkpoints（运行时产物，每次研判都会写）
+backend/data/checkpoints/
+
 # GNN 数据集与生成语料（GB 级，绝不入库；获取方式见 scripts/ 或 README）
 backend/gnn/amlsim_real/
 backend/data/datasets/

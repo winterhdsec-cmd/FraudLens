@@ -541,13 +541,13 @@ html.dark .main-content {
   left: 100%;
 }
 
-/* ====== 增强菜单项效果 ====== */
-#app .el-menu-item {
+/* ====== 增强菜单项效果（仅限侧边栏菜单，勿命中顶栏横向导航） ====== */
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item {
   position: relative;
   overflow: hidden;
 }
 
-#app .el-menu-item::after {
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -560,7 +560,7 @@ html.dark .main-content {
   transition: width 0.4s, height 0.4s;
 }
 
-#app .el-menu-item:hover::after {
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item:hover::after {
   width: 200px;
   height: 200px;
 }
@@ -1219,25 +1219,25 @@ html.dark .main-content {
   box-shadow: 0 0 10px rgba(0, 198, 255, 0.3);
 }
 
-/* 菜单 */
+/* 菜单（仅侧边栏纵向菜单；顶栏横向导航由 MainLayout scoped 样式控制） */
 #app .el-menu {
   background: transparent;
   border-right: none;
 }
 
-#app .el-menu-item {
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item {
   color: var(--text-secondary);
   border-radius: var(--radius-md);
   margin: 4px 12px;
   transition: all 0.3s ease;
 }
 
-#app .el-menu-item:hover {
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item:hover {
   background: rgba(0, 198, 255, 0.1);
   color: var(--accent-cyan);
 }
 
-#app .el-menu-item.is-active {
+#app .el-menu:not(.el-menu--horizontal) .el-menu-item.is-active {
   background: linear-gradient(90deg, rgba(0, 198, 255, 0.2) 0%, rgba(0, 198, 255, 0.05) 100%);
   color: var(--accent-cyan);
   border-left: 3px solid var(--accent-cyan);

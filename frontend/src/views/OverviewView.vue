@@ -627,6 +627,9 @@ const handleBatchStatus = async (status) => {
   font-size: 15px;
   font-weight: 600;
   color: #e2e8f0;
+  /* gang-header 是 flex，子项默认 min-width:auto 不会收缩，
+     导致长团伙名撑破裁切。min-width:0 才能让 ellipsis 真正生效 */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

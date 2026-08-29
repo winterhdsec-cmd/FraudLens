@@ -45,6 +45,28 @@
     </div>
   </div>
 
+  <div v-if="!dataReady" class="cases-loading">
+    <div class="sk-grid">
+      <div v-for="n in 8" :key="n" class="sk-card tech-card">
+        <el-skeleton animated>
+          <template #template>
+            <div class="sk-row">
+              <el-skeleton-item variant="button" style="width:64px;height:20px" />
+              <el-skeleton-item variant="text" style="width:72px;height:20px;margin-left:auto" />
+            </div>
+            <el-skeleton-item variant="h3" style="width:78%;height:18px;margin-top:14px" />
+            <el-skeleton-item variant="text" style="width:46%;height:12px;margin-top:10px" />
+            <el-skeleton-item variant="text" style="width:88%;height:12px;margin-top:8px" />
+            <div class="sk-row" style="margin-top:16px">
+              <el-skeleton-item variant="button" style="width:56px;height:20px" />
+              <el-skeleton-item variant="text" style="width:80px;height:12px;margin-left:auto" />
+            </div>
+          </template>
+        </el-skeleton>
+      </div>
+    </div>
+  </div>
+
   <div class="cases-section" v-if="cases.length">
     <div class="section-sub-header">
       <h3 class="sub-title"><el-icon class="sub-icon"><Files /></el-icon>案件列表<span class="list-count">共 {{ cases.length }} 条</span></h3>
@@ -146,7 +168,7 @@
     </div>
   </div>
 
-  <div v-if="!cases.length && !gangs.length" class="empty-state">
+  <div v-if="!cases.length && !gangs.length && dataReady" class="empty-state">
     <div class="empty-content">
       <div class="empty-icon"><el-icon :size="64"><DataAnalysis /></el-icon></div>
       <h3 class="empty-title">暂无数据</h3>
@@ -176,8 +198,15 @@ const {
   analysisAbnormal, analysisWarnings, analysisSlips
 } = state
 
-onMounted(() => {
-  reloadCasesAndGangs()
+// 数据未到位前显示骨架屏，避免先闪一下「暂无数据」再突然冒出列表
+const dataReady = ref(false)
+
+onMounted(async () => {
+  try {
+    await reloadCasesAndGangs()
+  } finally {
+    dataReady.value = true
+  }
   // 趋势图数据源（monthly_trend）由 dashboard 接口提供，直接进 overview 时也需加载
   loadDashboard()
   nextTick(() => initCharts && initCharts())
@@ -376,6 +405,22 @@ const handleBatchStatus = async (status) => {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
+}
+
+/* 数据加载骨架：布局与 .cases-card-grid 保持一致，避免数据到位时跳版 */
+.cases-loading { margin-bottom: 20px; }
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.sk-card {
+  padding: 16px;
+  border: 1px solid rgba(0, 198, 255, 0.08);
+}
+.sk-row {
+  display: flex;
+  align-items: center;
 }
 
 .case-card {

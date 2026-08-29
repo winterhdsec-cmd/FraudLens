@@ -37,11 +37,16 @@ class ClusterAgent(AgentProtocol):
         # 反思调参结果（M2）：orchestrator._adjust_strategy 下传的 cluster_params
         self._cluster_params = context.get("cluster_params") or {}
         if use_gnn and getattr(self, "gnn_detector", None) is None:
-            # 惰性构建（当 use_gnn 与 __init__ 设置不一致时）
-            from gnn import GangDetector
-            self.gnn_detector = GangDetector(
-                embedding_dim=64, hidden_dim=32, num_layers=2, community_method='louvain'
-            )
+            # 惰性构建（当 use_gnn 与 __init__ 设置不一致时）；torch 缺失时降级
+            try:
+                from gnn import GangDetector
+                self.gnn_detector = GangDetector(
+                    embedding_dim=64, hidden_dim=32, num_layers=2, community_method='louvain'
+                )
+            except Exception as _e:
+                print(f"[cluster_agent] GNN 惰性构建失败，降级为传统聚类: {_e}")
+                use_gnn = False
+                self.use_gnn = False
         result = self.discover_gangs(cases, use_gnn=use_gnn, accounts_tx=accounts_tx)
         # 复核解释层（Skill A/B）：对成功的团伙划分追加"并案依据解释 + 误并复查"
         # 纯增量、不侵入聚类主链路；LLM 不可用时规则降级，绝不抛异常中断。
@@ -75,15 +80,21 @@ class ClusterAgent(AgentProtocol):
             enable_reflection=True
         )
         
-        # 初始化GNN检测器（惰性导入，避免无 torch 环境 import 即崩）
+        # 初始化GNN检测器（惰性导入：torch 缺失时降级为传统聚类，
+        # 避免 OrchestratorAgent() 构造即抛 ImportError → 研判接口 500）
         if self.use_gnn:
-            from gnn import GangDetector
-            self.gnn_detector = GangDetector(
-                embedding_dim=64,
-                hidden_dim=32,
-                num_layers=2,
-                community_method='louvain'
-            )
+            try:
+                from gnn import GangDetector
+                self.gnn_detector = GangDetector(
+                    embedding_dim=64,
+                    hidden_dim=32,
+                    num_layers=2,
+                    community_method='louvain'
+                )
+            except Exception as _e:
+                print(f"[cluster_agent] GNN 检测器初始化失败，降级为传统聚类: {_e}")
+                self.use_gnn = False
+                self.gnn_detector = None
     
     def discover_gangs(self, cases: List[Dict[str, Any]], use_gnn: bool = None, accounts_tx: Any = None) -> Dict[str, Any]:
         """

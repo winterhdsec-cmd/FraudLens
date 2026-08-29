@@ -259,6 +259,10 @@ def baseline_gnn_han(cases, accounts_tx, n_true: int, epochs: int = 100, use_tex
        代表 Stage2 修复后的异构 HAN 路径（元路径拓扑各异，非旧实现复制同矩阵）。"""
     try:
         import torch  # noqa
+        # 随机种子固定（模型可复现）：torch/numpy/random 三层同步锁，
+        # 保证同 seed 重跑结果一致（评估协议可复现要求）
+        import random as _rand, numpy as _np
+        _rand.seed(0); _np.random.seed(0); torch.manual_seed(0)
         if BACKEND not in sys.path:
             sys.path.insert(0, BACKEND)
         han_mod = _load_local("han_model", "gnn/han_model.py")
@@ -302,6 +306,9 @@ def baseline_gnn(cases, accounts_tx, n_true: int, epochs: int = 150):
            此处用可跑通的 GraphSAGE 代表"GNN 嵌入+聚类"路径，并在 notes 标注。"""
     try:
         import torch  # noqa
+        # 随机种子固定（模型可复现），与 baseline_gnn_han 一致
+        import random as _rand, numpy as _np
+        _rand.seed(0); _np.random.seed(0); torch.manual_seed(0)
         gnn_mod = _load_local("gnn_model", "gnn/gnn_model.py")
         builder = gb_mod.FraudGraphBuilder(use_db=False, use_cache=False)
         G = builder.build_graph(cases, accounts_tx=accounts_tx)
@@ -443,6 +450,7 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
     # 评估协议修复：聚类数用 silhouette 估计（不依赖真值标签），
     # 避免 KMeans(n_clusters=n_true) 直接泄露答案导致 F1 虚高
     n_est = _estimate_n_clusters(X)
+    notes: List[str] = []
     if n_est != n_true:
         notes.append(
             f"聚类数估计: 估计 k={n_est}（silhouette 最优），真值 k={n_true}——"

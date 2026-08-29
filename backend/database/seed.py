@@ -355,6 +355,20 @@ def _do_gang_data():
             
             created = 0
             gang_idx = 0
+
+            # 幂等续号：gang_id 从历史最大序号接续，避免重启后新孤儿案件
+            # 生成 GANG_{type}_001 与已有 gang 撞号被跳过、永远不成团
+            try:
+                _existing_gang_ids = [g[0] for g in db.session.query(Gang.gang_id).all()]
+                _last = 0
+                for _gid in _existing_gang_ids:
+                    if _gid.startswith('GANG_'):
+                        _tail = _gid.rsplit('_', 1)[-1]
+                        if _tail.isdigit():
+                            _last = max(_last, int(_tail))
+                gang_idx = _last
+            except Exception:
+                pass
             
             for scam_type, cases in type_groups.items():
                 import random as _gang_rd
@@ -371,6 +385,11 @@ def _do_gang_data():
                     
                     gang_idx += 1
                     gang_id = f'GANG_{scam_type}_{gang_idx:03d}'
+
+                    # 幂等：gang_id 已存在（历史库/并发启动重复注入）则跳过，
+                    # 避免 flush 撞唯一键后整个团伙块被 except rollback
+                    if db.session.query(Gang).filter_by(gang_id=gang_id).first():
+                        continue
                     
                     total_amount = sum(float(c.amount_value or 0) for c in gang_cases)
                     avg_score = sum(c.risk_score or 0 for c in gang_cases) / len(gang_cases)

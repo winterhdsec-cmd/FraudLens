@@ -290,7 +290,11 @@ class HANTrainer:
             训练结果字典
         """
         logger.info("Starting HAN training", dataset=dataset_name, epochs=epochs)
-        
+
+        # 随机种子固定（可复现）：同参数重跑结果一致
+        import random as _rand, numpy as _np, torch as _torch
+        _rand.seed(0); _np.random.seed(0); _torch.manual_seed(0)
+
         # 1. 加载数据集
         nodes, edges = self._load_dataset(dataset_name)
         

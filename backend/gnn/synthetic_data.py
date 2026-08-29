@@ -20,7 +20,7 @@ from typing import List, Dict, Any, Tuple
 import uuid as _uuid
 from datetime import datetime as _dt
 
-GENERATOR_VERSION = "2.0"
+GENERATOR_VERSION = "2.1"
 
 CITY_POOL = [
     ("广东省", "广州市"), ("广东省", "深圳市"), ("浙江省", "杭州市"),
@@ -67,6 +67,9 @@ def generate_synthetic_dataset(
                     破坏 type/city/perpetrator 结构通道的团伙同质性。脚本仍按团伙模板，
                     故话术(text)通道成为唯一可靠判别信号 —— 用于体现双通道真实增益）
 
+    v2.1 修复（2026-08-29）：团伙跨 1~2 个城市作案，case_city_case 与 case_type_case
+    不再同构（原 v2.0 同团伙案件 city 唯一 → 两元路径邻接 100% 相同，语义注意力无可学之分）。
+
     Returns:
         (cases, accounts_tx, ground_truth)
     """
@@ -106,7 +109,11 @@ def generate_synthetic_dataset(
         gang_total_amount = 0.0
 
         scam_type = rng.choice(SCAM_TYPES)
-        prov, city = rng.choice(CITY_POOL)
+        # 团伙跨 1~2 个城市作案（修复元路径退化）：同团伙案件的城市不再唯一，
+        # 使 case_city_case 元路径与 case_type_case 不同构——语义注意力才有可学之分。
+        # 话术模板仍团内一致（A3 双通道语义通道不受影响）。
+        n_city = rng.randint(1, 2)
+        gang_cities = rng.sample(CITY_POOL, k=n_city) if n_city > 1 else [rng.choice(CITY_POOL)]
 
         # A3: 同团伙案件共享相似话术模板（便于双通道语义通道在评测中生效）
         script_template = SCRIPT_TEMPLATES.get(scam_type, SCRIPT_TEMPLATES["刷单返利"])
@@ -123,7 +130,9 @@ def generate_synthetic_dataset(
                 c_prov, c_city = rng.choice(CITY_POOL)
                 c_perps = [f"PERP-X-{rng.randint(0, 999):03d}"]
             else:
-                c_type, c_prov, c_city, c_perps = scam_type, prov, city, list(gang_perps)
+                c_type = scam_type
+                c_prov, c_city = rng.choice(gang_cities)
+                c_perps = list(gang_perps)
 
             # 团伙内账户共享退化（A-BGE 复测）：小概率本案不挂团伙账户，
             # 弱化 account/fund_flow 结构通道的团伙同质性
@@ -135,7 +144,7 @@ def generate_synthetic_dataset(
             # A3: 同团伙案件共享相似话术（金额不同但话术模板相同，双通道语义通道可聚同伙）
             script_noise = rng.choice(["", "（限时名额）", "（官方认证）", "（系统维护中）"])
             script = (f"{script_template}{script_noise}"
-                      f"受害人位于{prov}{city}，涉案金额约{amount:.0f}元。")
+                      f"受害人位于{c_prov}{c_city}，涉案金额约{amount:.0f}元。")
 
             case = {
                 "case_id": case_id,

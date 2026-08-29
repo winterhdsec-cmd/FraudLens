@@ -72,7 +72,10 @@ def create_token(user_id: Any, extra_claims: Optional[Dict[str, Any]] = None,
         'sub': str(user_id),
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + expires_delta,
-        'type': 'access'
+        'type': 'access',
+        # 唯一令牌标识（jti）：黑名单键用 jti 而非 token 末 16 位，
+        # 避免不同 token 末 16 位相同导致 logout 误封他人令牌
+        'jti': uuid.uuid4().hex,
     }
     if extra_claims:
         payload.update(extra_claims)
@@ -92,7 +95,9 @@ def create_refresh_token(user_id: Any) -> str:
 def decode_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload = pyjwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        jti = payload.get('jti', token[-16:])
+        # 黑名单键：优先 jti（create_token 已生成）；旧令牌无 jti 时用 token 全量
+        # SHA-256（而非末 16 位），避免不同 token 截断碰撞互相误封
+        jti = payload.get('jti') or hashlib.sha256(token.encode('utf-8')).hexdigest()
         if _redis_available:
             if blacklist_exists(jti):
                 return None

@@ -147,7 +147,9 @@ async def api_logout(request: Request):
         payload = decode_token(token)
         if payload:
             from tools.redis_utils import blacklist_add, redis_available
-            jti = payload.get('jti', token[-16:])
+            import hashlib
+            # 黑名单键：优先 jti；旧令牌无 jti 时用 token 全量 SHA-256（与 deps.decode_token 一致）
+            jti = payload.get('jti') or hashlib.sha256(token.encode('utf-8')).hexdigest()
             _TOKEN_BLACKLIST.add(jti)
             if redis_available():
                 blacklist_add(jti, ttl_seconds=86400)

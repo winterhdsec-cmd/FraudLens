@@ -185,7 +185,9 @@ const menuGroups = [
   ]},
   { key: 'case', label: '案件研判', icon: 'Files', items: [
     { name: 'overview', label: '案件管理', icon: 'Files' },
-    { name: 'groups', label: '团伙画像', icon: 'User' }
+    { name: 'groups', label: '团伙画像', icon: 'User' },
+    // 关系图谱页一直存在但没入口，导致用户找不到案件-团伙关联图谱（问题7）
+    { name: 'network', label: '关联图谱', icon: 'Share' }
   ]},
   { key: 'tools', label: '办案工具', icon: 'Tools', items: [
     { name: 'workbench', label: '办案工作台', icon: 'Tools' },

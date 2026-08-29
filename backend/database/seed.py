@@ -142,55 +142,76 @@ def _do_seed_data():
         
         logger.info(f"演示案件数据注入成功: {len(_seed_cases)} 条")
         
-        # 注入预警数据
-        from database.models import AlertRecord
-        if db.session.query(AlertRecord).count() == 0:
-            from database.models import Case as _CaseForAlert
-            _all_cases_for_alert = db.session.query(_CaseForAlert).all()
-            if not _all_cases_for_alert:
-                logger.warning("预警数据注入跳过: 无案件数据")
-            else:
-                import random as _alert_rd
-                alert_types_list = ['phone_match', 'bank_match', 'app_match', 'ip_match']
-                entity_templates = {
-                    'phone_match': lambda: [_alert_rd.choice(['138','139','150','137','186','158','176','189']) + f"****{_alert_rd.randint(1000,9999)}"],
-                    'bank_match': lambda: [_alert_rd.choice(['6222','6217','6228','6215','6226']) + f"****{_alert_rd.randint(1000,9999)}"],
-                    'app_match': lambda: _alert_rd.choice([['腾讯会议'],['瞩目'],['腾讯会议','瞩目'],['飞书'],['钉钉'],['佳信通'],['全视通']]),
-                    'ip_match': lambda: [f"{_alert_rd.randint(10,223)}.{_alert_rd.randint(0,255)}.{_alert_rd.randint(0,255)}.*"],
-                }
-                total_alerts = 0
-                for c in _all_cases_for_alert:
-                    other_cases = [oc for oc in _all_cases_for_alert if oc.case_id != c.case_id]
-                    if not other_cases:
-                        continue
-                    num_alerts = 1 if _alert_rd.random() > 0.3 else 2
-                    for _ in range(num_alerts):
-                        alert_type = _alert_rd.choice(alert_types_list)
-                        matched_case = _alert_rd.choice(other_cases)
-                        entities = entity_templates[alert_type]()
-                        confidence = round(_alert_rd.uniform(0.60, 0.95), 2)
-                        record = AlertRecord(
-                            alert_type=alert_type, case_id=c.case_id,
-                            matched_case_id=matched_case.case_id,
-                            matched_entities=entities, confidence=confidence,
-                            created_at=now
-                        )
-                        db.session.add(record)
-                        total_alerts += 1
-                db.session.commit()
-                logger.info(f"演示预警数据已注入: {total_alerts} 条")
-                from tools.redis_utils import alert_store_set
-                for record in db.session.query(AlertRecord).all():
-                    alert_store_set(record.id, record.to_dict())
-                logger.info("预警数据已同步到 Redis")
-        else:
-            logger.info(f"预警数据已存在: {db.session.query(AlertRecord).count()} 条")
-            from tools.redis_utils import alert_store_set
-            for record in db.session.query(AlertRecord).all():
-                alert_store_set(record.id, record.to_dict())
-            logger.info("预警数据已同步到 Redis")
+        # 预警演示数据改由 _do_alert_data() 独立负责（基于 gang_case_relations 真实关联生成）
     except Exception as e:
         logger.warning(f"演示案件数据注入跳过: {e}")
+
+
+def _do_alert_data():
+    """预警演示数据注入（独立函数，须在 _do_seed_data / _do_gang_data 之后调用）。
+
+    修复三类历史问题：
+    1. 旧种子用固定假案件号 CASE-2024-000x（案件表里不存在）→ 前端显示"未知案件"；
+    2. 旧种子 confidence 写成百分制(75.0) 而前端按小数×100 → 显示 7500%；
+    3. 旧种子 case_id == matched_case_id（自己关联自己），逻辑不成立。
+    现在改为从 gang_case_relations 取"同团伙下的真实案件对"，置信度用关系表的
+    similarity（0~1），预警与 GNN 聚类结果保持一致，演示时图谱/预警/团伙三页数据互洽。
+    同时做脏数据自愈：清理百分制/自关联的旧行后重建。
+    """
+    try:
+        from database.models import AlertRecord, GangCaseRelation
+        # 脏数据自愈：百分制(confidence>1) 或 自关联 的旧行直接清掉
+        from sqlalchemy import or_
+        dirty = AlertRecord.query.filter(
+            or_(AlertRecord.confidence > 1.0,
+                AlertRecord.case_id == AlertRecord.matched_case_id)
+        ).delete(synchronize_session=False)
+        if dirty:
+            db.session.commit()
+            logger.info(f"清理历史脏预警记录 {dirty} 条")
+        if AlertRecord.query.count() > 0:
+            logger.info(f"预警数据已存在({AlertRecord.query.count()}条)，跳过注入")
+            return
+        # 按团伙分组取案件对（同团伙内两两案件构成"串并预警"素材）
+        rels = GangCaseRelation.query.order_by(GangCaseRelation.gang_id,
+                                               GangCaseRelation.case_id).all()
+        by_gang = {}
+        for r in rels:
+            by_gang.setdefault(r.gang_id, []).append(r)
+        import random as _alert_rd
+        total = 0
+        seen_pairs = set()
+        for gang_id, group in by_gang.items():
+            if len(group) < 2:
+                continue
+            # 每个团伙最多产出 3 条预警，控制总量、保证首页可读
+            picked = _alert_rd.sample(group, min(3, len(group)))
+            anchor = picked[0]
+            for other in picked[1:]:
+                pair = tuple(sorted([anchor.case_id, other.case_id]))
+                if pair in seen_pairs:
+                    continue
+                seen_pairs.add(pair)
+                sim = ((anchor.similarity or 0.7) + (other.similarity or 0.7)) / 2
+                conf = round(min(max(sim, 0.60), 0.97), 2)
+                record = AlertRecord(
+                    alert_type='case_match',
+                    case_id=anchor.case_id,
+                    matched_case_id=other.case_id,
+                    matched_entities=[f"GNN 串并：同属团伙 {gang_id}"],
+                    confidence=conf,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(record)
+                total += 1
+        db.session.commit()
+        logger.info(f"演示预警数据已注入: {total} 条（基于 gang_case_relations 真实关联）")
+        from tools.redis_utils import alert_store_set, redis_available
+        if redis_available():
+            for record in AlertRecord.query.all():
+                alert_store_set(record.id, record.to_dict())
+    except Exception as e:
+        logger.warning(f"预警数据注入跳过: {e}")
 
 
 def _do_p1_data():

@@ -12,7 +12,8 @@
       <el-input v-model="flowSearchCaseId" placeholder="输入案件编号" style="width:170px" size="small" clearable @clear="loadFlowData" @keyup.enter="loadFlowData" />
       <el-button type="primary" size="small" @click="loadFlowData">查询</el-button>
       <el-button v-if="capitalFlows.length" :type="screenshotMode ? 'success' : 'default'" size="small" @click="toggleScreenshotMode">
-        <span>{{ screenshotMode ? '<el-icon><Camera /></el-icon> 退出截图' : '<el-icon><Camera /></el-icon> 截图模式' }}</span>
+        <!-- 旧写法把 <el-icon> 放进了 {{ }} 插值，组件标签被当纯文本渲染出来 -->
+        <el-icon><Camera /></el-icon> {{ screenshotMode ? '退出截图' : '截图模式' }}
       </el-button>
     </div>
   </div>
@@ -142,19 +143,17 @@
         </div>
       </div>
 
-      <div class="network-container" :class="{ 'screenshot-mode': screenshotMode }">
-        <MiniNetworkGraph
-          v-if="graphNodes.length > 0"
-          title="资金流向图谱"
-          :nodes="graphNodes"
-          :edges="graphEdges"
-          :legends="graphLegends"
-          :physics="graphPhysics"
-          :node-defaults="graphNodeDefaults"
-          :edge-defaults="graphEdgeDefaults"
-          style="height:500px;width:100%"
-        />
-        <div v-else class="empty-state" style="height:540px;display:flex;align-items:center;justify-content:center">
+      <div class="network-container sankey-container" :class="{ 'screenshot-mode': screenshotMode }">
+        <div class="sankey-header">
+          <div class="sh-left">
+            <span class="status-dot"></span>
+            <span class="sh-title">资金流向图谱</span>
+            <span class="sh-sub">受害人 → 一级卡 → 二级卡 → 归集/境外，流宽正比于转账金额</span>
+          </div>
+          <el-button size="small" @click="exportSankey">导出图片</el-button>
+        </div>
+        <div v-show="sankeyNodes.length" ref="sankeyRef" class="sankey-canvas"></div>
+        <div v-if="!sankeyNodes.length" class="empty-state" style="height:420px;display:flex;align-items:center;justify-content:center">
           <div class="empty-content">
             <div class="empty-icon"><el-icon><DataAnalysis /></el-icon></div>
             <h3 class="empty-title">暂无链路图数据</h3>
@@ -183,9 +182,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
-import MiniNetworkGraph from '../components/MiniNetworkGraph.vue'
+import { getEcharts } from '../composables/useEcharts.js'
 
 const state = useAppState()
 const {
@@ -331,183 +330,128 @@ const graphNodes = computed(() => {
   })
 })
 
-const graphEdges = computed(() => {
-  if (!capitalFlows.value.length) return []
-  const maxAmount = Math.max(...capitalFlows.value.map(f => Number(f.amount || 0)), 1)
-  
-  return capitalFlows.value.map(flow => {
-    const amt = Number(flow.amount || 0)
-    const ratio = amt / maxAmount
-    const width = 3 + ratio * 8  // 边宽度根据金额动态调整
-    
-    // 根据层级选择边的颜色
-    const level = flow.level || 1
-    let edgeColor = 'rgba(239, 68, 68, 0.6)'  // 默认红色
-    if (level === 1) edgeColor = 'rgba(239, 68, 68, 0.7)'  // 一级：红色
-    else if (level === 2) edgeColor = 'rgba(249, 115, 22, 0.7)'  // 二级：橙色
-    else if (level >= 3) edgeColor = 'rgba(6, 182, 212, 0.7)'  // 三级及以上：青色
-    
+// ===== 桑基图（资金流向可视化，替换原 vis-network 力导向图）=====
+// 力导向布局无法体现"层级"语义（节点随机漂浮），资金链路本质是从受害人
+// 逐级流向归集卡的分层 DAG，桑基图是这类数据的标准画法。
+const sankeyRef = ref(null)
+let sankeyChart = null
+
+const LEVEL_NAMES = ['', '① 一级卡', '② 二级卡', '③ 归集/境外']
+
+// 桑基要求节点名全局唯一：同一账号在不同层级出现时加层级前缀
+const sankeyData = computed(() => {
+  if (!capitalFlows.value.length) return { nodes: [], links: [] }
+  const nodeSet = new Map()   // 显示名 -> depth
+  const linkMap = new Map()   // src|tgt -> 金额累计
+  const depthOf = (lvl) => Math.min(Math.max((lvl || 1), 1), 4)
+  capitalFlows.value.forEach(f => {
+    const srcLvl = f.level || f.source_level || 1
+    const tgtLvl = f.level ? f.level + 1 : (f.target_level || srcLvl + 1)
+    const srcIsVictim = /^受害方/.test(f.source_account || '')
+    const srcName = srcIsVictim ? f.source_account : `L${depthOf(srcLvl)} ${formatAccountName(f.source_account)}`
+    const tgtName = `L${depthOf(tgtLvl)} ${formatAccountName(f.target_account)}`
+    nodeSet.set(srcName, srcIsVictim ? 0 : depthOf(srcLvl) - 1)
+    nodeSet.set(tgtName, depthOf(tgtLvl) - 1)
+    const key = srcName + '|' + tgtName
+    linkMap.set(key, (linkMap.get(key) || 0) + Number(f.amount || 0))
+  })
+  const nodes = Array.from(nodeSet.entries()).map(([name, depth]) => {
+    const victim = name.startsWith('受害方')
+    const lvl = victim ? 0 : parseInt(name.slice(1), 10)
     return {
-      from: flow.source_account,
-      to: flow.target_account,
-      width: width,
-      color: {
-        color: edgeColor,
-        highlight: '#00c6ff',
-        hover: '#00c6ff',
-        opacity: 1
-      },
-      smooth: {
-        type: 'curvedCW',
-        roundness: 0.2
-      },
-      arrows: {
-        to: {
-          enabled: true,
-          scaleFactor: 0.8,
-          type: 'arrow'
-        }
-      },
-      label: '¥' + amt.toLocaleString(),
-      font: {
-        color: '#ffffff',
-        size: 11,
-        face: 'Arial',
-        align: 'middle',
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        bold: true
-      },
-      shadow: {
-        enabled: true,
-        size: 10,
-        color: edgeColor
-      },
-      animation: {
-        enabled: true,
-        duration: 1500,
-        easing: 'easeInOutCubic'
-      }
+      name,
+      depth,
+      itemStyle: { color: victim ? '#22d3ee' : (LEVEL_COLORS[lvl] || '#06b6d4'), borderColor: 'transparent' }
     }
   })
+  const links = Array.from(linkMap.entries()).map(([key, value]) => {
+    const [source, target] = key.split('|')
+    return { source, target, value: Math.max(value, 1) }
+  })
+  return { nodes, links }
+})
+const sankeyNodes = computed(() => sankeyData.value.nodes)
+
+const LEVEL_COLORS = ['#22d3ee', '#f43f5e', '#f97316', '#06b6d4', '#8b5cf6']
+
+async function renderSankey() {
+  if (!sankeyRef.value || !sankeyNodes.value.length) return
+  const echarts = await getEcharts()
+  if (!sankeyChart || sankeyChart.isDisposed()) {
+    sankeyChart = echarts.init(sankeyRef.value)
+  }
+  sankeyChart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove',
+      backgroundColor: 'rgba(10,14,26,0.92)',
+      borderColor: 'rgba(0,198,255,0.35)',
+      textStyle: { color: '#e2e8f0', fontSize: 12 },
+      formatter: (p) => {
+        if (p.dataType === 'edge') {
+          return `${p.data.source.replace(/^L\d /, '')} → ${p.data.target.replace(/^L\d /, '')}<br/>转账金额：<b style="color:#f87171">¥${Number(p.data.value).toLocaleString()}</b>`
+        }
+        const name = String(p.name).replace(/^L\d /, '')
+        return `账户：<b>${name}</b>`
+      }
+    },
+    series: [{
+      type: 'sankey',
+      left: 24, right: 170, top: 28, bottom: 20,
+      nodeWidth: 16,
+      nodeGap: 14,
+      nodeAlign: 'justify',
+      layoutIterations: 64,
+      emphasis: { focus: 'adjacency' },
+      data: sankeyData.value.nodes,
+      links: sankeyData.value.links,
+      label: {
+        color: '#cbd5e1',
+        fontSize: 11,
+        fontFamily: 'Consolas, Menlo, monospace',
+        formatter: (p) => String(p.name).replace(/^L\d /, '')
+      },
+      lineStyle: { color: 'gradient', curveness: 0.55, opacity: 0.35 },
+      itemStyle: { borderWidth: 0, borderRadius: 3 },
+      animationDuration: 800,
+      animationDurationUpdate: 500
+    }]
+  }, true)
+}
+
+function exportSankey() {
+  if (!sankeyChart) return
+  const url = sankeyChart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#0a0e1a' })
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `资金流向_${flowSearchCaseId.value || Date.now()}.png`
+  a.click()
+}
+
+// 数据变化后重绘（等 DOM 更新，容器可见才能拿到宽高）
+watch(sankeyNodes, async (n) => {
+  if (!n.length) {
+    sankeyChart?.dispose()
+    sankeyChart = null
+    return
+  }
+  await nextTick()
+  renderSankey()
 })
 
-const graphLegends = [
-  { label: '一级卡（受害人→嫌疑人）', color: '#f43f5e' },
-  { label: '二级卡（中间层）', color: '#f97316' },
-  { label: '三级卡（归集/境外）', color: '#06b6d4' }
-]
-
-const graphPhysics = {
-  enabled: true,
-  solver: 'barnesHut',
-  barnesHut: {
-    gravitationalConstant: -4000,
-    centralGravity: 0.2,
-    springLength: 180,
-    springConstant: 0.05,
-    damping: 0.1,
-    avoidOverlap: 0.2
-  },
-  stabilization: {
-    enabled: true,
-    iterations: 150,
-    updateInterval: 20,
-    fit: true
-  },
-  maxVelocity: 40,
-  minVelocity: 0.5
-}
-
-const graphNodeDefaults = {
-  shape: 'dot',
-  font: { 
-    color: '#ffffff', 
-    size: 12, 
-    face: 'Arial', 
-    strokeWidth: 3, 
-    strokeColor: '#000000',
-    bold: true
-  },
-  borderWidth: 3,
-  shadow: { 
-    enabled: true, 
-    size: 15, 
-    color: 'rgba(0,0,0,0.5)',
-    x: 0,
-    y: 0
-  },
-  borderWidthSelected: 4,
-  scaling: {
-    min: 25,
-    max: 60,
-    label: {
-      enabled: true,
-      min: 10,
-      max: 14,
-      maxVisible: 12
-    }
-  }
-}
-
-const graphEdgeDefaults = {
-  smooth: { 
-    type: 'curvedCW', 
-    roundness: 0.25,
-    forceDirection: 'none'
-  },
-  arrows: { 
-    to: { 
-      enabled: true, 
-      scaleFactor: 0.8,
-      type: 'arrow'
-    } 
-  },
-  width: 3,
-  color: { 
-    color: 'rgba(239, 68, 68, 0.6)', 
-    highlight: '#00c6ff', 
-    hover: '#00c6ff',
-    opacity: 1
-  },
-  font: { 
-    color: '#ffffff', 
-    size: 11, 
-    face: 'Arial',
-    align: 'middle', 
-    strokeWidth: 3, 
-    strokeColor: '#000000',
-    bold: true
-  },
-  shadow: {
-    enabled: true,
-    size: 10,
-    color: 'rgba(0,0,0,0.3)'
-  },
-  scaling: {
-    min: 3,
-    max: 15,
-    label: {
-      enabled: true,
-      min: 9,
-      max: 13,
-      maxVisible: 10
-    }
-  }
-}
-
-const tryLoadFirstCase = () => {
-  if (caseList.value.length === 0) {
-    loadCases()
-  }
-}
-
-watch(() => cases.value?.length, (len) => {
-  if (len === 0) loadCases()
-})
+function onSankeyResize() { sankeyChart?.resize() }
 
 onMounted(() => {
   if (caseList.value.length === 0) loadCases()
+  window.addEventListener('resize', onSankeyResize)
+  // 从别的页面返回时 capitalFlows 已有数据，watch 不会触发，需手动初绘
+  if (sankeyNodes.value.length) nextTick(renderSankey)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', onSankeyResize)
+  sankeyChart?.dispose()
+  sankeyChart = null
 })
 </script>
 
@@ -580,6 +524,27 @@ onMounted(() => {
   box-shadow: 0 0 30px rgba(0,212,255,0.06);
   min-height: 480px;
 }
+/* 桑基图容器 */
+.sankey-container { min-height: auto; }
+.sankey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(15,23,42,0.8);
+  border-bottom: 1px solid rgba(0,198,255,0.15);
+  gap: 8px;
+}
+.sh-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sh-left .status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #00c6ff; box-shadow: 0 0 8px #00c6ff;
+  animation: miniPulse 2s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes miniPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.sh-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.sh-sub { font-size: 11px; color: #64748b; }
+.sankey-canvas { width: 100%; height: 460px; }
 .flow-table-wrapper {
   margin-top: 14px;
   border-radius: 10px;

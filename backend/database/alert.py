@@ -56,7 +56,7 @@ class AlertEngine:
                     alert = self._save_alert('bank_match', case_id, existing['case_id'], list(common_banks), confidence)
                     alerts.append(alert)
 
-            existing_ips = set(existing_entities.get('ips', []) or [])
+            existing_ips = set(existing_entities.get('ip_addresses', []) or existing_entities.get('ips', []) or [])
             common_ips = ip_addresses & existing_ips
             if common_ips:
                 confidence = _compute_confidence(len(common_ips), ip_addresses, existing_ips)
@@ -89,17 +89,26 @@ class AlertEngine:
         return result
 
     def get_active_alerts(self):
-        if redis_available():
-            all_alerts = alert_list_all()
-            return [a for a in all_alerts if not a.get('resolved')]
+        # DB 是唯一真值源：Redis 里的 alert:* 只是缓存且带 7 天 TTL，
+        # 过期/清空后若只读 Redis 会把库里的预警"读丢"（曾导致预警中心空列表）。
+        # 策略：DB 查询为主，成功后顺手回写 Redis 缓存；DB 故障才回落 Redis/内存。
         try:
             records = AlertRecord.query.filter_by(resolved=False).order_by(AlertRecord.created_at.desc()).all()
-            return [r.to_dict() for r in records]
+            results = [r.to_dict() for r in records]
+            if redis_available():
+                for r in results:
+                    alert_store_set(r['id'], r)
+            return results
         except Exception as e:
-            logger.error(f"查询预警数据库失败: {e}")
-            global _memory_alerts
-            active = [a for a in _memory_alerts if not a.get('resolved')]
-            return active
+            logger.error(f"查询预警数据库失败，回落 Redis/内存: {e}")
+        if redis_available():
+            try:
+                all_alerts = alert_list_all()
+                return [a for a in all_alerts if not a.get('resolved')]
+            except Exception as e:
+                logger.error(f"Redis 预警回落也失败: {e}")
+        global _memory_alerts
+        return [a for a in _memory_alerts if not a.get('resolved')]
 
     def resolve_alert(self, alert_id):
         try:

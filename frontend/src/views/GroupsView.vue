@@ -55,7 +55,31 @@
             复核层暂时不可用：{{ gangReview.error }}
           </div>
 
-          <div v-if="gangs.length" class="profiles-container">
+          <div v-if="!casesReady" class="profiles-loading">
+            <div class="sk-grid">
+              <div v-for="n in 6" :key="n" class="sk-card tech-card">
+                <el-skeleton animated>
+                  <template #template>
+                    <div class="sk-head">
+                      <el-skeleton-item variant="circle" style="width:44px;height:44px" />
+                      <div class="sk-head-body">
+                        <el-skeleton-item variant="h3" style="width:60%;height:16px" />
+                        <el-skeleton-item variant="text" style="width:38%;height:12px;margin-top:8px" />
+                      </div>
+                    </div>
+                    <el-skeleton-item variant="text" style="width:92%;height:12px;margin-top:16px" />
+                    <el-skeleton-item variant="text" style="width:78%;height:12px;margin-top:8px" />
+                    <div class="sk-row" style="margin-top:16px">
+                      <el-skeleton-item variant="button" style="width:72px;height:22px" />
+                      <el-skeleton-item variant="button" style="width:88px;height:22px;margin-left:auto" />
+                    </div>
+                  </template>
+                </el-skeleton>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="gangs.length" class="profiles-container">
             <div v-for="gang in pagedGangs" :key="gang.id" class="profile-card tech-card">
               <div class="profile-header">
                 <div class="profile-avatar-wrapper" :class="'risk-' + gang.riskLevel.toLowerCase()">
@@ -255,7 +279,7 @@ import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
 const state = useAppState()
 const {
-  activeMenu, cases, gangs, getRiskType, selectGang,
+  activeMenu, cases, gangs, casesReady, getRiskType, selectGang,
   gangReview, gangReviewLoading, gangReviewUseLlm,
   gangReviewMap, suspiciousMergeMap, suspiciousMerges,
   loadGangReview, toggleGangReviewLlm
@@ -290,6 +314,28 @@ const entityLabel = (k) => ENTITY_LABELS[k] || String(k).replace(/_/g, '')
   margin-top: 18px;
   padding-top: 16px;
   border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
+
+/* 数据加载骨架：网格与 .profiles-container 近似，数据到位后跳版最小化 */
+.profiles-loading { margin-bottom: 20px; }
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+.sk-card {
+  padding: 16px;
+  border: 1px solid rgba(0, 198, 255, 0.08);
+}
+.sk-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sk-head-body { flex: 1; min-width: 0; }
+.sk-row {
+  display: flex;
+  align-items: center;
 }
 
 /* ===== 复核解释层（并案依据 / 误并案探测）===== */

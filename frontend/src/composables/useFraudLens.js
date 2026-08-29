@@ -61,6 +61,8 @@ export function useFraudLens() {
 
   const activeMenu = computed(() => route.name || 'input')
   const loading = ref(false)
+  // 案件/团伙首次加载是否完成（登录成功后触发）；未完成前列表页显示骨架屏
+  const casesReady = ref(false)
   const showProgress = ref(false)
   const showResult = ref(false)
   const progressPercent = ref(0)
@@ -1611,6 +1613,9 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       if (store.isLoggedIn) {
         ElMessage.error('数据加载失败: ' + detail)
       }
+    } finally {
+      // 供各页面在数据到位前显示骨架屏，避免先闪「暂无数据」再突然冒出列表
+      casesReady.value = true
     }
   }
 
@@ -1720,6 +1725,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     store,
     activeMenu,
     loading,
+    casesReady,
     showProgress, showResult, progressPercent, progressMessage, resultStats,
     inputText,
     uploadedImages,

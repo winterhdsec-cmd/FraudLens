@@ -2653,15 +2653,22 @@ html.dark .view-section {
   background: transparent !important;
   border: none !important;
 }
-/* 卡片改半透明毛玻璃，透出底纹又有层次 */
+/* 卡片半透明，透出 FX 底纹。
+   注意：这里刻意不加 backdrop-filter。列表项卡片（如 OverviewView 的 case-card）
+   动辄两三百个，每个毛玻璃都会强制创建一个合成层，密集列表滚动时明显掉帧；
+   而卡片彼此相邻、背后几乎没有内容可透，模糊与否视觉收益接近零。
+   毛玻璃只保留给数量有限的浮层/装饰容器：.glass-card（下一条）、
+   顶栏与侧栏（见 MainLayout.vue）。 */
 html.dark .stat-card,
 html.dark .tech-card,
-html.dark .glass-card,
 html.dark .view-card,
 html.dark .el-card {
   background: rgba(26, 34, 52, 0.72) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+}
+/* 装饰性玻璃容器：数量少，背后有内容可透，值得开毛玻璃。
+   毛玻璃半径沿用基础 .glass-card 的 blur(12px)，这里只覆盖背景色 */
+html.dark .glass-card {
+  background: rgba(26, 34, 52, 0.82) !important;
 }
 
 /* 主按钮：cyan 辉光 */

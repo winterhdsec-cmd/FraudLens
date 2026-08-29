@@ -1,10 +1,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, PieChart, RadarChart } from 'echarts/charts'
-import { GridComponent, LegendComponent, TooltipComponent, TitleComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
-echarts.use([BarChart, LineChart, PieChart, RadarChart, GridComponent, LegendComponent, TooltipComponent, TitleComponent, CanvasRenderer])
+// echarts 懒加载：App.vue 在根组件注入本 composable，静态 import 会让
+// 首屏（Showcase 首页，零图表）也被迫下载 ~1MB 的 echarts chunk。
+// 注册逻辑见 ./useEcharts.js，三处共用一份。
 import { useRouter, useRoute } from 'vue-router'
 import { store } from '../store.js'
 import { useCachedLoader } from './useAppState.js'
@@ -14,6 +12,7 @@ import {
   parseRawAmount, formatAmountRaw, formatCaseAmountText
 } from './utils.js'
 import { useAuth } from './useAuth.js'
+import { getEcharts } from './useEcharts.js'
 import api, {
   startAnalysis as apiStartAnalysis,
   fetchCases,
@@ -811,7 +810,8 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     }
   }
 
-  const initDashboardCharts = () => {
+  const _initDashboardChartsImpl = async () => {
+    const echarts = await getEcharts()
     const riskData = dashboardData.value.risk_distribution
     const statusData = dashboardData.value.status_distribution
     const barData = dashboardData.value.top_scam_types
@@ -1018,6 +1018,11 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
         dashboardRadarChart = null
       }
     })
+  }
+
+  // 对外暴露的版本：动态加载 echarts 失败时只告警，不让调用方拿到未捕获的 rejection
+  const initDashboardCharts = () => {
+    _initDashboardChartsImpl().catch(err => console.warn('[charts] 看板图表初始化失败:', err))
   }
 
   const loadAlerts = async (forceRefresh = false) => {
@@ -1272,7 +1277,8 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     router.push({ name: 'case-detail' })
   }
 
-  const initCharts = () => {
+  const _initChartsImpl = async () => {
+    const echarts = await getEcharts()
     nextTick(() => {
       const typeMap = {}
       cases.value.forEach(c => {
@@ -1365,6 +1371,11 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
         lineChart = null
       }
     })
+  }
+
+  // 对外暴露的版本：动态加载 echarts 失败时只告警，不让调用方拿到未捕获的 rejection
+  const initCharts = () => {
+    _initChartsImpl().catch(err => console.warn('[charts] 总览图表初始化失败:', err))
   }
 
   function mapGangFromResponse(g, idx) {

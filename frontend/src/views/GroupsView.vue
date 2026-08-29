@@ -56,7 +56,7 @@
           </div>
 
           <div v-if="gangs.length" class="profiles-container">
-            <div v-for="gang in gangs" :key="gang.id" class="profile-card tech-card">
+            <div v-for="gang in pagedGangs" :key="gang.id" class="profile-card tech-card">
               <div class="profile-header">
                 <div class="profile-avatar-wrapper" :class="'risk-' + gang.riskLevel.toLowerCase()">
                   <span class="profile-avatar">{{ gang.icon }}</span>
@@ -222,6 +222,17 @@
                 </el-button>
               </div>
             </div>
+
+            <div class="profiles-pagination" v-if="gangs.length > pageSize">
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :page-sizes="[6, 12, 24, 50]"
+                :total="gangs.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                background
+              />
+            </div>
           </div>
 
           <div v-else class="empty-state">
@@ -238,6 +249,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
 const router = useRouter()
@@ -248,6 +260,17 @@ const {
   gangReviewMap, suspiciousMergeMap, suspiciousMerges,
   loadGangReview, toggleGangReviewLlm
 } = state
+
+// 团伙画像卡片内含成员列表与并案依据，单卡 DOM 成本很高（实测整页 5690 节点），
+// 因此每页只渲染少量卡片，默认 12 个
+const currentPage = ref(1)
+const pageSize = ref(12)
+const pagedGangs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return gangs.value.slice(start, start + pageSize.value)
+})
+// 团伙数变化或改页大小后回到第一页，避免停在越界的空白页
+watch([() => gangs.value.length, pageSize], () => { currentPage.value = 1 })
 
 // 共享实体类型 -> 中文标签（key 与后端 gang_reviewer.ENTITY_TYPES 对齐）
 const ENTITY_LABELS = {
@@ -261,6 +284,14 @@ const entityLabel = (k) => ENTITY_LABELS[k] || String(k).replace(/_/g, '')
 </script>
 
 <style scoped>
+.profiles-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
+
 /* ===== 复核解释层（并案依据 / 误并案探测）===== */
 .review-controls {
   display: flex;

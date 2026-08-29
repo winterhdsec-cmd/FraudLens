@@ -47,10 +47,10 @@
 
   <div class="cases-section" v-if="cases.length">
     <div class="section-sub-header">
-      <h3 class="sub-title"><el-icon class="sub-icon"><Files /></el-icon>案件列表</h3>
+      <h3 class="sub-title"><el-icon class="sub-icon"><Files /></el-icon>案件列表<span class="list-count">共 {{ cases.length }} 条</span></h3>
     </div>
     <div v-if="viewMode === 'card'" class="cases-card-grid">
-      <div v-for="c in cases" :key="c.id" class="case-card tech-card" @click="viewCaseDetail(c)">
+      <div v-for="c in pagedCases" :key="c.id" class="case-card tech-card" @click="viewCaseDetail(c)">
         <div class="case-card-top">
           <span class="case-badge">{{ c.scam_type || c.type || '其他' }}</span>
           <span class="case-amount">{{ c.amountText }}</span>
@@ -83,7 +83,7 @@
           </el-select>
         </div>
       </div>
-      <el-table :data="cases" style="width:100%" @row-click="viewCaseDetail" highlight-current-row stripe @selection-change="onSelectionChange">
+      <el-table :data="pagedCases" style="width:100%" @row-click="viewCaseDetail" highlight-current-row stripe @selection-change="onSelectionChange">
         <el-table-column type="selection" width="40" />
         <el-table-column prop="id" label="编号" width="80" />
         <el-table-column prop="title" label="案件名称" min-width="160" />
@@ -93,6 +93,19 @@
         <el-table-column prop="date" label="时间" width="110" />
         <el-table-column label="操作" width="80"><template #default="s"><el-button size="small" type="primary" @click="viewCaseDetail(s.row)">详情</el-button></template></el-table-column>
       </el-table>
+    </div>
+
+    <div class="cases-pagination" v-if="cases.length > pageSize">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[12, 24, 48, 100]"
+        :total="cases.length"
+        layout="total, sizes, prev, pager, next, jumper"
+        background
+        @current-change="onPageChange"
+        @size-change="onPageChange"
+      />
     </div>
   </div>
 
@@ -145,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -172,6 +185,27 @@ onMounted(() => {
 
 const selectedCaseIds = ref([])
 const batchStatus = ref('')
+
+// 案件列表分页：cases 全量渲染会在几百条时堆到数千 DOM 节点，
+// 单页只渲染当前页数据（默认 24 条）。批量操作作用于当前页选中的行。
+const currentPage = ref(1)
+const pageSize = ref(24)
+
+const pagedCases = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return cases.value.slice(start, start + pageSize.value)
+})
+
+// 删除案件或改页大小后总页数会变小，防止停留在越界的空白页
+watch([() => cases.value.length, pageSize], () => {
+  const maxPage = Math.max(1, Math.ceil(cases.value.length / pageSize.value))
+  if (currentPage.value > maxPage) currentPage.value = maxPage
+})
+
+// 翻页后清空选择：el-table 未设 row-key，跨页保留选中会导致计数与实际不一致
+const onPageChange = () => {
+  selectedCaseIds.value = []
+}
 
 const onSelectionChange = (selection) => {
   selectedCaseIds.value = selection.map(s => s.id || s.case_id).filter(Boolean)
@@ -473,6 +507,21 @@ const handleBatchStatus = async (status) => {
 .selected-count { font-size: 12px; color: var(--accent-cyan); font-weight: 500; }
 
 .cases-section, .gangs-section { margin-bottom: 20px; }
+
+.list-count {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-3, #7b8794);
+}
+
+.cases-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 198, 255, 0.08);
+}
 
 .gangs-card {
   background: var(--bg-card);

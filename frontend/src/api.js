@@ -108,12 +108,18 @@ export async function changePassword(old_password, new_password) {
 }
 
 export async function updateUser(user_id, data) {
-  const response = await api.put('/api/admin/users/' + user_id, data)
+  // 注意：路由挂在 /api/auth 前缀下（backend/routes/auth.py）
+  const response = await api.put('/api/auth/admin/users/' + user_id, data)
   return response.data
 }
 
 export async function deleteUser(user_id) {
-  const response = await api.delete('/api/admin/users/' + user_id)
+  const response = await api.delete('/api/auth/admin/users/' + user_id)
+  return response.data
+}
+
+export async function createUser({ username, password, display_name, department, phone }) {
+  const response = await api.post('/api/auth/register', { username, password, display_name, department, phone })
   return response.data
 }
 

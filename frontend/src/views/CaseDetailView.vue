@@ -161,7 +161,7 @@
                       <div class="money-header">
                         <span class="money-icon"><el-icon><Money /></el-icon></span>
                         <span class="money-title">资金流向追踪</span>
-                        <el-button type="primary" size="small" @click="navigateTo('capital')" style="margin-left:auto">查看完整图谱</el-button>
+                        <el-button type="primary" size="small" @click="navigateTo('capital-flow')" style="margin-left:auto">查看完整图谱</el-button>
                       </div>
                       <div v-if="capitalFlows.length === 0" class="no-data">
                         <el-empty description="暂无资金流向数据" />

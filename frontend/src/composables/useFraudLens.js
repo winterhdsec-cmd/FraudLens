@@ -33,8 +33,40 @@ import api, {
   seedData,
   searchCases,
   getMe,
-  fetchGangReviewResults
+  fetchGangReviewResults,
+  generateCaseReport,
+  generateGangReport
 } from '../api.js'
+
+// 公安办案文书（红头文件）打印样式：预览组件与打印/下载窗口共用类名 rd-*。
+// 白底黑字、宋体、A4 版式，@media print 时去掉屏幕留白。
+const REPORT_DOC_CSS = `
+* { box-sizing: border-box; }
+body { background: #e9edf2; margin: 0; padding: 24px; font-family: 'SimSun', 'Songti SC', 'Microsoft YaHei', serif; }
+.report-doc { max-width: 794px; margin: 0 auto; background: #fff; color: #1a1a1a; padding: 46px 56px 40px; box-shadow: 0 2px 14px rgba(0,0,0,.18); line-height: 1.9; font-size: 15px; }
+.rd-org { text-align: center; color: #c00000; font-size: 30px; font-weight: 700; letter-spacing: 2px; font-family: 'SimHei', 'Microsoft YaHei', sans-serif; }
+.rd-title { text-align: center; font-size: 21px; font-weight: 700; margin: 14px 0 8px; letter-spacing: 3px; }
+.rd-meta { text-align: center; font-size: 13px; color: #333; margin-bottom: 6px; }
+.rd-meta span { margin: 0 10px; }
+.rd-secret { color: #c00000; }
+.rd-redline { height: 2.5px; background: #c00000; margin: 6px 0 22px; }
+.rd-section { margin-bottom: 18px; }
+.rd-sec-title { font-size: 16.5px; font-weight: 700; font-family: 'SimHei', 'Microsoft YaHei', sans-serif; margin-bottom: 8px; }
+.doc-table { width: 100%; border-collapse: collapse; }
+.doc-table td { border: 1px solid #8a8a8a; padding: 6px 10px; font-size: 14px; vertical-align: middle; }
+.dt-label { width: 120px; background: #f4f4f4; font-weight: 700; text-align: center; }
+.dt-value.danger { color: #c00000; font-weight: 700; }
+.doc-para { text-indent: 2em; margin: 6px 0; }
+.doc-ol { margin: 6px 0; padding-left: 26px; }
+.doc-ol li { margin-bottom: 4px; }
+.rd-sign { margin-top: 34px; text-align: right; font-size: 15px; }
+.rd-sign-date { margin-top: 6px; padding-right: 40px; }
+.rd-footer { margin-top: 26px; border-top: 1px solid #999; padding-top: 8px; font-size: 11px; color: #888; text-align: center; }
+@media print {
+  body { background: #fff; padding: 0; }
+  .report-doc { box-shadow: none; max-width: none; margin: 0; }
+}
+`
 
 export function useFraudLens() {
   const router = useRouter()
@@ -490,11 +522,20 @@ export function useFraudLens() {
     router.push({ name: 'overview' })
   }
 
+  const getCaseGangMap = computed(() => {
+    // 案件->团伙 反查表：原来每张卡片都对 48 个团伙做 find+includes（O(卡片x团伙x案件)），
+    // 案件列表页每次响应式重算都放大这个开销，改为建一次索引查一次。
+    const map = new Map()
+    for (const g of gangs.value) {
+      for (const cid of (g.caseIds || g.case_ids || [])) {
+        if (!map.has(cid)) map.set(cid, g)
+      }
+    }
+    return map
+  })
+
   const getCaseGang = (caseId) => {
-    return gangs.value.find(g => {
-      if (!g.id && !g.gang_id) return false
-      return g.caseIds?.includes(caseId) || g.case_ids?.includes(caseId)
-    })
+    return getCaseGangMap.value.get(caseId)
   }
 
   const getCaseTitle = (caseId) => {
@@ -619,27 +660,73 @@ export function useFraudLens() {
   }
 
   const generateReport = () => {
-    if (!reportConfig.value.gangId) {
+    if (reportConfig.value.type === 'gang' && !reportConfig.value.gangId) {
       ElMessage.warning('请先选择一个团伙')
       return
     }
-    generatingReport.value = true
-    setTimeout(() => {
-      generatingReport.value = false
-      reportPreview.value = true
-      ElMessage.success('报告生成成功')
-    }, 1500)
+    // 预览由前端即时渲染（数据已加载），不再假装 loading 1.5s
+    reportPreview.value = true
+    ElMessage.success('报告已生成，可打印或下载')
   }
 
+  // 打印：把纸面红头文书 HTML 写入新窗口自动弹出打印框（可"另存为 PDF"）
   const printReport = () => {
-    ElMessage.success('正在准备打印...')
+    const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
+    const subjectName = reportConfig.value.type === 'case'
+      ? (selectedCase.value?.title || '案件')
+      : (gang?.gang_name || gang?.name || '报告')
+    const html = generateReportHTML(getReportTitle(), subjectName)
+    const w = window.open('', '_blank', 'width=900,height=800')
+    if (!w) {
+      ElMessage.error('浏览器拦截了新窗口，请允许弹窗后重试')
+      return
+    }
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    // 等字体/布局渲染完成后自动弹出打印框
+    setTimeout(() => { try { w.print() } catch { /* 用户可手动 Ctrl+P */ } }, 400)
   }
 
+  // 下载：pdf/docx 优先走后端真实文件生成（reportlab/python-docx），
+  // 后端不可用或选 html 时降级为本地纸面文书 HTML。
   const downloadReport = async () => {
-    ElMessage.info('正在生成报告文件...')
     const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
     const gangName = gang?.gang_name || gang?.name || '报告'
     const title = getReportTitle()
+    const fmt = reportConfig.value.format
+
+    if (fmt === 'pdf' || fmt === 'docx') {
+      try {
+        let resp
+        if (reportConfig.value.type === 'case' && selectedCase.value?.id) {
+          resp = await generateCaseReport(selectedCase.value.id, fmt === 'docx' ? 'docx' : 'pdf')
+        } else if (reportConfig.value.gangId) {
+          if (fmt === 'docx') {
+            // 后端暂无团伙 docx 接口，降级本地 HTML
+            throw new Error('no gang docx endpoint')
+          }
+          resp = await generateGangReport(reportConfig.value.gangId)
+        } else {
+          throw new Error('no target id')
+        }
+        if (resp?.success && resp.file_path) {
+          const fileResp = await api.get(resp.file_path, { responseType: 'blob' })
+          const url = URL.createObjectURL(fileResp.data)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = resp.file_path.split('/').pop()
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          ElMessage.success('报告已下载')
+          return
+        }
+      } catch {
+        ElMessage.warning('后端报告服务不可用，已改用本地文书格式下载')
+      }
+    }
 
     const htmlContent = generateReportHTML(title, gangName)
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
@@ -651,108 +738,164 @@ export function useFraudLens() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    ElMessage.success('报告下载完成')
+    ElMessage.success('报告下载完成（打开后可打印为 PDF）')
   }
 
-  function generateReportHTML(title, gangName) {
+  // ===== 报告：公安办案文书风格（红头 + 文号 + 密级 + 正文 + 落款）=====
+  // 数据模型由 buildReportDoc() 产出，在线预览(ReportDocView)与
+  // 打印/下载(generateReportHTML)共用，保证所见即所得。
+  function buildReportDoc() {
     const gang = gangs.value.find(g => (g.id === reportConfig.value.gangId || g.gang_id === reportConfig.value.gangId))
-    const sections = []
+    const c = selectedCase.value
+    const isCase = reportConfig.value.type === 'case'
+    const year = new Date().getFullYear()
+    const now = new Date()
+    const timeStr = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const seq = (Date.now() % 9000) + 1000
 
-    sections.push(`
-      <div class="doc-header">
-        <div class="doc-logo"><span class="logo-icon">🛡️</span><span class="logo-text">反诈情报分析系统</span></div>
-        <div class="doc-title">${title}</div>
-        <div class="doc-meta">
-          <div><span class="meta-label">报告编号：</span>RPT-${Date.now().toString().slice(-8)}</div>
-          <div><span class="meta-label">生成时间：</span>${new Date().toLocaleString()}</div>
-          <div><span class="meta-label">密级：</span><span class="meta-secret">机密</span></div>
-        </div>
-      </div>
-      <div class="doc-content">
-    `)
-
-    sections.push(`<div class="doc-section">
-      <div class="section-title">一、${reportConfig.value.type === 'case' ? '案件' : '团伙'}基本信息</div>
-      <div class="section-body">
-        <div class="info-table">
-          <div class="info-row"><span class="info-label">${reportConfig.value.type === 'case' ? '案件' : '团伙'}名称</span><span class="info-value">${gangName}</span></div>
-          <div class="info-row"><span class="info-label">风险等级</span><span class="info-value">${gang?.riskLevel || '-'}级</span></div>
-          <div class="info-row"><span class="info-label">涉案金额</span><span class="info-value danger">${gang?.amount || '-'}</span></div>
-          <div class="info-row"><span class="info-label">关联案件</span><span class="info-value">${gang?.cases || 0} 起</span></div>
-          <div class="info-row"><span class="info-label">技术特征</span><span class="info-value">${(gang?.tags || []).join('、') || '-'}</span></div>
-        </div>
-      </div>
-    </div>`)
-
-    if (reportConfig.value.includeTimeline) {
-      const timeline = gang?.timeline || []
-      const items = timeline.length ? timeline.map(t =>
-        `<div class="doc-timeline-item"><span class="doc-time">${t.date || '-'}</span><span class="doc-event">${t.title || ''}</span><span class="doc-desc">${t.desc || ''}</span></div>`
-      ).join('\n') : `<div class="doc-timeline-item"><span class="doc-time">-</span><span class="doc-event">案件发生</span><span class="doc-desc">${gangName}相关案件</span></div>`
-      sections.push(`<div class="doc-section">
-        <div class="section-title">二、作案时间线</div>
-        <div class="section-body"><div class="doc-timeline">${items}</div></div>
-      </div>`)
+    const doc = {
+      title: getReportTitle(),
+      no: `FraudLens〔${year}〕${isCase ? '案研' : '团研'}字第 ${seq} 号`,
+      secret: '机密',
+      time: timeStr,
+      date: `${year}年${now.getMonth() + 1}月${now.getDate()}日`,
+      sections: []
     }
 
+    if (isCase && c) {
+      doc.subjectName = c.title || '案件'
+      doc.subjectNo = c.id || c.case_id || '-'
+      doc.sections.push({
+        title: '一、案件基本信息',
+        rows: [
+          ['案件编号', c.id || c.case_id || '-'],
+          ['案件名称', c.title || '-'],
+          ['诈骗类型', c.type || c.scam_type || '-'],
+          ['涉案金额', c.amount || c.amountText || '-', 'danger'],
+          ['案件状态', c.status || '-'],
+          ['发案时间', c.date ? String(c.date).slice(0, 10) : '-'],
+          ['受害人', c.victimName || '-']
+        ]
+      })
+    } else if (gang) {
+      doc.subjectName = gang.gang_name || gang.name || '团伙'
+      doc.subjectNo = gang.gang_id || gang.id || '-'
+      doc.sections.push({
+        title: '一、团伙基本信息',
+        rows: [
+          ['团伙编号', gang.gang_id || gang.id || '-'],
+          ['团伙名称', gang.gang_name || gang.name || '-'],
+          ['风险等级', (gang.riskLevel || gang.risk_label || '-') + '级'],
+          ['威胁等级', gang.threat_level || '-'],
+          ['综合评分', gang.score ?? gang.comprehensive_score ?? '-'],
+          ['串并置信度', gang.confidence ? Math.round(gang.confidence * 100) + '%' : '-'],
+          ['预估成员数', gang.member_count_estimate || gang.member_count || '-'],
+          ['技术手段', gang.tech_level || '-'],
+          ['话术类型', gang.script_type || '-'],
+          ['关联案件', (gang.cases || 0) + ' 起'],
+          ['涉案金额', gang.amount || '-', 'danger'],
+          ['特征标签', (gang.tags || []).join('、') || '-']
+        ]
+      })
+    } else {
+      doc.subjectName = '综合态势'
+      doc.subjectNo = '-'
+      doc.sections.push({
+        title: '一、研判范围',
+        rows: [
+          ['报告范围', '全量案件综合分析'],
+          ['案件总数', (cases.value?.length || 0) + ' 起'],
+          ['团伙总数', (gangs.value?.length || 0) + ' 个']
+        ]
+      })
+    }
+
+    // 二、作案流程 / 关联案件
+    const sec2 = { title: '二、作案流程与关联案件', rows: [], items: [] }
+    if (gang) {
+      if (gang.steps && gang.steps.length) {
+        sec2.text = '作案流程链：' + gang.steps.map(s => (typeof s === 'string' ? s : (s.title || s.name || s.step || '环节'))).join(' → ')
+      }
+      const rel = (gang.related_cases || []).slice(0, 5)
+      rel.forEach(rc => {
+        sec2.items.push(`${rc.case_id}（受害人：${rc.victim || '-'}，涉案：${rc.amount || '-'}${rc.reason ? '，并案依据：' + rc.reason : ''}）`)
+      })
+      if (sec2.items.length) {
+        sec2.text = (sec2.text ? sec2.text + '。' : '') + '经 GNN 图聚类与话术指纹比对，串并关联案件 ' + (gang.cases || sec2.items.length) + ' 起，前 ' + sec2.items.length + ' 起如下：'
+      }
+    } else if (isCase && c) {
+      sec2.text = c.description ? String(c.description).replace(/^###.*$/gm, '').trim().slice(0, 400) : ''
+      sec2.title = '二、案件经过'
+    }
+    if (reportConfig.value.includeTimeline && (sec2.text || sec2.items.length)) {
+      doc.sections.push(sec2)
+    }
+
+    // 三、资金流向分析
     if (reportConfig.value.includeMoney) {
-      sections.push(`<div class="doc-section">
-        <div class="section-title">三、资金流向分析</div>
-        <div class="section-body">
-          <div class="money-flow-summary">
-            <p>经分析，该${reportConfig.value.type === 'case' ? '案件' : '团伙'}涉案资金主要通过多级账户进行转移。资金流转层级约3-5层，涉及多家银行的多个账户，最终资金流向境外或虚拟货币平台。</p>
-          </div>
-        </div>
-      </div>`)
+      let moneyText
+      if (gang && (gang.overseas_pct || gang.transfer_levels)) {
+        moneyText = `经资金链路分析，该团伙涉案资金 ${gang.amount || '-'}，` +
+          `流转层级约 ${gang.transfer_levels || gang.max_level || 3}-${(gang.transfer_levels || 3) + 1} 级，` +
+          `涉及账户 ${gang.account_count || gang.total_accounts || '-'} 个` +
+          (gang.overseas_pct ? `，境外流向占比约 ${Math.round(gang.overseas_pct * 100)}%` : '') +
+          '。资金经多级银行卡快速分散转移，最终疑似归集至境外或虚拟货币平台，建议对末级账户紧急止付。'
+      } else if (isCase && c) {
+        moneyText = `经分析，该案件涉案金额为 ${c.amount || c.amountText || '未知'}，资金流向正在进一步核查中，建议协调银行调取完整交易流水，追踪资金去向。`
+      } else {
+        moneyText = '经分析，涉案资金主要通过多级账户快速转移，流转层级约3-5层，涉及多家银行多个账户，最终流向境外或虚拟货币平台。'
+      }
+      doc.sections.push({ title: '三、资金流向分析', text: moneyText })
     }
 
+    // 四、处置建议
     if (reportConfig.value.includeSuggestion) {
-      sections.push(`<div class="doc-section">
-        <div class="section-title">四、处置建议</div>
-        <div class="section-body">
-          <div class="suggestion-list">
-            <div class="suggestion-item"><span class="suggestion-num">1</span><span>建议立即对涉案账户进行止付冻结</span></div>
-            <div class="suggestion-item"><span class="suggestion-num">2</span><span>协调银行调取完整交易流水</span></div>
-            <div class="suggestion-item"><span class="suggestion-num">3</span><span>对团伙成员实施布控</span></div>
-            <div class="suggestion-item"><span class="suggestion-num">4</span><span>启动跨部门联合处置机制</span></div>
-          </div>
-        </div>
-      </div>`)
+      doc.sections.push({
+        title: '四、处置建议',
+        items: [
+          '立即对涉案银行账户、支付账户发起止付冻结，防止资金进一步转移；',
+          '协调相关银行及第三方支付机构调取完整交易流水，固定电子证据；',
+          '对团伙成员实施布控，摸清组织架构与落脚点，择机收网；',
+          '启动跨部门、跨区域联合处置机制，涉境外线索通报上级协查。'
+        ]
+      })
     }
-    sections.push(`</div><div class="doc-footer"><div class="footer-line"></div><div class="footer-text"><span>本报告由反诈情报分析系统自动生成</span><span>仅供内部参考使用</span></div></div>`)
 
-    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${title} - ${gangName}</title>
+    return doc
+  }
+
+  const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  function generateReportHTML(title, subjectName) {
+    const doc = buildReportDoc()
+    if (title) doc.title = title
+    if (subjectName) doc.subjectName = subjectName
+
+    const sectionsHtml = doc.sections.map(sec => {
+      let inner = ''
+      if (sec.rows?.length) {
+        inner += `<table class="doc-table"><tbody>${sec.rows.map(r =>
+          `<tr><td class="dt-label">${esc(r[0])}</td><td class="dt-value${r[2] === 'danger' ? ' danger' : ''}">${esc(r[1])}</td></tr>`).join('')}</tbody></table>`
+      }
+      if (sec.text) inner += `<p class="doc-para">${esc(sec.text)}</p>`
+      if (sec.items?.length) {
+        inner += `<ol class="doc-ol">${sec.items.map(i => `<li>${esc(i)}</li>`).join('')}</ol>`
+      }
+      return `<div class="doc-section"><div class="rd-sec-title">${esc(sec.title)}</div>${inner}</div>`
+    }).join('\n')
+
+    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${esc(doc.title)} - ${esc(doc.subjectName)}</title>
 <style>
-body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding: 40px; margin: 0; display: flex; justify-content: center; }
-.report-wrap { max-width: 800px; width: 100%; background: linear-gradient(135deg, #1a2332 0%, #0f1923 100%); padding: 32px 40px; border-radius: 8px; border: 1px solid #2d4054; color: #c8d6e5; font-size: 13px; line-height: 1.8; }
-.doc-header { text-align: center; padding-bottom: 16px; border-bottom: 3px solid #2d5b7a; margin-bottom: 16px; }
-.doc-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
-.logo-icon { font-size: 24px; }
-.logo-text { font-size: 14px; color: #5b8db8; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
-.doc-title { font-size: 17px; color: #e8eef5; font-weight: 700; margin-bottom: 10px; letter-spacing: 1px; }
-.doc-meta { display: flex; justify-content: center; gap: 20px; font-size: 11px; color: #8899aa; flex-wrap: wrap; }
-.meta-secret { color: #e74c3c; font-weight: 600; }
-.doc-section { margin-bottom: 14px; }
-.section-title { font-size: 14px; color: #e8eef5; font-weight: 600; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2d4054; }
-.section-body { padding-left: 6px; font-size: 12px; color: #b0c4d8; }
-.info-table { display: flex; flex-direction: column; gap: 3px; }
-.info-row { display: flex; padding: 3px 0; border-bottom: 1px dashed #2a3a4a; }
-.info-label { width: 90px; color: #7a8a9a; flex-shrink: 0; font-size: 11px; }
-.info-value { flex: 1; color: #c8d6e5; font-size: 12px; }
-.info-value.danger { color: #e74c3c; font-weight: 600; }
-.doc-timeline { display: flex; flex-direction: column; gap: 4px; }
-.doc-timeline-item { display: flex; gap: 8px; padding: 5px 10px; background: rgba(45,64,84,0.3); border-radius: 4px; }
-.doc-time { font-size: 11px; color: #7a8a9a; width: 80px; flex-shrink: 0; }
-.doc-event { font-size: 12px; color: #c8d6e5; font-weight: 500; width: 100px; flex-shrink: 0; }
-.doc-desc { font-size: 11px; color: #8899aa; }
-.money-flow-summary { font-size: 12px; color: #b0c4d8; line-height: 1.7; }
-.suggestion-list { display: flex; flex-direction: column; gap: 5px; }
-.suggestion-item { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #b0c4d8; }
-.suggestion-num { width: 20px; height: 20px; background: #2d5b7a; color: #e8eef5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
-.doc-footer { text-align: center; padding-top: 14px; }
-.footer-line { height: 1px; background: #2d4054; margin-bottom: 6px; }
-.footer-text { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: #5a6a7a; }
-</style></head><body><div class="report-wrap">${sections.join('\n')}</div></body></html>`
+${REPORT_DOC_CSS}
+</style></head><body><div class="report-doc">
+  <div class="rd-org">FraudLens 反诈智能研判系统</div>
+  <div class="rd-title">${esc(doc.title)}</div>
+  <div class="rd-meta"><span>${esc(doc.no)}</span><span>密级：<b class="rd-secret">${esc(doc.secret)}</b></span><span>生成时间：${esc(doc.time)}</span></div>
+  <div class="rd-redline"></div>
+  <div class="rd-body">${sectionsHtml}</div>
+  <div class="rd-sign"><div>研判民警（承办）：＿＿＿＿＿＿＿＿　复核：＿＿＿＿＿＿＿＿</div><div class="rd-sign-date">${esc(doc.date)}</div></div>
+  <div class="rd-footer">本报告由 FraudLens 反诈智能研判系统自动生成，数据来源于本单位授权系统，仅供内部研判参考，严禁外传。</div>
+</div></body></html>`
   }
 
   const loadDashboard = async (forceRefresh = false) => {
@@ -1430,6 +1573,12 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
       matched_entities_map: g.matched_entities_map || {},
       radar_data: g.radar_data || g.radarData || {},
       radarData: g.radar_data || g.radarData || {},
+      // 团伙画像卡片增强（问题10）：作案流程、威胁等级、话术类型
+      steps: Array.isArray(g.steps) ? g.steps : [],
+      threat_level: g.threat_level || '',
+      tech_level: g.tech_level || '',
+      script_type: g.script_type || '',
+      member_count_estimate: g.member_count_estimate || '',
       leader_name: g.leader_name || '',
       leader_role: g.leader_role || '',
       sub_leader: g.sub_leader || '',
@@ -1588,8 +1737,9 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     if (!store.isLoggedIn) return
     try {
       const [casesRes, gangsRes] = await Promise.all([
-        cachedLoad('cases', fetchCases, forceRefresh ? 0 : 10000),
-        cachedLoad('gangs', fetchGangs, forceRefresh ? 0 : 10000)
+        // TTL 30s：10s 时切页几乎必重拉（cases+gangs 合计 ~390KB），是"案件总览慢"的主因之一
+        cachedLoad('cases', fetchCases, forceRefresh ? 0 : 30000),
+        cachedLoad('gangs', fetchGangs, forceRefresh ? 0 : 30000)
       ])
       if (casesRes.success) {
         const caseData = casesRes.cases || casesRes.data || []
@@ -1665,7 +1815,8 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
           await seedData()
           loadingMsg.close()
           ElMessage.success('示例数据加载成功！')
-          await reloadCasesAndGangs()
+          // 强制刷新：绕过缓存，否则命中 seed 前缓存的空列表
+          await reloadCasesAndGangs(true)
           if (routeName === 'overview' && gangs.value.length) {
             nextTick(() => initCharts())
           }
@@ -1848,6 +1999,7 @@ body { background: #0a0e1a; font-family: 'Microsoft YaHei', sans-serif; padding:
     generateReport,
     printReport,
     downloadReport,
+    buildReportDoc,
     loadDashboard,
     initCharts,
     loadAlerts,

@@ -7,13 +7,30 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_JUSTIFY
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
+                                TableStyle, HRFlowable)
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'reports')
+
+# 中文公文用宋体。reportlab 自带 STSong-Light CID 字体，无需外部字体文件，
+# 避免服务器缺字体导致中文变方框（此前 PDF 正文用 Helvetica，中文全是豆腐块，很丑）。
+_CN_FONT = 'Helvetica'
+try:
+    pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+    _CN_FONT = 'STSong-Light'
+except Exception:
+    _CN_FONT = 'Helvetica'
+
+# 机关红（GB/T 公文红色标题），与密级黑
+_RED = colors.HexColor('#c00000')
+_BLACK = colors.HexColor('#1a1a1a')
 
 
 def _ensure_reports_dir():
@@ -22,37 +39,105 @@ def _ensure_reports_dir():
 
 def _get_styles():
     styles = getSampleStyleSheet()
+    # 红色机关名（红头）
+    styles.add(ParagraphStyle(
+        'RedOrg',
+        parent=styles['Title'],
+        fontName=_CN_FONT,
+        fontSize=26,
+        leading=34,
+        alignment=TA_CENTER,
+        textColor=_RED,
+        spaceAfter=6,
+        spaceBefore=4
+    ))
+    # 文书标题（黑色大字）
     styles.add(ParagraphStyle(
         'ChineseTitle',
         parent=styles['Title'],
-        fontSize=22,
-        leading=30,
-        alignment=1,
-        spaceAfter=20
+        fontName=_CN_FONT,
+        fontSize=20,
+        leading=28,
+        alignment=TA_CENTER,
+        textColor=_BLACK,
+        spaceAfter=10
     ))
     styles.add(ParagraphStyle(
         'ChineseHeading',
         parent=styles['Heading2'],
+        fontName=_CN_FONT,
         fontSize=14,
         leading=20,
+        textColor=_BLACK,
         spaceBefore=12,
         spaceAfter=6
     ))
     styles.add(ParagraphStyle(
         'ChineseBody',
         parent=styles['Normal'],
+        fontName=_CN_FONT,
+        fontSize=10.5,
+        leading=18,
+        textColor=_BLACK,
+        alignment=TA_JUSTIFY,
+        firstLineIndent=21,
+        spaceAfter=4
+    ))
+    styles.add(ParagraphStyle(
+        'ChineseMeta',
+        parent=styles['Normal'],
+        fontName=_CN_FONT,
         fontSize=10,
         leading=16,
-        spaceAfter=4
+        textColor=_BLACK,
+        alignment=TA_CENTER,
+        spaceAfter=2
+    ))
+    styles.add(ParagraphStyle(
+        'SignRight',
+        parent=styles['Normal'],
+        fontName=_CN_FONT,
+        fontSize=11,
+        leading=22,
+        textColor=_BLACK,
+        alignment=TA_RIGHT,
+        spaceBefore=18
     ))
     styles.add(ParagraphStyle(
         'ChineseSmall',
         parent=styles['Normal'],
+        fontName=_CN_FONT,
         fontSize=8,
         leading=12,
         textColor=colors.grey
     ))
     return styles
+
+
+def _report_no(prefix, obj_id):
+    """生成公文式文号：FraudLens〔2026〕案研字第 0001 号风格。"""
+    year = datetime.now().year
+    seq = (int(datetime.now().timestamp()) % 9000) + 1000
+    return f'FraudLens〔{year}〕{prefix}字第 {seq} 号'
+
+
+def _build_red_header(styles, doc_title, report_no, secret='机密', extra_meta=None):
+    """红头 + 标题 + 文号/密级行 + 红色分隔线。返回列表 flowables。"""
+    els = []
+    els.append(Paragraph('FraudLens 反诈智能研判系统', styles['RedOrg']))
+    els.append(Spacer(1, 2 * mm))
+    els.append(Paragraph(doc_title, styles['ChineseTitle']))
+    els.append(Spacer(1, 3 * mm))
+    sep = '　　'  # 全角空格分隔，reportlab 不支持 &nbsp;
+    meta_line = (f'{report_no}{sep}密级：<font color="#c00000"><b>{secret}</b></font>{sep}'
+                 f'生成时间：{datetime.now().strftime("%Y-%m-%d %H:%M")}')
+    if extra_meta:
+        meta_line = extra_meta + sep + meta_line
+    els.append(Paragraph(meta_line, styles['ChineseMeta']))
+    els.append(Spacer(1, 3 * mm))
+    # 红色武断线（红头文件标志性红线）
+    els.append(HRFlowable(width='100%', thickness=2, color=_RED, spaceBefore=0, spaceAfter=8))
+    return els
 
 
 def generate_case_report(case_id):
@@ -75,27 +160,14 @@ def generate_case_report(case_id):
     styles = _get_styles()
     elements = []
 
-    elements.append(Paragraph('反诈智能研判报告', styles['ChineseTitle']))
-    elements.append(Spacer(1, 6*mm))
-
-    header_data = [
-        ['报告编号', f'RPT-{case_id}'],
-        ['生成日期', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-        ['案件状态', case.get('status', '')],
-    ]
-    header_table = Table(header_data, colWidths=[40*mm, 100*mm])
-    header_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-    ]))
-    elements.append(header_table)
-    elements.append(Spacer(1, 8*mm))
+    # 红头 + 文书标题 + 文号/密级 + 红线（仿公安办案文书版式）
+    elements.extend(_build_red_header(
+        styles,
+        '反诈智能研判报告',
+        _report_no('案研', case_id),
+        secret='机密',
+        extra_meta=f'案件编号：{case_id}'
+    ))
 
     elements.append(Paragraph('一、案件基本信息', styles['ChineseHeading']))
     info_data = [
@@ -108,7 +180,7 @@ def generate_case_report(case_id):
     ]
     info_table = Table(info_data, colWidths=[35*mm, 105*mm])
     info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -130,7 +202,7 @@ def generate_case_report(case_id):
     ]
     victim_table = Table(victim_data, colWidths=[35*mm, 105*mm])
     victim_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -151,7 +223,7 @@ def generate_case_report(case_id):
         if entity_rows:
             entity_table = Table(entity_rows, colWidths=[35*mm, 105*mm])
             entity_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -177,7 +249,7 @@ def generate_case_report(case_id):
             evi_data.append([str(i), ev.type, (ev.content or '')[:60], ev.status])
         evi_table = Table(evi_data, colWidths=[12*mm, 30*mm, 68*mm, 25*mm])
         evi_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -192,10 +264,17 @@ def generate_case_report(case_id):
     ai_report = case.get('ai_report', '')
     if ai_report:
         elements.append(Paragraph('六、智能分析报告', styles['ChineseHeading']))
-        elements.append(Paragraph(ai_report[:2000], styles['ChineseBody']))
+        # 保留 AI 报告换行：转成 <br/> 再用 Paragraph 渲染
+        safe = (ai_report[:3000].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                .replace('\n', '<br/>'))
+        elements.append(Paragraph(safe, styles['ChineseBody']))
 
-    elements.append(Spacer(1, 10*mm))
-    elements.append(Paragraph('— 报告结束 —', styles['ChineseSmall']))
+    # 承办人签章位（公文落款，右对齐）
+    elements.append(Paragraph('研判民警（承办）：__________________　复核：__________________', styles['SignRight']))
+    elements.append(Paragraph(datetime.now().strftime('%Y年%m月%d日'), styles['SignRight']))
+    elements.append(Spacer(1, 8*mm))
+    elements.append(HRFlowable(width='100%', thickness=0.6, color=colors.grey))
+    elements.append(Paragraph('本报告由 FraudLens 反诈智能研判系统自动生成，数据来源于本单位授权系统，仅供内部研判参考，严禁外传。', styles['ChineseSmall']))
 
     doc.build(elements)
     return file_path
@@ -221,27 +300,14 @@ def generate_gang_report(gang_id):
     styles = _get_styles()
     elements = []
 
-    elements.append(Paragraph('反诈智能研判报告 - 犯罪团伙', styles['ChineseTitle']))
-    elements.append(Spacer(1, 6*mm))
-
-    header_data = [
-        ['团伙编号', f'GNG-{gang_id}'],
-        ['生成日期', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-        ['威胁等级', gang.get('threat_level', '')],
-    ]
-    header_table = Table(header_data, colWidths=[40*mm, 100*mm])
-    header_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-    ]))
-    elements.append(header_table)
-    elements.append(Spacer(1, 8*mm))
+    # 红头 + 文书标题 + 文号/密级 + 红线
+    elements.extend(_build_red_header(
+        styles,
+        '涉诈团伙研判报告',
+        _report_no('团研', gang_id),
+        secret='机密',
+        extra_meta=f'团伙编号：{gang_id}'
+    ))
 
     elements.append(Paragraph('一、团伙基本信息', styles['ChineseHeading']))
     info_data = [
@@ -257,7 +323,7 @@ def generate_gang_report(gang_id):
     ]
     info_table = Table(info_data, colWidths=[35*mm, 105*mm])
     info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -282,7 +348,7 @@ def generate_gang_report(gang_id):
             ])
         case_table = Table(case_data, colWidths=[10*mm, 30*mm, 35*mm, 35*mm, 30*mm])
         case_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), _CN_FONT),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -333,8 +399,20 @@ def generate_gang_report(gang_id):
         else:
             elements.append(Paragraph(str(risk_assessment)[:1000], styles['ChineseBody']))
 
-    elements.append(Spacer(1, 10*mm))
-    elements.append(Paragraph('— 报告结束 —', styles['ChineseSmall']))
+    steps = gang.get('steps', [])
+    if steps:
+        chain = ' → '.join(s if isinstance(s, str) else (s.get('title') or s.get('name') or s.get('step') or '')
+                           for s in steps)
+        if chain.strip(' →'):
+            elements.append(Paragraph('八、作案流程链', styles['ChineseHeading']))
+            elements.append(Paragraph(chain, styles['ChineseBody']))
+
+    # 承办人签章位（公文落款）
+    elements.append(Paragraph('研判民警（承办）：__________________　复核：__________________', styles['SignRight']))
+    elements.append(Paragraph(datetime.now().strftime('%Y年%m月%d日'), styles['SignRight']))
+    elements.append(Spacer(1, 8*mm))
+    elements.append(HRFlowable(width='100%', thickness=0.6, color=colors.grey))
+    elements.append(Paragraph('本报告由 FraudLens 反诈智能研判系统自动生成，数据来源于本单位授权系统，仅供内部研判参考，严禁外传。', styles['ChineseSmall']))
 
     doc.build(elements)
     return file_path

@@ -24,6 +24,8 @@ export function getEcharts() {
         charts.LineChart,
         charts.PieChart,
         charts.RadarChart,
+        // 资金流向页用桑基图按层级展示转账链路
+        charts.SankeyChart,
         components.GridComponent,
         components.LegendComponent,
         components.TooltipComponent,

@@ -14,35 +14,123 @@
     <el-tabs v-model="adminTab" class="admin-tabs">
       <el-tab-pane label="用户管理" name="users">
         <div class="admin-toolbar">
-          <el-button type="primary" size="small" @click="showAddUser = true">
-            <span>➕</span> 添加用户
-          </el-button>
+          <div class="admin-toolbar-left">
+            <el-button type="primary" size="small" @click="openAddUser">
+              <span>➕</span> 添加用户
+            </el-button>
+          </div>
+          <div class="admin-toolbar-right">
+            <el-input
+              v-model="userSearch"
+              size="small"
+              placeholder="搜索用户名/姓名/部门"
+              clearable
+              style="width: 220px"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <span class="user-count">共 {{ filteredUsers.length }} 人</span>
+          </div>
         </div>
-        <el-table :data="userList" style="width:100%" stripe>
+        <el-table :data="pagedUsers" style="width:100%" stripe>
           <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column prop="username" label="用户名" width="120" />
-          <el-table-column prop="display_name" label="姓名" width="120" />
+          <el-table-column prop="username" label="用户名" width="140" show-overflow-tooltip />
+          <el-table-column prop="display_name" label="姓名" width="120" show-overflow-tooltip />
           <el-table-column prop="role" label="角色" width="100">
             <template #default="s">
-              <el-tag :type="s.row.role === 'admin' ? 'danger' : 'info'" size="small">{{ s.row.role === 'admin' ? '管理员' : '民警' }}</el-tag>
+              <el-tag :type="roleTagType(s.row.role)" size="small">{{ roleLabel(s.row.role) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="department" label="部门" />
+          <el-table-column prop="department" label="部门" show-overflow-tooltip />
           <el-table-column prop="phone" label="手机号" width="130" />
           <el-table-column prop="is_active" label="状态" width="80">
             <template #default="s">
               <el-tag :type="s.row.is_active ? 'success' : 'danger'" size="small">{{ s.row.is_active ? '正常' : '禁用' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" label="创建时间" width="160" />
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column prop="created_at" label="创建时间" width="160">
+            <template #default="s">{{ formatTime(s.row.created_at) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="s">
-              <el-button size="small" @click="editUser(s.row)">编辑</el-button>
-              <el-button size="small" type="danger" @click="handleDeleteUser(s.row)">删除</el-button>
+              <el-button size="small" @click="openEditUser(s.row)">编辑</el-button>
+              <el-button
+                size="small"
+                :type="s.row.is_active ? 'warning' : 'success'"
+                @click="handleToggleActive(s.row)"
+                :disabled="s.row.username === 'admin'"
+              >{{ s.row.is_active ? '禁用' : '启用' }}</el-button>
+              <el-button size="small" type="danger" @click="handleDeleteUser(s.row)" :disabled="s.row.username === 'admin'">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
+        <div class="users-pagination" v-if="filteredUsers.length > userPageSize">
+          <el-pagination
+            v-model:current-page="userPage"
+            :page-size="userPageSize"
+            :total="filteredUsers.length"
+            layout="total, prev, pager, next, jumper"
+            background
+            small
+          />
+        </div>
       </el-tab-pane>
+
+      <!-- 添加用户对话框（此前按钮只有 showAddUser=true 但没有对话框，点击无反应） -->
+      <el-dialog v-model="showAddUser" title="添加用户" width="420px" append-to-body>
+        <el-form label-width="80px">
+          <el-form-item label="用户名">
+            <el-input v-model="addForm.username" placeholder="登录账号" />
+          </el-form-item>
+          <el-form-item label="初始密码">
+            <el-input v-model="addForm.password" type="password" show-password placeholder="至少 6 位" />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="addForm.display_name" placeholder="真实姓名" />
+          </el-form-item>
+          <el-form-item label="部门">
+            <el-input v-model="addForm.department" placeholder="如：刑侦大队" />
+          </el-form-item>
+          <el-form-item label="角色">
+            <el-select v-model="addForm.role" style="width:100%">
+              <el-option label="民警/分析师" value="analyst" />
+              <el-option label="管理员" value="admin" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="showAddUser = false">取消</el-button>
+          <el-button type="primary" :loading="addLoading" @click="handleAddUser">创建</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 编辑用户对话框（此前是 prompt 只改角色，且接口路径错误必然 404） -->
+      <el-dialog v-model="showEditUser" title="编辑用户" width="420px" append-to-body>
+        <el-form label-width="80px">
+          <el-form-item label="用户名">
+            <el-input :model-value="editForm.username" disabled />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="editForm.display_name" />
+          </el-form-item>
+          <el-form-item label="部门">
+            <el-input v-model="editForm.department" />
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="editForm.phone" />
+          </el-form-item>
+          <el-form-item label="角色">
+            <el-select v-model="editForm.role" style="width:100%" :disabled="editForm.username === 'admin'">
+              <el-option label="民警/分析师" value="analyst" />
+              <el-option label="管理员" value="admin" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="showEditUser = false">取消</el-button>
+          <el-button type="primary" :loading="editLoading" @click="handleSaveUser">保存</el-button>
+        </template>
+      </el-dialog>
 
       <el-tab-pane label="操作日志" name="logs">
         <el-table :data="logList" style="width:100%" stripe>
@@ -119,9 +207,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { changePassword, updateUser, deleteUser, getOperationLogs, getAiConfig, saveAiConfig } from '../api.js'
+import { changePassword, updateUser, deleteUser, createUser, getOperationLogs, getAiConfig, saveAiConfig } from '../api.js'
 import { useAppState } from '../composables/useAppState.js'
 
 const state = useAppState()
@@ -131,7 +219,6 @@ const adminTab = ref('users')
 const userList = ref([])
 const logList = ref([])
 const adminError = ref('')
-const showAddUser = ref(false)
 const pwForm = ref({ old: '', new: '' })
 const pwLoading = ref(false)
 const useCelery = ref(false)
@@ -139,6 +226,30 @@ const aiConfig = ref({ api_key: '', base_url: 'https://api.deepseek.com/v1', mod
 const aiConfigured = ref(false)
 const keyPreview = ref('')
 const aiConfigLoading = ref(false)
+
+// ===== 用户管理：搜索 + 分页 =====
+const userSearch = ref('')
+const userPage = ref(1)
+const userPageSize = 20
+const filteredUsers = computed(() => {
+  const kw = userSearch.value.trim().toLowerCase()
+  if (!kw) return userList.value
+  return userList.value.filter(u =>
+    (u.username || '').toLowerCase().includes(kw) ||
+    (u.display_name || '').toLowerCase().includes(kw) ||
+    (u.department || '').toLowerCase().includes(kw)
+  )
+})
+const pagedUsers = computed(() => {
+  const start = (userPage.value - 1) * userPageSize
+  return filteredUsers.value.slice(start, start + userPageSize)
+})
+// 搜索词变化时回到第一页，避免停在越界空白页
+watch(userSearch, () => { userPage.value = 1 })
+
+const roleLabel = (r) => ({ admin: '管理员', analyst: '民警/分析师', police: '民警' }[r] || r)
+const roleTagType = (r) => (r === 'admin' ? 'danger' : 'info')
+const formatTime = (t) => (t ? String(t).replace('T', ' ').slice(0, 19) : '')
 
 async function loadUsers() {
   try {
@@ -164,15 +275,89 @@ async function loadLogs() {
   }
 }
 
-function editUser(user) {
-  ElMessageBox.prompt('角色 (admin/police)', '编辑用户', {
-    inputValue: user.role,
-    inputPlaceholder: 'admin 或 police'
-  }).then(async ({ value }) => {
-    await updateUser(user.id, { role: value })
-    ElMessage.success('已更新')
-    loadUsers()
-  }).catch(() => {})
+// ===== 添加用户 =====
+const showAddUser = ref(false)
+const addLoading = ref(false)
+const addForm = ref({ username: '', password: '', display_name: '', department: '', role: 'analyst' })
+
+function openAddUser() {
+  addForm.value = { username: '', password: '', display_name: '', department: '', role: 'analyst' }
+  showAddUser.value = true
+}
+
+async function handleAddUser() {
+  const f = addForm.value
+  if (!f.username || !f.password) { ElMessage.warning('用户名和密码不能为空'); return }
+  if (f.password.length < 6) { ElMessage.warning('密码长度至少 6 位'); return }
+  addLoading.value = true
+  try {
+    const res = await createUser(f)
+    if (res.success) {
+      // 后端 register 固定 role=analyst；需要管理员时创建后再 PUT 改角色
+      if (f.role === 'admin' && res.user?.id) {
+        await updateUser(res.user.id, { role: 'admin' })
+      }
+      ElMessage.success('用户已创建')
+      showAddUser.value = false
+      loadUsers()
+    } else {
+      ElMessage.error(res.error || '创建失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || e.response?.data?.detail || '创建失败')
+  } finally {
+    addLoading.value = false
+  }
+}
+
+// ===== 编辑用户 =====
+const showEditUser = ref(false)
+const editLoading = ref(false)
+const editForm = ref({ id: null, username: '', display_name: '', department: '', phone: '', role: 'analyst' })
+
+function openEditUser(user) {
+  editForm.value = {
+    id: user.id,
+    username: user.username,
+    display_name: user.display_name || '',
+    department: user.department || '',
+    phone: user.phone || '',
+    role: user.role || 'analyst'
+  }
+  showEditUser.value = true
+}
+
+async function handleSaveUser() {
+  editLoading.value = true
+  try {
+    const { id, username, ...data } = editForm.value
+    const res = await updateUser(id, data)
+    if (res.success) {
+      ElMessage.success('已保存')
+      showEditUser.value = false
+      loadUsers()
+    } else {
+      ElMessage.error(res.error || '保存失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error || '保存失败')
+  } finally {
+    editLoading.value = false
+  }
+}
+
+async function handleToggleActive(user) {
+  try {
+    const res = await updateUser(user.id, { is_active: !user.is_active })
+    if (res.success) {
+      ElMessage.success(user.is_active ? '已禁用' : '已启用')
+      loadUsers()
+    } else {
+      ElMessage.error(res.error || '操作失败')
+    }
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
 }
 
 async function handleDeleteUser(user) {
@@ -182,9 +367,13 @@ async function handleDeleteUser(user) {
   }
   try {
     await ElMessageBox.confirm('确认删除用户 ' + user.username + '？', '警告', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
-    await deleteUser(user.id)
-    ElMessage.success('已删除')
-    loadUsers()
+    const res = await deleteUser(user.id)
+    if (res.success) {
+      ElMessage.success('已删除')
+      loadUsers()
+    } else {
+      ElMessage.error(res.error || '删除失败')
+    }
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('删除失败')
   }
@@ -355,7 +544,17 @@ onMounted(() => {
 .admin-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+.user-count {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+.users-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 /* System Info cards */

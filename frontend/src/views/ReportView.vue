@@ -71,137 +71,8 @@
                 </div>
               </div>
               <div class="preview-body">
-                <div class="report-document" v-if="reportPreview">
-                  <div class="doc-header">
-                    <div class="doc-logo">
-                      <span class="logo-icon"><el-icon><Lock /></el-icon></span>
-                      <span class="logo-text">反诈情报分析系统</span>
-                    </div>
-                    <div class="doc-title">{{ getReportTitle() }}</div>
-                    <div class="doc-meta">
-                      <div class="meta-item"><span class="meta-label">报告编号：</span><span>RPT-{{ Date.now().toString().slice(-8) }}</span></div>
-                      <div class="meta-item"><span class="meta-label">生成时间：</span><span>{{ new Date().toLocaleString() }}</span></div>
-                      <div class="meta-item"><span class="meta-label">密级：</span><span class="meta-secret">机密</span></div>
-                    </div>
-                  </div>
-
-                  <div class="doc-content">
-                    <div class="doc-section">
-                      <div class="section-title">{{ reportConfig.type === 'case' ? '一、案件基本信息' : '一、团伙基本信息' }}</div>
-                      <div class="section-body">
-                        <div class="info-table" v-if="reportConfig.type === 'case' && selectedCase">
-                          <div class="info-row">
-                            <span class="info-label">案件编号</span>
-                            <span class="info-value">{{ selectedCase.id || '-' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">案件名称</span>
-                            <span class="info-value">{{ selectedCase.title || '未选择' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">案件类型</span>
-                            <span class="info-value">{{ selectedCase.type || '-' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">涉案金额</span>
-                            <span class="info-value danger">{{ selectedCase.amount || '-' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">案件状态</span>
-                            <span class="info-value">{{ selectedCase.status || '-' }}</span>
-                          </div>
-                        </div>
-                        <div class="info-table" v-else-if="reportConfig.gangId">
-                          <div class="info-row">
-                            <span class="info-label">团伙名称</span>
-                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.name || getGangById(reportConfig.gangId)?.gang_name || '未选择' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">风险等级</span>
-                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.riskLevel || '-' }}级</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">涉案金额</span>
-                            <span class="info-value danger">{{ getGangById(reportConfig.gangId)?.amount || '-' }}</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">关联案件</span>
-                            <span class="info-value">{{ getGangById(reportConfig.gangId)?.cases || 0 }} 起</span>
-                          </div>
-                        </div>
-                        <div class="info-table" v-else>
-                          <div class="info-row">
-                            <span class="info-label">报告范围</span>
-                            <span class="info-value">全量案件综合分析</span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">案件总数</span>
-                            <span class="info-value">{{ selectedCase?.id ? '聚焦单案' : (state.cases?.length || 0) + ' 起' }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="doc-section" v-if="reportConfig.includeTimeline">
-                      <div class="section-title">二、作案时间线</div>
-                      <div class="section-body">
-                        <div class="doc-timeline">
-                          <div v-for="(item, idx) in reportConfig.type === 'case' ? [] : (getGangById(reportConfig.gangId)?.timeline || [])" :key="idx" class="doc-timeline-item">
-                            <span class="doc-time">{{ item.date }}</span>
-                            <span class="doc-event">{{ item.title }}</span>
-                            <span class="doc-desc">{{ item.desc }}</span>
-                          </div>
-                          <div v-if="reportConfig.type === 'case' && selectedCase?.description" class="doc-timeline-item">
-                            <span class="doc-time">{{ selectedCase.date || '-' }}</span>
-                            <span class="doc-event">案件发生</span>
-                            <span class="doc-desc">{{ selectedCase.title }}，涉及受害人{{ selectedCase.victimName || '未知' }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="doc-section" v-if="reportConfig.includeMoney">
-                      <div class="section-title">三、资金流向分析</div>
-                      <div class="section-body">
-                        <div class="money-flow-summary">
-                          <p v-if="reportConfig.type === 'case' && selectedCase">经分析，该案件涉案金额为 {{ selectedCase.amount || '未知' }}，资金流向正在进一步调查中。</p>
-                          <p v-else>经分析，该团伙涉案资金主要通过多级账户进行转移，最终流向境外。资金流转层级约3-5层，境外资金占比约85%。</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="doc-section" v-if="reportConfig.includeSuggestion">
-                      <div class="section-title">四、处置建议</div>
-                      <div class="section-body">
-                        <div class="suggestion-list">
-                          <div class="suggestion-item">
-                            <span class="suggestion-num">1</span>
-                            <span>建议立即对涉案账户进行止付冻结，防止资金进一步转移</span>
-                          </div>
-                          <div class="suggestion-item">
-                            <span class="suggestion-num">2</span>
-                            <span>协调银行调取完整交易流水，追踪资金去向</span>
-                          </div>
-                          <div class="suggestion-item">
-                            <span class="suggestion-num">3</span>
-                            <span>对团伙成员实施布控，择机收网</span>
-                          </div>
-                          <div class="suggestion-item">
-                            <span class="suggestion-num">4</span>
-                            <span>联系境外执法机构，开展国际协作</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="doc-footer">
-                    <div class="footer-line"></div>
-                    <div class="footer-text">
-                      <span>本报告由反诈情报分析系统自动生成</span>
-                      <span>仅供内部参考使用</span>
-                    </div>
-                  </div>
+                <div class="report-paper-wrap" v-if="reportPreview">
+                  <ReportDocView :doc="reportDoc" />
                 </div>
 
                 <div class="preview-empty" v-else>
@@ -217,16 +88,20 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
+import ReportDocView from '../components/ReportDocView.vue'
 const router = useRouter()
 const route = useRoute()
 const state = useAppState()
 const {
   activeMenu, cases, downloadReport, gangs, generateReport, generatingReport,
   getGangById, getReportTitle, loading, printReport, reportConfig, reportPreview,
-  selectedCase
+  selectedCase, buildReportDoc
 } = state
+
+// 文档模型：预览组件与打印/下载共用同一份，保证所见即所得
+const reportDoc = computed(() => (reportPreview.value ? buildReportDoc() : null))
 
 onMounted(() => {
   if (route.query.gangId) {
@@ -236,3 +111,23 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+/* 纸面预览容器：深色面板里嵌一张 A4 白纸，与导出/打印版式一致 */
+.report-paper-wrap {
+  background: #e9edf2;
+  border-radius: 6px;
+  padding: 18px 10px;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+.report-paper-wrap :deep(.report-doc) {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  padding: 34px 40px 30px;
+  font-size: 13.5px;
+  line-height: 1.8;
+}
+.report-paper-wrap :deep(.rd-org) { font-size: 24px; }
+.report-paper-wrap :deep(.rd-title) { font-size: 18px; }
+.report-paper-wrap :deep(.doc-table td) { font-size: 12.5px; padding: 4px 8px; }
+</style>

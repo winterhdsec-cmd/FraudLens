@@ -136,47 +136,52 @@
                     作案特征
                   </div>
                   <div class="feature-tags">
-                    <el-tag v-for="tag in gang.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
+                    <el-tag v-if="gang.script_type" size="small" type="warning" effect="dark">{{ gang.script_type }}</el-tag>
+                    <el-tag v-for="tag in gang.tags.slice(0, 6)" :key="tag" size="small" type="info">{{ tag }}</el-tag>
                   </div>
-                </div>
-
-                <div class="profile-section">
-                  <div class="section-label">
-                    <span class="label-icon"><el-icon><User /></el-icon></span>
-                    成员信息
-                  </div>
-                  <div class="member-grid">
-                    <div v-for="member in gang.members" :key="member.id" class="member-card">
-                      <span class="member-avatar">{{ member.icon }}</span>
-                      <div class="member-details">
-                        <span class="member-name">{{ member.name }}</span>
-                        <el-tag size="small" :type="member.role === '头目' ? 'danger' : 'info'">
-                          {{ member.role }}
-                        </el-tag>
-                      </div>
+                  <!-- 作案流程：引流 / 实施 / 洗钱（公安一线话术），后端 steps 真实填充 -->
+                  <div v-if="gang.steps && gang.steps.length" class="gang-steps">
+                    <span class="steps-label">作案流程</span>
+                    <div class="steps-chain">
+                      <template v-for="(s, si) in gang.steps" :key="si">
+                        <span class="step-node">{{ typeof s === 'string' ? s : (s.title || s.name || s.step || '环节') }}</span>
+                        <span v-if="si < gang.steps.length - 1" class="step-arrow">→</span>
+                      </template>
                     </div>
                   </div>
                 </div>
 
+                <!-- 能力评估改用 radar_data 真实六维评分（原 abilities.* 字段不存在，三根条永远显示假值） -->
                 <div class="profile-section">
                   <div class="section-label">
                     <span class="label-icon"><el-icon><TrendCharts /></el-icon></span>
                     能力评估
                   </div>
-                  <div class="ability-bars">
-                    <div class="ability-item">
-                      <span class="ability-label">技术能力</span>
-                      <el-progress :percentage="gang.abilities?.tech || 75" :color="'#00d4ff'" :stroke-width="8" />
-                    </div>
-                    <div class="ability-item">
-                      <span class="ability-label">组织严密性</span>
-                      <el-progress :percentage="gang.abilities?.org || 85" :color="'#f59e0b'" :stroke-width="8" />
-                    </div>
-                    <div class="ability-item">
-                      <span class="ability-label">反侦察能力</span>
-                      <el-progress :percentage="gang.abilities?.antiDetect || 60" :color="'#ef4444'" :stroke-width="8" />
+                  <div class="ability-bars" v-if="radarPairs(gang).length">
+                    <div class="ability-item" v-for="(p, pi) in radarPairs(gang)" :key="p.k">
+                      <span class="ability-label">{{ p.k }}</span>
+                      <el-progress :percentage="p.v" :color="abilityColor(pi)" :stroke-width="8" />
                     </div>
                   </div>
+                  <div v-else class="ability-empty">暂无能力评估数据</div>
+                </div>
+
+                <!-- 关联案件摘要：团伙画像最有价值的信息（此前完全不显示） -->
+                <div class="profile-section">
+                  <div class="section-label">
+                    <span class="label-icon"><el-icon><Files /></el-icon></span>
+                    关联案件
+                    <span class="section-count" v-if="gang.related_cases?.length">前 {{ Math.min(3, gang.related_cases.length) }} / 共 {{ gang.related_cases.length }} 起</span>
+                  </div>
+                  <div class="related-case-list" v-if="gang.related_cases?.length">
+                    <div v-for="rc in gang.related_cases.slice(0, 3)" :key="rc.case_id" class="related-case-row" @click="jumpToCase(rc.case_id)">
+                      <span class="rc-id">{{ rc.case_id }}</span>
+                      <span class="rc-victim">{{ rc.victim || '受害人' }}</span>
+                      <span class="rc-amount">{{ rc.amount || '-' }}</span>
+                      <el-tag size="small" :type="getRiskType(rc.risk_level)" effect="plain" v-if="rc.risk_level">{{ rc.risk_level }}</el-tag>
+                    </div>
+                  </div>
+                  <div v-else class="ability-empty">暂无关联案件明细</div>
                 </div>
 
                 <!-- 并案依据解释器（Skill A）：反思闭环可视化 -->
@@ -305,6 +310,22 @@ const ENTITY_LABELS = {
   ip: 'IP', ips: 'IP', wallet: '钱包地址'
 }
 const entityLabel = (k) => ENTITY_LABELS[k] || String(k).replace(/_/g, '')
+
+// radar_data 是中文键的六维评分字典（后端真实字段，0~100），取前 3 维做进度条
+const RADAR_COLORS = ['#00d4ff', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981', '#ec4899']
+const radarPairs = (gang) => {
+  const rd = gang.radar_data || gang.radarData || {}
+  return Object.entries(rd)
+    .filter(([, v]) => typeof v === 'number' && v > 0)
+    .map(([k, v]) => ({ k, v: Math.round(v) }))
+    .slice(0, 4)
+}
+const abilityColor = (i) => RADAR_COLORS[i % RADAR_COLORS.length]
+
+const jumpToCase = (caseId) => {
+  const c = cases.value?.find(x => x.case_id === caseId || x.id === caseId)
+  if (c) { state.viewCaseDetail?.(c) } else { router.push({ name: 'overview' }) }
+}
 </script>
 
 <style scoped>
@@ -337,6 +358,52 @@ const entityLabel = (k) => ENTITY_LABELS[k] || String(k).replace(/_/g, '')
   display: flex;
   align-items: center;
 }
+
+/* ===== 团伙画像卡片增强（问题10）===== */
+.gang-steps { margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.steps-label { font-size: 11.5px; color: var(--text-secondary, #64748b); flex-shrink: 0; }
+.steps-chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.step-node {
+  font-size: 11.5px;
+  color: #7dd3fc;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.step-arrow { color: rgba(125, 211, 252, 0.5); font-size: 11px; }
+.ability-empty { font-size: 12px; color: var(--text-secondary, #64748b); }
+.section-count { font-size: 11px; color: var(--text-muted, #475569); margin-left: auto; font-weight: 400; }
+.related-case-list { display: flex; flex-direction: column; gap: 4px; }
+.related-case-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 0;
+}
+.related-case-row:hover { background: rgba(0, 212, 255, 0.08); }
+.rc-id {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  color: #93c5fd;
+  flex-shrink: 0;
+  font-size: 11.5px;
+}
+.rc-victim {
+  color: var(--text-primary, #cbd5e1);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-amount { color: #f87171; flex-shrink: 0; font-weight: 600; }
 
 /* ===== 复核解释层（并案依据 / 误并案探测）===== */
 .review-controls {

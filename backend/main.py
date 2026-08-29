@@ -287,11 +287,13 @@ async def lifespan(app: FastAPI):
     # 将所有重数据初始化操作移到后台线程，避免阻塞事件循环
     def _background_init():
         from database.seed import (
-            _do_seed_data, _do_p1_data, _do_gang_data, _do_radar_background
+            _do_seed_data, _do_p1_data, _do_gang_data, _do_radar_background,
+            _do_alert_data
         )
         _do_seed_data()
         _do_p1_data()
         _do_gang_data()
+        _do_alert_data()
         _do_radar_background()
 
     threading.Thread(target=_background_init, daemon=True).start()

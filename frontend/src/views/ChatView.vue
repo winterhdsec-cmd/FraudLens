@@ -195,6 +195,7 @@
 <script>
 import { ref, onMounted, nextTick, watch, computed } from 'vue';
 import api from '../api';
+import { store } from '../store.js';
 
 export default {
   name: 'ChatView',
@@ -367,8 +368,10 @@ export default {
 
       try {
         // 使用 fetch API 读取 SSE 流
+        // 注意：token 存在 sessionStorage（键 fraudlens_token），由 store 统一维护。
+        // 此前误读 localStorage.getItem('token')，永远为 null → 后端 401
         const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5003';
-        const token = localStorage.getItem('token');
+        const token = store.token;
         
         const response = await fetch(`${API_BASE}/api/chat/message/stream`, {
           method: 'POST',

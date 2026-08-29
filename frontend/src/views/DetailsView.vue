@@ -356,7 +356,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
-import * as echarts from 'echarts'
+import { getEcharts } from '../composables/useEcharts.js'
 import { getGangRadar, reviewCase } from '../api.js'
 import MiniNetworkGraph from '../components/MiniNetworkGraph.vue'
 const router = useRouter()
@@ -840,7 +840,7 @@ let radarChartInstance = null
 let _radarReqId = 0
 const radarLoading = ref(false)
 
-function renderRadarChart() {
+async function renderRadarChart() {
   // 确保 DOM 就绪
   if (!radarChartRef.value) {
     setTimeout(() => renderRadarChart(), 100)
@@ -853,7 +853,8 @@ function renderRadarChart() {
     radarChartInstance = null
   }
   
-  // 初始化图表实例
+  // echarts 声明在函数作用域：下面 setOption 里的 echarts.graphic 也要用得到
+  const echarts = await getEcharts()
   if (!radarChartInstance) {
     radarChartInstance = echarts.init(radarChartRef.value, null, { renderer: 'canvas' })
   }

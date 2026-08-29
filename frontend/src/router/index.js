@@ -6,7 +6,9 @@ const routes = [
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue'), meta: { title: '数据看板' } },
   { path: '/alerts', name: 'alerts', component: () => import('../views/AlertsView.vue'), meta: { title: '预警中心' } },
   { path: '/upload', name: 'upload', component: () => import('../views/UploadView.vue'), meta: { title: '文件上传' } },
-  { path: '/api', name: 'api', component: () => import('../views/ApiView.vue'), meta: { title: '接口管理' } },
+  // 路径不能以 /api 开头：dev server 的 proxy 按前缀匹配 /api，
+  // /api-docs 这类也会被代理截走返回 404，页面根本打不开
+  { path: '/openapi', name: 'api', component: () => import('../views/ApiView.vue'), meta: { title: '接口管理' } },
   { path: '/overview', name: 'overview', component: () => import('../views/OverviewView.vue'), meta: { title: '案件管理' } },
   { path: '/case-detail', name: 'case-detail', component: () => import('../views/CaseDetailView.vue'), meta: { title: '案件详情' } },
   { path: '/workbench', name: 'workbench', component: () => import('../views/WorkbenchView.vue'), meta: { title: '办案工作台' } },

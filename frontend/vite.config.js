@@ -17,7 +17,10 @@ export default defineConfig({
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router'],
           'element-plus': ['element-plus'],
-          echarts: ['echarts'],
+          // echarts 刻意不写在这里：源码只用 echarts/core 等子路径做动态 import，
+          // 若保留 'echarts' 会把包入口（含全部图表类型）强行打成一个 chunk，
+          // 按需引入就白做了。交给 Vite 按动态 import 自动分块，
+          // 图表代码只在真正 init 图表的页面才下载。
           'vis-network': ['vis-network']
         }
       }

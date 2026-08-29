@@ -53,7 +53,7 @@
             <span class="cbt-col col-victim">受害人</span>
             <span class="cbt-col col-action">操作</span>
           </div>
-          <div v-for="c in caseList" :key="c.case_id || c.id" class="cbt-row" :class="{ 'cbt-row-recent': recentIdSet.has(c.case_id || c.id) }" @dblclick="browseToCase(c.case_id || c.id)">
+          <div v-for="c in pagedCaseList" :key="c.case_id || c.id" class="cbt-row" :class="{ 'cbt-row-recent': recentIdSet.has(c.case_id || c.id) }" @dblclick="browseToCase(c.case_id || c.id)">
             <span class="cbt-col col-id">
               <code>{{ c.case_id || c.id }}</code>
               <span v-if="recentIdSet.has(c.case_id || c.id)" class="recent-badge">新</span>
@@ -67,6 +67,16 @@
             <span class="cbt-col col-action">
               <el-button size="small" type="primary" plain @click="browseToCase(c.case_id || c.id)"><el-icon><Money /></el-icon> 查看资金流向</el-button>
             </span>
+          </div>
+          <div class="cbt-pagination" v-if="caseList.length > pageSize">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[20, 50, 100]"
+              :total="caseList.length"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+            />
           </div>
         </div>
       </div>
@@ -199,6 +209,17 @@ const caseList = computed(() => {
   }
   return all
 })
+
+// 案件浏览器分页：全部案件动辄数百条，全量渲染会堆到数千 DOM 节点
+const currentPage = ref(1)
+const pageSize = ref(20)
+const pagedCaseList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return caseList.value.slice(start, start + pageSize.value)
+})
+// 切换「最近导入 / 全部案件」或刷新列表后回到第一页，避免停在越界的空白页
+watch(() => caseList.value.length, () => { currentPage.value = 1 })
+watch(pageSize, () => { currentPage.value = 1 })
 
 async function loadCases() {
   caseLoading.value = true
@@ -606,6 +627,12 @@ onMounted(() => {
 }
 .cbt-row:last-child { border-bottom: none; }
 .cbt-row:hover { background: rgba(0,198,255,0.04); }
+
+.cbt-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 14px 20px 4px;
+}
 .cbt-col {
   overflow: hidden;
   text-overflow: ellipsis;

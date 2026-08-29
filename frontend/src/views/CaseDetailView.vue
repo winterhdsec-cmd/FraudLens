@@ -435,7 +435,7 @@
 import { useRouter } from 'vue-router'
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { fetchCaseById } from '../api.js'
-import * as echarts from 'echarts'
+import { getEcharts } from '../composables/useEcharts.js'
 import { useAppState } from '../composables/useAppState.js'
 import { getCaseRadar, reviewCase } from '../api.js'
 const router = useRouter()
@@ -546,6 +546,8 @@ async function renderCaseRadar() {
     caseRadarInstance.dispose()
     caseRadarInstance = null
   }
+  // 注意：echarts 要声明在函数作用域，下面 setOption 里的 echarts.graphic 也要用
+  const echarts = await getEcharts()
   if (!caseRadarInstance) {
     caseRadarInstance = echarts.init(caseRadarRef.value, null, { renderer: 'canvas' })
   }

@@ -15,8 +15,9 @@ class SemanticAttention(nn.Module):
     语义级注意力 - 学习不同元路径的重要性
     """
     
-    def __init__(self, in_dim: int, hidden_dim: int = 128):
+    def __init__(self, in_dim: int, hidden_dim: int = 128, uniform: bool = False):
         super(SemanticAttention, self).__init__()
+        self.uniform = uniform
         self.project = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
             nn.Tanh(),
@@ -35,7 +36,12 @@ class SemanticAttention(nn.Module):
         """
         # 计算每个元路径的注意力分数
         w = self.project(z).mean(dim=1)  # [num_meta_paths, 1]
-        beta = torch.softmax(w, dim=0)  # [num_meta_paths, 1]
+        if self.uniform:
+            # 消融模式：固定等权平均（不学习元路径权重），验证语义注意力是否真实生效
+            beta = torch.full_like(w.detach(), 1.0 / z.shape[0])
+        else:
+            beta = torch.softmax(w, dim=0)  # [num_meta_paths, 1]
+        self.last_beta = beta.detach()
         
         # 加权融合：扩展到 [num_meta_paths, num_nodes, in_dim] 与 z 逐元素乘
         beta = beta.unsqueeze(-1)  # [num_meta_paths, 1, 1]
@@ -87,13 +93,21 @@ class HANLayer(nn.Module):
             更新后的节点特征 [num_nodes, out_dim]
         """
         num_nodes = features.shape[0]
-        
+
+        # 注意力偏置：非边 -inf 屏蔽 + 边权 log(w) 加性偏置。
+        # 二值邻接时 log(1)=0，偏置为 0，与原行为完全一致；
+        # 软权重邻接（如文本通道相似度边权）时，注意力 logits += log(w)，
+        # 等效于对相似度高的邻居加权（细粒度语义信息不再被二值化抹平）。
+        bias = torch.zeros_like(adj)
+        nonzero = adj > 0
+        bias[nonzero] = torch.log(adj[nonzero].clamp(min=1e-6))
+        bias[~nonzero] = -1e9  # 非边屏蔽（含 w=0）
+
         # 多头注意力
         head_outputs = []
         for head in self.attention_heads:
-            # 使用邻接矩阵作为注意力掩码
-            attn_mask = (adj == 0).float() * -1e9
-            attn_mask = attn_mask.unsqueeze(0).expand(num_nodes, -1, -1)
+            # 使用邻接矩阵作为注意力掩码（加性偏置形式）
+            attn_mask = bias.unsqueeze(0).expand(num_nodes, -1, -1)
             
             # 自注意力
             features_expanded = features.unsqueeze(0)  # [1, num_nodes, in_dim]
@@ -130,7 +144,8 @@ class HAN(nn.Module):
         num_heads: int = 8,
         num_layers: int = 2,
         meta_paths: List[str] = None,
-        dropout: float = 0.3
+        dropout: float = 0.3,
+        semantic_attention_mode: str = "learn"
     ):
         super(HAN, self).__init__()
         
@@ -149,8 +164,9 @@ class HAN(nn.Module):
                 layers.append(HANLayer(hidden_dim, hidden_dim, num_heads, dropout))
             self.meta_path_layers[mp] = layers
         
-        # 语义注意力
-        self.semantic_attention = SemanticAttention(hidden_dim)
+        # 语义注意力（"learn"=学习元路径权重；"mean"=固定等权平均，消融用）
+        self.semantic_attention = SemanticAttention(
+            hidden_dim, uniform=(semantic_attention_mode == "mean"))
         
         # 输出投影
         self.output_proj = nn.Linear(hidden_dim, out_dim)
@@ -228,7 +244,8 @@ class FraudHAN(nn.Module):
         num_classes: int = 10,
         num_heads: int = 8,
         num_layers: int = 2,
-        dropout: float = 0.3
+        dropout: float = 0.3,
+        semantic_attention_mode: str = "learn"
     ):
         super(FraudHAN, self).__init__()
         
@@ -249,7 +266,8 @@ class FraudHAN(nn.Module):
             num_heads=num_heads,
             num_layers=num_layers,
             meta_paths=self.meta_paths,
-            dropout=dropout
+            dropout=dropout,
+            semantic_attention_mode=semantic_attention_mode
         )
         
         # 链路预测头（用于自监督训练）
@@ -426,20 +444,27 @@ class GraphCLTrainer:
         features: torch.Tensor,
         meta_path_adjs: Dict[str, torch.Tensor],
         num_epochs: int = 100,
-        batch_size: int = 256
+        batch_size: int = 256,
+        mode: str = "graphcl"
     ) -> Dict[str, List[float]]:
         """
         自监督预训练
-        
+
         Args:
             features: 节点特征
             meta_path_adjs: 元路径邻接矩阵
             num_epochs: 训练轮数
             batch_size: 批次大小
-        
+            mode: "graphcl" = NT-Xent 对比（默认，行为不变）；
+                  "byol" = BYOL 式动量编码器免负样本回归（小样本图场景防塌缩，
+                  依据：GCL 负样本数需随节点数平方增长才有效，N≤256 时
+                  NT-Xent 负样本不足 → 表示塌缩 clusters=1，见 probe v5 记录）
+
         Returns:
             训练历史
         """
+        if mode == "byol":
+            return self._pretrain_byol(features, meta_path_adjs, num_epochs, batch_size)
         self.model.train()
         history = {"loss": []}
         
@@ -476,9 +501,83 @@ class GraphCLTrainer:
                 logger.info(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.4f}")
             
             history["loss"].append(np.mean(epoch_losses))
-        
+
         return history
-    
+
+    @torch.no_grad()
+    def _ema_update(self, online: nn.Module, target: nn.Module, tau: float):
+        """目标网络 = 在线网络的指数滑动平均（BYOL 核心，免负样本防塌缩）"""
+        for po, pt in zip(online.parameters(), target.parameters()):
+            pt.data.mul_(tau).add_(po.data, alpha=1 - tau)
+
+    def _pretrain_byol(
+        self,
+        features: torch.Tensor,
+        meta_path_adjs: Dict[str, torch.Tensor],
+        num_epochs: int = 100,
+        batch_size: int = 256,
+        tau: float = 0.9,
+        warmup_tau: float = 0.996
+    ) -> Dict[str, List[float]]:
+        """BYOL 式自监督预训练（免负样本）。
+
+        在线网络编码视图1 -> predictor -> 回归目标网络编码的视图2（对称两项）。
+        目标网络仅由在线网络 EMA 得到，不反传梯度。无负样本，故在小图
+        （N≤256，负样本天然不足）场景下不会因 NT-Xent 负样本坍缩而塌缩。
+        tau 随 epoch 由 warmup_tau 退火到 tau（BYOL 原文做法）。
+        """
+        import copy
+        emb_dim = self.model.han.out_dim
+        if not hasattr(self, "predictor"):
+            self.predictor = nn.Sequential(
+                nn.Linear(emb_dim, emb_dim), nn.ReLU(), nn.Linear(emb_dim, emb_dim)
+            ).to(self.device)
+            self.opt_byol = torch.optim.Adam(
+                list(self.model.parameters()) + list(self.predictor.parameters()),
+                lr=self.optimizer.param_groups[0]["lr"], weight_decay=1e-5)
+        target = copy.deepcopy(self.model.han)
+        for p in target.parameters():
+            p.requires_grad_(False)
+
+        self.model.train()
+        history = {"loss": []}
+        num_nodes = features.shape[0]
+
+        for epoch in range(num_epochs):
+            t = min(tau, warmup_tau + (tau - warmup_tau) * epoch / max(1, num_epochs))
+            indices = torch.randperm(num_nodes)[:batch_size]
+            bf = features[indices]
+            ba = {mp: adj[indices][:, indices] for mp, adj in meta_path_adjs.items()}
+
+            f1, a1 = self.augment_graph(bf, ba, "edge_drop")
+            f2, a2 = self.augment_graph(bf, ba, "feature_mask")
+
+            z1 = self.model.han(f1, a1)
+            z2 = self.model.han(f2, a2)
+            with torch.no_grad():
+                y1t = target(f1, a1)
+                y2t = target(f2, a2)
+
+            p1 = F.normalize(self.predictor(z1), dim=1)
+            p2 = F.normalize(self.predictor(z2), dim=1)
+            q1 = F.normalize(y1t, dim=1)
+            q2 = F.normalize(y2t, dim=1)
+            # 标准 BYOL 对称损失：L = 0.5·[(2-2cos(p1,q2)) + (2-2cos(p2,q1))]，收敛时 → 0
+            loss = 0.5 * ((2 - 2 * (p1 * q2).sum(1).mean()) +
+                          (2 - 2 * (p2 * q1).sum(1).mean()))
+
+            self.opt_byol.zero_grad()
+            loss.backward()
+            self.opt_byol.step()
+            with torch.no_grad():
+                self._ema_update(self.model.han, target, t)
+
+            history["loss"].append(float(loss.item()))
+            if (epoch + 1) % 10 == 0:
+                logger.info(f"[BYOL] Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item():.4f}")
+
+        return history
+
     def finetune(
         self,
         features: torch.Tensor,

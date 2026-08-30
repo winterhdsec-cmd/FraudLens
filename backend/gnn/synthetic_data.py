@@ -20,7 +20,7 @@ from typing import List, Dict, Any, Tuple
 import uuid as _uuid
 from datetime import datetime as _dt
 
-GENERATOR_VERSION = "2.1"
+GENERATOR_VERSION = "2.2"
 
 CITY_POOL = [
     ("广东省", "广州市"), ("广东省", "深圳市"), ("浙江省", "杭州市"),
@@ -52,6 +52,7 @@ def generate_synthetic_dataset(
     reflux_cycle_prob: float = 0.0,
     intra_share_prob: float = 1.0,
     attr_noise: float = 0.0,
+    shared_script_pool: int = 0,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, int]]:
     """
     生成合成数据集
@@ -66,9 +67,15 @@ def generate_synthetic_dataset(
         attr_noise: 属性噪声概率（默认 0；>0 时本案件以小概率改用随机 type/city/perpetrator，
                     破坏 type/city/perpetrator 结构通道的团伙同质性。脚本仍按团伙模板，
                     故话术(text)通道成为唯一可靠判别信号 —— 用于体现双通道真实增益）
+        shared_script_pool: 话术模板池大小（默认 0 = 不限，团伙从全部 SCAM_TYPES 随机选）。
+                    >0 时限定团伙只能从 `min(shared_script_pool, len(SCAM_TYPES))` 种模板中
+                    随机选取，**强制多团伙共用话术模板**（黑产话术包在圈内流通的真实情形）。
+                    此时纯话术方法必然误并不同团伙，结构信息（账户/资金链）成为必要判别信号，
+                    用于验证"结构+话术双通道"相对"纯话术"的增益。
 
     v2.1 修复（2026-08-29）：团伙跨 1~2 个城市作案，case_city_case 与 case_type_case
     不再同构（原 v2.0 同团伙案件 city 唯一 → 两元路径邻接 100% 相同，语义注意力无可学之分）。
+    v2.2 新增（2026-08-29）：shared_script_pool 话术模板池，可控模板碰撞强度。
 
     Returns:
         (cases, accounts_tx, ground_truth)
@@ -93,8 +100,15 @@ def generate_synthetic_dataset(
             "reflux_cycle_prob": reflux_cycle_prob,
             "intra_share_prob": intra_share_prob,
             "attr_noise": attr_noise,
+            "shared_script_pool": shared_script_pool,
         },
     }
+
+    # 话术模板池：shared_script_pool>0 时限定团伙类型选择范围，强制模板碰撞
+    if shared_script_pool and shared_script_pool > 0:
+        script_pool = rng.sample(SCAM_TYPES, k=min(shared_script_pool, len(SCAM_TYPES)))
+    else:
+        script_pool = SCAM_TYPES
 
     for gang in range(n_gangs):
         # 每个团伙分配 1~2 个独立收款账户 + 1~3 个违法者
@@ -108,7 +122,7 @@ def generate_synthetic_dataset(
         upstream = f"UP-{gang:03d}-00"
         gang_total_amount = 0.0
 
-        scam_type = rng.choice(SCAM_TYPES)
+        scam_type = rng.choice(script_pool)
         # 团伙跨 1~2 个城市作案（修复元路径退化）：同团伙案件的城市不再唯一，
         # 使 case_city_case 元路径与 case_type_case 不同构——语义注意力才有可学之分。
         # 话术模板仍团内一致（A3 双通道语义通道不受影响）。
@@ -126,7 +140,7 @@ def generate_synthetic_dataset(
             # 属性噪声（A-BGE 复测）：小概率让本案件的 类型/城市/违法者 偏离团伙，
             # 破坏 type/city/perpetrator 结构通道的团伙同质性；脚本仍按团伙模板（文本信号保留）。
             if attr_noise > 0 and rng.random() < attr_noise:
-                c_type = rng.choice(SCAM_TYPES)
+                c_type = rng.choice(script_pool)
                 c_prov, c_city = rng.choice(CITY_POOL)
                 c_perps = [f"PERP-X-{rng.randint(0, 999):03d}"]
             else:

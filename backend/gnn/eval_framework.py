@@ -84,11 +84,13 @@ sd_mod = _load_local("synthetic_data", "gnn/synthetic_data.py")
 # 数据加载与特征
 # ----------------------------------------------------------------------------
 def load_dataset(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
-                 cross: float = 0.0, intra: float = 1.0, attr_noise: float = 0.0):
+                 cross: float = 0.0, intra: float = 1.0, attr_noise: float = 0.0,
+                 script_pool: int = 0):
     cases, accounts_tx, gt = sd_mod.generate_synthetic_dataset(
         n_gangs=n_gangs, cases_per_gang=cases_per_gang, seed=seed,
         cross_gang_account_share=cross,
-        intra_share_prob=intra, attr_noise=attr_noise)
+        intra_share_prob=intra, attr_noise=attr_noise,
+        shared_script_pool=script_pool)
     return cases, accounts_tx, gt
 
 
@@ -126,11 +128,34 @@ def case_feature_matrix(cases: List[Dict[str, Any]]):
 
 
 def case_texts(cases: List[Dict[str, Any]]) -> List[str]:
+    """结构化字段拼接（类型/地址/电话/金额）——不含话术文本。
+
+    历史行为，Semantic 基线的原始输入。保留以兼容 rerun_semantic_bge.py、
+    _agg_baselines.py、experiment_all.py 等读取 "Semantic" key 的旧脚本。
+    """
     return [
         f"{c.get('scam_type','')} {c.get('victim_address','')} "
         f"{c.get('victim_phone','')} {c.get('amount_value',0):.0f}"
         for c in cases
     ]
+
+
+def case_scripts(cases: List[Dict[str, Any]]) -> List[str]:
+    """案件话术文本本体——"纯语义聚类"的正确输入。
+
+    与 case_texts() 的区别：
+      - case_texts   = 结构化字段拼接，不含话术，无法检验"话术抽取"的价值
+      - case_scripts = 话术文本，对应"LLM+语义聚类分析话术"这条对标路线
+
+    话术缺失时退回结构化拼接，避免空串导致嵌入退化。
+    """
+    out: List[str] = []
+    for c in cases:
+        s = c.get("script") or ""
+        if not s.strip():
+            s = f"{c.get('scam_type','')} {c.get('victim_address','')}"
+        out.append(s)
+    return out
 
 
 # ----------------------------------------------------------------------------
@@ -173,10 +198,22 @@ def baseline_hdbscan(X, ids):
     return {cid: int(l) for cid, l in zip(ids, pred)}
 
 
-def baseline_semantic(cases, ids, n_clusters):
-    """纯语义聚类：优先 BGE 嵌入，否则 TF-IDF 代理（明确标注）"""
+def baseline_semantic(cases, ids, n_clusters, text_source: str = "attr"):
+    """纯语义聚类：优先 BGE 嵌入，否则 TF-IDF 代理（明确标注）
+
+    text_source:
+      "attr"   —— 结构化字段拼接（类型/地址/电话/金额），历史行为，默认
+      "script" —— 案件话术文本本体，对应"LLM+语义聚类分析话术"对标路线
+
+    两者并存，用于检验"话术语义"相对"结构化字段"是否带来额外判别力。
+    """
     notes = []
-    texts = case_texts(cases)
+    if text_source == "script":
+        texts = case_scripts(cases)
+        src_tag = "语义基线(script=话术文本)"
+    else:
+        texts = case_texts(cases)
+        src_tag = "语义基线(attr=结构化字段)"
     emb = None
     try:
         import torch  # noqa
@@ -189,11 +226,11 @@ def baseline_semantic(cases, ids, n_clusters):
         with torch.no_grad():
             out = model(**enc)
         emb = out.last_hidden_state[:, 0, :].cpu().numpy()
-        notes.append("语义基线=BGE-large 本地嵌入")
+        notes.append(f"{src_tag}=BGE-large 本地嵌入")
     except Exception as e:
         vec = TfidfVectorizer().fit_transform(texts)
         emb = np.asarray(vec.todense(), dtype=np.float32)
-        notes.append(f"语义基线=TF-IDF代理(BGE需torch未安装: {type(e).__name__})")
+        notes.append(f"{src_tag}=TF-IDF代理(BGE需torch未安装: {type(e).__name__})")
     pred = KMeans(n_clusters=n_clusters, random_state=0, n_init=10).fit_predict(emb)
     return {cid: int(l) for cid, l in zip(ids, pred)}, notes
 
@@ -254,9 +291,14 @@ def baseline_remove_gnn(cases, accounts_tx):
     return pred
 
 
-def baseline_gnn_han(cases, accounts_tx, n_true: int, epochs: int = 100, use_text_channel: bool = True):
+def baseline_gnn_han(cases, accounts_tx, n_true: int, epochs: int = 100, use_text_channel: bool = True,
+                     text_soft: bool = False, text_threshold: float = None,
+                     semantic_attention_mode: str = "learn"):
     """当前GNN基线(HAN真异构)：FraudHAN + 真元路径邻接(GraphCL预训练) -> 案件嵌入 KMeans。
-       代表 Stage2 修复后的异构 HAN 路径（元路径拓扑各异，非旧实现复制同矩阵）。"""
+       代表 Stage2 修复后的异构 HAN 路径（元路径拓扑各异，非旧实现复制同矩阵）。
+       text_soft=True 时文本通道用余弦相似度软权重（细粒度信息保留，由 HANLayer
+       log(w) 注意力偏置消费）；text_threshold 覆盖默认连边阈值。
+       semantic_attention_mode="learn"（默认）|"mean"（消融：语义注意力固定等权）。"""
     try:
         import torch  # noqa
         # 随机种子固定（模型可复现）：torch/numpy/random 三层同步锁，
@@ -271,18 +313,30 @@ def baseline_gnn_han(cases, accounts_tx, n_true: int, epochs: int = 100, use_tex
         features = builder.get_node_features()
         if features is None or len(features) < 3:
             return {"__error__": "features 不足"}
-        meta_np = builder.get_meta_path_adjacency()
+        adj_kwargs = {}
+        if text_soft:
+            adj_kwargs["text_soft"] = True
+        if text_threshold is not None:
+            adj_kwargs["text_sim_threshold"] = text_threshold
+        meta_np = builder.get_meta_path_adjacency(**adj_kwargs)
         if not meta_np:
             return {"__error__": "无元路径邻接"}
         feat_t = torch.as_tensor(features, dtype=torch.float32)
         meta_t = {k: torch.as_tensor(v, dtype=torch.float32) for k, v in meta_np.items()}
         in_dim = features.shape[1]
         model = han_mod.FraudHAN(in_dim=in_dim, hidden_dim=64, embedding_dim=32,
-                                  num_classes=10, num_heads=4, num_layers=2)
+                                  num_classes=10, num_heads=4, num_layers=2,
+                                  semantic_attention_mode=semantic_attention_mode)
         trainer = han_mod.GraphCLTrainer(model, temperature=0.5, learning_rate=0.001)
         trainer.pretrain(feat_t, meta_t, num_epochs=epochs,
                          batch_size=min(256, feat_t.shape[0]))
         emb = model.get_embeddings(feat_t, meta_t)
+        # 诊断：记录语义注意力学到的元路径权重（mean 模式下为等权，用于消融对比）
+        try:
+            sa = model.han.semantic_attention
+            beta = np.asarray(sa.last_beta.cpu().numpy()).flatten().tolist()
+        except Exception:
+            beta = None
         case_idx = [builder.node_to_idx[n] for n, d in G.nodes(data=True)
                     if d.get("node_type") == "case"]
         case_ids = [n for n, d in G.nodes(data=True)
@@ -293,7 +347,192 @@ def baseline_gnn_han(cases, accounts_tx, n_true: int, epochs: int = 100, use_tex
         ce = StandardScaler().fit_transform(ce)
         pred_arr = KMeans(n_clusters=n_true, random_state=0, n_init=10).fit_predict(ce)
         pred = {cid: int(lab) for cid, lab in zip(case_ids, pred_arr)}
+        if beta is not None:
+            pred["__beta__"] = beta
         pred["__note__"] = "currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)"
+        return pred
+    except Exception as e:
+        return {"__error__": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
+def _consensus_anchor_labels(cases, accounts_tx, anchor_min_size: int = 2,
+                             anchor_max_size: int = None):
+    """资金链 Louvain 与话术 BGE-KMeans 的共识伪标签。
+
+    两方法各自有系统性错误：fund 会把弱连通团伙并大（漏并），script 在话术
+    模板碰撞时误并。取"两者都同意同团伙"的交集为候选簇（连通分量），簇内
+    纯度远高于任一单源；单源分错的案件落选锚点，交给 GNN 图消息泛化。
+    锚点类号 = 交集簇 id（粒度可比真实团伙细，修复单源并簇的天花板）。
+
+    Returns: {case_node_id: anchor_cls_id}（仅高置信），None 表示不可用
+    """
+    builder = gb_mod.FraudGraphBuilder(use_db=False, use_cache=False, use_text_channel=False)
+    G = builder.build_graph(cases, accounts_tx=accounts_tx)
+    fund = _louvain_case_labels(G)
+    ids = [c["case_id"] for c in cases]
+    # 话术嵌入（复用 Semantic(script) 同款 BGE 路径）
+    scripts = case_scripts(cases)
+    try:
+        import torch
+        from transformers import AutoTokenizer, AutoModel
+        model_path = os.path.join(BACKEND, "bge-large-zh-v1.5")
+        tok = AutoTokenizer.from_pretrained(model_path)
+        md = AutoModel.from_pretrained(model_path)
+        enc = tok(scripts, padding=True, truncation=True, max_length=128, return_tensors="pt")
+        with torch.no_grad():
+            emb = md(**enc).last_hidden_state[:, 0, :].numpy()
+    except Exception:
+        emb = np.asarray(TfidfVectorizer().fit_transform(scripts).todense(), dtype=np.float32)
+
+    emb_s = StandardScaler().fit_transform(emb.astype(np.float32))
+    max_anchor_size = max(anchor_min_size, int(len(cases) * 0.25)) if anchor_max_size is None else anchor_max_size
+
+    def _cluster_consensus(k: int) -> Dict[tuple, List[str]]:
+        """script 聚类 k → (fund, script) 严格一致共识簇（不做传递合并）。"""
+        sc = KMeans(n_clusters=k, random_state=0, n_init=10).fit_predict(emb_s)
+        script = {cid: int(l) for cid, l in zip(ids, sc)}
+        by_pair: Dict[tuple, List[str]] = {}
+        for cid in ids:
+            if cid not in fund:
+                continue
+            by_pair.setdefault((fund[cid], script[cid]), []).append(cid)
+        return by_pair
+
+    # 话术聚类数：独立轮廓估计（与 fund 社区数无关）
+    k_sc = _estimate_n_clusters(emb_s)
+    by_pair = _cluster_consensus(k_sc)
+    # 巨簇触发 k 重估（覆盖率自适应门控）：默认 k 下话术若过度合并，会把不同
+    # 团伙并成 >max_size 的共识巨簇、被 25% 门控整类弃用（锚点覆盖损失，如轻噪
+    # 场景轮廓 k 偏小时覆盖仅 0.6）。仅当存在巨簇时沿更细 k 扫描到"无巨簇弃用"
+    # 为止——数据自身触发（非测试集反推），宁缺毋滥下最不激进的重估。
+    if any(len(m) > max_anchor_size for m in by_pair.values()):
+        for k in range(k_sc + 1, min(11, len(ids) // 2) + 1):
+            cand = _cluster_consensus(k)
+            if not any(len(m) > max_anchor_size for m in cand.values()):
+                k_sc, by_pair = k, cand
+                break
+
+    # 过度合并防护：fund Louvain 在大图/高共享率场景会把多个团伙并成巨型社区，
+    # 巨型共识类（> max_anchor_size）本身低置信，整类弃用（宁缺毋滥），
+    # 交给 GNN 用图结构去细分。
+    anchors, nxt = {}, 0
+    for members in by_pair.values():
+        if len(members) < anchor_min_size or len(members) > max_anchor_size:
+            continue
+        for m in members:
+            anchors[m] = nxt
+        nxt += 1
+    return anchors if nxt >= 2 else None
+
+
+def baseline_gnn_han_semi(cases, accounts_tx, epochs: int = 100,
+                          train_mode: str = "graphcl", anchor_min_size: int = 2,
+                          finetune_epochs: int = 300, lr: float = 0.005,
+                          anchor_source: str = "consensus", hybrid: bool = True):
+    """P3 半监督：资金链 Louvain 高置信社区(规模>=anchor_min_size)作为伪标签锚点，
+    监督训练 HAN 分类头，再对全部案件（含规则覆盖不到的孤立案件）argmax 泛化。
+
+    动机：v5 探针证实 GraphCL 自监督目标与团伙发现任务不对齐（真 BGE 下 P2
+    反而 -0.309）。资金链(fund)在强碰撞场景 F1=1.0，是最可靠的弱标签来源；
+    "规则高置信结果 → GNN 泛化"也正是本系统"客观置信度门控 + 多智能体反思"
+    主张的算法层落地。
+
+    Args:
+        train_mode: "graphcl" | "byol"（预训练方式，都接同一无监督底座）
+        anchor_min_size: 伪标签置信门控——Louvain 社区至少含 N 个案件才采信
+        finetune_epochs: 锚点监督微调轮数
+    """
+    try:
+        import torch  # noqa
+        import random as _rand, numpy as _np
+        _rand.seed(0); _np.random.seed(0); torch.manual_seed(0)
+        if BACKEND not in sys.path:
+            sys.path.insert(0, BACKEND)
+        han_mod = _load_local("han_model", "gnn/han_model.py")
+
+        # 1) 伪标签锚点：默认 fund+script 共识（更细粒度、纯度更高），可选单源 fund
+        builder = gb_mod.FraudGraphBuilder(use_db=False, use_cache=False, use_text_channel=True)
+        G = builder.build_graph(cases, accounts_tx=accounts_tx)
+        case_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "case"]
+
+        if anchor_source == "consensus":
+            anchors = _consensus_anchor_labels(cases, accounts_tx, anchor_min_size)
+            if anchors is None:
+                return {"__error__": "共识锚点不足(<2 簇)"}
+            anchor_map = anchors
+        else:
+            louvain_pred = _louvain_case_labels(G)
+            sizes: Dict[int, int] = {}
+            for lab in louvain_pred.values():
+                sizes[lab] = sizes.get(lab, 0) + 1
+            anchor_labels = sorted([lab for lab, sz in sizes.items() if sz >= anchor_min_size])
+            if len(anchor_labels) < 2:
+                return {"__error__": f"高置信锚点社区不足({len(anchor_labels)})"}
+            lab2cls = {lab: i for i, lab in enumerate(anchor_labels)}
+            anchor_map = {cid: lab2cls[l] for cid, l in louvain_pred.items() if l in lab2cls}
+
+        anchor_cls_ids = sorted(set(anchor_map.values()))
+        remap = {c: i for i, c in enumerate(anchor_cls_ids)}
+        anchor_map = {k: remap[v] for k, v in anchor_map.items()}
+
+        features = builder.get_node_features()
+        meta_np = builder.get_meta_path_adjacency()
+        feat_t = torch.as_tensor(features, dtype=torch.float32)
+        meta_t = {k: torch.as_tensor(v, dtype=torch.float32) for k, v in meta_np.items()}
+
+        case_idx = [builder.node_to_idx[n] for n in case_nodes]
+        # 锚点样本：案件节点索引 + 伪标签类号
+        anchor_rows, anchor_y = [], []
+        for cid in case_nodes:
+            if cid in anchor_map:
+                anchor_rows.append(builder.node_to_idx[cid])
+                anchor_y.append(anchor_map[cid])
+        if len(anchor_cls_ids) < 2:
+            return {"__error__": "高置信锚点类数不足"}
+        anchor_rows_t = torch.as_tensor(anchor_rows, dtype=torch.long)
+        anchor_y_t = torch.as_tensor(anchor_y, dtype=torch.long)
+
+        # 2) 预训练（自监督底座） + 3) 锚点监督微调
+        n_cls = len(anchor_cls_ids)
+        model = han_mod.FraudHAN(in_dim=features.shape[1], hidden_dim=64, embedding_dim=32,
+                                 num_classes=n_cls, num_heads=4, num_layers=2)
+        trainer = han_mod.GraphCLTrainer(model, temperature=0.5, learning_rate=0.001)
+        trainer.pretrain(feat_t, meta_t, num_epochs=epochs,
+                         batch_size=min(256, feat_t.shape[0]), mode=train_mode)
+
+        import torch.nn as nn
+        criterion = nn.CrossEntropyLoss()
+
+        def _finetune_round(rows_t, y_t, n_epoch, lr_):
+            opt = torch.optim.Adam(model.parameters(), lr=lr_, weight_decay=1e-4)
+            model.train()
+            for _ in range(n_epoch):
+                opt.zero_grad()
+                _, lg = model(feat_t, meta_t)
+                loss = criterion(lg[rows_t], y_t)
+                loss.backward()
+                opt.step()
+            model.eval()
+
+        # 2) 预训练（自监督底座） + 3) 锚点监督微调
+        _finetune_round(anchor_rows_t, anchor_y_t, finetune_epochs, lr)
+
+        with torch.no_grad():
+            _, logits = model(feat_t, meta_t)
+        pred_case = logits[torch.as_tensor(case_idx, dtype=torch.long)]
+        pred_all = pred_case.argmax(dim=1).cpu().numpy()
+        # 混合策略（默认开）：锚点案件直接用伪标签（共识=双通道都同意，本身即
+        # "客观置信度门控"），仅非锚点案件用 GNN argmax 泛化 —— GNN 的职责被
+        # 限定为"补规则覆盖不到的空白"，F1 下限 = 锚点集质量（可证明不退化）。
+        if hybrid:
+            pred = {}
+            for cid, gnn_lab in zip(case_nodes, pred_all):
+                pred[cid] = int(anchor_map[cid]) if cid in anchor_map else int(gnn_lab)
+        else:
+            pred = {cid: int(lab) for cid, lab in zip(case_nodes, pred_all)}
+        pred["__note__"] = (f"HAN-semi: pseudo-label(fund+script consensus>={anchor_min_size}, "
+                            f"{len(anchor_rows)}/{len(case_nodes)} anchors, mode={train_mode}, "
+                            f"hybrid={hybrid})")
         return pred
     except Exception as e:
         return {"__error__": f"{type(e).__name__}: {str(e)[:160]}"}
@@ -440,11 +679,13 @@ def _run_gating_ablation(cases: List[Dict[str, Any]],
 
 def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
             cross: float = 0.0, intra: float = 1.0, attr_noise: float = 0.0,
+            script_pool: int = 0,
             ablation_flags: Optional[List[str]] = None) -> Dict[str, Any]:
     cases, accounts_tx, gt = load_dataset(seed=seed, n_gangs=n_gangs,
                                            cases_per_gang=cases_per_gang,
                                            cross=cross, intra=intra,
-                                           attr_noise=attr_noise)
+                                           attr_noise=attr_noise,
+                                           script_pool=script_pool)
     n_true = len(set(gt.values()))
     X, ids = case_feature_matrix(cases)
     # 评估协议修复：聚类数用 silhouette 估计（不依赖真值标签），
@@ -465,10 +706,15 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
     baselines["KMeans"] = compute_metrics(gt, baseline_kmeans(X, ids, n_est))
     # B2 HDBSCAN-only
     baselines["HDBSCAN-only"] = compute_metrics(gt, baseline_hdbscan(X, ids))
-    # B3 纯语义(BGE/TF-IDF)
+    # B3 纯语义(BGE/TF-IDF)：结构化字段拼接（历史行为，key 保持不变以兼容旧脚本）
     sem_pred, sem_notes = baseline_semantic(cases, ids, n_est)
     baselines["Semantic"] = compute_metrics(gt, sem_pred)
     notes += sem_notes
+    # B3b 纯语义(script)：案件话术文本本体，对应"LLM+语义聚类分析话术"对标路线
+    sem_script_pred, sem_script_notes = baseline_semantic(
+        cases, ids, n_est, text_source="script")
+    baselines["Semantic(script)"] = compute_metrics(gt, sem_script_pred)
+    notes += sem_script_notes
     # B4 当前系统(图社区发现, 含资金链)
     cur_pred = baseline_current_system(cases, accounts_tx, use_fund=True)
     baselines["CurrentSystem(fund)"] = compute_metrics(gt, cur_pred)
@@ -491,6 +737,16 @@ def run_all(seed: int = 42, n_gangs: int = 5, cases_per_gang: int = 8,
     else:
         err = han_pred.get("__error__", "unknown") if han_pred else "unknown"
         notes.append(f"当前GNN(HAN)基线跳过: {err}")
+
+    # P3 半监督 HAN（资金链+话术共识伪标签 -> GNN 泛化非锚点案件）
+    semi_pred = baseline_gnn_han_semi(cases, accounts_tx, epochs=60)
+    if semi_pred and "__error__" not in semi_pred:
+        baselines["HAN-semi(consensus)"] = compute_metrics(gt, semi_pred)
+        if "__note__" in semi_pred:
+            notes.append(f"HAN-semi: {semi_pred['__note__']}")
+    else:
+        err = semi_pred.get("__error__", "unknown") if semi_pred else "unknown"
+        notes.append(f"HAN-semi 跳过: {err}")
 
     # 消融：去资金链（当前系统但用改造前图）
     ablation: Dict[str, Any] = {}

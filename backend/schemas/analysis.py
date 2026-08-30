@@ -18,3 +18,6 @@ class GNNDetectRequest(BaseModel):
     use_gnn: bool = True
     training_epochs: int = 100
     community_method: str = 'louvain'
+    # 增量匹配模式：'auto'（默认）先匹配已知团伙画像，挂不上的攒批重聚类；
+    # 'full' 强制全量重聚类（旧行为兜底，结果与历史可比）。
+    mode: str = 'auto'

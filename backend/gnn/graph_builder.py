@@ -3,12 +3,38 @@
 从案件数据构建诈骗关联图
 支持从数据库加载/保存，增量更新
 """
+import os
+
 import networkx as nx
 import numpy as np
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from tools.redis_utils import get_redis
 import json
+
+
+# ---------------------------------------------------------------------------
+# 话术语义通道（case_text_case 元路径）的建图参数
+#
+# 2026-08-29 诊断（diag_text_channel.py）实测依据：
+#   BGE 中文话术嵌入的余弦相似度整体偏高——跨团伙对 mean 0.664~0.728、
+#   最低 0.560。原阈值 0.5 会把**所有**案件对连成边，建出近似完全图
+#   （40 案时平均度 39/39，同/跨团伙连边率均为 1.000，判别比 1.00），
+#   图聚合后严重过度平滑，表现为：
+#     - GraphSAGE 嵌入塌缩、聚类退化为单簇（clusters=1）
+#     - HAN 文本通道增益为负（dual_channel_gain_f1 < 0），加上话术反而更差
+#   提升到 0.9 后实测：同团伙连边率 0.979~1.000、跨团伙 0.000~0.200，
+#   判别比 5.00~∞，平均度回落到 6.8~13.4（接近真实同伙规模）。
+# ---------------------------------------------------------------------------
+DEFAULT_TEXT_SIM_THRESHOLD = 0.9
+# top-k 稀疏化开关：0 = 关闭（用上面的固定阈值）；
+# >0 = 每个 case 只保留相似度最高的 k 个邻居（不依赖绝对相似度尺度，对
+#      不同数据分布更稳健，但当前尚未经过完整回归，默认关闭）。
+DEFAULT_TEXT_TOP_K = 0
+# 软权重开关：True 时 case_text_case 边权 = 余弦相似度（而非二值 0/1），
+# 保留细粒度语义信息；HANLayer 以 log(w) 注意力偏置消费（二值时 log(1)=0，行为不变）。
+# 默认 False，线上推理链路保持旧行为；评测对比由实验脚本开启。
+DEFAULT_TEXT_SOFT = False
 
 
 class FraudGraphBuilder:
@@ -148,6 +174,9 @@ class FraudGraphBuilder:
 
             # === 资金链：收款账户节点并连接（核心改造）===
             for acc in (case.get('accounts') or []):
+                # 兼容 dict 列表（routes 传 {'account_number': ...}）与纯字符串列表
+                if isinstance(acc, dict):
+                    acc = acc.get('account_number') or acc.get('account_no') or ''
                 acc = str(acc).strip()
                 if not acc:
                     continue
@@ -161,6 +190,9 @@ class FraudGraphBuilder:
 
             # === 资金链：违法者节点并连接（核心改造）===
             for perp in (case.get('perpetrators') or []):
+                # 兼容 dict 列表（routes 传 {'name': ...}）与纯字符串列表
+                if isinstance(perp, dict):
+                    perp = perp.get('name') or perp.get('phone') or ''
                 perp = str(perp).strip()
                 if not perp:
                     continue
@@ -364,14 +396,50 @@ class FraudGraphBuilder:
             emb_model = get_embedding_model()
         except Exception:
             emb_model = None
+        vecs = None
         if emb_model is not None and getattr(emb_model, 'model', None) is not None:
             vecs = emb_model.encode(texts)  # (k, 1024) 归一化
+        else:
+            # B-修复（2026-08-29）：评测/探针环境下 core.embedding 导入链常断
+            # （tools 包相对导入），原实现直接降级 hash 向量 —— 而 hash() 逐进程
+            # 随机化导致结果不可复现，且 hash 文本通道无真实语义（同团伙≈1.0、
+            # 跨团伙≈0，阈值形同虚设）。改为先尝试 transformers 直加载本地 BGE。
+            vecs = self._direct_bge_encode(texts)
+        if vecs is not None:
             for (idx, _), v in zip(case_items, vecs):
                 self.node_text_features[idx] = np.asarray(v, dtype=np.float32)
         else:
-            # 降级：确定性 hash 向量（dim=1024），与 core/embedding._hash_fallback 一致
+            # 最后兜底：确定性 sha256 向量（原 abs(hash(text)) 跨进程不稳定，已弃用）
             for idx, t in case_items:
                 self.node_text_features[idx] = self._hash_text_vec(t, dim=1024)
+
+    _BGE_CACHE: Dict[str, Any] = {}
+
+    @classmethod
+    def _direct_bge_encode(cls, texts) -> Optional[np.ndarray]:
+        """transformers 直加载本地 bge-large-zh-v1.5（模块级缓存），失败返回 None"""
+        try:
+            import torch
+            from transformers import AutoTokenizer, AutoModel
+            here = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(os.path.dirname(here), "bge-large-zh-v1.5")
+            if not os.path.exists(model_path):
+                return None
+            key = model_path
+            if key not in cls._BGE_CACHE:
+                cls._BGE_CACHE[key] = (
+                    AutoTokenizer.from_pretrained(model_path),
+                    AutoModel.from_pretrained(model_path).eval(),
+                )
+            tok, model = cls._BGE_CACHE[key]
+            enc = tok(list(texts), padding=True, truncation=True, max_length=128,
+                      return_tensors="pt")
+            with torch.no_grad():
+                out = model(**enc)
+            emb = torch.nn.functional.normalize(out.last_hidden_state[:, 0, :], dim=1)
+            return emb.cpu().numpy()
+        except Exception:
+            return None
 
     @staticmethod
     def _extract_case_text(node_data: Dict[str, Any]) -> str:
@@ -384,11 +452,28 @@ class FraudGraphBuilder:
         return ' '.join(parts)
 
     @staticmethod
+    def _det_hash(s: str) -> int:
+        """跨进程确定性字符串 hash（sha256 前 8 字节）。
+
+        B-修复（2026-08-29）：节点特征编码原来用内置 hash()，PYTHONHASHSEED
+        随机化导致同一数据集在不同进程得到不同特征向量 —— GNN/HAN 评测结果
+        跨进程不可复现（实测同 seed 三进程 0.45/0.54/0.59 三种值）。
+        """
+        import hashlib
+        return int.from_bytes(hashlib.sha256(s.encode('utf-8')).digest()[:8], 'big')
+
+    @staticmethod
     def _hash_text_vec(text: str, dim: int = 1024) -> np.ndarray:
-        """确定性 hash 降级向量（与 core.embedding._hash_fallback 一致）"""
-        h = abs(hash(text)) % (2 ** 32)
-        np.random.seed(h)
-        v = np.random.randn(dim).astype(np.float32)
+        """确定性降级向量（sha256 播种）。
+
+        B-修复（2026-08-29）：原实现用内置 hash(text)，Python 字符串 hash 逐进程
+        随机化（PYTHONHASHSEED），导致同一数据集跨进程评测结果不可复现。
+        改用 sha256 前 4 字节做种子 —— 真正的跨进程确定性。
+        """
+        import hashlib
+        h = int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:4], "big")
+        rng = np.random.RandomState(h)
+        v = rng.randn(dim).astype(np.float32)
         norm = np.linalg.norm(v)
         if norm > 0:
             v = v / norm
@@ -424,7 +509,7 @@ class FraudGraphBuilder:
         
         # 诈骗类型one-hot（简化为前10维）
         scam_type = case_data.get('scam_type', '')
-        type_hash = hash(scam_type) % 10
+        type_hash = self._det_hash(scam_type) % 10
         features[2 + type_hash] = 1.0
         
         # 受害人年龄
@@ -482,7 +567,7 @@ class FraudGraphBuilder:
         features = np.zeros(dim, dtype=np.float32)
         name = victim_data.get('name', '')
         # 使用名字hash作为特征
-        name_hash = hash(name) % dim
+        name_hash = self._det_hash(name) % dim
         features[name_hash] = 1.0
         return features
     
@@ -493,7 +578,7 @@ class FraudGraphBuilder:
         # 提取号段（前3位）
         if len(number) >= 3:
             prefix = number[:3]
-            prefix_hash = hash(prefix) % dim
+            prefix_hash = self._det_hash(prefix) % dim
             features[prefix_hash] = 1.0
         return features
     
@@ -501,7 +586,7 @@ class FraudGraphBuilder:
         """编码诈骗类型特征"""
         features = np.zeros(dim, dtype=np.float32)
         type_name = type_data.get('name', '')
-        type_hash = hash(type_name) % dim
+        type_hash = self._det_hash(type_name) % dim
         features[type_hash] = 1.0
         return features
     
@@ -509,7 +594,7 @@ class FraudGraphBuilder:
         """编码城市特征"""
         features = np.zeros(dim, dtype=np.float32)
         city_name = city_data.get('name', '')
-        city_hash = hash(city_name) % dim
+        city_hash = self._det_hash(city_name) % dim
         features[city_hash] = 1.0
         return features
     
@@ -519,15 +604,23 @@ class FraudGraphBuilder:
             return np.array([])
         return nx.to_numpy_array(self.graph)
 
-    def _metapath_text(self, threshold: float = 0.5) -> np.ndarray:
+    def _metapath_text(self, threshold: float = DEFAULT_TEXT_SIM_THRESHOLD,
+                       top_k: int = DEFAULT_TEXT_TOP_K,
+                       soft: bool = DEFAULT_TEXT_SOFT) -> np.ndarray:
         """A3: 话术语义通道 case_text_case —— case 节点间 BGE 余弦相似度邻接（含自环）。
 
         与结构化元路径（经账户/违法者/类型/城市 2 跳）并列，在 HAN 语义注意力下融合，
         构成"资金链 + 话术"双通道。无文本特征时返回单位阵（不生效）。
 
-        边为二值（cosine>=threshold 即连边）；阈值 0.5 与 BGE 归一化嵌入的同类/异类分布匹配。
-        A-BGE 复测结论：本通道在标准(结构清晰)场景为中性、在结构含噪场景下提供小幅正增益，
-        属"辅助判别信号"而非主导信号（详见 docs/04 §六口径）。
+        Args:
+            threshold: 余弦相似度连边阈值，默认 0.9。
+                原为 0.5，实测会把全部案件对连成边（近似完全图）引发过度平滑，
+                依据见本文件顶部注释与 diag_text_channel.py。
+            top_k: >0 时启用 top-k 稀疏化——每个 case 只保留相似度最高的 k 个邻居，
+                不再使用绝对阈值（对不同数据分布更稳健）。0 = 关闭（默认）。
+            soft: True 时边权 = 余弦相似度（软权重邻接，保留细粒度信息，
+                由 HANLayer 以 log 注意力偏置消费）；False 保持二值（默认，行为不变）。
+                依据：KDD'21 异构图不公平比较研究 + 二值化会抹平 0.51 与 0.99 的差异。
         """
         if not self.graph or not self.node_text_features:
             n = len(self.graph.nodes) if self.graph else 0
@@ -539,22 +632,53 @@ class FraudGraphBuilder:
             if self.graph.nodes[self.idx_to_node[i]].get('node_type') == 'case'
             and i in self.node_text_features
         ]
-        for a in range(len(case_idxs)):
-            i = case_idxs[a]
-            M[i, i] = 1.0  # 自环
-            vi = self.node_text_features[i]
+        n_case = len(case_idxs)
+
+        # 先算 case 节点间的余弦相似度矩阵，再按阈值或 top-k 稀疏化
+        S = np.zeros((n_case, n_case), dtype=np.float32)
+        for a in range(n_case):
+            vi = self.node_text_features[case_idxs[a]]
             ni = np.linalg.norm(vi)
-            for b in range(a + 1, len(case_idxs)):
-                j = case_idxs[b]
-                vj = self.node_text_features[j]
+            for b in range(a + 1, n_case):
+                vj = self.node_text_features[case_idxs[b]]
                 nj = np.linalg.norm(vj)
                 sim = float(np.dot(vi, vj) / (ni * nj + 1e-9))
-                if sim >= threshold:
-                    M[i, j] = 1.0
-                    M[j, i] = 1.0
+                S[a, b] = sim
+                S[b, a] = sim
+
+        if top_k and top_k > 0 and n_case > 1:
+            # top-k 稀疏化：每个节点保留相似度最高的 k 个邻居（双向补齐为对称）
+            k = min(int(top_k), n_case - 1)
+            for a in range(n_case):
+                picked = 0
+                for b in np.argsort(-S[a]):
+                    if b == a:
+                        continue
+                    if picked >= k:
+                        break
+                    M[case_idxs[a], case_idxs[b]] = S[a, b] if soft else 1.0
+                    picked += 1
+            # 对称化（取或），避免单向边
+            sub = M[np.ix_(case_idxs, case_idxs)]
+            sub = np.maximum(sub, sub.T)
+            M[np.ix_(case_idxs, case_idxs)] = sub
+        else:
+            for a in range(n_case):
+                for b in range(a + 1, n_case):
+                    if S[a, b] >= threshold:
+                        w = S[a, b] if soft else 1.0
+                        M[case_idxs[a], case_idxs[b]] = w
+                        M[case_idxs[b], case_idxs[a]] = w
+
+        for i in case_idxs:
+            M[i, i] = 1.0  # 自环
         return M
 
-    def get_meta_path_adjacency(self) -> Dict[str, np.ndarray]:
+    def get_meta_path_adjacency(self,
+                                text_sim_threshold: float = DEFAULT_TEXT_SIM_THRESHOLD,
+                                text_top_k: int = DEFAULT_TEXT_TOP_K,
+                                text_soft: bool = DEFAULT_TEXT_SOFT
+                                ) -> Dict[str, np.ndarray]:
         """获取各元路径的邻接矩阵（真异构：每条元路径拓扑不同）。
 
         不同于旧实现把同一张全图邻接矩阵复制成 4 份，
@@ -563,7 +687,15 @@ class FraudGraphBuilder:
           - case_perpetrator_case: 经违法者的 2 跳
           - case_type_case       : 经诈骗类型的 2 跳（辅助通道）
           - case_city_case       : 经城市的 2 跳（辅助通道）
-        返回 {元路径名: (N×N) 二值邻接矩阵(含自环)}，与 get_node_features 节点顺序一致。
+          - case_text_case       : 话术语义通道（需 use_text_channel 且有文本特征）
+
+        Args:
+            text_sim_threshold: 传给 _metapath_text 的相似度阈值，默认 0.9
+            text_top_k: 传给 _metapath_text 的 top-k 稀疏化开关，默认 0（关闭）
+            text_soft: 传给 _metapath_text 的软权重开关，默认 False（二值，行为不变）
+
+        返回 {元路径名: (N×N) 邻接矩阵(含自环)}（结构化元路径二值；文本通道 soft 时为相似度），
+        与 get_node_features 节点顺序一致。
         """
         if not self.graph:
             return {}
@@ -606,7 +738,8 @@ class FraudGraphBuilder:
         }
         # A3 双通道：话术语义通道（BGE 文本相似元路径），与结构化通道在 HAN 注意力下融合
         if self.use_text_channel and self.node_text_features:
-            adjs['case_text_case'] = self._metapath_text()
+            adjs['case_text_case'] = self._metapath_text(
+                threshold=text_sim_threshold, top_k=text_top_k, soft=text_soft)
         return adjs
     
     def get_node_features(self) -> np.ndarray:

@@ -89,3 +89,12 @@ backend/.env.min
 # 论文： tex/bib 源文件入库，下载的参考文献 PDF 与预览图不入库
 paper/参考文献/*.pdf
 paper/_ref_view/
+# GNN 训练模型权重（二进制产物，可重训，不入库）
+backend/gnn/models/
+# 下载的参考 PDF 与阅读笔记（个人研究材料，不入库）
+paper/参考文档/
+
+# 申报书：docx/pdf 与生成脚本入库，逐页预览 PNG 属再生品不入库
+docs/_preview/
+docs/plan_figures/
+docs/plan_figures_v2/

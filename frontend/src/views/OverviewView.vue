@@ -170,10 +170,13 @@
 
   <div v-if="!cases.length && !gangs.length && dataReady" class="empty-state">
     <div class="empty-content">
-      <div class="empty-icon"><el-icon :size="64"><DataAnalysis /></el-icon></div>
-      <h3 class="empty-title">暂无数据</h3>
-      <p class="empty-desc">请先通过录入功能添加案情信息</p>
-      <el-button type="primary" size="large" @click="router.push({ name: 'input' })"><el-icon><EditPen /></el-icon> 前往录入</el-button>
+      <div class="empty-icon empty-icon-case"><el-icon :size="64"><Files /></el-icon></div>
+      <h3 class="empty-title">暂无案件数据</h3>
+      <p class="empty-desc">系统尚未录入任何案件线索。前往"文本录入"或"文件上传"开始导入案情数据，系统将自动进行团伙聚类分析。</p>
+      <div class="empty-actions">
+        <el-button type="primary" size="large" @click="router.push({ name: 'input' })"><el-icon><EditPen /></el-icon> 文本录入</el-button>
+        <el-button size="large" @click="router.push({ name: 'upload' })"><el-icon><Upload /></el-icon> 文件上传</el-button>
+      </div>
     </div>
   </div>
 </div>
@@ -279,7 +282,7 @@ const handleBatchStatus = async (status) => {
 }
 
 .stat-card {
-  padding: 20px 22px;
+  padding: 20px 22px 20px 26px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -289,18 +292,20 @@ const handleBatchStatus = async (status) => {
   overflow: hidden;
   border: 1px solid rgba(0,198,255,0.08);
 }
+/* 彩色左侧竖条 */
 .stat-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  opacity: 0.6;
-  transition: opacity 0.35s ease, height 0.35s ease;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  opacity: 0.85;
+  transition: opacity 0.35s ease, width 0.2s ease;
+  border-radius: 0 2px 2px 0;
 }
-.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #ef4444, #f87171); }
-.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #10b981, #34d399); }
-.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #00d4ff, #38bdf8); }
+.stat-card:nth-child(1)::before { background: linear-gradient(180deg, #ef4444, #f87171); }
+.stat-card:nth-child(2)::before { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
+.stat-card:nth-child(3)::before { background: linear-gradient(180deg, #10b981, #34d399); }
+.stat-card:nth-child(4)::before { background: linear-gradient(180deg, #00d4ff, #38bdf8); }
 
 .stat-card::after {
   content: '';
@@ -318,7 +323,7 @@ const handleBatchStatus = async (status) => {
   box-shadow: 0 12px 32px rgba(0,198,255,0.12), 0 4px 16px rgba(0,0,0,0.2);
   border-color: rgba(0,198,255,0.2);
 }
-.stat-card:hover::before { opacity: 1; height: 3px; }
+.stat-card:hover::before { opacity: 1; width: 4px; }
 
 .stat-icon-wrapper {
   width: 48px;
@@ -344,9 +349,10 @@ const handleBatchStatus = async (status) => {
   font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
-  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-family: var(--font-family-mono);
   line-height: 1.2;
   letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
 .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
@@ -379,7 +385,7 @@ const handleBatchStatus = async (status) => {
   gap: 8px;
 }
 .chart-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.chart-content { width: 100%; height: 260px; }
+.chart-content { width: 100%; height: 280px; }
 
 .section-sub-header {
   display: flex;
@@ -424,13 +430,24 @@ const handleBatchStatus = async (status) => {
 }
 
 .case-card {
-  padding: 16px;
+  padding: 16px 16px 16px 20px;
   cursor: pointer;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   animation: fadeInUp 0.5s ease both;
   border: 1px solid var(--color-border-1);
   position: relative;
   overflow: hidden;
+}
+/* 案件卡片：青色左侧竖条 */
+.case-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent-cyan), rgba(0, 212, 255, 0.3));
+  opacity: 0.6;
+  transition: opacity 0.3s ease, width 0.2s ease;
+  border-radius: 0 2px 2px 0;
 }
 .case-card::after {
   content: '';
@@ -441,6 +458,7 @@ const handleBatchStatus = async (status) => {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+.case-card:hover::before { opacity: 1; width: 4px; }
 .case-card:hover::after { opacity: 0.6; }
 .case-card:nth-child(1) { animation-delay: 0.03s; }
 .case-card:nth-child(2) { animation-delay: 0.06s; }
@@ -481,7 +499,8 @@ const handleBatchStatus = async (status) => {
   font-weight: 700;
   color: #f87171;
   text-shadow: 0 0 12px rgba(239,68,68,0.25);
-  font-family: 'SF Mono', 'Consolas', monospace;
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
 }
 .case-card-title {
   font-size: 14px;
@@ -648,7 +667,8 @@ const handleBatchStatus = async (status) => {
   font-size: 20px;
   font-weight: 700;
   color: #f1f5f9;
-  font-family: 'SF Mono', 'Consolas', monospace;
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
 }
 .gang-metric-label {
   font-size: 11px;
@@ -667,9 +687,20 @@ const handleBatchStatus = async (status) => {
 
 .empty-state { text-align: center; padding: 60px 20px; }
 .empty-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.empty-icon { font-size: 64px; opacity: 0.5; }
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.6;
+  width: 100px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 20px;
+}
+.empty-icon-case {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(0, 212, 255, 0.02));
+  color: var(--accent-cyan);
+}
 .empty-title { font-size: 20px; color: var(--text-primary); font-weight: 600; margin: 0; }
-.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 400px; }
+.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 480px; line-height: 1.7; }
+.empty-actions { display: flex; gap: 12px; margin-top: 8px; }
 
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>

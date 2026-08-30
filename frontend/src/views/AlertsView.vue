@@ -36,7 +36,8 @@
       v-for="alert in filteredAlerts"
       :key="alert.id"
       class="alert-card"
-      :class="[getSeverityClass(alert.confidence), { 'is-resolved': alert.resolved }]"
+      :class="[getSeverityClass(alert.confidence), { 'is-resolved': alert.resolved, 'is-expanded': expandedAlerts.has(alert.id) }]"
+      @click="toggleAlertExpand(alert.id)"
     >
       <div class="card-top">
         <div class="card-left">
@@ -54,6 +55,9 @@
               size="small"
               effect="dark"
             >待处置</el-tag>
+            <span class="expand-chevron">
+              <el-icon :size="14"><ArrowDown /></el-icon>
+            </span>
           </div>
           <div class="alert-meta-row">
             <el-tag :type="getAlertType(alert.confidence * 100)" size="small" effect="dark">
@@ -65,7 +69,7 @@
             <span class="case-id-ref">编号: {{ alert.case_id }}</span>
           </div>
         </div>
-        <div class="card-right">
+        <div class="card-right" @click.stop>
           <el-button
             size="small"
             type="primary"
@@ -80,30 +84,46 @@
         </div>
       </div>
 
-      <div v-if="alert.matched_entities && alert.matched_entities.length" class="entities-section">
-        <div class="entities-title">匹配实体:</div>
-        <div class="entities-list">
-          <div v-for="(entity, idx) in alert.matched_entities" :key="idx" class="entity-item">
-            <span class="entity-icon"><el-icon><Link /></el-icon></span>
-            <span class="entity-text">{{ getEntityLabel(entity) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="confidence-section">
-        <div class="confidence-header">
-          <span class="confidence-title">置信度评分</span>
-          <span class="confidence-value" :style="{ color: getConfidenceColor(alert.confidence * 100) }">
-            {{ (alert.confidence * 100).toFixed(0) }}%
-          </span>
-        </div>
+      <!-- 紧凑模式：始终显示置信度条（精简版） -->
+      <div class="confidence-compact">
         <el-progress
           :percentage="Math.round(alert.confidence * 100)"
-          :stroke-width="8"
+          :stroke-width="4"
           :color="getConfidenceColor(alert.confidence * 100)"
           :format="() => ''"
         />
+        <span class="confidence-value-compact" :style="{ color: getConfidenceColor(alert.confidence * 100) }">
+          {{ (alert.confidence * 100).toFixed(0) }}%
+        </span>
       </div>
+
+      <!-- 展开后显示详情 -->
+      <template v-if="expandedAlerts.has(alert.id)">
+        <div v-if="alert.matched_entities && alert.matched_entities.length" class="entities-section">
+          <div class="entities-title">匹配实体:</div>
+          <div class="entities-list">
+            <div v-for="(entity, idx) in alert.matched_entities" :key="idx" class="entity-item">
+              <span class="entity-icon"><el-icon><Link /></el-icon></span>
+              <span class="entity-text">{{ getEntityLabel(entity) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="confidence-section">
+          <div class="confidence-header">
+            <span class="confidence-title">置信度评分</span>
+            <span class="confidence-value" :style="{ color: getConfidenceColor(alert.confidence * 100) }">
+              {{ (alert.confidence * 100).toFixed(0) }}%
+            </span>
+          </div>
+          <el-progress
+            :percentage="Math.round(alert.confidence * 100)"
+            :stroke-width="8"
+            :color="getConfidenceColor(alert.confidence * 100)"
+            :format="() => ''"
+          />
+        </div>
+      </template>
 
       <div class="card-footer">
         <div class="footer-left">
@@ -120,9 +140,9 @@
 
   <div v-else-if="!alertsLoading" class="empty-state">
     <div class="empty-content">
-      <div class="empty-icon"><el-icon><Bell /></el-icon></div>
-      <h3 class="empty-title">暂无预警信息</h3>
-      <p class="empty-desc">系统运行正常，暂无待处理的诈骗预警</p>
+      <div class="empty-icon empty-icon-alert"><el-icon :size="64"><CircleCheckFilled /></el-icon></div>
+      <h3 class="empty-title">暂无预警触发</h3>
+      <p class="empty-desc">当前无异常预警。系统会在发现案件间共享手机号、银行卡、IP 地址等关键实体时自动生成预警。预警触发后请在此处快速处置或派单。</p>
     </div>
   </div>
 </div>
@@ -138,6 +158,14 @@ const {
   activeMenu, alerts, alertsLoading, cases, getAlertType, getConfidenceColor, handleResolveAlert,
   loadAlerts, loading, resolvingAlert
 } = state
+
+// 紧凑模式：点击卡片展开/折叠详情
+const expandedAlerts = ref(new Set())
+const toggleAlertExpand = (id) => {
+  const s = new Set(expandedAlerts.value)
+  if (s.has(id)) s.delete(id); else s.add(id)
+  expandedAlerts.value = s
+}
 
 onMounted(() => loadAlerts())
 
@@ -454,22 +482,63 @@ const formatTime = (t) => {
   color: var(--accent-cyan);
   font-weight: 500;
 }
-.alert-card.collapsed {
-  max-height: 100px;
-  overflow: hidden;
+/* ====== 紧凑模式样式 ====== */
+.expand-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: transform 0.25s ease, color 0.2s ease;
+  margin-left: auto;
 }
-.expand-all-btn {
-  font-size: 13px;
+.alert-card.is-expanded .expand-chevron {
+  transform: rotate(180deg);
   color: var(--accent-cyan);
+}
+.confidence-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 24px 6px 28px;
+}
+.confidence-compact .el-progress {
+  flex: 1;
+}
+.confidence-value-compact {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 36px;
+  text-align: right;
+}
+/* 折叠态隐藏详情 */
+.alert-card:not(.is-expanded) .entities-section,
+.alert-card:not(.is-expanded) .confidence-section {
+  display: none;
+}
+.alert-card {
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: none;
-  border: 1px solid rgba(0, 198, 255, 0.2);
-  padding: 4px 14px;
-  border-radius: 6px;
 }
-.expand-all-btn:hover {
-  background: rgba(0, 198, 255, 0.08);
-  border-color: var(--accent-cyan);
+.alert-card:hover .expand-chevron {
+  color: var(--accent-cyan);
 }
+
+/* ===== 空状态差异化 ===== */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.6;
+  width: 100px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 20px;
+}
+.empty-icon-alert {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.03));
+  color: #22c55e;
+}
+.empty-title { font-size: 20px; color: var(--text-primary); font-weight: 600; margin: 0; }
+.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 480px; line-height: 1.7; }
 </style>

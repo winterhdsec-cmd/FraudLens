@@ -68,7 +68,7 @@
   /* 字体规范 */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-family-mono: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, Monaco, monospace;
+  --font-family-mono: "JetBrains Mono", "SF Mono", "Fira Code", Consolas, Monaco, monospace;
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-base: 14px;

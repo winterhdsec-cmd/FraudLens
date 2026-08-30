@@ -75,11 +75,8 @@
 
     <!-- 侧边栏（当前分组二级菜单） -->
     <aside class="sidebar" v-if="!isFullPage" :class="{ collapsed }">
-      <div class="logo-area">
+      <div class="logo-area" v-if="collapsed">
         <div class="logo-icon-wrapper"><div class="logo-ring"></div><div class="logo-icon"><el-icon><Aim /></el-icon></div></div>
-        <h2>反诈情报分析</h2>
-        <span class="sub-title">AI INTELLIGENT SYSTEM</span>
-        <div class="logo-badge"><span class="badge-dot"></span><span>智能研判平台</span></div>
       </div>
       <el-menu :default-active="activeMenu" class="side-menu" :collapse="collapsed" :collapse-transition="false" @select="handleMenuSelect">
         <div class="menu-group">
@@ -492,10 +489,6 @@ const goToCaseDetail = (caseId) => {
 .logo-icon-wrapper { position: relative; width: 36px; height: 36px; margin: 0 auto 6px; }
 .logo-ring { display: none; }
 .logo-icon { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: var(--gradient-primary); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm), 0 0 16px var(--dark-color-primary-glow-soft); color: #fff; }
-.logo-area h2 { font-size: 14px; color: var(--color-text-1); margin: 0; font-weight: var(--font-weight-semibold); }
-.sub-title { font-size: 9px; color: var(--color-text-4); letter-spacing: 2px; display: block; margin-top: 1px; }
-.logo-badge { display: none; }
-.badge-dot { width: 5px; height: 5px; background: var(--color-success); border-radius: 50%; }
 .side-menu { flex: 1; background: transparent; border: none; padding: 6px 0; }
 .menu-group { margin: 4px 0; position: relative; }
 .menu-group + .menu-group::before { content: ''; display: block; height: 1px; margin: 4px 12px; background: var(--color-divider); }
@@ -552,10 +545,7 @@ const goToCaseDetail = (caseId) => {
 
 /* ====== 侧边栏折叠态 ====== */
 .sidebar.collapsed { width: 64px; min-width: 64px; }
-.sidebar.collapsed .logo-area { padding: 16px 0 12px; }
-.sidebar.collapsed .logo-area h2,
-.sidebar.collapsed .sub-title,
-.sidebar.collapsed .logo-badge,
+.sidebar.collapsed .logo-area { padding: 12px 0 10px; border-bottom: none; }
 .sidebar.collapsed .menu-group-title { display: none; }
 .sidebar.collapsed .system-status { padding: 12px 10px; }
 .sidebar.collapsed .status-row { justify-content: center; }
@@ -620,10 +610,10 @@ const goToCaseDetail = (caseId) => {
 .content-wrapper { padding: 16px; max-width: 1600px; margin: 0 auto; }
 .main-full .content-wrapper { padding: 0; max-width: none; margin: 0; }
 
-/* ====== 页面过渡（淡入） ====== */
-.page-fade-enter-active { transition: opacity 0.12s ease, transform 0.12s ease; }
-.page-fade-leave-active { transition: opacity 0.08s ease; }
-.page-fade-enter-from { opacity: 0; transform: translateY(3px); }
+/* ====== 页面过渡（淡入 + 轻微缩放） ====== */
+.page-fade-enter-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.page-fade-leave-active { transition: opacity 0.1s ease; }
+.page-fade-enter-from { opacity: 0; transform: translateY(6px) scale(0.99); }
 .page-fade-leave-to { opacity: 0; }
 
 /* ====== 对话框 ====== */

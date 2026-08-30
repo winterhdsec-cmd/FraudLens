@@ -266,11 +266,11 @@
 
           <div v-else class="empty-state">
             <div class="empty-content">
-              <div class="empty-icon"><el-icon><User /></el-icon></div>
-              <h3 class="empty-title">暂无团伙画像数据</h3>
-              <p class="empty-desc">请先录入案情信息，系统将自动生成团伙画像</p>
+              <div class="empty-icon empty-icon-gang"><el-icon :size="64"><UserFilled /></el-icon></div>
+              <h3 class="empty-title">暂未识别诈骗团伙</h3>
+              <p class="empty-desc">系统需要通过案件间的资金链关联和话术语义相似度来聚类发现团伙。请先录入足够的案件数据（建议 10 条以上），系统将自动运行 GNN 图神经网络进行团伙发现。</p>
               <el-button type="primary" size="large" @click="router.push({ name: 'input' })">
-                <span><el-icon><EditPen /></el-icon></span> 前往录入
+                <span><el-icon><EditPen /></el-icon></span> 前往录入案件
               </el-button>
             </div>
           </div>
@@ -359,7 +359,27 @@ const jumpToCase = (caseId) => {
   align-items: center;
 }
 
-/* ===== 团伙画像卡片增强（问题10）===== */
+/* ===== 团伙画像卡片增强 ===== */
+/* 团伙卡片：紫色左侧竖条（区别于案件卡片的青色） */
+.profile-card {
+  position: relative;
+  padding-left: 22px;
+}
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #8b5cf6, rgba(139, 92, 246, 0.3));
+  opacity: 0.7;
+  transition: opacity 0.3s ease, width 0.2s ease;
+  border-radius: 0 2px 2px 0;
+}
+.profile-card:hover::before {
+  opacity: 1;
+  width: 4px;
+}
+
 .gang-steps { margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .steps-label { font-size: 11.5px; color: var(--text-secondary, #64748b); flex-shrink: 0; }
 .steps-chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -537,4 +557,21 @@ const jumpToCase = (caseId) => {
 .ev-chain { color: #c084fc; border-color: rgba(192, 132, 252, 0.45); background: rgba(192, 132, 252, 0.08); }
 .ev-freeze { color: #fbbf24; border-color: rgba(251, 191, 36, 0.45); background: rgba(251, 191, 36, 0.08); }
 .ev-fp { color: #94a3b8; border-color: rgba(148, 163, 184, 0.4); background: rgba(148, 163, 184, 0.06); }
+
+/* ===== 空状态差异化 ===== */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.6;
+  width: 100px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 20px;
+}
+.empty-icon-gang {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.03));
+  color: #8b5cf6;
+}
+.empty-title { font-size: 20px; color: var(--text-primary); font-weight: 600; margin: 0; }
+.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 480px; line-height: 1.7; }
 </style>

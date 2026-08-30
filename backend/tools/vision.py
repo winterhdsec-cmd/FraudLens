@@ -25,7 +25,10 @@ class VisionAnalyzer:
         elif vl_model:
             self.model = vl_model
         else:
-            self.model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+            # 统一走配置出口，避免换服务商后仍请求旧模型名（404 → 静默降级）
+            from core.llm_client import get_llm_model
+
+            self.model = get_llm_model()
         self._client = None
         self._vision_client = None
 

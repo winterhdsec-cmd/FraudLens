@@ -207,9 +207,9 @@ class TaskDecomposer:
 """
         
         try:
-            from core.llm_client import wrap_messages
+            from core.llm_client import wrap_messages, get_llm_model
             response = await self.llm_client.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.3,
                 max_tokens=1000

@@ -35,6 +35,25 @@ def cloud_llm_mask_enabled() -> bool:
     return os.getenv("CLOUD_LLM_MASK", "1") != "0"
 
 
+def get_llm_model() -> str:
+    """统一的模型名出口。
+
+    历史坑：agents 里 9 处写死 model="deepseek-chat"，导致把 LLM 切到
+    阿里云 DashScope（key.env: DEEPSEEK_BASE_URL/MODEL=qwen3.8-flash）后，
+    仍向新端点请求 deepseek-chat → 404 model_not_found → 问答/分析/复核
+    全部静默降级成兜底话术。所有 LLM 调用必须经这里取模型名，禁止再写死。
+    """
+    try:
+        from core.config import settings
+
+        name = (getattr(settings, "DEEPSEEK_MODEL", "") or "").strip()
+        if name:
+            return name
+    except Exception:
+        pass
+    return os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip() or "deepseek-chat"
+
+
 def get_llm_client(sync: bool = False):
     """返回云端 LLM 客户端；关闭或未配置密钥时返回 None（调用方须降级处理）。
 

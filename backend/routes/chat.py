@@ -106,6 +106,9 @@ async def send_message(
         # 按 session_id 获取隔离的 ChatAgent 实例
         chat_agent = get_chat_agent(request.session_id)
         
+        # 注入当前登录用户（工具做部门级数据隔离用；身份来自鉴权层，不信任 LLM）
+        chat_agent.user = current_user
+        
         # 设置会话
         if request.session_id:
             chat_agent.session_id = request.session_id
@@ -175,6 +178,9 @@ async def send_message_stream(
         
         # 按 session_id 获取隔离的 ChatAgent 实例
         chat_agent = get_chat_agent(request.session_id)
+        
+        # 注入当前登录用户（工具做部门级数据隔离用；身份来自鉴权层，不信任 LLM）
+        chat_agent.user = current_user
         
         # 设置会话
         if request.session_id:
@@ -279,6 +285,12 @@ async def list_intents():
                 "description": "获取指定案件的详细信息",
                 "example": "查看案件 CASE_20240101_12345678 的详情",
                 "tool": "get_case_detail"
+            },
+            {
+                "name": "查询团伙",
+                "description": "查询已识别的诈骗团伙及其成员案件（GNN聚类结果），支持串并归属分析",
+                "example": "哪些案件属于同一个团伙？某案件属于哪个团伙？",
+                "tool": "get_gangs"
             },
             {
                 "name": "统计数据",

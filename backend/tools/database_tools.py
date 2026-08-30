@@ -30,6 +30,13 @@ class SearchSimilarCasesInput(ToolInput):
     top_k: int = Field(5, description="返回最相似的K个案件")
 
 
+class GetGangsInput(ToolInput):
+    """查询团伙输入"""
+    risk_level: Optional[str] = Field(None, description="风险等级: S/A/B，不传返回全部")
+    gang_id: Optional[str] = Field(None, description="团伙ID，传则只返回该团伙及其成员案件")
+    limit: int = Field(20, description="返回团伙数量限制")
+
+
 class CreateCaseInput(ToolInput):
     """创建案件输入"""
     title: str = Field(..., description="案件标题")
@@ -69,8 +76,11 @@ class QueryCasesTool(Tool):
         try:
             from database import db
             from database.models import Case
+            from database.crud import apply_department_scope
             
             query = db.session.query(Case)
+            # 部门隔离：普通账号经问答也只能看到本部门案件（admin/auditor 豁免）
+            query = apply_department_scope(Case, query, getattr(self, 'context', {}).get('user'))
             
             if fraud_type:
                 query = query.filter(Case.scam_type == fraud_type)
@@ -120,11 +130,15 @@ class GetCaseDetailTool(Tool):
         try:
             from database import db
             from database.models import Case
+            from database.crud import apply_department_scope
             
-            case = db.session.query(Case).filter_by(case_id=case_id).first()
+            query = db.session.query(Case).filter_by(case_id=case_id)
+            # 部门隔离：越权访问按"不存在"处理，不泄露案件是否存在
+            query = apply_department_scope(Case, query, getattr(self, 'context', {}).get('user'))
+            case = query.first()
             
             if not case:
-                return ToolOutput(success=False, error=f"案件 {case_id} 不存在")
+                return ToolOutput(success=False, error=f"案件 {case_id} 不存在或无访问权限")
             
             result = {
                 "case_id": case.case_id,
@@ -168,14 +182,17 @@ class SearchSimilarCasesTool(Tool):
             from tools.embedding_utils import get_embedding_model
             from database import db
             from database.models import Case
+            from database.crud import apply_department_scope
             import numpy as np
             
             # 编码查询文本
             bge = get_embedding_model()
             query_embedding = bge.encode([description])[0]
             
-            # 获取所有案件
-            cases = db.session.query(Case).filter(Case.description != '').all()
+            # 获取候选案件（同样受部门隔离约束）
+            query = db.session.query(Case).filter(Case.description != '')
+            query = apply_department_scope(Case, query, getattr(self, 'context', {}).get('user'))
+            cases = query.all()
             
             if not cases:
                 return ToolOutput(success=True, data={"similar_cases": [], "count": 0})
@@ -208,6 +225,89 @@ class SearchSimilarCasesTool(Tool):
                 "count": len(top_cases)
             }
             
+            return ToolOutput(success=True, data=result)
+        except Exception as e:
+            return ToolOutput(success=False, error=str(e))
+
+
+class GetGangsTool(Tool):
+    """查询已识别的诈骗团伙（GNN 聚类结果）"""
+
+    name = "get_gangs"
+    description = ("查询系统已识别的诈骗团伙及其成员案件（GNN 图神经网络聚类结果）。"
+                   "可按风险等级筛选，或按团伙ID查某个团伙的成员案件清单；"
+                   "也可回答'某案件属于哪个团伙'这类串并归属问题。")
+    input_schema = GetGangsInput
+
+    def execute(
+        self,
+        risk_level: Optional[str] = None,
+        gang_id: Optional[str] = None,
+        limit: int = 20
+    ) -> ToolOutput:
+        try:
+            from database import db
+            from database.models import Gang, GangCaseRelation, Case
+            from database.crud import apply_department_scope
+
+            user = getattr(self, 'context', {}).get('user')
+            query = db.session.query(Gang)
+            # 团伙同样按部门隔离（Gang 表有 department 字段）
+            query = apply_department_scope(Gang, query, user)
+
+            if risk_level:
+                query = query.filter(Gang.risk_level == risk_level.upper())
+            if gang_id:
+                query = query.filter(Gang.gang_id == gang_id)
+
+            gangs = query.limit(limit).all()
+            if not gangs:
+                return ToolOutput(success=True, data={"total": 0, "gangs": []})
+
+            gang_ids = [g.gang_id for g in gangs]
+            rels = db.session.query(GangCaseRelation).filter(
+                GangCaseRelation.gang_id.in_(gang_ids)
+            ).all()
+
+            members: Dict[str, list] = {gid: [] for gid in gang_ids}
+            case_ids = {r.case_id for r in rels}
+            titles = {}
+            if case_ids:
+                cq = db.session.query(Case.case_id, Case.title, Case.amount, Case.risk_level).filter(
+                    Case.case_id.in_(list(case_ids))
+                )
+                cq = apply_department_scope(Case, cq, user)
+                titles = {c.case_id: c for c in cq.all()}
+            for r in rels:
+                # 成员案件也按可见范围过滤，避免通过团伙侧漏出越权案件
+                if r.case_id in titles:
+                    members.setdefault(r.gang_id, []).append(r.case_id)
+
+            result = {
+                "total": len(gangs),
+                "gangs": [
+                    {
+                        "gang_id": g.gang_id,
+                        "gang_name": g.gang_name,
+                        "risk_level": g.risk_level,
+                        "risk_label": g.risk_label,
+                        "threat_level": g.threat_level,
+                        "member_count": len(members.get(g.gang_id, [])),
+                        "total_amount": g.total_amount,
+                        "script_type": g.script_type,
+                        "members": [
+                            {
+                                "case_id": cid,
+                                "title": titles[cid].title,
+                                "amount": titles[cid].amount,
+                                "risk_level": titles[cid].risk_level,
+                            }
+                            for cid in members.get(g.gang_id, [])
+                        ],
+                    }
+                    for g in gangs
+                ],
+            }
             return ToolOutput(success=True, data=result)
         except Exception as e:
             return ToolOutput(success=False, error=str(e))

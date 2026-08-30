@@ -18,7 +18,9 @@ from core.metrics import get_metrics_collector
 from core.checkpoint import get_checkpoint_manager
 from core.planning import PlanningModule
 from tools.base import ToolRegistry
-from tools.database_tools import QueryCasesTool, SearchSimilarCasesTool, GetCaseDetailTool
+from tools.database_tools import (
+    QueryCasesTool, SearchSimilarCasesTool, GetCaseDetailTool, GetGangsTool,
+)
 from tools.statistics_tools import GetStatisticsTool
 from tools.rag_tools import SearchKnowledgeTool, RetrieveAndCompressContextTool
 from memory.short_term import ShortTermMemory
@@ -47,6 +49,7 @@ class ChatAgent:
         self.tools.register(QueryCasesTool())
         self.tools.register(SearchSimilarCasesTool())
         self.tools.register(GetCaseDetailTool())
+        self.tools.register(GetGangsTool())
         self.tools.register(GetStatisticsTool())
         self.tools.register(SearchKnowledgeTool())
         self.tools.register(RetrieveAndCompressContextTool())
@@ -58,6 +61,8 @@ class ChatAgent:
         
         # 会话状态
         self.session_id = None
+        # 当前登录用户（由路由层注入，供工具做部门级数据隔离；工具不信任 LLM 传入的身份）
+        self.user: Optional[Dict[str, Any]] = None
         self.state = AgentState(
             agent_id="chat_agent",
             agent_type="chat",
@@ -455,9 +460,10 @@ class ChatAgent:
 1. query_cases - 查询案件列表（按条件筛选）
 2. search_similar_cases - 搜索相似案件（语义检索）
 3. get_case_detail - 获取案件详情
-4. get_statistics - 获取统计数据
-5. search_knowledge - 在知识库中搜索相关信息（反诈知识、案例分析等）
-6. retrieve_context - 检索相关知识并压缩为上下文（用于深度分析）
+4. get_gangs - 查询已识别的诈骗团伙及其成员案件（GNN聚类结果），回答"哪个案件属于哪个团伙"的串并归属
+5. get_statistics - 获取统计数据
+6. search_knowledge - 在知识库中搜索相关信息（反诈知识、案例分析等）
+7. retrieve_context - 检索相关知识并压缩为上下文（用于深度分析）
 
 请输出JSON格式:
 {{
@@ -617,6 +623,10 @@ class ChatAgent:
                 return {"error": f"工具 {tool_name} 不存在"}
             
             try:
+                # 注入执行上下文：登录用户（部门隔离用）+ 会话ID。
+                # 工具入参是 LLM 生成的，身份信息绝不能走 tool_input。
+                tool.set_context({"user": self.user, "session_id": self.session_id})
+
                 # 使用ToolSandbox安全执行工具
                 sandbox = ToolSandbox(timeout=30.0, max_memory_mb=512, max_retries=2)
                 

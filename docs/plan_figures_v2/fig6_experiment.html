@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:560px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{padding:18px 30px 10px;border-bottom:3px solid #0e2f52;display:flex;align-items:baseline;gap:14px}
+.hd h1{font-size:25px;color:#0e2f52}
+.hd span{font-size:13.5px;color:#5b6b7c}
+.main{display:flex;gap:18px;padding:16px 30px 0}
+.left{flex:0 0 46%}
+.left h3,.right h3{font-size:15px;color:#0e2f52;margin-bottom:10px}
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.blab{width:118px;flex:0 0 118px;text-align:right;font-size:12.8px;color:#42525f;line-height:1.25}
+.blab i{display:block;font-style:normal;font-size:10.5px;color:#8b98a7}
+.btrack{flex:1;height:30px;background:#eef2f7;border-radius:5px;position:relative}
+.bfill{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:13px;font-weight:800;position:relative}
+.err{position:absolute;top:50%;height:14px;border:2px solid #5b6b7c;border-top:none;border-bottom:none;opacity:.75}
+.bfill .v{margin-left:6px}
+.scale{display:flex;justify-content:space-between;font-size:10.5px;color:#8b98a7;margin-left:126px;border-top:1px solid #dbe5f0;padding-top:3px}
+.right{flex:1}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#0e2f52;color:#fff;padding:7px 6px;font-weight:600;text-align:center}
+td{border:1px solid #dbe5f0;padding:6px;text-align:center;color:#33475c}
+tr:nth-child(even) td{background:#f7fafc}
+td.best{color:#c0392b;font-weight:800}
+td.hyb{font-weight:700;color:#0e2f52}
+.foot{display:flex;gap:14px;padding:14px 30px 0}
+.fc{flex:1;border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.6}
+.fc b{display:block;font-size:13.5px;margin-bottom:3px}
+.fc.g{background:#eaf6ef;border:1px solid #a9d8bd;color:#1f5c3c}
+.fc.o{background:#fdf9ef;border:1px solid #e6cf9a;color:#6b5312}
+.fc.r{background:#fdf3f2;border:1px solid #e8b4ae;color:#7c3128}
+</style></head><body>
+<div class="hd"><h1>全量实验：6 种警情预设 × 5 方法 × 3 随机种子</h1><span>指标 pairwise F1（团伙匹配置信度）· mean±std · 一切数字可复现（固定种子 + sha256 确定性哈希）</span></div>
+<div class="main">
+  <div class="left"><h3>主战场：P2 重噪 40 案（贴近真实警情：账户缺失+话术变体）</h3>
+    <div class="brow"><div class="blab">hybrid 共识半监督<i>3-seed 全胜 ★</i></div><div class="btrack"><div class="bfill" style="width:94.9%;background:#c0392b">0.9487<span class="err" style="left:90.8%;right:2.9%"></span></div></div></div>
+    <div class="brow"><div class="blab">hybrid 纯 GNN 出牌<i>消融：去锚点直读</i></div><div class="btrack"><div class="bfill" style="width:89.3%;background:#58718c">0.8931<span class="err" style="left:81.5%;right:0.7%"></span></div></div></div>
+    <div class="brow"><div class="blab">资金通道 Louvain<i>消融：去话术单通道</i></div><div class="btrack"><div class="bfill" style="width:82.1%;background:#1e5fa8">0.8214<span class="err" style="left:70.3%;right:11.5%"></span></div></div></div>
+    <div class="brow"><div class="blab">自监督 HAN<i>无任何标签先验</i></div><div class="btrack"><div class="bfill" style="width:56.5%;background:#7d5ba6">0.5651<span class="err" style="left:49.7%;right:1.9%"></span></div></div></div>
+    <div class="brow"><div class="blab">话术 KMeans<i>无监督聚类基线</i></div><div class="btrack"><div class="bfill" style="width:49.9%;background:#9db1c5">0.4990<span class="err" style="left:43.6%;right:0.5%"></span></div></div></div>
+    <div class="scale"><span>0</span><span>0.25</span><span>0.50</span><span>0.75</span><span>1.00</span></div>
+    <div style="font-size:11px;color:#8b98a7;margin-top:6px">横条=3-seed 均值；须线=±标准差。hybrid 均值最高且方差最小（±0.041），单 seed 曾达 1.00。</div>
+  </div>
+  <div class="right"><h3>全景表：hybrid 与各场景最优（mean±std）</h3>
+    <table><tr><th>预设（40案除注）</th><th>hybrid<br>共识半监督</th><th>场景最优</th><th>结论</th></tr>
+    <tr><td>P0 干净基线</td><td class="hyb">0.913±0.030</td><td>selfsup <b>0.922</b></td><td>锚点过分裂被自适应k大幅缓解<br>（仍略低，如实呈 limitation）</td></tr>
+    <tr><td>P1 轻噪</td><td class="hyb">0.756±0.127</td><td>fund 0.819±0.056</td><td>自适应k全量生效<br>0.692→<b>0.756</b>，与规则差距收窄</td></tr>
+    <tr><td><b>P2 重噪 ★主推</b></td><td class="hyb best">0.949±0.041</td><td class="best">hybrid</td><td>全胜 4 基线且方差最小</td></tr>
+    <tr><td>P3 200 案规模</td><td class="hyb best">0.656±0.069</td><td class="best">hybrid</td><td>自适应k最大受益 0.466→0.656<br>绝对水平仍受限→增量架构</td></tr>
+    <tr><td>P4 话术碰撞</td><td class="hyb">0.981±0.027</td><td>fund 1.000</td><td>hybrid 高位稳定</td></tr>
+    <tr><td>P5 碰撞+噪</td><td class="hyb best">0.797±0.174<span style="font-size:10.5px"> (n=3)</span></td><td>fund 0.833</td><td>自适应k后 seed7 恢复出牌<br>graph 方法中最优</td></tr>
+    </table>
+  </div>
+</div>
+<div class="foot">
+  <div class="fc g"><b>规模化的答案：增量匹配（已实现并验证）</b>P3 200 案流式验证：增量 F1 <b>0.609 vs 全量 0.526，反超 +0.083</b>——阶段一 Louvain 过合并 6 团，流式逐案补回 10 团；"新警情不断进来也不能拖垮精度"贴合反诈中心实战。</div>
+  <div class="fc o"><b>诚实的取舍（不掩盖）</b>P2 账户稀疏场景增量比全量低 6 分（0.619 vs 0.679）：25% 案件无账户 → 单信号不采信 → 攒批丢部分召回。这是"宁缺毋滥"门控的<b>有意设计</b>，作为 trade-off 如实呈现。</div>
+  <div class="fc r"><b>可信度工程（踩过的坑都变成资产）</b>发现并修复"hash 向量冒充 BGE 语义嵌入"与逐进程 hash 随机化两大陷阱，废弃当日 15:00 前全部结论重跑——固定种子 + sha256 后跨进程完全复现。实验伦理与工程质量的双重证明。</div>
+</div>
+</body></html>

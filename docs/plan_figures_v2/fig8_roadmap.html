@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:520px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{padding:18px 30px 10px;border-bottom:3px solid #0e2f52;display:flex;align-items:baseline;gap:14px}
+.hd h1{font-size:25px;color:#0e2f52}
+.hd span{font-size:13.5px;color:#5b6b7c}
+.tl{position:relative;margin:34px 40px 0;height:120px}
+.axis{position:absolute;left:0;right:0;top:56px;height:6px;background:linear-gradient(90deg,#1f7a4d 0%,#1f7a4d 62%,#1e5fa8 62%,#1e5fa8 78%,#d5dde6 78%);border-radius:3px}
+.mk{position:absolute;top:38px;width:42px;text-align:center}
+.mk .d{width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid #1f7a4d;margin:0 auto}
+.mk.b .d{border-color:#1e5fa8}.mk.g .d{border-color:#c9d3de}
+.mk .t{font-size:12px;font-weight:700;color:#33475c;margin-top:5px}
+.up,.dn{position:absolute;font-size:12px;line-height:1.45;text-align:center;width:150px;color:#42525f}
+.up{bottom:80px}.dn{top:80px}
+.up:before,.dn:after{content:"";display:block;width:1px;height:12px;background:#c9d3de;margin:2px auto}
+.up b{color:#0e2f52}.dn b{color:#0e2f52}
+.cols{display:flex;gap:14px;padding:26px 30px 0}
+.ph{flex:1;border-radius:10px;overflow:hidden;border:1px solid #dbe5f0}
+.ph h3{font-size:14.5px;color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px}
+.ph h3 span{margin-left:auto;font-size:11px;background:rgba(255,255,255,.25);padding:2px 10px;border-radius:10px}
+.ph.done h3{background:#1f7a4d}.ph.now h3{background:#1e5fa8}.ph.next h3{background:#b07a1e}
+.ph ul{list-style:none;padding:9px 14px 11px}
+.ph li{font-size:12.3px;color:#42525f;line-height:1.6;padding-left:12px;position:relative;margin-bottom:3px}
+.ph li:before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#8b98a7}
+.ph li b{color:#0e2f52}
+</style></head><body>
+<div class="hd"><h1>实施路线图：从课堂问题到可试点系统</h1><span>绿色=已完成（有代码与实验记录可查）· 蓝色=进行中 · 灰色=规划</span></div>
+<div class="tl">
+  <div class="axis"></div>
+  <div class="mk"    style="left:2%"><div class="d"></div><div class="t">2025.09</div></div>
+  <div class="mk"    style="left:16%"><div class="d"></div><div class="t">2026.01</div></div>
+  <div class="mk"    style="left:32%"><div class="d"></div><div class="t">2026.04</div></div>
+  <div class="mk"    style="left:47%"><div class="d"></div><div class="t">2026.07</div></div>
+  <div class="mk"    style="left:60%"><div class="d"></div><div class="t">2026.08</div></div>
+  <div class="mk b"  style="left:70%"><div class="d"></div><div class="t">2026.09</div></div>
+  <div class="mk g"  style="left:83%"><div class="d"></div><div class="t">2027.03</div></div>
+  <div class="mk g"  style="left:95%"><div class="d"></div><div class="t">2027.12</div></div>
+  <div class="up" style="left:0%">立项：家乡反诈<br>宣讲见<b>人工研判之慢</b></div>
+  <div class="dn" style="left:12%">文献+公开警情<br>调研；<b>脱敏数据</b><br>合成管线建成</div>
+  <div class="up" style="left:26%">多智能体流水线<br>+ 异构图 GNN<br><b>首版跑通</b></div>
+  <div class="dn" style="left:42%">前端可视化+报告<br>导出；<b>BGE 本地化</b><br>（数据不出域）</div>
+  <div class="up" style="left:54%">3-seed 全量实验<br><b>共识半监督定型</b><br>论文初稿·专利占位</div>
+  <div class="dn" style="left:66%">国创赛参赛<br>走访调研补证<br><b>申报书定稿</b></div>
+  <div class="up" style="left:78%">县分局反诈中心<br><b>免费试点</b>（以调研<br>换场景反馈）</div>
+  <div class="dn" style="left:90%">迭代研判插件版<br>申报公安科技<br>创新项目</div>
+</div>
+<div class="cols">
+  <div class="ph done"><h3>研发攻坚期<span>已完成 · 实证可查</span></h3><ul>
+    <li>LangGraph 多智能体<b>真反思闭环</b>（4 分析 Agent + 质检回炉）</li>
+    <li>HAN/GraphSAGE 异构图团伙发现<b>真实跑通</b>（CPU 可复现）</li>
+    <li>共识伪标签半监督 + 客观置信度门控 + 自适应 k（3-seed 全量表）</li>
+    <li>增量匹配器流式挂团 + 前端图谱/报告系统</li>
+  </ul></div>
+  <div class="ph now"><h3>竞赛验证期<span>进行中 · 2026.09</span></h3><ul>
+    <li>反诈中心<b>实地走访调研</b>：流程访谈+需求问卷+试用反馈（个人成长实证）</li>
+    <li>中文论文投出；方法类发明专利 1-2 件提交（先申请占优先权日，论文后发）</li>
+    <li>申报书、演示视频、答辩 Demo 打磨</li>
+  </ul></div>
+  <div class="ph next"><h3>落地试点期<span>规划 · 2027</span></h3><ul>
+    <li>依托警校师生渠道在<b>县分局反诈中心</b>试用，以真实工单回访迭代</li>
+    <li>扩类验证：涉赌、跨境网络赌博等警情迁移（方法不需重训标注体系）</li>
+    <li>对接地市局平台"研判插件"位，申报省级公安科技创新项目</li>
+  </ul></div>
+</div>
+</body></html>

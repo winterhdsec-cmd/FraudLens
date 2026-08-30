@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudLens 项目地图（人话版）</title>
+<style>
+  :root{
+    --bg:#0e1218; --panel:#161b22; --card:#1c232c; --line:#2d3744;
+    --text:#e6edf3; --muted:#9aa4b2; --blue:#6aa9ff; --green:#7ec98f;
+    --orange:#e8a04c; --red:#ff6b6b; --purple:#b794f6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7;padding:32px;}
+  h1{font-size:26px;margin:0 0 4px;}
+  .sub{color:var(--muted);margin-bottom:28px;font-size:14px;}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:22px;margin-bottom:22px;}
+  h2{font-size:18px;margin:0 0 14px;color:var(--orange);border-left:4px solid var(--orange);padding-left:10px;}
+  .arch{display:flex;gap:18px;flex-wrap:wrap;}
+  .col{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;}
+  .col h3{font-size:14px;margin:0 0 10px;}
+  .node{background:#22303c;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px , font-size:13px;}
+  .node.good{border-color:var(--green);}
+  .node.mock{border-color:var(--red);}
+  .loop{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:12px;}
+  .step{background:#22303c;border:1px solid var(--blue);border-radius:20px;padding:6px 12px;color:var(--blue);}
+  .arrow{color:var(--muted);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top;}
+  th{background:#20262f;color:var(--text);}
+  td.ok{color:var(--green);}
+  td.bad{color:var(--red);}
+  code{background:#20262f;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--blue);}
+  .path{color:var(--orange);font-size:12px;}
+  .tip{background:#1a2230;border-left:4px solid var(--blue);padding:12px 14px;border-radius:8px;margin-top:14px;font-size:14px;}
+  .tip b{color:var(--blue);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<h1>FraudLens 反诈研判系统 · 项目地图</h1>
+<div class="sub">写给「非作者」的快速上手 — 重点看「真做了什么 / 哪里是占位 / 从哪入手」</div>
+
+<section>
+  <h2>一、一句话定位</h2>
+  <p style="font-size:15px">面向公安反诈中心的 <b>多智能体 + 图神经网络</b> 研判系统：帮警察从海量交易/通信数据中自动发现诈骗团伙、串并案件、可视化资金链。单机/内网部署，不做云端商业化。</p>
+  <p class="path">技术栈：前端 Vue3 + Element Plus + ECharts + vis-network ；后端 FastAPI + LangGraph 真反思闭环；数据层 MySQL + Redis + BGE 本地嵌入 + DeepSeek 云端 + GNN。</p>
+</section>
+
+<section>
+  <h2>二、整体架构（三层）</h2>
+  <div class="arch">
+    <div class="col">
+      <h3>① 前端（你看得见的部分）</h3>
+      <div class="node good">Vue3 + Vite + Element Plus</div>
+      <div class="node good">ECharts 图表 / vis-network 关系图</div>
+      <div class="node good">axios + JWT + socket.io 实时进度</div>
+      <div class="path">前端入口：frontend/src/router/index.js（19 个页面）</div>
+    </div>
+    <div class="col">
+      <h3>② 后端（AI 大脑）</h3>
+      <div class="node good">FastAPI（端口 5003）</div>
+      <div class="node good">入口：backend/main.py</div>
+      <div class="node good">Agent 编排：backend/agents/orchestrator.py</div>
+      <div class="node good">GNN：backend/gnn/</div>
+      <div class="path">13 个路由：auth/cases/gangs/sessions/alerts/dashboard…</div>
+    </div>
+    <div class="col">
+      <h3>③ 数据 & 部署</h3>
+      <div class="node good">MySQL 8（案件/团伙数据）</div>
+  <div class="node good">Redis（缓存/队列）</div>
+      <div class="node good">Docker 全套：docker-compose.yml</div>
+      <div class="path">含 mysql/redis/minio/nginx/prometheus/grafana</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>三、后端最核心：LangGraph 反思闭环（真闭环，不是摆设）</h2>
+  <p style="font-size:14px;color:var(--muted)">文件 <code>backend/agents/orchestrator.py</code> 用一个有向图把 5 个阶段串起来，最后一步「反思」会判断质量，不够好就回到「分析」重做 —— 这就是所谓的真反思。</p>
+  <div class="loop">
+    <span class="step">规划</span><span class="arrow">→</span>
+    <span class="step">预处理</span><span class="arrow">→</span>
+    <span class="step">分析</span><span class="arrow">→</span>
+    <span class="step">聚类</span><span class="arrow">→</span>
+    <span class="step">反思</span>
+    <span class="arrow">↺ 条件回连 →</span><span class="step">分析（重做）</span>
+    <span class="arrow">／ 达标 → END</span>
+  </div>
+  <ul style="font-size:14px;margin-top:14px">
+    <li><b style="color:var(--green)">真回连</b>：<code>add_conditional_edges("reflect_node", ...{"continue":"analyze_node", END:END})</code></li>
+    <li><b style="color:var(--green)">真调参</b>：<code>_adjust_strategy</code> 会关闭 GNN / 调小聚类粒度，不只是打日志</li>
+    <li>最多迭代 2 轮（MAX_REFLECT_ITER），避免死循环</li>
+  </ul>
+</section>
+
+<section>
+  <h2>四、GNN 两条线（都是真实现）</h2>
+  <div class="grid2">
+    <div class="node good">
+      <b style="color:var(--blue)">Track A · 资金链 GraphSAGE</b><br>
+      <span style="font-size:13px">文件：backend/gnn/gnn_model.py + gang_detector.py</span><br>
+      <span style="font-size:13px">环子图检测 F1：训练后 0.086 → 0.866（约 ×10）</span>
+    </div>
+    <div class="node good">
+      <b style="color:var(--purple)">Track B · 案情异构 HAN</b><br>
+      <span style="font-size:13px">文件：backend/gnn/han_model.py（语义注意力）</span><br>
+      <span style="font-size:13px">合成数据下 F1=0.955；真实数据暂未见显著增益</span>
+    </div>
+  </div>
+  <div class="tip"><b>诚实边界（很重要）：</b>在真实 AMLSim 数据集上，所有方法 F1 仅 0.002–0.010，「GNN 碾压」只在合成/环子图场景成立。写论文时不要说「GNN 大幅提升真实数据效果」，那会穿帮。</div>
+</section>
+
+<section>
+  <h2>五、真实 vs 占位 对照表</h2>
+  <table>
+    <tr><th>维度</th><th>状态</th><th>说明 / 关键路径</th></tr>
+    <tr><td>反思闭环</td><td class="ok">✅ 真实现</td><td>orchestrator.py 条件边回连 + 真调参</td></tr>
+    <tr><td>双 GNN（GraphSAGE/HAN）</td><td class="ok">✅ 真实现</td><td>backend/gnn/ 含模型+训练+推理</td></tr>
+    <tr><td>多智能体（9 个专项 Agent）</td><td class="ok">✅ 真实现</td><td>backend/agents/specialist_agents.py</td></tr>
+    <tr><td>前端可视化（ECharts/vis-network）</td><td class=",ok">✅ 真实现</td><td>composables/useEcharts.js、NetworkGraph.vue</td></tr>
+    <tr><td>评估体系（诚实对比）</td><td class="ok">✅ 真实现</td><td>backend/gnn/eval_v21_results.json 等</td></tr>
+    <tr><td>止付冻结</td><td class="bad">⚠️ 仅 Mock</td><td>backend/tools/freeze_executor.py 真实接口待公安对接</td></tr>
+    <tr><td>实验脚本噪音</td><td class="bad">⚠️ 忽略</td><td>gnn/pathb_*、experiment_*、probe_* 是科研产物，非主线</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>六、给你的学习路线（大二 / 非作者）</h2>
+  <ol style="font-size:14px">
+    <li><b>先懂数据流</b>：读 <code>frontend/src/api.js</code> → 看他点了什么按钮、调了哪个后端接口。</li>
+    <li><b>再懂大脑</b>：读 <code>backend/agents/orchestrator.py</code> 的 5 阶段，这是系统的「骨架」。</li>
+    <li><b>看 AI 怎么干活</b>：读 <code>backend/agents/specialist_agents.py</code>，九个 Agent 各管一摊（抽取/资金流/通信流/矛盾/CaseRAG/聚类/画像/报告/对话助教）。</li>
+    <li><b>看 AI 怎么「想」</b>：读 <code>backend/gnn/</code>，理解 GNN 为什么能找团伙。</li>
+    <li><b>别碰</b>：freeze_executor.py（占位）、pathb_*/experiment_*（实验残留）、probes（探针）。</li>
+  </ol>
+  <div class="tip"><b>一句话心智模型：</b>用户在前端点几下 → 后端用「规划→分析→聚类→反思」循环跑 AI → 用 GNN 挖团伙 → 前端把结果画成图。你就沿着这条线读，不会被 1 万多文件吓到。</div>
+</section>
+</body>
+</html>

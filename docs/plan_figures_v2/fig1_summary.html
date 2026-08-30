@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:640px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{display:flex;align-items:center;gap:16px;padding:20px 30px 14px;background:linear-gradient(90deg,#0e2f52,#1e5fa8);color:#fff}
+.hd .logo{font-size:30px;font-weight:800;letter-spacing:1px}
+.hd .logo span{color:#ffd76a}
+.hd .sub{font-size:15px;opacity:.85;border-left:2px solid rgba(255,255,255,.4);padding-left:16px;line-height:1.5}
+.hd .tag{margin-left:auto;font-size:13px;background:#c0392b;padding:6px 14px;border-radius:16px;white-space:nowrap;font-weight:600}
+.kpis{display:flex;gap:14px;padding:16px 30px 4px}
+.kpi{flex:1;background:#f4f7fb;border:1px solid #dbe5f0;border-top:4px solid #1e5fa8;border-radius:8px;padding:12px 16px;text-align:center}
+.kpi.hot{border-top-color:#c0392b}
+.kpi b{display:block;font-size:26px;color:#0e2f52;line-height:1.2}
+.kpi.hot b{color:#c0392b}
+.kpi i{display:block;font-style:normal;font-size:12.5px;color:#5b6b7c;margin-top:5px;line-height:1.45}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 30px}
+.card{border:1px solid #dbe5f0;border-radius:8px;overflow:hidden;background:#fff}
+.card h3{font-size:16px;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:8px}
+.card h3 em{margin-left:auto;font-style:normal;font-size:11.5px;background:rgba(255,255,255,.22);padding:2px 10px;border-radius:10px}
+.card.c1 h3{background:#8b2f2f}.card.c2 h3{background:#1e5fa8}.card.c3 h3{background:#1f7a4d}.card.c4 h3{background:#b07a1e}
+.card ul{list-style:none;padding:10px 16px 12px}
+.card li{font-size:13.5px;line-height:1.6;padding-left:15px;position:relative;margin-bottom:5px}
+.card li:before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;background:#c0392b;border-radius:2px}
+.card li b{color:#0e2f52}
+.ft{margin:4px 30px 0;background:#0e2f52;border-radius:8px;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px}
+.ft .t{font-size:13px;font-weight:700;white-space:nowrap;color:#ffd76a}
+.chip{font-size:11.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);padding:4px 9px;border-radius:12px;white-space:nowrap}
+.chip b{color:#ffd76a}
+.note{font-size:11px;color:#8b98a7;padding:8px 30px 0;line-height:1.5}
+</style></head><body>
+<div class="hd">
+  <div class="logo">Fraud<span>Lens</span></div>
+  <div class="sub">面向反诈一线的多智能体与图神经网络团伙发现系统<br>把"靠人眼、靠经验"的串并案研判，变成可解释、可复核的智能辅助</div>
+  <div class="tag">国创赛 · 高教主赛道 · 创意组 · 人工智能+</div>
+</div>
+<div class="kpis">
+  <div class="kpi hot"><b>0.9487 ± 0.041</b><i>重噪真实场景 团伙匹配F1<br>3 随机种子全胜 5 种基线方法</i></div>
+  <div class="kpi"><b>+0.19 / +0.28</b><i>自适应置信度门控后<br>轻噪场景匹配 F1 提升幅度</i></div>
+  <div class="kpi"><b>100%</b><i>共识伪标签锚点纯度实测<br>"宁缺毋滥"门控自动拒绝脏锚点</i></div>
+  <div class="kpi"><b>25.8 万起</b><i>2025 全国侦破电诈案件<br>（公安部发布会，一线需求实证）</i></div>
+</div>
+<div class="grid">
+  <div class="card c1"><h3>① 一线痛点 <em>问题导向</em></h3><ul>
+    <li><b>串并靠人：</b>同一团伙流窜作案拆成数十条孤立线索，人工比对话术、翻账户，漏并误并常态化</li>
+    <li><b>话术变体快：</b>诈骗脚本模板化投喂、高频微调，关键词规则库永远滞后一代</li>
+    <li><b>数据天生脏：</b>报警笔录账户缺失、号码换用，纯规则与纯模型在真实警情上双双失灵</li>
+  </ul></div>
+  <div class="card c2"><h3>② 我们的方案 <em>核心创新</em></h3><ul>
+    <li><b>多智能体研判流水线：</b>LangGraph 真反思闭环，话术/资金/串并三路 Agent 互审纠偏</li>
+    <li><b>共识伪标签半监督：</b>资金链 Louvain 与话术 BGE 语义聚类双通道一致才作锚点，监督微调 HAN 图神经网络</li>
+    <li><b>客观置信度门控 + 增量匹配：</b>锚点不足自动拒出牌，新警情流式挂团不重算全图</li>
+  </ul></div>
+  <div class="card c3"><h3>③ 实证与边界 <em>材料真实</em></h3><ul>
+    <li><b>全量 3-seed 实验：</b>6 种警情预设 × 5 方法，主场景 hybrid 0.949 且方差最小</li>
+    <li><b>消融齐备：</b>去半监督、去门控、纯规则、纯聚类对照；过程日志与代码全部可复现</li>
+    <li><b>如实呈现边界：</b>干净小样本上自监督更优、稀疏账户下增量攒批取舍——不回避、有分析</li>
+  </ul></div>
+  <div class="card c4"><h3>④ 落地与价值 <em>差异化切口</em></h3><ul>
+    <li><b>轻量一线：</b>面向县区反诈中心日常研判，避开大厂平台级正面竞争</li>
+    <li><b>数据不出域：</b>本地化 BGE 编码 + 私有化部署，符合公安数据管理规范</li>
+    <li><b>每一步可解释：</b>输出附带证据链（共卡/共号/话术相似），支撑办案取证而非"黑盒结论"</li>
+  </ul></div>
+</div>
+<div class="ft"><span class="t">章节 ⇔ 评分点对照</span>
+  <span class="chip">个人成长 <b>30分</b> → 第一、八章（实地调研 / 文献 / 学生实证）</span>
+  <span class="chip">项目创新 <b>30分</b> → 第二、三章（算法创新 + 实验证据链）</span>
+  <span class="chip">产业价值 <b>25分</b> → 第四、五章（竞品 / 市场 / 落地路径）</span>
+  <span class="chip">团队协作 <b>15分</b> → 第六章（分工）</span>
+</div>
+<div class="note">注：本页所有实验数字来自项目 2026-08 全量 3-seed 实验（pairwise F1）；宏观数据来自公安部 2026-01 新闻发布会与最高检《刑事检察工作白皮书(2025)》，均可溯源。</div>
+</body></html>

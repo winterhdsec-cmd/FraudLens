@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:490px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{padding:18px 30px 10px;border-bottom:3px solid #0e2f52;display:flex;align-items:baseline;gap:14px}
+.hd h1{font-size:25px;color:#0e2f52}
+.hd span{font-size:13.5px;color:#5b6b7c}
+.cols{display:flex;gap:14px;padding:16px 30px 0}
+.col{flex:1;border:1px solid #dbe5f0;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.col h3{font-size:15.5px;color:#fff;padding:9px 14px}
+.col.a h3{background:#1e5fa8}.col.b h3{background:#1f7a4d}.col.c h3{background:#b07a1e}
+.bd{padding:12px 14px;flex:1}
+.rule{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.rule .t{flex:0 0 34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+.rule p{font-size:12.8px;line-height:1.55;color:#42525f}
+.rule p b{color:#0e2f52;font-size:13.3px}
+.bars{margin:6px 0 10px}
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.blab{width:52px;font-size:12px;color:#5b6b7c;text-align:right;flex:0 0 52px}
+.btrack{flex:1;height:20px;background:#edf1f6;border-radius:4px;position:relative}
+.bfill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;color:#fff;font-size:11.5px;font-weight:700}
+.g1{background:#9db1c5}.g2{background:#1f7a4d}
+.grp{font-size:12.5px;font-weight:700;color:#0e2f52;margin:10px 0 5px;padding-left:2px}
+.grp i{font-style:normal;font-weight:400;color:#5b6b7c;font-size:12px}
+.note{background:#f4f7fb;border-radius:6px;font-size:12px;color:#51606f;padding:8px 10px;line-height:1.55;margin-top:8px}
+.note b{color:#c0392b}
+.big{font-size:13px;line-height:1.65;color:#42525f;margin-bottom:10px}
+.big b{color:#0e2f52}
+.casebox{background:#fdf9ef;border:1px dashed #d4a017;border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:#6b5312}
+.casebox b{color:#8a5a00}
+</style></head><body>
+<div class="hd"><h1>第三道保险：客观置信度门控（可拒答的算法）</h1><span>警务辅助决策的铁律——宁可不给结论，绝不给出脏结论</span></div>
+<div class="cols">
+  <div class="col a"><h3>① 三级拒绝规则</h3><div class="bd">
+    <div class="rule"><div class="t" style="background:#1e5fa8">小</div><p><b>簇 &lt; 2：</b>孤案不成团，直接不采信，防"自我确认"式误并</p></div>
+    <div class="rule"><div class="t" style="background:#c0392b">巨</div><p><b>簇 &gt; 25%N：</b>一个"团伙"吞掉全库四分之一必是 Louvain 巨社区污染（200 案库实测出过 90 案巨簇）→ 整类弃用</p></div>
+    <div class="rule"><div class="t" style="background:#1f7a4d">缺</div><p><b>可用锚点 &lt; 2 簇：</b>共识信号不足 → 整个半监督环节拒出牌，回退提示侦查员补证</p></div>
+    <div class="note">拒答不是失败，是<b>把不确定性如实交还给人</b>——这正是评审最看重的"逻辑正确 + 材料真实"。</div>
+  </div></div>
+  <div class="col b"><h3>② 巨簇 ≠ 全弃：自适应 k 重估</h3><div class="bd">
+    <div class="grp">锚点覆盖率 <i>（越高越能用上监督，seed42 探查）</i></div>
+    <div class="bars">
+      <div class="brow"><div class="blab">P1 旧</div><div class="btrack"><div class="bfill g1" style="width:60%">0.60</div></div></div>
+      <div class="brow"><div class="blab">P1 新</div><div class="btrack"><div class="bfill g2" style="width:90%">0.90+</div></div></div>
+      <div class="brow"><div class="blab">P3 旧</div><div class="btrack"><div class="bfill g1" style="width:54%">0.54</div></div></div>
+      <div class="brow"><div class="blab">P3 新</div><div class="btrack"><div class="bfill g2" style="width:97%">0.97</div></div></div>
+    </div>
+    <div class="grp">hybrid 匹配 F1 <i>（全量 3-seed 均值）</i></div>
+    <div class="bars">
+      <div class="brow"><div class="blab">P1 旧</div><div class="btrack"><div class="bfill g1" style="width:69%">0.692</div></div></div>
+      <div class="brow"><div class="blab">P1 新</div><div class="btrack"><div class="bfill g2" style="width:76%">0.756 (+0.06)</div></div></div>
+      <div class="brow"><div class="blab">P3 旧</div><div class="btrack"><div class="bfill g1" style="width:47%">0.466</div></div></div>
+      <div class="brow"><div class="blab">P3 新</div><div class="btrack"><div class="bfill g2" style="width:66%">0.656 (+0.19)</div></div></div>
+    </div>
+    <div class="note">触发逻辑：<b>数据自身</b>——默认 k 出现巨簇才沿 k+1…11 扫描到"无弃用"为止，不是拿测试集反调参数；P0/P2/P4/P5 无巨簇、行为不变。</div>
+  </div></div>
+  <div class="col c"><h3>③ 实测拒答案例（正面证据）</h3><div class="bd">
+    <div class="big"><b>P5 话术碰撞+噪声场景</b>：固定 k 时代的全量实验中，seed 42 / 2024 正常出牌（F1 0.955 / 0.880），<b>seed 7 触发“共识锚点不足”，系统整体拒绝给出半监督结论</b>——当时如实标注该组均值 n=2，不掩盖、不强行出牌。引入自适应 k 重估后，seed 7 恢复出牌（F1 0.555，绝对值仍低，如实保留），P5 均值恢复为 n=3 的 0.797。</div>
+    <div class="casebox"><b>评审视角：</b>同一算法在不同随机扰动下，能自动识别"这次我没把握"并闭嘴。对照大量"永远输出高分自信结论"的 AI 产品，这是反诈辅助场景的刚需能力，也是方法学专利的权利要求落点之一。</div>
+    <div class="note">诚实边界一并呈现：干净小样本（P0）上锚点过分裂反而拖累（0.913 &lt; selfsup 0.922），已作为论文 limitation 讨论，不做脆弱调参掩盖。</div>
+  </div></div>
+</div>
+</body></html>

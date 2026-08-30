@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:850px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{padding:18px 30px 10px;border-bottom:3px solid #0e2f52;display:flex;align-items:baseline;gap:14px}
+.hd h1{font-size:25px;color:#0e2f52}
+.hd span{font-size:13.5px;color:#5b6b7c}
+.why{margin:14px 30px 0;background:#fdf3f2;border:1px solid #e8b4ae;border-left:6px solid #c0392b;border-radius:8px;padding:10px 16px;font-size:13.5px;line-height:1.65}
+.why b{color:#8b2f2f}
+.flow{padding:12px 30px 0;display:flex;flex-direction:column;align-items:stretch;gap:0}
+.duo{display:flex;gap:16px}
+.ch{flex:1;border-radius:10px;padding:10px 14px 12px}
+.ch.f{background:#eef4fb;border:1.5px solid #b7cde6}
+.ch.s{background:#f6f1fa;border:1.5px solid #d3c1e6}
+.ch h3{font-size:15.5px;margin-bottom:8px}
+.ch.f h3{color:#1e5fa8}.ch.s h3{color:#7d5ba6}
+.steps{display:flex;align-items:center;gap:6px}
+.st{flex:1;background:#fff;border:1px solid #d5e0ec;border-radius:6px;padding:7px 8px;font-size:12px;text-align:center;line-height:1.4}
+.st b{display:block;font-size:12.5px;color:#0e2f52}
+.arr{color:#8b98a7;font-size:15px;font-weight:bold}
+.mid{display:flex;justify-content:center;color:#1f7a4d;font-size:22px;line-height:1.1;padding:4px 0}
+.node{background:#fff;border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:16px;border:2px solid #1f7a4d;margin:0 60px}
+.node.hl{border-color:#c0392b;background:#fffaf6}
+.node .ic{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#1f7a4d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
+.node.hl .ic{background:#c0392b}
+.node .tx{flex:1}
+.node .tx b{font-size:15.5px;color:#0e2f52;display:block;margin-bottom:2px}
+.node .tx p{font-size:12.8px;color:#51606f;line-height:1.55}
+.node .out{flex:0 0 auto;background:#eaf6ef;border:1px solid #a9d8bd;color:#1f7a4d;font-size:12.5px;font-weight:700;border-radius:14px;padding:5px 12px;white-space:nowrap}
+.node.hl .out{background:#fdeceb;border-color:#e8b4ae;color:#c0392b}
+.down{display:flex;justify:center;color:#9db1c5;font-size:17px;line-height:1.2;padding:2px 0}
+</style></head><body>
+<div class="hd"><h1>核心创新：共识伪标签半监督 + 客观置信度门控</h1><span>"规则给锚点、GNN 做泛化"——无需人工标注，脏数据上反超单一方法</span></div>
+<div class="why"><b>为什么必须融合？</b> 真实警情两头失灵：纯自监督 GNN 在重噪数据上只有 0.565（结构被噪声打散）；纯规则/聚类被话术变体和账户缺失骗过（资金单通道 0.821、KMeans 0.499，均为 3-seed 实测）。<b>解法：</b>让两个互相独立的证据通道先"达成共识"，用共识结果当伪标签去教 GNN——一致才可信，可信才监督。</div>
+<div class="flow">
+  <div class="duo">
+    <div class="ch f"><h3>通道 F ｜ 资金证据（结构化硬信号）</h3>
+      <div class="steps"><div class="st"><b>案件×账户/号码</b>共享建边</div><div class="arr">→</div><div class="st"><b>Louvain</b>社区发现</div><div class="arr">→</div><div class="st"><b>资金社区标签</b>f(c)</div></div>
+    </div>
+    <div class="ch s"><h3>通道 S ｜ 话术证据（BGE 语义软信号）</h3>
+      <div class="steps"><div class="st"><b>BGE-large-zh</b>1024 维本地编码</div><div class="arr">→</div><div class="st"><b>KMeans</b>轮廓系数定 k</div><div class="arr">→</div><div class="st"><b>话术类标签</b>s(c)</div></div>
+    </div>
+  </div>
+  <div class="mid">↘ 双通道汇聚 ↙</div>
+  <div class="node"><div class="ic">交</div><div class="tx"><b>共识锚点：严格 (f, s) 一致对成簇</b>不做并查集传递合并（防链式误并）；两通道相互独立、互为质检——同时"看走眼"的概率极低</div><div class="out">候选锚点簇</div></div>
+  <div class="down">↓</div>
+  <div class="node hl"><div class="ic">门</div><div class="tx"><b>客观置信度门控：簇尺寸 ∈ [2, 25%N] 才保留</b>过小不可信；超 25% 判为 Louvain 巨社区污染，整类弃用；巨簇存在则触发话术 k 自适应重估（覆盖率 0.60→0.97，F1 +0.19/+0.28）；锚点不足则整体拒出牌</div><div class="out">锚点纯度 100%（实测）</div></div>
+  <div class="down">↓</div>
+  <div class="node"><div class="ic">训</div><div class="tx"><b>锚点监督微调 HAN 分类头</b>GraphCL 自监督预训练 backbone → 锚点标签微调（lr=0.005 / 300 轮，经发散与欠拟合实测锁定）</div><div class="out">半监督 HAN</div></div>
+  <div class="down">↓</div>
+  <div class="node"><div class="ic">牌</div><div class="tx"><b>hybrid 出牌</b>锚点案件直接用伪标签；非锚点案件用微调后 GNN argmax。数学性质：整体 F1 下界 = 锚点质量</div><div class="out">P2 重噪 0.9487±0.041 ★</div></div>
+</div>
+</body></html>

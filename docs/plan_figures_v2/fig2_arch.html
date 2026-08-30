@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1400px;height:560px;font-family:'Microsoft YaHei',sans-serif;background:#fff;color:#22303f}
+.hd{padding:18px 30px 12px;border-bottom:3px solid #0e2f52;display:flex;align-items:baseline;gap:14px}
+.hd h1{font-size:25px;color:#0e2f52}
+.hd span{font-size:13.5px;color:#5b6b7c}
+.wrap{padding:16px 30px 0}
+.layer{display:flex;align-items:stretch;gap:14px;margin-bottom:6px}
+.lab{width:150px;flex:0 0 150px;border-radius:8px;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px}
+.lab b{font-size:16.5px}.lab i{font-style:normal;font-size:11.5px;opacity:.85;margin-top:4px;text-align:center;line-height:1.4}
+.l1 .lab{background:#8b2f2f}.l2 .lab{background:#1e5fa8}.l3 .lab{background:#1f7a4d}.l4 .lab{background:#b07a1e}
+.boxes{flex:1;display:flex;gap:10px;align-items:stretch}
+.box{flex:1;background:#f4f7fb;border:1px solid #d5e0ec;border-radius:8px;padding:9px 12px;position:relative}
+.box b{display:block;font-size:14px;color:#0e2f52;margin-bottom:3px}
+.box p{font-size:11.8px;color:#51606f;line-height:1.5}
+.box .bdg{position:absolute;top:-9px;right:8px;font-size:10.5px;background:#c0392b;color:#fff;padding:2px 8px;border-radius:9px}
+.arrows{display:flex;justify-content:center;padding:2px 0 8px 164px;color:#9db1c5;font-size:18px;line-height:1}
+.loop{border:2px dashed #1e5fa8}
+.loopbox{flex:1;display:flex;gap:10px;padding:8px;border:2px dashed #1e5fa8;border-radius:10px;background:rgba(30,95,168,.04);align-items:stretch;position:relative}
+.loopnote{position:absolute;right:10px;top:-13px;background:#1e5fa8;color:#fff;font-size:11px;padding:2px 10px;border-radius:10px}
+.side{position:absolute;right:30px;top:96px;width:126px;display:flex;flex-direction:column;gap:8px}
+.side .s{background:#0e2f52;color:#fff;font-size:11.5px;border-radius:6px;padding:8px 6px;text-align:center;line-height:1.45}
+.side .s b{color:#ffd76a}
+</style></head><body>
+<div class="hd"><h1>FraudLens 总体架构</h1><span>上传线索 → 多智能体流水线 → 异构图 GNN 团伙发现 → 可解释研判报告（数据全程本地处理，不出域）</span></div>
+<div class="wrap">
+  <div class="layer l1">
+    <div class="lab"><b>输入层</b><i>三类线索</i></div>
+    <div class="boxes">
+      <div class="box"><b>话术文本 / 笔录</b><p>报警摘要、聊天话术、涉诈文案，本地 BGE-large-zh 编码为 1024 维语义向量</p></div>
+      <div class="box"><b>CSV 批量线索</b><p>案件编号、涉案账户、电话、金额、发案地——对接反诈中心导出台账</p></div>
+      <div class="box"><b>截图 OCR</b><p>聊天记录截图自动取文，缓解一线"只有图没有表"的数据困境</p></div>
+    </div>
+  </div>
+  <div class="arrows">▼</div>
+  <div class="layer l2">
+    <div class="lab"><b>多智能体研判层</b><i>LangGraph 状态图</i></div>
+    <div class="boxes">
+      <div class="loopbox"><span class="loopnote">反思闭环：质检 Agent 不达标即回炉，直至通过或触顶</span>
+        <div class="box"><b>线索接入 Agent</b><p>清洗、要素抽取、字段归一</p></div>
+        <div class="box"><b>话术分析 Agent</b><p>模板识别、话术阶段（引流/实施/洗钱）</p></div>
+        <div class="box"><b>资金链 Agent</b><p>账户共享、转引链、取现模式</p></div>
+        <div class="box"><b>串并建议 Agent</b><p>给出串并假设 + 证据链</p></div>
+        <div class="box"><b>反思质检 Agent</b><p>交叉验证三路结论，驳回并回炉</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrows">▼</div>
+  <div class="layer l3">
+    <div class="lab"><b>图学习层</b><i>团伙发现引擎</i></div>
+    <div class="boxes">
+      <div class="box"><b>案件异构图</b><p>案件—受害者—手机号—账户—话术模板—城市 六类节点，5 条元路径</p></div>
+      <div class="box"><span class="bdg">创新②</span><b>GraphCL 自监督预训练</b><p>无标签先学结构，BYOL 免负样本分支可选</p></div>
+      <div class="box"><span class="bdg">创新③</span><b>共识伪标签半监督微调</b><p>资金×话术双通道一致才作锚点（见核心算法图）</p></div>
+      <div class="box"><span class="bdg">创新④</span><b>增量匹配器</b><p>新警情流式挂团，双信号一致才挂、否则攒批</p></div>
+    </div>
+  </div>
+  <div class="arrows">▼</div>
+  <div class="layer l4">
+    <div class="lab"><b>输出层</b><i>研判成果</i></div>
+    <div class="boxes">
+      <div class="box"><b>串并案分组</b><p>候选同团案件 + 置信度分级</p></div>
+      <div class="box"><b>团伙画像</b><p>账户池、话术质心、活动城市、活跃期</p></div>
+      <div class="box"><b>研判报告</b><p>docx/PDF 一键生成，含每步证据引用</p></div>
+      <div class="box"><b>资金流向可视化</b><p>前端图谱交互，辅助人工复核与呈堂说明</p></div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -47,6 +47,126 @@ async def api_get_freeze_decisions(
 _review_cache = {}
 
 
+def _mask_account_no(value) -> str:
+    """账户脱敏：保留前4后4，中间****（与 gang_detector._mask 一致）。"""
+    s = '' if value is None else str(value)
+    if len(s) <= 8:
+        return s
+    return s[:4] + '****' + s[-4:]
+
+
+def _run_incremental_detect(cases, current_user, request):
+    """增量团伙发现：新案先与已知团伙画像匹配（账户池 + 话术 BGE 余弦，
+    双信号一致才挂上，复用 P3 共识门控"宁缺毋滥"哲学），挂不上的攒批(>=2)才重聚类。
+
+    返回结构与全量路径兼容（gangs/stats/graph），另附 mode='incremental' 与
+    matched_gangs 摘要；不触发任何全库重聚类。
+    """
+    import time as _t
+    from database.models import Gang, GangCaseRelation
+    from database.crud import save_gang, _cache_clear
+    from gnn.incremental_matcher import build_gang_profiles, match_cases_batch
+    t0 = _t.time()
+
+    rel_rows = db.session.query(GangCaseRelation.case_id).all()
+    associated = {r[0] for r in rel_rows}
+    case_by_id = {c['case_id']: c for c in cases if c.get('case_id')}
+    new_cases = [c for c in cases if c.get('case_id') and c['case_id'] not in associated]
+
+    stats = {
+        'total_cases': len(cases),
+        'associated_cases': len(associated),
+        'new_cases': len(new_cases),
+        'matched_cases': 0,
+        'held_cases': len(new_cases),
+    }
+
+    if not new_cases:
+        stats['elapsed_ms'] = int((_t.time() - t0) * 1000)
+        return {'success': True, 'mode': 'incremental', 'gangs': [], 'stats': stats, 'graph': {}}
+
+    # 团伙画像：gang_id -> 成员案件 dict（经 GangCaseRelation 已落库的关联）
+    gangs = db.session.query(Gang).all()
+    gang_rels = {}
+    for r in db.session.query(GangCaseRelation).all():
+        gang_rels.setdefault(r.gang_id, []).append(r.case_id)
+    gangs_members = {}
+    for g in gangs:
+        members = [case_by_id[cid] for cid in gang_rels.get(g.gang_id, []) if cid in case_by_id]
+        if members:
+            gangs_members[g.gang_id] = members
+
+    profiles = build_gang_profiles(gangs_members)
+    matches = match_cases_batch(profiles, new_cases)
+    stats['matched_cases'] = len(matches)
+
+    matched_by_gang = {}
+    for cid, m in matches.items():
+        matched_by_gang.setdefault(m['gang_id'], []).append(cid)
+        try:
+            save_gang({
+                'gang_id': m['gang_id'],
+                'case_ids': [cid],
+                'relation_type': 'incremental_match',
+                'relation_reasons': {cid: f"资金共享 + 话术匹配（余弦{m['score']:.2f}）"},
+                'matched_entities_map': {cid: [_mask_account_no(a) for a in m['matched_accounts']]},
+            }, session_id=f"gnn_incremental_{current_user.get('id', '')}")
+        except Exception as _ge:
+            logger.warning(f"增量关联落库失败 {cid}: {_ge}")
+    if matches:
+        _cache_clear()
+
+    unmatched = [c for c in new_cases if c['case_id'] not in matches]
+    stats['held_cases'] = len(unmatched)
+
+    batch_gangs, batch_graph, batch_stats = [], {}, {}
+    if len(unmatched) >= 2:
+        from gnn import GangDetector
+        detector = GangDetector(community_method=request.community_method)
+        batch = detector.detect(unmatched, use_gnn=request.use_gnn,
+                                training_epochs=request.training_epochs)
+        batch_gangs = batch.get('gangs', []) or []
+        batch_stats = batch.get('stats', {}) or {}
+        batch_graph = batch.get('graph', {}) or {}
+        try:
+            persist_freeze_decisions(batch_gangs)
+            try:
+                from core.metrics_exporter import inc_gangs, inc_freeze
+                inc_gangs(len(batch_gangs))
+                inc_freeze(len(batch_gangs))
+            except Exception:
+                pass
+        except Exception as _e:
+            logger.warning(f"批量冻卡决策落库失败(不影响研判返回): {_e}")
+        try:
+            _saved = 0
+            for g in batch_gangs:
+                g.setdefault('relation_type', 'gnn_cluster')
+                try:
+                    save_gang(g, session_id=f"gnn_detect_{current_user.get('id', '')}")
+                    _saved += 1
+                except Exception as _ge:
+                    logger.warning(f"团伙 {g.get('gang_id')} 关联落库失败: {_ge}")
+            if _saved:
+                _cache_clear()
+        except Exception as _e:
+            logger.warning(f"GNN 团伙关联落库失败(不影响返回): {_e}")
+    else:
+        batch_stats['note'] = '攒批不足(<2)，待下次检测'
+
+    stats['elapsed_ms'] = int((_t.time() - t0) * 1000)
+    return {
+        'success': True,
+        'mode': 'incremental',
+        'gangs': batch_gangs,
+        'stats': {**batch_stats, **stats},
+        'graph': batch_graph,
+        'matched_gangs': [
+            {'gang_id': gid, 'matched_cases': len(cids)} for gid, cids in matched_by_gang.items()
+        ],
+    }
+
+
 @router.get('/review-results')
 @db_retry()
 async def api_gang_review_results(
@@ -110,7 +230,8 @@ async def api_detect_gangs_gnn(
             log_operation(
                 current_user['id'], current_user.get('username', ''),
                 'gnn_detect_start', 'gang', '',
-                {'use_gnn': request.use_gnn, 'community_method': request.community_method},
+                {'use_gnn': request.use_gnn, 'community_method': request.community_method,
+                 'mode': request.mode or 'auto'},
                 ip_address=''
             )
         except Exception as _e:
@@ -187,6 +308,11 @@ async def api_detect_gangs_gnn(
                 'ai_report': case.ai_report or '',
                 'created_at': case.created_at.isoformat() if case.created_at else None,
             })
+
+        # 【增量匹配】mode='auto'（默认）且已有团伙画像时，新案先匹配画像，
+        # 挂不上的攒批才重聚类；'full' 走下方全量重聚类（旧行为，结果与历史可比）。
+        if (request.mode or 'auto').lower() != 'full' and db.session.query(Gang).count() > 0:
+            return _run_incremental_detect(cases, current_user, request)
 
         # 使用GNN进行团伙发现
         from gnn import GangDetector

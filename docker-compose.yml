@@ -73,8 +73,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-qwen3.8-flash}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-fraudlens-jwt-secret-key-2024}
       PORT: 5003
       # G4：CORS 源白名单（逗号分隔；留空回退 localhost 安全源）
@@ -229,8 +229,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-20051223}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-qwen3.8-flash}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       TLS_ENABLED: ${TLS_ENABLED:-0}
       DISABLE_CLOUD_LLM: ${DISABLE_CLOUD_LLM:-0}

@@ -49,7 +49,7 @@ _交接自 WorkBuddy 会话（2026-08-29）。接手方（TRAE）请先读项目
 
 ## 五、待办（按优先级）
 
-1. **用户表 100 个 stress_user 压测垃圾仍在 DB**（`backend/data/` 的 sqlite）。前端已靠搜索+分页遮住，但参赛演示时用户管理页首屏还是会被懂行的人看出异常。清理 SQL：`DELETE FROM users WHERE username LIKE 'stress_user%';`——**先备份再删，动 DB 前跟用户确认**。
+1. **用户表 100 个 stress_user 压测垃圾仍在 DB**——库是 **MySQL**（`localhost:3306/fraudlens`，配置见 `backend/key.env`；**不是 sqlite**，`backend/data/` 下只有知识库/模型/检查点，项目里没有任何 .db 文件）。前端已靠搜索+分页遮住，但参赛演示时用户管理页首屏还是会被懂行的人看出异常。清理：先 `mysqldump fraudlens users > users_backup.sql`，再 `DELETE FROM users WHERE username LIKE 'stress_user%';`——**动 DB 前跟用户确认**。
 2. **团伙报告 docx**：后端只有 `export_case_docx`，没有 gang docx；前端选"Word + 团伙"会静默降级本地 HTML。要么补后端接口，要么前端把选项置灰说明。
 3. #8 的收敛改造（等用户拍板第 2 条砍工作台还是合并）。
 4. `.ui-test/`（被 gitignore，本地保留）里有可复用探针：`shot_report.js`（报告页截图）、`probe_perf.js`（overview 首屏耗时 + API timing）、`probe_gangmap.js`（卡片团伙标签冒烟）。改完 UI 用它们回归，登录→overview→report 的 puppeteer 套路是现成的。

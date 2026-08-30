@@ -8,7 +8,7 @@ from datetime import datetime
 import asyncio
 
 from openai import AsyncOpenAI
-from core.llm_client import wrap_messages  # G2 脱敏网关
+from core.llm_client import wrap_messages, get_llm_model  # G2 脱敏网关 / 统一模型名出口
 from core.state import AgentState, AgentStatus
 from core.logger import logger, tracer
 from core.config import settings
@@ -258,7 +258,7 @@ class ChatAgent:
         try:
             # 使用流式 API
             stream = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": response_prompt}]),
                 temperature=0.7,
                 max_tokens=1000,
@@ -476,7 +476,7 @@ class ChatAgent:
             
             try:
                 response = await self.llm.chat.completions.create(
-                    model="deepseek-chat",
+                    model=get_llm_model(),
                     messages=wrap_messages([{"role": "user", "content": intent_prompt}]),
                     temperature=0.3,
                     max_tokens=500
@@ -752,7 +752,7 @@ class ChatAgent:
             
             try:
                 response = await self.llm.chat.completions.create(
-                    model="deepseek-chat",
+                    model=get_llm_model(),
                     messages=wrap_messages([{"role": "user", "content": response_prompt}]),
                     temperature=0.7,
                     max_tokens=1000
@@ -927,7 +927,7 @@ class ChatAgent:
                 # 调用 LLM（带 tools 参数，启用 Function Calling）
                 # 注意：DeepSeek 兼容 OpenAI tools 接口
                 llm_resp = await self.llm.chat.completions.create(
-                    model="deepseek-chat",
+                    model=get_llm_model(),
                     messages=wrap_messages(messages),
                     tools=tool_schemas if tool_schemas else None,
                     tool_choice="auto" if tool_schemas else None,
@@ -1047,7 +1047,7 @@ class ChatAgent:
             )
             try:
                 llm_resp = await self.llm.chat.completions.create(
-                    model="deepseek-chat",
+                    model=get_llm_model(),
                     messages=wrap_messages(messages + [{
                         "role": "system",
                         "content": "已达最大推理轮数，请基于已有信息直接给出最终答复（不再调用工具）。"

@@ -53,9 +53,9 @@ def _get_llm_client():
     global _llm_client, _llm_model
     if _llm_client is not None:
         return _llm_client, _llm_model
-    from core.llm_client import get_llm_client
+    from core.llm_client import get_llm_client, get_llm_model
     client = get_llm_client(sync=True)
-    _llm_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    _llm_model = get_llm_model()
     _llm_client = client  # 可能为 None（关闭/缺密钥）
     return _llm_client, _llm_model
 

@@ -473,14 +473,85 @@ class KnowledgeBase:
             unique_results.sort(key=lambda x: x.score, reverse=True)
             return unique_results[:top_k]
     
+    def _expected_embedding_dim(self) -> Optional[int]:
+        """当前 embedding 模型的输出维度（探测一次并缓存）。
+
+        历史坑：知识库 json 里持久化的是早年 embedding 模型缺失时用
+        `_hash_embedding(dim=768)` 算的降级向量，而查询侧拿到的是真 BGE（1024 维），
+        np.dot 直接抛 shapes (1024,) and (768,) not aligned，导致检索 100% 失败。
+        """
+        if self.embedding_model is None:
+            return None
+        cached = getattr(self, "_expected_dim_cache", None)
+        if cached:
+            return cached
+        try:
+            probe = self.processor.embed_chunks(["维度探测"])
+            dim = int(np.asarray(probe[0]).reshape(-1).shape[0])
+            self._expected_dim_cache = dim
+            return dim
+        except Exception as e:
+            logger.warning("探测 embedding 维度失败", error=str(e))
+            return None
+
+    def _reembed_mismatched_chunks(self) -> int:
+        """把维度与当前模型不一致（或缺失）的 chunk 重新向量化，返回重算条数。"""
+        expected = self._expected_embedding_dim()
+        if not expected:
+            return 0
+
+        def _dim(vec):
+            return int(np.asarray(vec).reshape(-1).shape[0])
+
+        bad = [
+            c for c in self.chunks
+            if c.embedding is None or _dim(c.embedding) != expected
+        ]
+        if not bad:
+            return 0
+
+        existing = {_dim(c.embedding) for c in bad if c.embedding is not None}
+        logger.warning(
+            "知识库向量维度与当前 embedding 模型不一致，重新向量化",
+            chunks=len(bad), mismatch_dims=list(existing), expected_dim=expected
+        )
+        try:
+            vecs = self.processor.embed_chunks([c.content for c in bad])
+            fixed = 0
+            for chunk, vec in zip(bad, vecs):
+                arr = np.asarray(vec, dtype=np.float32).reshape(-1)
+                if arr.shape[0] != expected:
+                    continue
+                chunk.embedding = arr
+                fixed += 1
+            logger.info("知识库重新向量化完成", fixed=fixed, total=len(bad))
+            return fixed
+        except Exception as e:
+            logger.error("知识库重新向量化失败", error=str(e))
+            return 0
+
     def _vector_search(self, query: str, top_k: int) -> List[RetrievalResult]:
         """向量检索"""
         # 向量化查询
-        query_embedding = self.processor.embed_chunks([query])[0]
-        
+        query_embedding = np.asarray(self.processor.embed_chunks([query])[0], dtype=np.float32).reshape(-1)
+        query_dim = int(query_embedding.shape[0])
+
+        def _dim(vec):
+            return int(np.asarray(vec).reshape(-1).shape[0])
+
+        # 只参与维度一致的 chunk：不一致时先尝试就地重算一次，仍不一致则跳过，
+        # 避免 np.dot 因维度不匹配抛 ValueError 让整次检索崩掉。
+        usable = [c for c in self.chunks if c.embedding is not None and _dim(c.embedding) == query_dim]
+        if not usable:
+            if self._reembed_mismatched_chunks() > 0:
+                usable = [c for c in self.chunks if c.embedding is not None and _dim(c.embedding) == query_dim]
+        skipped = sum(1 for c in self.chunks if c.embedding is not None and _dim(c.embedding) != query_dim)
+        if skipped:
+            logger.warning("跳过维度不匹配的 chunk", skipped=skipped, query_dim=query_dim)
+
         # 计算相似度
         similarities = []
-        for chunk in self.chunks:
+        for chunk in usable:
             if chunk.embedding is not None:
                 similarity = np.dot(query_embedding, chunk.embedding) / (
                     np.linalg.norm(query_embedding) * np.linalg.norm(chunk.embedding) + 1e-8
@@ -656,6 +727,16 @@ class KnowledgeBase:
             documents_count=len(self.documents),
             chunks_count=len(self.chunks)
         )
+
+        # 自愈：磁盘上的向量若是旧模型/hash 降级产物（维度与当前模型不符），
+        # 加载后立刻用当前 embedding 模型重算，否则检索必然因维度不匹配抛异常。
+        try:
+            fixed = self._reembed_mismatched_chunks()
+            # 回写一次，避免每次启动都重复向量化（seed 在已有文档时会跳过、不会存盘）
+            if fixed > 0:
+                self.save()
+        except Exception as e:
+            logger.warning("知识库加载后维度校验失败（不影响启动）", error=str(e))
 
 
 # 全局知识库实例

@@ -5,7 +5,7 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
-from core.llm_client import wrap_messages  # G2 脱敏
+from core.llm_client import wrap_messages, get_llm_model  # G2 脱敏 / 统一模型名出口
 from core.logger import logger
 from core.config import settings
 
@@ -78,7 +78,7 @@ class QueryRewriter:
 假设性答案："""
             
             response = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.7,
                 max_tokens=200
@@ -111,7 +111,7 @@ class QueryRewriter:
 改写版本："""
             
             response = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.8,
                 max_tokens=300
@@ -150,7 +150,7 @@ class QueryRewriter:
 抽象问题："""
             
             response = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.6,
                 max_tokens=150

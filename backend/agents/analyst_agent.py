@@ -200,9 +200,9 @@ class AnalystAgent(AgentProtocol):
 """
         
         try:
-            from core.llm_client import wrap_messages
+            from core.llm_client import wrap_messages, get_llm_model
             response = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.7,
                 max_tokens=1500
@@ -263,7 +263,7 @@ class AnalystAgent(AgentProtocol):
         安全：prompt 经 wrap_messages 脱敏，敏感明文不出域；标识符仍以本地正则为准，这里只补充正则难以覆盖的语义字段。
         返回统一格式 dict 的子集；解析失败返回 {}。
         """
-        from core.llm_client import wrap_messages
+        from core.llm_client import wrap_messages, get_llm_model
         prompt = f"""你是一名反诈研判助手。请从以下报案文本中抽取结构化实体，仅输出 JSON（不要解释）：
 {{
   "scam_type": "诈骗类型（如 冒充客服类诈骗/刷单返利类诈骗/虚假投资理财类诈骗 等）",
@@ -278,7 +278,7 @@ class AnalystAgent(AgentProtocol):
 """
         try:
             response = await self.llm.chat.completions.create(
-                model="deepseek-chat",
+                model=get_llm_model(),
                 messages=wrap_messages([{"role": "user", "content": prompt}]),
                 temperature=0.2,
                 max_tokens=800,

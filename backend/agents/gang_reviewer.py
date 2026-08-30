@@ -17,7 +17,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
-from core.llm_client import get_llm_client, wrap_messages, cloud_llm_enabled
+from core.llm_client import get_llm_client, wrap_messages, cloud_llm_enabled, get_llm_model
 
 # ---------------------------------------------------------------------------
 # 共享常量
@@ -159,7 +159,7 @@ class MergeEvidenceExplainer:
                 )
                 if hasattr(llm, "chat") and hasattr(llm.chat, "completions"):
                     response = await llm.chat.completions.create(
-                        model="deepseek-chat",
+                        model=get_llm_model(),
                         messages=wrap_messages([{"role": "user", "content": prompt}]),
                         temperature=0.3,
                         max_tokens=300,
@@ -273,7 +273,7 @@ class WrongMergeDetector:
                     "若全部正常输出 []。不要编造证据。\n\n团伙数据：\n" + json.dumps(payload, ensure_ascii=False, default=str)
                 )
                 response = await llm.chat.completions.create(
-                    model="deepseek-chat",
+                    model=get_llm_model(),
                     messages=wrap_messages([{"role": "user", "content": prompt}]),
                     temperature=0.2,
                     max_tokens=800,

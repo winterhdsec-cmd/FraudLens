@@ -1,6 +1,7 @@
 import numpy as np
 import json
 from datetime import datetime, timedelta
+from sqlalchemy import or_
 from . import db
 from .models import (
     AnalysisSession, Case, Gang, GangCaseRelation,
@@ -30,7 +31,7 @@ def apply_department_scope(model_cls, query, user):
     if not dept:
         return query
     return query.filter(
-        db.or_(model_cls.department == dept, model_cls.department == '')
+        or_(model_cls.department == dept, model_cls.department == '')
     )
 
 

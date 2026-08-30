@@ -32,7 +32,14 @@ class Tool(ABC):
             self.name = self.__class__.__name__
         if not self.description:
             self.description = self.__doc__ or ""
-    
+        # 调用方注入的执行上下文（如当前登录用户）。工具入参由 LLM 生成，
+        # 用户身份这类敏感信息绝不能走 tool_input，只能由调用侧注入。
+        self.context: Dict[str, Any] = {}
+
+    def set_context(self, context: Optional[Dict[str, Any]]) -> None:
+        """注入执行上下文（每次执行前由调用方刷新）"""
+        self.context = context or {}
+
     @abstractmethod
     def execute(self, **kwargs) -> ToolOutput:
         """执行工具"""

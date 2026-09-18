@@ -8,14 +8,16 @@
 - **双文件陷阱**：云端 LLM 的 key/endpoint/model 必须同时改两处才生效——根目录 `.env`（docker-compose 注入）与 `backend/key.env`（`main.py`/`tasks.py` 用 dotenv 直接加载）。只改一处会被另一处覆盖。
 - 变量名仍沿用 `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL`（代码只认这几个名），endpoint=`https://dashscope.aliyuncs.com/compatible-mode/v1`，模型=`qwen3.8-flash`（**2026-08-26 新发多模态 MoE，1M 上下文，OpenAI 兼容，文本/图像/视频全能**；要切最强档改 `qwen3.8-max`）。
 - 切换前为 DeepSeek（`deepseek-chat` + `https://api.deepseek.com/v1`），已整体迁移至阿里云。
-- `DISABLE_CLOUD_LLM=0` 启用云端（默认 `1` 关闭、数据不出域）；`CLOUD_LLM_MASK=1` 出向 prompt 脱敏（身份证/银行卡/手机号/邮箱）。
-- 图片识别（tools/vision.py）自动复用同一模型，qwen3.8-flash 本身多模态可看图；VISION_MODELS 列表虽不含 qwen，但 analyze() 仍会先用 self.model 发图，不受影响。
+- `DISABLE_CLOUD_LLM=0` 启用云端（默认 `1` 关闭）；`CLOUD_LLM_MASK=1` 出向 prompt 脱敏（身份证/银行卡/手机号/邮箱，**姓名不掩**）。2026-09-18 起 `CLOUD_LLM_MASK` 已注入 docker-compose（backend+celery），此前**完全缺失**。
+- 图片识别（tools/vision.py）复用同一模型，qwen3.8-flash 多模态可看图。**2026-09-18 已补门禁**：`analyze()` 先查 `cloud_llm_enabled()`，云端关闭时直接降级本地 OCR（`model=ocr_local`），图片不再绕过开关出域。
 
 ## 诚实口径金律（最高优先级，任何产出不得违反）
 - 合成 ≠ 真实验证；增量边界须量化；GNN 非全设定占优。
 - 合成 HAN hard F1=0.947/clean=1.0；dual-channel gain hard=+0.202；独立 Semantic 基线 clean 1.0/hard 1.0。
 - 真实 AMLSim（43,614账户/1,305环）全图 F1≈0.002–0.010，所有法含 GNN 失效；Elliptic 盲扫全败。这是「增量边界量化」发现，非「验证通过」。
-- **2026-09-16 新增：「数据不出域」不能说满，统一改口径为「本地优先 + 出向脱敏」**（用户质询后查证）。事实：① 代码默认 `DISABLE_CLOUD_LLM=1`（`core/config.py:54`），但 `.env:17`、`backend/key.env:10`、`docker-compose.yml` 的 `${DISABLE_CLOUD_LLM:-0}` 都把它覆盖为 **0（云端开）**，当前演示是连阿里云百炼 qwen3.8-flash 的；② 文本出向**有脱敏**（`CLOUD_LLM_MASK=1`，掩身份证/银行卡/手机号/邮箱，**姓名不掩**）；③ **图片路径漏**——`tools/vision.py:39` 自建 client、只查 api_key、**不查开关**，且 `mask_messages` 对 `image_url` 原样透传 → 截图会原样出域（调用点 `routes/files.py:315/377`）。→ 对外统一表述：**"核心算法全本地；云端大模型可一键切断、切断后自动降级本地 OCR/规则；上云文本强制脱敏"**，并主动承认"图片级脱敏尚未做"。PPT/申报书/论文/专利四处口径必须一致。
+- **2026-09-16 新增：「数据不出域」不能说满，统一改口径为「本地优先 + 出向脱敏」**（用户质询后查证）。事实：① 代码默认 `DISABLE_CLOUD_LLM=1`（`core/config.py:54`），但 `.env:17`、`backend/key.env:10`、`docker-compose.yml` 的 `${DISABLE_CLOUD_LLM:-0}` 都把它覆盖为 **0（云端开）**，当前演示是连阿里云百炼 qwen3.8-flash 的；② 文本出向**有脱敏**（`CLOUD_LLM_MASK=1`，掩身份证/银行卡/手机号/邮箱，**姓名不掩**）；③ ~~图片路径漏~~ **← 已于 2026-09-18 修复，见下条**。→ 对外统一表述：**"核心算法全本地；云端大模型可一键切断、切断后自动降级本地 OCR/规则；上云文本强制脱敏"**。PPT/申报书/论文/专利四处口径必须一致。
+
+- **2026-09-18 修复：vision.py 图片出域门禁绕过（已闭环，口径可收紧）**。① 根因：`VisionAnalyzer` 自建 `OpenAI` client，只校验 api_key，不查 `DISABLE_CLOUD_LLM`，且 `mask_messages` 对 `image_url` 原样透传 → 关云端时文本已降级、**图片仍 base64 出域**。② 修法：`analyze()` 入口先查 `cloud_llm_enabled()`，关闭则直接走本地 OCR 返回 `model=ocr_local`；`is_available()` 同步纳入开关判断。③ 双向实测：关→`ocr_local` 不出域；开→`qwen3.8-flash` 识图正常。④ 同时补注入 `docker-compose.yml` 的 `CLOUD_LLM_MASK`（原先**完全缺失**，backend+celery 两服务现均已注入）。→ **现在可以说"切断云端后图片与文本都不出域"**，但「姓名不掩」「图片内容本身若含隐私，开启云端时仍会出域」这两点仍需诚实保留；对外主口径仍建议沿用「本地优先＋出向脱敏」。
 
 ## GNN 优化路线（核心贡献）
 - Track A 资金链 GraphSAGE（#C44 加权邻接 log1p）：环子图 F1 未训练 0.084→训练后 **0.866（×4.7）**；baseline 二值 0.183。
@@ -52,11 +54,15 @@
 - 教学设计两次重构→**四 Lab 最终版**：Lab1 案情分析与研判流程 / Lab2 工具辅助串并案 / Lab3 冻卡决策与伦理权衡 / Lab4 边界认知与诚实反思。
 - 占位待补：吴燕波生年、院级科研编号（问吴老师）。
 
-## 当前状态（2026-08-29 用户表态）
-- **A 线 CPEC 教学案例稿停做**：用户明确「不打算做教育类的了」「CPEC 教学案例稿不做了」。四 Lab 教学叙事、教学案例稿、相关 draw.io 图（图2 已落地、图3 规划中）搁置；A 线文献（教学/行为类）降级为「仅背景参考」，不再作为技术支撑引用。
-- **B 线·竞赛（技术方向）仍 active**：中国国际大学生创新大赛(2026)，赛道=高教主赛道·创意组·"人工智能+"，9/15 17:00 截止、9/17 答辩。
-- **用户当前优先事项**：先真正理解 FraudLens 项目本身（大量代码由 AI 生成、本人不够熟），再谈论文怎么写。已生成项目梳理地图 `E:\FraudLens\FraudLens_项目梳理.html`。
-- **代码真实状态（2026-08-29 Explore 核实）**：核心 AI 能力（LangGraph 真反思闭环 backend/agents/orchestrator.py、双 GNN backend/gnn/、9 专项 Agent、ECharts/vis-network 前端、docker 全栈）均为真实现；唯一明确虚实现是**止付冻结** backend/tools/freeze_executor.py（Mock，待警务对接）；gnn/pathb_*、experiment_*、probe_* 为实验残留，非主线，初学者应忽略。
+## 当前状态（2026-09-18 更新：已进入复赛准备）
+- **初赛已结束，效果良好**（用户原话「老师说非常好」）。**当前阶段＝复赛准备**。
+- **2026-09-18 完成复赛前完善并推送 GitHub**（commit `29a01aa`，本地与远程一致）。内容：vision 出域门禁修复、compose 补 CLOUD_LLM_MASK、8 处裸 except、硬编码绝对路径、补入缺失的 `GangRadarChart.vue`、仓库大扫除（`_ppt_work` 2.2G→573M、`docs/` 110→36、技术稿 LaTeX 中间件清理）、`.gitignore` 大扩充。端到端验证全通过（详见 `.workbuddy/memory/2026-09-18.md`）。
+- **⚠️ git 历史分叉已处理**：远程 `origin/main` 曾被 forced update（用户用干净副本重建历史以脱敏），与本地无共同祖先。已用 `reset --soft origin/main` + 重新提交解决，**未 force push**，本地旧线保留在分支 `backup-before-resync-20260918`。若日后再遇「远程与本地无共同祖先」，照此流程处理，**先建备份分支**。
+- **B 线·竞赛**：中国国际大学生创新大赛(2026)，赛道=高教主赛道·创意组·"人工智能+"。
+- **A 线 CPEC 教学案例稿停做**：用户明确「不打算做教育类的了」。四 Lab 教学叙事、教学案例稿搁置；A 线文献（教学/行为类）降级为「仅背景参考」。
+- **遗留待办**：① `_trash_20260918/` 隔离区待用户确认后物理删除；② `backend/tools/freeze_executor.py` 止付冻结仍为 Mock（待警务对接）；③ 7 个后端文件 >800 行（`gnn/eval_framework.py` 1465、`routes/workflow.py` 1249、`agents/chat_agent.py` 1150）可考虑拆分。
+- **代码真实状态**：核心 AI 能力（LangGraph 真反思闭环 `backend/agents/orchestrator.py`、双 GNN `backend/gnn/`、9 专项 Agent、ECharts/vis-network 前端、docker 全栈）均为真实现；唯一明确虚实现是**止付冻结** `backend/tools/freeze_executor.py`（Mock，待警务对接）；`gnn/pathb_*`、`experiment_*`、`probe_*` 为实验残留，非主线，初学者应忽略。
+- **9 张空表（2026-09-18 查实，非缺陷）**：`accounts`/`persons`/`phones`/`evidence_items`/`review_opinions`/`freeze_approvals`/`freeze_receipts`/`merge_suggestions`/`imported_fund_flows` 均只有模型定义、无写入代码。根因是**案件 `description` 文本本身不含手机号/银行卡/微信号**，正则抽取器抽不出是正确行为（230 条案件中 `extracted_entities` 非空仅 1 条且内部全空）。前端已有降级占位，不会显示空白。**结论：不造假数据填充**。若复赛被问，如实答「预留接口，待真实案卷接入后激活」。
 
 ## 用户规矩
 - 改动前先讲改动点+回归风险；代码改动记入 docs/09（#C 编号）。

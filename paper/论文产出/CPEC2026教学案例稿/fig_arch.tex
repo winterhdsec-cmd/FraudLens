@@ -1,0 +1,103 @@
+\documentclass[tikz,border=12pt]{standalone}
+\usepackage{ctex}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,shadows,backgrounds,calc}
+
+\begin{document}
+\begin{tikzpicture}[
+  font=\small,
+  % ---- 主流程模块：统一宽度与高度，等高由 minimum height 保证 ----
+  stage/.style={
+    draw=black, line width=0.5pt, rounded corners=3pt,
+    fill=gray!18, minimum width=2.0cm, minimum height=2.9cm,
+    align=center, font=\footnotesize, inner sep=4pt, text width=1.7cm
+  },
+  stagecore/.style={
+    stage, fill=gray!25
+  },
+  % ---- 底部支撑条 ----
+  bar/.style={
+    draw=black, line width=0.5pt, rounded corners=2pt, fill=gray!10,
+    minimum width=16.0cm, minimum height=0.6cm, align=center,
+    font=\footnotesize, inner sep=3pt, text width=15.6cm
+  },
+  arrow/.style={->, >=stealth, line width=0.6pt},
+  dasharrow/.style={->, >=stealth, line width=0.6pt, dashed},
+  label/.style={font=\footnotesize}
+]
+
+% ==================== 主流程模块（链式 right=of 自动排布） ====================
+\node[stage] (D) {
+  \textbf{数据源}\\[2pt]
+  案情库\\
+  交易流水\\
+  AMLSim\\
+  合成数据
+};
+\node[stage, right=10pt of D] (P) {
+  \textbf{预处理}\\[2pt]
+  字段对齐\\
+  数据脱敏\\
+  格式转换\\
+  案情结构化
+};
+\node[stagecore, right=10pt of P] (PL) {
+  \textbf{规划}\\[2pt]
+  （Plan）
+};
+\node[stage, right=10pt of PL] (A) {
+  \textbf{分析}\\[2pt]
+  （Analyze）\\[2pt]
+  结构通道\\
+  文本通道
+};
+\node[stagecore, right=10pt of A] (CL) {
+  \textbf{聚类}\\[2pt]
+  （Cluster）
+};
+\node[stagecore, right=10pt of CL] (R) {
+  \textbf{反思}\\[2pt]
+  （Reflect）
+};
+\node[stage, right=10pt of R] (APP) {
+  \textbf{应用服务}\\[2pt]
+  API 网关\\
+  结果可视化\\
+  人工审核\\
+  审计日志
+};
+
+% ==================== 主数据流 ====================
+\draw[arrow] (D.east) -- (P.west);
+\draw[arrow] (P.east) -- (PL.west);
+\draw[arrow] (PL.east) -- (A.west);
+\draw[arrow] (A.east) -- (CL.west);
+\draw[arrow] (CL.east) -- (R.west);
+\draw[arrow] (R.east) -- (APP.west);
+
+% ==================== 反思回环（下方留白区，基于节点相对坐标） ====================
+\coordinate (rbotR) at ($(R.south)+(0,-1.25)$);
+\coordinate (rbotL) at ($(PL.south)+(0,-1.25)$);
+\draw[dasharrow] (R.south) -- (rbotR);
+\draw[dasharrow] (rbotR) -- (rbotL)
+  node[midway, below, yshift=-2pt, label] {置信度低 / 规则触发};
+\draw[dasharrow] (rbotL) -- (PL.south)
+  node[pos=0.5, left, xshift=-5pt, label] {返回规划};
+
+% ==================== 人工反馈闭环（上方留白区，基于节点相对坐标） ====================
+\coordinate (fbR) at ($(APP.north)+(0,1.25)$);
+\coordinate (fbL) at ($(D.north)+(0,1.25)$);
+\draw[dasharrow] (APP.north) -- (fbR);
+\draw[dasharrow] (fbR) -- (fbL)
+  node[midway, above, yshift=2pt, label] {人工审核反馈（Human-in-the-loop）};
+\draw[dasharrow] (fbL) -- (D.north);
+
+% ==================== 底部支撑保障（锚定整体水平中心） ====================
+\coordinate (mid) at ($(D.west)!0.5!(APP.east)$);
+\node[bar] (infra) at ([yshift=-3.0cm]mid)
+  {数据与模型支撑：关系型数据库 · 缓存中间件 · 本地嵌入模型 · 云端大模型};
+\node[bar] (trust) at ([yshift=-3.65cm]mid)
+  {工程可信保障：数据不出域 · RBAC 鉴权 · 审计溯源 · 可解释性 · 多级降级};
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,33 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="f1" name="onepager">
+    <mxGraphModel dx="1400" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1650" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="按图索诈 · 一图速览" style="text;html=1;fontSize=26;fontStyle=1;fontFamily=Microsoft YaHei;align=left;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="60" y="20" width="600" height="50" as="geometry" /></mxCell>
+        <mxCell id="p1bg" value="" style="rounded=0;html=1;fillColor=#FBEAE9;strokeColor=#B85450;" vertex="1" parent="1"><mxGeometry x="60" y="110" width="330" height="380" as="geometry" /></mxCell>
+        <mxCell id="p1h" value="一线之痛" style="rounded=0;html=1;fillColor=#B85450;strokeColor=#B85450;fontColor=#FFFFFF;fontSize=20;fontStyle=1;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="60" y="110" width="330" height="56" as="geometry" /></mxCell>
+        <mxCell id="p1n" value="25.8 万起" style="text;html=1;align=center;fontSize=44;fontStyle=1;fontColor=#B85450;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="60" y="200" width="330" height="70" as="geometry" /></mxCell>
+        <mxCell id="p1s" value="每年侦破的电信网络诈骗案件" style="text;html=1;align=center;fontSize=17;fontFamily=Microsoft YaHei;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="75" y="290" width="300" height="50" as="geometry" /></mxCell>
+        <mxCell id="p1s2" value="同一团伙拆成几十条零散线索&lt;br&gt;靠民警人工比对串并" style="text;html=1;align=center;fontSize=16;fontFamily=Microsoft YaHei;fontColor=#8C4A48;" vertex="1" parent="1"><mxGeometry x="75" y="370" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="p2bg" value="" style="rounded=0;html=1;fillColor=#EBF2FB;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="445" y="110" width="330" height="380" as="geometry" /></mxCell>
+        <mxCell id="p2h" value="我们的方案" style="rounded=0;html=1;fillColor=#6C8EBF;strokeColor=#6C8EBF;fontColor=#FFFFFF;fontSize=20;fontStyle=1;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="445" y="110" width="330" height="56" as="geometry" /></mxCell>
+        <mxCell id="p2n" value="一键上传" style="text;html=1;align=center;fontSize=44;fontStyle=1;fontColor=#2F5B8F;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="445" y="200" width="330" height="70" as="geometry" /></mxCell>
+        <mxCell id="p2s" value="话术、表格、截图自动织成关系网" style="text;html=1;align=center;fontSize=17;fontFamily=Microsoft YaHei;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="460" y="290" width="300" height="50" as="geometry" /></mxCell>
+        <mxCell id="p2s2" value="人工智能自动找出幕后团伙&lt;br&gt;每条建议附完整证据链" style="text;html=1;align=center;fontSize=16;fontFamily=Microsoft YaHei;fontColor=#2F5B8F;" vertex="1" parent="1"><mxGeometry x="460" y="370" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="p3bg" value="" style="rounded=0;html=1;fillColor=#EEF7EC;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="830" y="110" width="330" height="380" as="geometry" /></mxCell>
+        <mxCell id="p3h" value="效果实证" style="rounded=0;html=1;fillColor=#82B366;strokeColor=#82B366;fontColor=#FFFFFF;fontSize=20;fontStyle=1;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="830" y="110" width="330" height="56" as="geometry" /></mxCell>
+        <mxCell id="p3n" value="0.95" style="text;html=1;align=center;fontSize=44;fontStyle=1;fontColor=#4F7A3A;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="830" y="200" width="330" height="70" as="geometry" /></mxCell>
+        <mxCell id="p3s" value="真实难度警情数据上的找团准确率" style="text;html=1;align=center;fontSize=17;fontFamily=Microsoft YaHei;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="845" y="290" width="300" height="50" as="geometry" /></mxCell>
+        <mxCell id="p3s2" value="三种子重复实验全部领先&lt;br&gt;优于四类主流方法" style="text;html=1;align=center;fontSize=16;fontFamily=Microsoft YaHei;fontColor=#4F7A3A;" vertex="1" parent="1"><mxGeometry x="845" y="370" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="p4bg" value="" style="rounded=0;html=1;fillColor=#FFF6E8;strokeColor=#D79B00;" vertex="1" parent="1"><mxGeometry x="1215" y="110" width="330" height="380" as="geometry" /></mxCell>
+        <mxCell id="p4h" value="落地形态" style="rounded=0;html=1;fillColor=#D79B00;strokeColor=#D79B00;fontColor=#FFFFFF;fontSize=20;fontStyle=1;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="1215" y="110" width="330" height="56" as="geometry" /></mxCell>
+        <mxCell id="p4n" value="不出城" style="text;html=1;align=center;fontSize=44;fontStyle=1;fontColor=#B07C00;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="1215" y="200" width="330" height="70" as="geometry" /></mxCell>
+        <mxCell id="p4s" value="案件数据全程本地处理" style="text;html=1;align=center;fontSize=17;fontFamily=Microsoft YaHei;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="1230" y="290" width="300" height="50" as="geometry" /></mxCell>
+        <mxCell id="p4s2" value="普通电脑即可运行&lt;br&gt;县分局反诈中心免费试点推进中" style="text;html=1;align=center;fontSize=16;fontFamily=Microsoft YaHei;fontColor=#B07C00;" vertex="1" parent="1"><mxGeometry x="1230" y="370" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="pad1" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="-20" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="pad2" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="1585" y="530" width="1" height="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

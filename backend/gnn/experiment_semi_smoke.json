@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "seeds": [
+      42
+    ],
+    "presets": [
+      "P0_clean_40",
+      "P1_light_40",
+      "P2_hard_40",
+      "P3_200",
+      "P4_collide_40",
+      "P5_collide_noise"
+    ],
+    "ts": "2026-08-29 16:55:59"
+  },
+  "raw": {
+    "P0_clean_40": [
+      {
+        "seed": 42,
+        "n_true": 5,
+        "n_cases": 40,
+        "HAN-selfsup": 1.0,
+        "HAN-semi-hybrid": 0.888888888888889,
+        "HAN-semi-argmax": 0.6862745098039216,
+        "fund(ref)": 0.6862745098039216,
+        "KMeans(ref)": 0.8615384615384616,
+        "_secs": 97.9
+      }
+    ],
+    "P1_light_40": [
+      {
+        "seed": 42,
+        "n_true": 5,
+        "n_cases": 40,
+        "HAN-selfsup": 0.5087719298245614,
+        "HAN-semi-hybrid": 0.5820568927789934,
+        "HAN-semi-argmax": 0.5050100200400802,
+        "fund(ref)": 0.7893175074183976,
+        "KMeans(ref)": 0.6617647058823529,
+        "_secs": 98.3
+      }
+    ],
+    "P2_hard_40": [
+      {
+        "seed": 42,
+        "n_true": 5,
+        "n_cases": 40,
+        "HAN-selfsup": 0.488888888888889,
+        "HAN-semi-hybrid": 1.0,
+        "HAN-semi-argmax": 1.0,
+        "fund(ref)": 0.6625,
+        "KMeans(ref)": 0.5526315789473685,
+        "_secs": 112.0
+      }
+    ],
+    "P3_200": [
+      {
+        "seed": 42,
+        "n_true": 10,
+        "n_cases": 200,
+        "HAN-selfsup": 0.3858933255610609,
+        "HAN-semi-hybrid": 0.3815686712038381,
+        "HAN-semi-argmax": 0.3807185896005356,
+        "fund(ref)": 0.42505030181086517,
+        "KMeans(ref)": 0.475440414507772,
+        "_secs": 391.6
+      }
+    ],
+    "P4_collide_40": [
+      {
+        "seed": 42,
+        "n_true": 5,
+        "n_cases": 40,
+        "HAN-selfsup": 1.0,
+        "HAN-semi-hybrid": 1.0,
+        "HAN-semi-argmax": 0.5223880597014925,
+        "fund(ref)": 1.0,
+        "KMeans(ref)": 0.9743589743589743,
+        "_secs": 97.6
+      }
+    ],
+    "P5_collide_noise": [
+      {
+        "seed": 42,
+        "n_true": 5,
+        "n_cases": 40,
+        "HAN-selfsup": 0.5292740046838408,
+        "HAN-semi-hybrid": 0.955223880597015,
+        "HAN-semi-argmax": 0.9236363636363636,
+        "fund(ref)": 1.0,
+        "KMeans(ref)": 0.9513108614232211,
+        "_secs": 99.7
+      }
+    ]
+  }
+}

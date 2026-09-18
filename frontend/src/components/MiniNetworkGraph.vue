@@ -72,16 +72,31 @@ const physicsEnabled = ref(true)
 let network = null
 let visNodes = new DataSet()
 let visEdges = new DataSet()
+let resizeObserver = null
+let fitFrame = 0
 
 watch(() => props.nodes, () => { nextTick(buildGraph) }, { deep: true })
 watch(() => props.edges, () => { nextTick(buildGraph) }, { deep: true })
 
+function safeFit(animated = false) {
+  if (!network) return
+  try { network.fit({ animation: animated }) } catch (e) {}
+}
+
 function buildGraph() {
-  if (!containerRef.value) return
+  const container = containerRef.value
+  if (!container) return
   visNodes.clear()
   visEdges.clear()
 
   if (!props.nodes.length && !props.edges.length) return
+
+  // vis-network 在容器无尺寸时初始化会把图挤到左上角且不再自适应；
+  // 组件挂在 Transition/栅格布局内时尺寸可能滞后一帧，先等尺寸就绪再建图
+  if (container.clientWidth === 0 || container.clientHeight === 0) {
+    requestAnimationFrame(() => buildGraph())
+    return
+  }
 
   props.nodes.forEach(n => {
     visNodes.add({
@@ -124,16 +139,24 @@ function buildGraph() {
 
   if (network) network.destroy()
   try {
-    network = new Network(containerRef.value, { nodes: visNodes, edges: visEdges }, options)
+    network = new Network(container, { nodes: visNodes, edges: visEdges }, options)
 
+    // 稳定化结束后做一次确定性 fit；不要在稳定化过程中做动画 fit——
+    // 动画 fit 会被仍在运行的物理引擎打断，视图停在左上角，画布其余部分留白
     let fitCount = 0
-    network.once('stabilizationIterationsDone', () => {
-      try { network.fit({ animation: true }) } catch (e) {}
-    })
     network.on('stabilized', () => {
-      if (fitCount < 1) { try { network.fit({ animation: true }) } catch (e) {}; fitCount++ }
+      if (fitCount < 1) { safeFit(false); fitCount++ }
     })
-    network.on('resize', () => { try { network.fit() } catch (e) {} })
+    network.on('resize', () => safeFit(false))
+
+    // 建图后连续数帧强制 fit，兜底稳定化事件时序竞态
+    let tries = 0
+    const ensureFit = () => {
+      tries++
+      safeFit(false)
+      if (tries < 3) fitFrame = requestAnimationFrame(ensureFit)
+    }
+    fitFrame = requestAnimationFrame(ensureFit)
 
     network.on('click', (params) => {
       if (params.nodes.length) {
@@ -146,11 +169,11 @@ function buildGraph() {
   }
 }
 
-function fitView() { if (network) try { network.fit({ animation: true }) } catch (e) {} }
+function fitView() { safeFit(true) }
 function togglePhysics() {
   physicsEnabled.value = !physicsEnabled.value
   if (network) network.setOptions({ physics: physicsEnabled.value })
-  if (physicsEnabled.value) setTimeout(() => fitView(), 500)
+  if (physicsEnabled.value) setTimeout(() => safeFit(true), 500)
 }
 function exportGraph() {
   if (containerRef.value) {
@@ -164,8 +187,29 @@ function exportGraph() {
   }
 }
 
-onMounted(() => { nextTick(buildGraph) })
-onUnmounted(() => { if (network) { network.destroy(); network = null } })
+// 容器尺寸变化（窗口缩放/侧栏折叠/布局稳定后）时重绘并重新适配，
+// 保证初始渲染及后续任何布局变动都不会留下空白画布
+function observeContainerResize() {
+  const container = containerRef.value
+  if (!container || typeof ResizeObserver === 'undefined') return
+  resizeObserver = new ResizeObserver(() => {
+    if (!network) return
+    cancelAnimationFrame(fitFrame)
+    fitFrame = requestAnimationFrame(() => {
+      try { network.redraw(); safeFit(false) } catch (e) {}
+    })
+  })
+  resizeObserver.observe(container)
+}
+
+onMounted(() => {
+  nextTick(() => { buildGraph(); observeContainerResize() })
+})
+onUnmounted(() => {
+  cancelAnimationFrame(fitFrame)
+  if (resizeObserver) resizeObserver.disconnect()
+  if (network) { network.destroy(); network = null }
+})
 </script>
 
 <style scoped>

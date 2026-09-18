@@ -1,0 +1,2798 @@
+{
+  "config": {
+    "seeds": [
+      42,
+      7,
+      123,
+      1,
+      2,
+      3,
+      10,
+      20,
+      33,
+      55,
+      99,
+      256,
+      777,
+      888,
+      1024
+    ],
+    "cross": [
+      0.0,
+      0.2,
+      0.4
+    ],
+    "epochs": 100,
+    "n_gangs_default": 5,
+    "cases_per_gang": 8,
+    "note": "合成案件图；HAN/RGCN/GAT 同协议对比学习+KMeans评测；非真实数据验证"
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8723918846044133,
+        "ari": 0.7111111111111111,
+        "precision": 0.6666666666666666,
+        "recall": 0.9142857142857143,
+        "f1": 0.7710843373493975,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 7,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8831235347503752,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 123,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 2,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 3,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8467873215422576,
+        "ari": 0.7612687813021702,
+        "precision": 0.8014184397163121,
+        "recall": 0.8071428571428572,
+        "f1": 0.804270462633452,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8649821293991028,
+        "ari": 0.6929133858267716,
+        "precision": 0.6595744680851063,
+        "recall": 0.8857142857142857,
+        "f1": 0.7560975609756098,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 10,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 20,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.7729550939457084,
+        "ari": 0.6345718901453958,
+        "precision": 0.673202614379085,
+        "recall": 0.7357142857142858,
+        "f1": 0.7030716723549488,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.7533221492233895,
+        "ari": 0.6019543973941368,
+        "precision": 0.6533333333333333,
+        "recall": 0.7,
+        "f1": 0.6758620689655173,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8723918846044134,
+        "ari": 0.7111111111111111,
+        "precision": 0.6666666666666666,
+        "recall": 0.9142857142857143,
+        "f1": 0.7710843373493975,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 33,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 55,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 99,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 256,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8374999039633626,
+        "ari": 0.7324986390854654,
+        "precision": 0.7583892617449665,
+        "recall": 0.8071428571428572,
+        "f1": 0.7820069204152248,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 777,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 888,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1024,
+      "cross": 0.0,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8305158656745131,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 42,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.8171329235577565,
+        "ari": 0.7065950170981925,
+        "precision": 0.6649214659685864,
+        "recall": 0.9071428571428571,
+        "f1": 0.7673716012084593,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 7,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.852313077353648,
+        "ari": 0.75,
+        "precision": 0.7564102564102564,
+        "recall": 0.8428571428571429,
+        "f1": 0.7972972972972971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.652671907845654,
+        "ari": 0.43581183611532626,
+        "precision": 0.4915254237288136,
+        "recall": 0.6214285714285714,
+        "f1": 0.5488958990536278,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.852313077353648,
+        "ari": 0.75,
+        "precision": 0.7564102564102564,
+        "recall": 0.8428571428571429,
+        "f1": 0.7972972972972971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8523130773536479,
+        "ari": 0.75,
+        "precision": 0.7564102564102564,
+        "recall": 0.8428571428571429,
+        "f1": 0.7972972972972971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 123,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.8831235347503752,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8046864699185092,
+        "ari": 0.6601902854281422,
+        "precision": 0.6464088397790055,
+        "recall": 0.8357142857142857,
+        "f1": 0.7289719626168224,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8831235347503751,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8665207106525186,
+        "ari": 0.7933774834437086,
+        "precision": 0.8194444444444444,
+        "recall": 0.8428571428571429,
+        "f1": 0.8309859154929577,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8667596291669059,
+        "ari": 0.6974963181148748,
+        "precision": 0.6613756613756614,
+        "recall": 0.8928571428571429,
+        "f1": 0.7598784194528876,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8467873215422577,
+        "ari": 0.7612687813021702,
+        "precision": 0.8014184397163121,
+        "recall": 0.8071428571428572,
+        "f1": 0.804270462633452,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8649821293991028,
+        "ari": 0.6929133858267716,
+        "precision": 0.6595744680851063,
+        "recall": 0.8857142857142857,
+        "f1": 0.7560975609756098,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 2,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 3,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8602406118870811,
+        "ari": 0.7910714285714285,
+        "precision": 0.8285714285714286,
+        "recall": 0.8285714285714286,
+        "f1": 0.8285714285714286,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 10,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.9521599607770141,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 20,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.8723918846044133,
+        "ari": 0.7111111111111111,
+        "precision": 0.6666666666666666,
+        "recall": 0.9142857142857143,
+        "f1": 0.7710843373493975,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8863363767974066,
+        "ari": 0.7626774847870182,
+        "precision": 0.7272727272727273,
+        "recall": 0.9142857142857143,
+        "f1": 0.810126582278481,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8863363767974066,
+        "ari": 0.7626774847870182,
+        "precision": 0.7272727272727273,
+        "recall": 0.9142857142857143,
+        "f1": 0.810126582278481,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 33,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.8242303075850815,
+        "ari": 0.6634146341463415,
+        "precision": 0.6153846153846154,
+        "recall": 0.9142857142857143,
+        "f1": 0.7356321839080461,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 55,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.8532945416436253,
+        "ari": 0.7436619718309859,
+        "precision": 0.7333333333333333,
+        "recall": 0.8642857142857143,
+        "f1": 0.7934426229508197,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8532945416436253,
+        "ari": 0.7436619718309859,
+        "precision": 0.7333333333333333,
+        "recall": 0.8642857142857143,
+        "f1": 0.7934426229508197,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8532945416436253,
+        "ari": 0.7436619718309859,
+        "precision": 0.7333333333333333,
+        "recall": 0.8642857142857143,
+        "f1": 0.7934426229508197,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8667596291669055,
+        "ari": 0.6974963181148748,
+        "precision": 0.6613756613756614,
+        "recall": 0.8928571428571429,
+        "f1": 0.7598784194528876,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 99,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 256,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.7654125825183405,
+        "ari": 0.5693251533742332,
+        "precision": 0.5294117647058824,
+        "recall": 0.9,
+        "f1": 0.6666666666666667,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8831235347503751,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8898070676470687,
+        "ari": 0.7587628865979381,
+        "precision": 0.7037037037037037,
+        "recall": 0.95,
+        "f1": 0.8085106382978724,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.8603358536319637,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 777,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.841406966631018,
+        "ari": 0.7333333333333333,
+        "precision": 0.7435897435897436,
+        "recall": 0.8285714285714286,
+        "f1": 0.7837837837837838,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 888,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1024,
+      "cross": 0.2,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8887105844786531,
+        "ari": 0.7762128325508607,
+        "precision": 0.7575757575757576,
+        "recall": 0.8928571428571429,
+        "f1": 0.819672131147541,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8887105844786531,
+        "ari": 0.7762128325508607,
+        "precision": 0.7575757575757576,
+        "recall": 0.8928571428571429,
+        "f1": 0.819672131147541,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 42,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.6642088384955179,
+        "ari": 0.5742613920881322,
+        "precision": 0.585635359116022,
+        "recall": 0.7571428571428571,
+        "f1": 0.6604361370716509,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 7,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8250403175143987,
+        "ari": 0.655825483391175,
+        "precision": 0.6378378378378379,
+        "recall": 0.8428571428571429,
+        "f1": 0.7261538461538463,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8277293767706426,
+        "ari": 0.7214285714285714,
+        "precision": 0.7714285714285715,
+        "recall": 0.7714285714285715,
+        "f1": 0.7714285714285715,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8394299409633525,
+        "ari": 0.7417218543046358,
+        "precision": 0.7777777777777778,
+        "recall": 0.8,
+        "f1": 0.7887323943661971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8532945416436254,
+        "ari": 0.7436619718309859,
+        "precision": 0.7333333333333333,
+        "recall": 0.8642857142857143,
+        "f1": 0.7934426229508197,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 123,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.9259046521006453,
+        "ari": 0.8794701986754967,
+        "precision": 0.8888888888888888,
+        "recall": 0.9142857142857143,
+        "f1": 0.9014084507042254,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.7915841013386969,
+        "ari": 0.6213592233009708,
+        "precision": 0.630057803468208,
+        "recall": 0.7785714285714286,
+        "f1": 0.6964856230031948,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.7367323465847239,
+        "ari": 0.6114942528735632,
+        "precision": 0.6666666666666666,
+        "recall": 0.7,
+        "f1": 0.6829268292682926,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8394299409633527,
+        "ari": 0.7417218543046358,
+        "precision": 0.7777777777777778,
+        "recall": 0.8,
+        "f1": 0.7887323943661971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8649821293991028,
+        "ari": 0.6929133858267716,
+        "precision": 0.6595744680851063,
+        "recall": 0.8857142857142857,
+        "f1": 0.7560975609756098,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.8959171396549679,
+        "ari": 0.8,
+        "precision": 0.7948717948717948,
+        "recall": 0.8857142857142857,
+        "f1": 0.8378378378378378,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.7912441479149127,
+        "ari": 0.6780407264722069,
+        "precision": 0.7241379310344828,
+        "recall": 0.75,
+        "f1": 0.736842105263158,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8394299409633527,
+        "ari": 0.7417218543046358,
+        "precision": 0.7777777777777778,
+        "recall": 0.8,
+        "f1": 0.7887323943661971,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.8799379306016277,
+        "ari": 0.8249589490968802,
+        "precision": 0.8367346938775511,
+        "recall": 0.8785714285714286,
+        "f1": 0.8571428571428572,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 2,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 3,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8959171396549679,
+        "ari": 0.8,
+        "precision": 0.7948717948717948,
+        "recall": 0.8857142857142857,
+        "f1": 0.8378378378378378,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.7218180155285021,
+        "ari": 0.5867549668874172,
+        "precision": 0.6527777777777778,
+        "recall": 0.6714285714285714,
+        "f1": 0.6619718309859155,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 10,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 20,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.6982995185139227,
+        "ari": 0.4757201646090535,
+        "precision": 0.4840182648401826,
+        "recall": 0.7571428571428571,
+        "f1": 0.5905292479108636,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.6134257248430175,
+        "ari": 0.4609071274298056,
+        "precision": 0.5394736842105263,
+        "recall": 0.5857142857142857,
+        "f1": 0.5616438356164384,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.6510006896221161,
+        "ari": 0.4303169499310978,
+        "precision": 0.45622119815668205,
+        "recall": 0.7071428571428572,
+        "f1": 0.5546218487394958,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8374999039633625,
+        "ari": 0.7324986390854654,
+        "precision": 0.7583892617449665,
+        "recall": 0.8071428571428572,
+        "f1": 0.7820069204152248,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.6734980819021333,
+        "ari": 0.49012517385257304,
+        "precision": 0.49765258215962443,
+        "recall": 0.7571428571428571,
+        "f1": 0.6005665722379603,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 33,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 55,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.8616035072789904,
+        "ari": 0.7468559837728195,
+        "precision": 0.7159090909090909,
+        "recall": 0.9,
+        "f1": 0.7974683544303798,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.7456085134912807,
+        "ari": 0.5636107193229901,
+        "precision": 0.5507246376811594,
+        "recall": 0.8142857142857143,
+        "f1": 0.6570605187319885,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8616035072789904,
+        "ari": 0.7468559837728195,
+        "precision": 0.7159090909090909,
+        "recall": 0.9,
+        "f1": 0.7974683544303798,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.8309908841601606,
+        "ari": 0.7245033112582782,
+        "precision": 0.7638888888888888,
+        "recall": 0.7857142857142857,
+        "f1": 0.7746478873239437,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8667596291669055,
+        "ari": 0.6974963181148748,
+        "precision": 0.6613756613756614,
+        "recall": 0.8928571428571429,
+        "f1": 0.7598784194528876,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 99,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.9080110094027638,
+        "ari": 0.8344039194338596,
+        "precision": 0.8389261744966443,
+        "recall": 0.8928571428571429,
+        "f1": 0.8650519031141869,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 256,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.7132514055098098,
+        "ari": 0.5702838063439065,
+        "precision": 0.6453900709219859,
+        "recall": 0.65,
+        "f1": 0.6476868327402135,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8667596291669055,
+        "ari": 0.6974963181148748,
+        "precision": 0.6613756613756614,
+        "recall": 0.8928571428571429,
+        "f1": 0.7598784194528876,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.8042911226889853,
+        "ari": 0.6541471048513302,
+        "precision": 0.6666666666666666,
+        "recall": 0.7857142857142857,
+        "f1": 0.721311475409836,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8667596291669059,
+        "ari": 0.6974963181148748,
+        "precision": 0.6613756613756614,
+        "recall": 0.8928571428571429,
+        "f1": 0.7598784194528876,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.8603358536319637,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 4,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 777,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.8831235347503752,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8723918846044134,
+        "ari": 0.7111111111111111,
+        "precision": 0.6666666666666666,
+        "recall": 0.9142857142857143,
+        "f1": 0.7710843373493975,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 888,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.8532945416436252,
+        "ari": 0.7436619718309859,
+        "precision": 0.7333333333333333,
+        "recall": 0.8642857142857143,
+        "f1": 0.7934426229508197,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.6984874551578205,
+        "ari": 0.5187071498530852,
+        "precision": 0.5368421052631579,
+        "recall": 0.7285714285714285,
+        "f1": 0.6181818181818182,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    {
+      "seed": 1024,
+      "cross": 0.4,
+      "HAN": {
+        "nmi": 0.8277293767706428,
+        "ari": 0.7214285714285714,
+        "precision": 0.7714285714285715,
+        "recall": 0.7714285714285715,
+        "f1": 0.7714285714285715,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "RGCN": {
+        "nmi": 0.575943104460708,
+        "ari": 0.39136690647482014,
+        "precision": 0.4965034965034965,
+        "recall": 0.5071428571428571,
+        "f1": 0.5017667844522968,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "GAT": {
+        "nmi": 0.7579738100429203,
+        "ari": 0.6158273381294964,
+        "precision": 0.6783216783216783,
+        "recall": 0.6928571428571428,
+        "f1": 0.6855123674911661,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "KMeans": {
+        "nmi": 0.835579059484826,
+        "ari": 0.7388392857142857,
+        "precision": 0.7857142857142857,
+        "recall": 0.7857142857142857,
+        "f1": 0.7857142857142857,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.835579059484826,
+        "ari": 0.7388392857142857,
+        "precision": 0.7857142857142857,
+        "recall": 0.7857142857142857,
+        "f1": 0.7857142857142857,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      }
+    }
+  ],
+  "summary": {
+    "HAN": {
+      "f1_mean": 0.918,
+      "f1_std": 0.1107,
+      "n": 45
+    },
+    "RGCN": {
+      "f1_mean": 0.8524,
+      "f1_std": 0.1386,
+      "n": 45
+    },
+    "GAT": {
+      "f1_mean": 0.8795,
+      "f1_std": 0.1298,
+      "n": 45
+    },
+    "KMeans": {
+      "f1_mean": 0.9377,
+      "f1_std": 0.098,
+      "n": 45
+    },
+    "Semantic": {
+      "f1_mean": 0.9337,
+      "f1_std": 0.1043,
+      "n": 45
+    },
+    "CurrentSystem": {
+      "f1_mean": 0.8614,
+      "f1_std": 0.1161,
+      "n": 45
+    }
+  },
+  "scale_robustness": [
+    {
+      "n_gangs": 5,
+      "seed": 42,
+      "HAN": 1.0,
+      "RGCN": 1.0,
+      "GAT": 1.0
+    },
+    {
+      "n_gangs": 5,
+      "seed": 7,
+      "HAN": 0.757679180887372,
+      "RGCN": 0.5303867403314918,
+      "GAT": 0.7972972972972971
+    },
+    {
+      "n_gangs": 5,
+      "seed": 123,
+      "HAN": 0.7893175074183976,
+      "RGCN": 0.7289719626168224,
+      "GAT": 0.7893175074183976
+    },
+    {
+      "n_gangs": 5,
+      "seed": 256,
+      "HAN": 0.7893175074183976,
+      "RGCN": 0.7758007117437722,
+      "GAT": 0.7893175074183976
+    },
+    {
+      "n_gangs": 5,
+      "seed": 1024,
+      "HAN": 1.0,
+      "RGCN": 0.7710843373493975,
+      "GAT": 0.819672131147541
+    },
+    {
+      "n_gangs": 8,
+      "seed": 42,
+      "HAN": 0.9665924276169264,
+      "RGCN": 0.8112449799196788,
+      "GAT": 0.7392120075046904
+    },
+    {
+      "n_gangs": 8,
+      "seed": 7,
+      "HAN": 0.8410462776659959,
+      "RGCN": 0.9131403118040088,
+      "GAT": 0.8410462776659959
+    },
+    {
+      "n_gangs": 8,
+      "seed": 123,
+      "HAN": 0.6709265175718849,
+      "RGCN": 0.6938775510204082,
+      "GAT": 0.8594059405940594
+    },
+    {
+      "n_gangs": 8,
+      "seed": 256,
+      "HAN": 1.0,
+      "RGCN": 0.8130081300813009,
+      "GAT": 0.7829614604462476
+    },
+    {
+      "n_gangs": 8,
+      "seed": 1024,
+      "HAN": 0.9665924276169264,
+      "RGCN": 0.6175438596491227,
+      "GAT": 0.7054409005628518
+    },
+    {
+      "n_gangs": 10,
+      "seed": 42,
+      "HAN": 0.8533333333333333,
+      "RGCN": 0.8758169934640524,
+      "GAT": 0.8254486133768352
+    },
+    {
+      "n_gangs": 10,
+      "seed": 7,
+      "HAN": 1.0,
+      "RGCN": 0.8958333333333333,
+      "GAT": 0.8958333333333333
+    },
+    {
+      "n_gangs": 10,
+      "seed": 123,
+      "HAN": 0.8849270664505673,
+      "RGCN": 0.7246376811594203,
+      "GAT": 0.7674074074074074
+    },
+    {
+      "n_gangs": 10,
+      "seed": 256,
+      "HAN": 0.8814159292035397,
+      "RGCN": 0.9732620320855615,
+      "GAT": 0.9238938053097344
+    },
+    {
+      "n_gangs": 10,
+      "seed": 1024,
+      "HAN": 0.8464052287581699,
+      "RGCN": 0.6785714285714286,
+      "GAT": 0.607843137254902
+    }
+  ],
+  "scale_summary": {
+    "5": {
+      "HAN": 0.8673,
+      "RGCN": 0.7612,
+      "GAT": 0.8391
+    },
+    "8": {
+      "HAN": 0.889,
+      "RGCN": 0.7698,
+      "GAT": 0.7856
+    },
+    "10": {
+      "HAN": 0.8932,
+      "RGCN": 0.8296,
+      "GAT": 0.8041
+    }
+  }
+}

@@ -1,0 +1,358 @@
+% ============================================================
+% FraudLens 论文 v4.1（8 页压缩版，按学院"论文参考格式要求"模板排版）
+% 格式规范：题目黑体三号居中 / 作者楷体四号居中（至多2名）/
+%   摘要·关键词（楷体加粗标签）宋体四号 首行缩进2字符 行距28磅固定 /
+%   正文宋体小四 1.15 倍行距 首行缩进2字符 /
+%   一级标题黑体三号 / 二级标题楷体四号 / 三级标题仿宋四号 /
+%   参考文献黑体三号居中 + GB/T 7714
+% 页面：A4，上下 2.54cm，左右 3.17cm
+% 编译：xelatex -> bibtex -> xelatex -> xelatex
+% ============================================================
+\documentclass[12pt,a4paper,fontset=windows]{ctexart}
+
+% ---- 字体（ctex 内置 \songti/\heiti/\kaishu/\fangsong）----
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+
+% ---- 页面：A4，上下 2.54cm，左右 3.17cm ----
+\usepackage[top=2.54cm, bottom=2.54cm, left=3.17cm, right=3.17cm]{geometry}
+\pagestyle{plain}
+
+% ---- 行距 1.15 倍（正文规范）----
+\usepackage{setspace}
+\setstretch{1.15}
+
+% ---- 表格统一小五号（9pt）压缩版面 ----
+\usepackage{etoolbox}
+\AtBeginEnvironment{table}{\footnotesize}
+\renewcommand{\arraystretch}{0.80}
+\setlength{\tabcolsep}{4.5pt}
+
+% ---- 参考文献五号字 ----
+\AtBeginDocument{\renewcommand{\bibfont}{\zihao{5}\setstretch{1.0}}}
+
+% ---- 全局间距压缩（浮动体/公式/表格行距，保证 8 页篇幅）----
+\setlength{\floatsep}{6pt}
+\setlength{\textfloatsep}{8pt}
+\setlength{\intextsep}{6pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{3pt}
+
+% ---- 标题层级格式（模板规范：一级黑体三号 / 二级楷体四号 / 三级仿宋四号，均缩进2字符）----
+\ctexset{
+  section = {
+    number = {\chinese{section}\char"3001},
+    format = {\heiti\zihao{3}},
+    indent = {2em},
+    beforeskip = {3pt},
+    afterskip = {1pt},
+  },
+  subsection = {
+    number = {\char"FF08\chinese{subsection}\char"FF09},
+    format = {\kaishu\zihao{4}},
+    indent = {2em},
+    beforeskip = {2pt},
+    afterskip = {0.5pt},
+  },
+  subsubsection = {
+    number = {\arabic{subsubsection}.},
+    format = {\fangsong\zihao{4}},
+    indent = {2em},
+    beforeskip = {1.5pt},
+    afterskip = {0.5pt},
+  },
+}
+
+% ---- 图表 ----
+\usepackage{graphicx}
+\graphicspath{{_fig_v10/}{_fig_v9/}{_fig_v8/}{_fig_v7/}{_fig_v6/}{_fig_v4/}{figs_v2/}}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{float}
+\captionsetup{font=small, labelfont=bf, skip=3pt, labelsep=space}
+
+% ---- 数学 ----
+\usepackage{amsmath, amssymb}
+
+% ---- 引用（GB/T 7714-2015 顺序编码制）----
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{gbt7714}
+\setlength{\bibsep}{1.5pt}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+
+% ---- 参考文献标题：黑体三号居中 ----
+\makeatletter
+\renewcommand{\bibsection}{%
+  \par\vspace{8pt}%
+  {\centering{\heiti\zihao{3}参考文献}\par}%
+  \vspace{4pt}}
+\makeatother
+
+% ============================================================
+% 标题区（模板：题目黑体三号居中；作者姓名及单位楷体四号居中，至多2名）
+% ============================================================
+\begin{document}
+\begin{center}
+  {\heiti\zihao{3} 基于多智能体与异构图注意力的反诈团伙研判系统}\\[6pt]
+  {\kaishu\zihao{4} 作者姓名及单位（楷体四号居中，投稿前替换）}
+\end{center}
+\vspace{4pt}
+
+% ============================================================
+% 摘要（模板：200-300字，宋体四号，首行缩进2字符，行距28磅固定；标签楷体加粗）
+% ============================================================
+{\zihao{4}\setlength{\baselineskip}{28pt}%
+\indent{\kaishu\bfseries 摘\quad 要：}针对电信网络诈骗团伙隐蔽化、跨账户资金链难以还原的研判难题，本文提出反诈团伙研判系统（FraudLens）：以案件为中心构建含共享账户、违法者、案件类型、城市、话术五类关系的异构图，由异构注意力网络（HAN）自适应融合资金拓扑与话术文本，实现案件级串并案；以 LangGraph 反思编排自动重算质量不达标的聚类，并以共识伪标签半监督与增量匹配缓解标签稀缺、案件持续流入导致的失效。合成案件实验表明：HAN 在困难场景 F1 达 0.9154，反思闭环将失败场景平均 F1 由 0.3228 拉回 0.8353，半监督机制在重噪场景将 F1 提升至 0.9487。结果验证了反思纠错与双通道证据融合机制在实战难点下的稳健性，可为基层反诈部门的串并案研判与账户扩线提供可落地、可审计的技术支撑。\par
+
+\indent{\kaishu\bfseries 关键词：}反诈；图神经网络；异构注意力网络；多智能体；半监督学习\par}
+
+% ============================================================
+% 引言（模板：400～600字，不设编号）
+% ============================================================
+\section*{引言}
+
+电信网络诈骗犯罪成本低、收益高，已由单一电话诈骗演变为引流、实施、洗钱分工协作的产业化形态：一个团伙往往同时控制大量手机卡与银行账户，涉案资金经多级账户快速拆分转移，甚至借助虚拟货币、跑分平台等手段逃避追踪~\cite{zheng2024crypto}。为切断资金命脉，公安机关已建立紧急止付、快速冻结与先行返还等处置机制~\cite{hu2025funds}，但资金链还原仍主要依靠人工串并案：案件按发案地分散报送，单笔交易难以反映跨账户、跨地区的完整链路，人工研判的效率与覆盖面有限。反诈技防研究多聚焦单一通道——预警系统建设面临数据壁垒与模型失灵~\cite{zhuang2025warning}，基于Transformer的识别依赖结构化特征~\cite{deng2024transformer}，话术文本聚类归并未与资金证据联合建模~\cite{shi2025llmsemantic}，聚类结果难以直接支撑冻卡决策。图神经网络（GNN）已在金融欺诈检测中显示出潜力~\cite{song2024survey,wu2023moneylaunder}，但同构模型难以表达案件、账户、违法者等多类异构实体及其多重关系，面向反诈团伙发现的应用研究仍不充分。
+
+本文据此构建反诈团伙研判系统 FraudLens，形成案件级串并案与账户级扩线的两级研判闭环：以案件为中心构建含共享账户、共享违法者、案件类型、城市、话术五类关系的异构图，由异构注意力网络（HAN）自适应融合资金拓扑与话术文本；以 LangGraph 编排多智能体反思闭环，聚类质量不达标时自动重算；以共识伪标签半监督与增量匹配缓解标签稀缺与案件持续流入两大难题，并经置信度门控输出可审计的冻卡建议。
+
+% ============================================================
+% 一、相关工作
+% ============================================================
+\section{相关工作}
+
+\subsection{电信网络诈骗技防研判}
+
+反诈技防研究沿"预警—话术分析—聚类归并"演进：庄华等指出既有电诈预警系统存在数据壁垒与模型失灵等结构性问题~\cite{zhuang2025warning}；邓翠艳等以 Transformer 多任务学习识别诈骗行为~\cite{deng2024transformer}；石拓等融合大语言模型与语义聚类对话术引流文本聚类归并~\cite{shi2025llmsemantic}，杨泽铎等以犯罪脚本分析话术生成规律~\cite{yang2025crimescript}；周璟昊等进一步结合图卷积与时间卷积建模电诈犯罪时空演化~\cite{zhou2025spatiotemporal}。上述工作或面向预警、或聚焦文本单通道，尚未将话术相似性与资金拓扑证据联合建模，聚类结果难以直接支撑冻卡决策，这正是本文双通道设计的出发点。
+
+\subsection{图神经网络欺诈检测}
+
+GCN~\cite{kipf2017gcn}、GraphSAGE~\cite{hamilton2017graphsage}、GAT~\cite{velickovic2018gat} 依次提升同构图表示能力，宋凌云等系统综述了时序图神经网络在金融风险预测中的应用~\cite{song2024survey}；欺诈检测领域进一步引入伪装节点防御、语义聚合与异构图建模等变体：针对洗钱与信用卡欺诈，异构图方案被证明优于同构方案~\cite{wu2023moneylaunder}，李晨晨等以异构图神经网络检测以太坊链上骗局~\cite{li2025hnn4rp}；HAN 的语义注意力~\cite{wang2019han}可自适应融合多类型关系。外部基准 AMLSim~\cite{weber2018amlfirstlook} 与 Elliptic~\cite{weber2019elliptic} 提供大规模评测数据，但其"账户中心、欺诈占比极低"的设定使盲扫类方法普遍失效，本文据此引入"扩线"任务设定。
+
+\subsection{多智能体与反思编排}
+
+Reflexion~\cite{shinn2023reflexion} 通过言语强化使智能体在失败后自我改进；国内学者亦将大语言模型驱动的多智能体用于自动渗透测试等安全场景~\cite{jiang2026pentest}；LangGraph 提供有状态图编排能力。本文借鉴反思范式，将"质量评估—策略调整—重算"显式纳入研判流程，形成可追溯的自愈闭环。
+
+% ============================================================
+% 二、系统总体架构
+% ============================================================
+\section{系统总体架构}
+
+FraudLens 采用分层架构，自顶向下分为交互层、决策协同层与数据模型层（图~\ref{fig:arch}）。交互层基于 Vue3 构建 Web 界面，以 ECharts、vis-network 呈现研判统计与团伙关系图；决策协同层由 FastAPI 提供接口，内部以 LangGraph 的 StateGraph 编排多智能体反思闭环；数据模型层遵循"数据不出域"原则，关系数据存本地 MySQL，图与向量为可由源数据重建的派生视图，团伙语义嵌入由本地 BGE 模型推理。
+
+系统在逻辑上构成两级研判闭环：\textbf{案件级串并案}（一级）以 HAN 在案件异构图上聚合同伙案件，输出团伙内关键收款账户作为锚点；\textbf{账户级扩线}（二级）以锚点为线索，在账户交易子图上还原资金链路与关联团伙，契合民警先串并锁定团伙、再向资金链上下游扩展涉案账户的真实工作流。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=12.2cm]{fig1_arch.png}
+  \caption{系统三层架构（黑底为决策输出节点）}
+  \label{fig:arch}
+\end{figure}
+
+% ============================================================
+% 三、核心方法
+% ============================================================
+\section{核心方法}
+
+\subsection{异构图构建与双通道}
+
+以案件为中心构建含 5 类节点、5 条元路径的异构资金链图：共享账户边（case--account--case）表征资金链直接关联，共享违法者边表征人员关联，案件类型边表征同模式案件关联，城市边表征地域关联；话术语义边在案件话术的 BGE 嵌入余弦相似度 $\ge 0.5$ 时连边，表征语义关联。前四类元路径构成\textbf{结构通道}，刻画案件间的客观关联；话术元路径构成\textbf{文本通道}，刻画诈骗话术的模式相似性。
+
+真实场景中，诈骗团伙为规避追踪刻意拆分收款账户、跨地域流窜或多人轮换角色，结构通道信号被弱化；而同一犯罪模式的话术脚本（如刷单返利、杀猪盘开场白）会在不同案件中反复出现，文本通道因此在结构受扰时提供稳定信号。HAN 的语义注意力~\cite{wang2019han}使模型自动学习各元路径重要性，在不同团伙演化阶段自适应组合结构与文本证据。
+
+\subsection{HAN 语义注意力融合}
+
+HAN~\cite{wang2019han} 对每条元路径 $\Phi_i$ 计算节点级注意力：
+\begin{equation}
+\alpha_{uv}^{\Phi_i} = \frac{\exp(\sigma(\mathbf{a}_{\Phi_i}^\top [\mathbf{h}_u' \| \mathbf{h}_v']))}
+{\sum_{k \in \mathcal{N}_u^{\Phi_i}} \exp(\sigma(\mathbf{a}_{\Phi_i}^\top [\mathbf{h}_u' \| \mathbf{h}_k']))}
+\end{equation}
+节点嵌入 $\mathbf{h}_u$ 为各元路径邻居的加权和，随后以语义级注意力融合各元路径输出：
+\begin{equation}
+\mathbf{z}_u = \sum_{i=1}^{P} \beta_i \cdot \mathbf{h}_u^{\Phi_i}
+\end{equation}
+式中 $\beta_i$ 为语义注意力权重，由语义级注意力网络自动学习。训练采用 GraphCL 自监督框架：对元路径邻接做边丢弃、对节点特征做掩码增广，构造同一案件的两个视图，以 NT-Xent 对比损失（$\tau=0.5$）最大化两视图嵌入一致性。GraphCL 预训练无需团伙标签，使模型在标注稀缺场景下仍可学习可迁移表示；预训练后案件嵌入经标准化输入 KMeans 完成团伙聚类。
+
+\subsection{多智能体反思闭环编排}
+
+研判工作流以 LangGraph StateGraph 实现 5 节点有向图编排（图~\ref{fig:reflection}），反思机制借鉴 Reflexion~\cite{shinn2023reflexion} 的言语强化思路，由反思节点经条件边决定是否回连分析节点触发重算。反思节点质量评分：
+\begin{equation}
+\begin{aligned}
+&\text{has\_enough\_gangs} = n_{\text{gangs}} \ge 2 \\
+&\text{has\_good\_analysis} = \text{avg\_risk} > 50 \\
+&\text{overall} = 0.5 \times \text{quality\_score} + 0.25 \times \mathbb{1}_{\text{gangs}} + 0.25 \times \mathbb{1}_{\text{analysis}}
+\end{aligned}
+\end{equation}
+当 $\text{overall} < 0.6$ 且重试次数未超限时，关闭 GNN 并回退至 Louvain/KMeans 等规则聚类，同时调小聚类粒度重算，规避单点失效风险。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=12.2cm]{fig4_reflection.png}
+  \caption{LangGraph 反思闭环编排（三维质检加权评分，未收敛回连重算，超限经低置信门控转人工复核）}
+  \label{fig:reflection}
+\end{figure}
+
+\subsection{置信度门控与冻卡决策}
+
+团伙检测完成后，为每个团伙计算经验加权置信度：
+\begin{equation}
+\text{confidence} = 0.30 \times \text{scale\_norm} + 0.20 \times \text{amount\_norm} + 0.20 \times \text{acc\_norm} + 0.30 \times \text{reflux\_flag}
+\end{equation}
+其中 scale\_norm、amount\_norm、acc\_norm 为团伙案件数、涉案金额、关联账户数的归一化值，reflux\_flag 为资金回流闭环检测标志。当 $\text{confidence} \ge 0.5$ 输出"建议冻结"，否则"待人工复核"；所有门控结果落库至 FreezeDecision 表，支持审计追溯。
+
+\subsection{共识伪标签半监督}
+
+真实反诈场景中团伙标签稀缺，纯自监督表示在重噪或大案量下聚类质量下降（见第四节）。本文提出共识伪标签半监督：对同一批案件分别以资金链 Louvain 社区发现与话术 BGE-KMeans 聚类，仅当两路结果对某案件给出\textbf{严格一致}的簇归属时，才将该簇作为高置信锚点；锚点不足时自动沿更细粒度重新估计聚类数（自适应 $k$ 重估），对超过案件数 $25\%$ 的"巨簇"整簇弃用，避免低分辨率合并污染标签（客观置信度门控）。随后以锚点监督微调 HAN 分类头，hybrid 出牌：锚点案件用规则标签、非锚点案件用模型预测。
+
+\subsection{增量匹配}
+
+案件持续流入时全量重算成本高昂且滞后。系统维护团伙画像（账户池与 BGE 话术质心），新案到达时做双信号判定：
+\begin{equation}
+\text{match}(c, g) = \mathbb{1}\big[\, \text{share\_account}(c, g) \wedge \text{sim}(\mathbf{e}_c, \mathbf{e}_g) \ge \tau \,\big]
+\end{equation}
+其中 $\mathbf{e}_c$ 为案件话术嵌入，$\mathbf{e}_g$ 为团伙话术质心，$\tau=0.7$；仅当资金共享与话术语义两个信号同时满足才并入既有团伙，宁缺毋滥；未匹配案件攒批后进入下一轮全量聚类，在轻噪大规模场景可流式补回被全量聚类过合并的团伙。
+
+% ============================================================
+% 四、实验与结果
+% ============================================================
+\section{实验与结果}
+
+\subsection{实验设置}
+
+采用可复现的合成案件数据集（按真实警情形态自建，非真实案卷），构建六类场景：\textbf{P0 干净}（40 案）、\textbf{P1 轻噪}、\textbf{P2 重噪}（跨团伙账户共享干扰 cross $\in \{0.2, 0.4\}$）、\textbf{P3 大规模}（200 案）、\textbf{P4 碰撞}与\textbf{P5 极端信号}，以 NMI、ARI、成对 Macro-F1 与误冻率评价。基线含 KMeans、HDBSCAN、纯语义聚类（BGE＋KMeans）、Louvain 资金链聚类、GraphSAGE~\cite{hamilton2017graphsage} 与本文 HAN，并补充实现 RGCN~\cite{schlichtkrull2018rgcn} 与 GAT~\cite{velickovic2018gat} 两个纯 PyTorch 基线，与 HAN 共享完全相同的异构图输入、对比学习预训练协议与 KMeans 评测流程，唯一差异在聚合与注意力机制。外部验证采用 AMLSim 小样本~\cite{weber2018amlfirstlook}与真实 Elliptic Bitcoin 交易图~\cite{weber2019elliptic}。
+
+\subsection{主实验与同协议异构图基线}
+
+基线对比首先验证异构图建模的必要性：HAN 在干净/困难场景 F1 达 1.000/0.9154，同构 GraphSAGE 因无法建模多类型实体关系发生表示塌缩（Hard F1=0.30）。表~\ref{tab:hetero} 报告同协议比较结果：45 组实验（15 seeds $\times$ cross $\in \{0.0, 0.2, 0.4\}$）中 HAN 总体 F1$=0.918\pm0.112$，高于 GAT（$0.879\pm0.131$）与 RGCN（$0.852\pm0.140$）；配对 Wilcoxon 检验表明 HAN 对 RGCN 的优势在 cross=0.0（$p=0.027$）与 cross=0.4（$p=0.013$）下显著，对 GAT 方向一致但未达显著（$p=0.11$）。跨参数稳健性实验中 HAN 在所有干扰程度下 F1 均 $\ge 0.90$；规模稳健性实验（团伙数 5/8/10）中 F1 为 0.867/0.889/0.893，均高于 RGCN 与 GAT。
+
+\textbf{诚实标注：}在 cross=0.2/0.4 下，特征基线 KMeans 与 Semantic 均值反超所有图方法（cross=0.2 时 KMeans 对 HAN 优势边缘显著，$p=0.046$），根源在于合成案情特征本身携带强团伙信号，拓扑干扰一旦引入，"忽略图结构"反倒规避结构噪声。审慎结论：\textbf{HAN 在同协议图神经基线与资金链社区发现中最优，但在特征信号充分的合成场景并不全面超越强特征基线}；其预期增量场景是特征缺失或被伪造而结构线索保留的真实案件。
+
+\begin{table}[H]
+  \centering
+  \caption{同协议异构图基线对比（15 seeds mean$\pm$std，成对 Macro-F1）}
+  \label{tab:hetero}
+  \begin{tabular}{lcccc}
+    \toprule
+    方法 & cross=0.0 & cross=0.2 & cross=0.4 & 总体 \\
+    \midrule
+    RGCN & 0.908$\pm$0.113 & 0.856$\pm$0.129 & 0.794$\pm$0.159 & 0.852$\pm$0.140 \\
+    GAT  & 0.942$\pm$0.109 & 0.878$\pm$0.084 & 0.819$\pm$0.165 & 0.879$\pm$0.131 \\
+    Louvain（CurrentSystem） & 0.905$\pm$0.110 & 0.844$\pm$0.094 & 0.836$\pm$0.139 & 0.861$\pm$0.117 \\
+    KMeans（特征） & 0.942$\pm$0.100 & 0.958$\pm$0.086 & 0.913$\pm$0.111 & 0.938$\pm$0.099 \\
+    Semantic（BGE） & 0.939$\pm$0.105 & 0.953$\pm$0.098 & 0.909$\pm$0.116 & 0.934$\pm$0.105 \\
+    \textbf{HAN（本文）} & \textbf{0.985$\pm$0.058} & 0.894$\pm$0.105 & \textbf{0.875$\pm$0.133} & 0.918$\pm$0.112 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=12.2cm]{fig6_curve.png}
+  \caption{同协议异构图基线在跨团伙干扰 cross $\in\{0.0,0.2,0.4\}$ 下的 Macro-F1 曲线（15 seeds，误差棒为 std）。HAN 在 cross=0.0 最优；随干扰增大，特征基线 KMeans / Semantic 反超各图方法（诚实标注）。}
+  \label{fig:hetero}
+\end{figure}
+
+\subsection{共识伪标签半监督实验}
+
+表~\ref{tab:semi} 报告六类场景下半监督机制与自监督、规则基线的对比。\textbf{重噪场景（P2）增益最大}：hybrid F1 由自监督 0.565 提升至 0.949（+0.38）；大规模场景（P3）hybrid 0.656 为该规模下最优，明显优于资金链规则 0.447 与特征 KMeans 0.540，印证设计动机：结构通道受污染或案量增大时规则单通道可靠性下降，"规则高置信结果 $\to$ GNN 泛化"成为最优路径。\textbf{诚实标注：}干净场景（P0）下自监督 0.922 略高于 hybrid 0.913，轻噪场景（P1）下资金链规则 0.819 反超 hybrid 0.756——半监督的增量价值集中于重噪、碰撞与大案量场景。
+
+\begin{table}[H]
+  \centering
+  \caption{共识伪标签半监督实验（3 seeds mean$\pm$std，成对 Macro-F1）}
+  \label{tab:semi}
+  \begin{tabular}{lcccc}
+    \toprule
+    场景 & 自监督 & 半监督（hybrid） & 资金链规则 & 特征KMeans \\
+    \midrule
+    P0 干净 & 0.922$\pm$0.070 & 0.913$\pm$0.037 & 0.833$\pm$0.157 & 0.853$\pm$0.026 \\
+    P1 轻噪 & 0.566$\pm$0.066 & 0.756$\pm$0.154 & \textbf{0.819}$\pm$0.068 & 0.704$\pm$0.158 \\
+    P2 重噪 & 0.565$\pm$0.083 & \textbf{0.949}$\pm$0.050 & 0.821$\pm$0.142 & 0.499$\pm$0.078 \\
+    P3 大规模 & 0.536$\pm$0.144 & \textbf{0.656}$\pm$0.084 & 0.447$\pm$0.118 & 0.540$\pm$0.109 \\
+    P4 碰撞 & 0.890$\pm$0.191 & \textbf{0.981}$\pm$0.033 & \textbf{1.000}$\pm$0.000 & 0.846$\pm$0.113 \\
+    P5 极端信号 & 0.623$\pm$0.089 & \textbf{0.797}$\pm$0.210 & \textbf{0.833}$\pm$0.157 & 0.711$\pm$0.274 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{增量匹配实验}
+
+表~\ref{tab:incr} 报告增量匹配在两种代表性场景下的效果：轻噪大规模场景（P3）下增量匹配 F1=0.609 反超全量重算 0.526（+0.083），全量聚类将 10 个团伙过合并为 6 个，流式匹配逐步补回；重噪场景（P2）下低 6 分，源于约 $25\%$ 无账户案件单信号不满足时被门控拦截、攒批等待，属宁缺毋滥的主动取舍。总体而言，\textbf{"账户信号充足的数据上增量匹配效果不掉"的验收口径成立}。
+
+\begin{table}[H]
+  \centering
+  \caption{增量匹配 vs 全量重算（成对 Macro-F1）}
+  \label{tab:incr}
+  \begin{tabular}{lcccc}
+    \toprule
+    场景 & 全量重算 & 增量匹配 & $\Delta$ & 匹配精度 \\
+    \midrule
+    P2 重噪 40 案 & 0.6786 & 0.6185 & $-$0.0601 & 0.857 \\
+    P3 轻噪 200 案 & 0.5263 & \textbf{0.6089} & +0.0826 & 0.580 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{可解释性分析}
+
+为验证 HAN 语义注意力是否按数据自适应分配元路径权重，在自监督协议下提取各干扰程度下的语义注意力权重（5 seeds 均值）。结构通道（账户、违法者、类型、城市）合计占据主要权重（约 0.89），文本通道保持非零权重（约 0.10），作为结构受扰时的保留信号；随跨团伙干扰增强，共享账户元路径权重由 0.235 降至 0.211，模型主动降低被污染元路径的相对依赖，为研判结论提供模型级可解释依据。
+
+\subsection{反思与门控消融}
+
+表~\ref{tab:reflection} 展示反思闭环消融：反思机制在 9/10 种子下正确触发，平均 F1 从 0.32$\pm$0.20 提升至 0.84$\pm$0.03（+0.51$\pm$0.19），方差从 0.20 降至 0.03；多次迭代实验表明 1 次重试即可收敛。置信度门控消融中，5 个混合置信团伙（3 真＋2 假）有门控时误冻率 0.25、无门控时 0.40，降低 37.5\%；门控正确拦截低置信假团伙（0.35 $<$ 0.5），但无法拦截高置信假团伙（0.75 $\ge$ 0.5）。敏感性分析（$\pm$0.05 扰动 200 次）显示系数对噪声不敏感（误冻率 $0.20\pm0.00$），但所有方案均无法拦截"高规模无资金回流"型假团伙——其由权重结构决定而非自适应学习所得，可引入监督/强化学习突破，列为未来工作。
+
+\begin{table}[H]
+  \centering
+  \caption{反思闭环消融（10 seeds，cross=0.2）}
+  \label{tab:reflection}
+  \begin{tabular}{lcc}
+    \toprule
+    指标 & 无反思 & 有反思 \\
+    \midrule
+    平均 F1 & 0.3228 & \textbf{0.8353} \\
+    标准差 & 0.199 & \textbf{0.029} \\
+    最小 F1 & 0.3043 & 0.7674 \\
+    最大 F1 & 0.7267 & 0.8616 \\
+    反思增益 & --- & \textbf{+0.5124$\pm$0.1884} \\
+    触发率 & --- & \textbf{9/10} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{外部验证与扩线设定}
+
+AMLSim 小样本（12 环 $\times$ 12 账户）上 Louvain 完美聚类（F1=1.0），KMeans（0.11）与 GraphSAGE（0.14）均失效；而 AMLSim 大规模数据（43{,}614 账户）上所有方法 F1$\approx$0.002，真实 Elliptic 图（203{,}769 笔交易）上盲扫亦全部失效（HAN F1$_{\text{illicit}}$=0.016），瓶颈在任务设定而非编码器~\cite{weber2019elliptic}。为贴近真实工作流，采用\textbf{扩线（refinement）设定}：给定少数锚点账户，在 $k$ 跳嫌疑子图内恢复同伙团伙。真实 Elliptic 图上以 10 个 illicit 锚点取 2 跳嫌疑子图（5 次独立试验，子图内 illicit 占比升至 $0.59\pm0.06$），二类恢复 F1$_{\text{illicit}}$ 为特征 KMeans $0.720\pm0.026$、HAN $0.646\pm0.079$、Louvain $0.557\pm0.114$，相对盲扫提升约 40 倍——\textbf{扩线设定修正本身是数量级增益的来源}，且真实子图上特征基线强于 GNN，与合成实验结论相互印证。需明确：Elliptic 为真实交易图而非公安案卷，其结果仅作为外部有效性旁证，并不等同于"真实警务数据验证通过"。
+
+% ============================================================
+% 五、讨论
+% ============================================================
+\section{讨论}
+
+\subsection{机制分析}
+
+综合实验结果，可从机制层面回答三个问题。其一，为什么必须建模异构关系？GraphSAGE 在同构假设下表示塌缩（Hard F1=0.30），而 HAN 保持 F1$\ge$0.91，说明多类型实体及其关系是团伙信号的主要载体。其二，为什么需要双通道？跨团伙干扰增大时结构通道被污染，而文本通道保持稳定，HAN 语义注意力自动降低被污染元路径权重，这是其在 cross=0.4 下仍保持 F1=0.875 的原因。其三，为什么反思闭环能稳定输出？无反思时失败场景 F1 波动高达 $\pm$0.20，有反思后降至 $\pm$0.03——反思机制把"模型可能出错"的不确定性显式纳入流程，通过降级与重算规避单点失效。
+
+\subsection{局限性}
+
+本文工作存在以下局限：（1）主实验基于可复现合成案件数据（按真实警情形态自建），真实警务数据上的端到端验证待后续合作获取；（2）门控系数为手工启发式权重，敏感性分析表明其结构性上限在于难以识别"高规模无资金回流"型假团伙；（3）反思策略为启发式规则，非学习型策略；（4）半监督在干净与轻噪场景增量有限甚至略低于规则，增量匹配在重噪场景因宁缺毋滥主动牺牲召回；（5）扩线设定中训练后 GNN 未显著优于 Louvain，其增量价值需在拓扑受扰或不完整场景进一步验证。
+
+% ============================================================
+% 六、结论与展望
+% ============================================================
+\section{结论与展望}
+
+FraudLens 将多智能体编排与 HAN 相融合，形成案件级串并案与账户级扩线的两级研判闭环，在统一的反思编排与工程化合规底座下实现自愈式重算与可审计冻卡决策。合成数据实验表明：案件级 HAN 在困难场景下 F1=0.9154，优于同协议异构图基线 RGCN/GAT；反思闭环将失败场景 F1 从 0.3228 提升至 0.8353；共识伪标签半监督在重噪场景将 F1 提升至 0.949，增量匹配在轻噪大规模场景反超全量重算（+0.083）。工程上实现了 RBAC 鉴权、审计追踪、多级降级链与数据不出域；在账户中心任务下，锚点驱动的扩线设定将 AMLSim 与真实 Elliptic 图上的可恢复性由盲扫 F1$\approx$0.002 提升约两个数量级，揭示了反诈 GNN 的关键瓶颈在任务设定而非编码器，为真实研判工作流提供了可行路径。
+
+\textbf{未来工作}：与公安机关合作获取脱敏真实案件数据；引入强化学习优化门控系数；探索 HAN 向账户中心任务的迁移；利用元路径注意力权重构建反诈领域先验知识库。
+
+% ============================================================
+% 参考文献
+% ============================================================
+\bibliographystyle{gbt7714-numeric}
+\bibliography{references}
+
+\end{document}

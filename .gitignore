@@ -98,3 +98,53 @@ paper/参考文档/
 docs/_preview/
 docs/plan_figures/
 docs/plan_figures_v2/
+
+# ============================================================
+# 本地工作区与临时产物（2026-09-18 复赛前整理）
+# 目录仍保留在磁盘上供本地使用，但绝不入库
+# ============================================================
+# PPT 制作工作区（含历史备份 PowerPoint，体积 GB 级）
+_ppt_work/
+# 便携 Python 依赖（PIL/pymupdf/python-pptx 等本地脚本运行时）
+_py_libs/
+# 一次性清理隔离区（确认无误后物理删除）
+_trash_*/
+# 答辩 PPT 历史归档（大体积二进制，本地保留即可）
+答辩PPT/历史版本/
+# 临时诊断/修复脚本（一次性，用完即弃）
+_diag_*.py
+_diag_*.txt
+_fix_*.py
+_fix_*.txt
+# docs 下的一次性申报书调试脚本（_dump_/_check_/_apply_/_find_ 等）
+docs/_*.py
+docs/_*.txt
+docs/_work.*
+docs/_v17_backup_*
+docs/_pages_check*/
+docs/_qaimg/
+# backend 下的一次性诊断脚本
+backend/_check_*.py
+backend/_test_*.py
+# 运行时日志与临时请求 JSON
+backend/logs/
+# 图像生成缓存（再生品）
+generated-images/
+# 论文工作区临时产物（_paper_full.txt、PDF 转换中间件）
+paper/_paper_full.txt
+paper/_template_convert/
+# LaTeX 编译中间文件（再生品，编译即得）
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.xdv
+*.synctex.gz
+missfont.log
+# agent 交接/评审中间稿（本地文档，非代码）
+docs/_archive/
+
+# 答辩 PPT 大二进制（55M+/份，属答辩材料非代码；本地保留，不入库）
+答辩PPT/*.pptx
+答辩PPT/*.pdf

@@ -299,7 +299,7 @@ const goToCaseDetail = (caseId) => {
   if (found && appState.selectedCase) {
     appState.selectedCase.value = found
   }
-  router.push({ name: 'case-detail' })
+  router.push({ name: 'case-detail', query: caseId ? { case_id: caseId } : {} })
 }
 </script>
 

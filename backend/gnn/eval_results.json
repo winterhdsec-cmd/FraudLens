@@ -1,0 +1,221 @@
+{
+  "clean": {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.830515865674513,
+        "ari": 0.7265442404006678,
+        "precision": 0.7730496453900709,
+        "recall": 0.7785714285714286,
+        "f1": 0.7758007117437722,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.833910073036792,
+        "ari": 0.7483870967741936,
+        "precision": 0.8074074074074075,
+        "recall": 0.7785714285714286,
+        "f1": 0.7927272727272727,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8723918846044133,
+        "ari": 0.7111111111111111,
+        "precision": 0.6666666666666666,
+        "recall": 0.9142857142857143,
+        "f1": 0.7710843373493975,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.0,
+        "ari": 0.0,
+        "precision": 0.1794871794871795,
+        "recall": 1.0,
+        "f1": 0.30434782608695654,
+        "n_clusters": 1,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.6291973529368183,
+        "ari": 0.3776844631073785,
+        "precision": 0.5304347826086957,
+        "recall": 0.4357142857142857,
+        "f1": 0.47843137254901963,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.0,
+      "han_no_text_channel": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": 0.0,
+      "gating": {
+        "freeze_gated": 3,
+        "false_freeze_gated": 1,
+        "false_freeze_rate_gated": 0.3333,
+        "freeze_ungated": 3,
+        "false_freeze_ungated": 1,
+        "false_freeze_rate_ungated": 0.3333,
+        "gating_reduces_false_freeze": false
+      }
+    },
+    "notes": [
+      "语义基线=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ]
+  },
+  "hard": {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.8171329235577565,
+        "ari": 0.7065950170981925,
+        "precision": 0.6649214659685864,
+        "recall": 0.9071428571428571,
+        "f1": 0.7673716012084593,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.7828826004718443,
+        "ari": 0.6299952084331576,
+        "precision": 0.6030150753768844,
+        "recall": 0.8571428571428571,
+        "f1": 0.7079646017699114,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.952159960777014,
+        "ari": 0.9348914858096828,
+        "precision": 0.9432624113475178,
+        "recall": 0.95,
+        "f1": 0.9466192170818505,
+        "n_clusters": 5,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.9057460992755191,
+        "ari": 0.7636363636363637,
+        "precision": 0.6862745098039216,
+        "recall": 1.0,
+        "f1": 0.813953488372093,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.6623526904403014,
+        "ari": 0.4835016835016835,
+        "precision": 0.5797101449275363,
+        "recall": 0.5714285714285714,
+        "f1": 0.5755395683453237,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": -0.0466,
+      "han_no_text_channel": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": -0.0534,
+      "gating": {
+        "freeze_gated": 1,
+        "false_freeze_gated": 1,
+        "false_freeze_rate_gated": 1.0,
+        "freeze_ungated": 1,
+        "false_freeze_ungated": 1,
+        "false_freeze_rate_ungated": 1.0,
+        "gating_reduces_false_freeze": false
+      }
+    },
+    "notes": [
+      "语义基线=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ]
+  },
+  "cross": 0.2
+}

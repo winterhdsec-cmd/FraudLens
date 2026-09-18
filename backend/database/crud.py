@@ -195,8 +195,11 @@ def save_case(case_data, session_id=None):
 
 def _safe_json(value):
     if isinstance(value, str):
-        try: return json.loads(value)
-        except: return []
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError) as e:
+            logger.debug(f"_safe_json 解析失败，回退空列表: {e}")
+            return []
     return value or []
 
 def _safe_text(value):
@@ -206,8 +209,11 @@ def _safe_text(value):
 
 def _parse_json(value, default=None):
     if isinstance(value, str):
-        try: return json.loads(value)
-        except: return default or value
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError) as e:
+            logger.debug(f"_parse_json 解析失败，回退默认值: {e}")
+            return default or value
     return value if value else (default or value)
 
 def save_gang(gang_data, session_id=None):

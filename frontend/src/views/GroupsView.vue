@@ -125,7 +125,23 @@
                     </div>
                     <div class="info-item">
                       <span class="info-label">成员人数</span>
-                      <span class="info-value">{{ gang.members?.length || 0 }} 人</span>
+                      <span class="info-value">{{ gang.members?.length || gang.member_count_estimate || '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">技术等级</span>
+                      <span class="info-value">{{ gang.tech_level || '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">威胁等级</span>
+                      <span class="info-value">{{ gang.threat_level || '-' }}</span>
+                    </div>
+                    <div class="info-item" v-if="gang.confidence > 0">
+                      <span class="info-label">研判置信度</span>
+                      <span class="info-value">{{ Math.round(gang.confidence) }}%</span>
+                    </div>
+                    <div class="info-item info-desc" v-if="gang.description">
+                      <span class="info-label">团伙描述</span>
+                      <span class="info-value">{{ gang.description }}</span>
                     </div>
                   </div>
                 </div>
@@ -151,19 +167,28 @@
                   </div>
                 </div>
 
-                <!-- 能力评估改用 radar_data 真实六维评分（原 abilities.* 字段不存在，三根条永远显示假值） -->
+                <!-- 能力评估：多维雷达图（六/七维真实评分）+ 综合能力分 -->
                 <div class="profile-section">
                   <div class="section-label">
                     <span class="label-icon"><el-icon><TrendCharts /></el-icon></span>
                     能力评估
+                    <span class="score-badge" v-if="radarScore(gang) > 0">
+                      综合 <b>{{ radarScore(gang) }}</b> 分
+                    </span>
                   </div>
-                  <div class="ability-bars" v-if="radarPairs(gang).length">
-                    <div class="ability-item" v-for="(p, pi) in radarPairs(gang)" :key="p.k">
-                      <span class="ability-label">{{ p.k }}</span>
-                      <el-progress :percentage="p.v" :color="abilityColor(pi)" :stroke-width="8" />
+                  <GangRadarChart :radar="gang.radar_data || gang.radarData" :gang-id="gang.id" />
+                  <div class="radar-legend" v-if="radarPairs(gang).length">
+                    <div
+                      class="radar-legend-item"
+                      v-for="(p, pi) in radarPairs(gang)"
+                      :key="p.k"
+                      :style="{ '--c': RADAR_COLORS[pi % RADAR_COLORS.length] }"
+                    >
+                      <span class="rli-dot"></span>
+                      <span class="rli-name">{{ p.k }}</span>
+                      <span class="rli-val">{{ p.v }}</span>
                     </div>
                   </div>
-                  <div v-else class="ability-empty">暂无能力评估数据</div>
                 </div>
 
                 <!-- 关联案件摘要：团伙画像最有价值的信息（此前完全不显示） -->
@@ -281,6 +306,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+import GangRadarChart from '../components/GangRadarChart.vue'
 const router = useRouter()
 const state = useAppState()
 const {
@@ -311,16 +337,23 @@ const ENTITY_LABELS = {
 }
 const entityLabel = (k) => ENTITY_LABELS[k] || String(k).replace(/_/g, '')
 
-// radar_data 是中文键的六维评分字典（后端真实字段，0~100），取前 3 维做进度条
-const RADAR_COLORS = ['#00d4ff', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981', '#ec4899']
+// radar_data 是中文键的多维评分字典（后端真实字段，0~100），供雷达图与综合评分使用
+const RADAR_COLORS = ['#00d4ff', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981', '#ec4899', '#fbbf24']
 const radarPairs = (gang) => {
   const rd = gang.radar_data || gang.radarData || {}
   return Object.entries(rd)
     .filter(([, v]) => typeof v === 'number' && v > 0)
-    .map(([k, v]) => ({ k, v: Math.round(v) }))
-    .slice(0, 4)
+    .map(([k, v]) => ({ k, v: Math.round(Math.min(100, v)) }))
+    .slice(0, 8)
 }
-const abilityColor = (i) => RADAR_COLORS[i % RADAR_COLORS.length]
+// 综合能力分 = 各维度均值；雷达数据缺失时回退到后端综合评分
+const radarScore = (gang) => {
+  const dims = radarPairs(gang)
+  if (dims.length) {
+    return Math.round(dims.reduce((s, d) => s + d.v, 0) / dims.length)
+  }
+  return gang.comprehensive_score || gang.score || 0
+}
 
 const jumpToCase = (caseId) => {
   const c = cases.value?.find(x => x.case_id === caseId || x.id === caseId)
@@ -394,6 +427,74 @@ const jumpToCase = (caseId) => {
 }
 .step-arrow { color: rgba(125, 211, 252, 0.5); font-size: 11px; }
 .ability-empty { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+/* ===== 能力评估：综合评分徽章 + 雷达图例 ===== */
+.score-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: #7dd3fc;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 999px;
+  padding: 1px 10px;
+  flex-shrink: 0;
+}
+.score-badge b {
+  font-size: 14px;
+  color: #00d4ff;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+.radar-legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 10px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 198, 255, 0.08);
+  border-radius: 8px;
+}
+.radar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  min-width: 0;
+}
+.rli-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c, #00d4ff);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px var(--c, #00d4ff);
+}
+.rli-name {
+  color: var(--text-secondary, #8b9dc3);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rli-val {
+  color: var(--text-primary, #e2e8f0);
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 团伙描述：占满两列网格 */
+.info-desc {
+  grid-column: 1 / -1;
+}
+.info-desc .info-value {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary, #8b9dc3);
+}
 .section-count { font-size: 11px; color: var(--text-muted, #475569); margin-left: auto; font-weight: 400; }
 .related-case-list { display: flex; flex-direction: column; gap: 4px; }
 .related-case-row {

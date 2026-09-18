@@ -3,12 +3,20 @@
 """
 import os
 from typing import Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
 class Settings(BaseSettings):
     """应用配置"""
+    # 项目根 .env 为 Docker 部署专用（含 MINIO/GRAFANA 等非应用键），
+    # 忽略未定义键，避免从根目录启动时 pydantic 默认 extra=forbid 崩溃
+    model_config = SettingsConfigDict(
+        extra="ignore",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
     
     # 应用基础配置
     APP_NAME: str = "FraudLens"
@@ -138,12 +146,6 @@ class Settings(BaseSettings):
                     object.__setattr__(self, key, value)
                 except Exception:
                     pass
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-
 
 # 环境差异化默认值（仅当对应环境变量未显式设置时应用，详见 Settings._apply_env_profile）
 _ENV_PROFILES = {

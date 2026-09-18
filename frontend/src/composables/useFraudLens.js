@@ -342,7 +342,8 @@ export function useFraudLens() {
 
   const viewCaseDetail = (caseItem) => {
     selectedCase.value = caseItem
-    router.push({ name: 'case-detail' })
+    const cid = caseItem?.case_id || caseItem?.id
+    router.push({ name: 'case-detail', query: cid ? { case_id: cid } : {} })
   }
 
   const viewRelatedGang = (gangId) => {
@@ -370,6 +371,8 @@ export function useFraudLens() {
 受害人王女士报警称：2024年3月15日接到自称"京东客服"电话，对方准确报出其个人信息后称其开通了"京东金条"服务，如不取消将影响征信。王女士在对方指导下通过手机银行转账至"安全账户"共计 125,800 元。
 
 受害人李先生报警称：2024年3月18日接到同样手法诈骗，对方冒充"京东金融"客服，诱骗其转账 89,600 元。
+
+受害人张先生报警称：2024年3月20日接到自称"京东白条"客服电话，以"注销白条账户否则影响征信"为由，诱导其向指定账户转账 45,300 元。
 
 【资金流向】
 被骗资金通过多个一级账户迅速分散转入二级账户，最终在境外取现。账户信息显示开户人均为"张伟"等人，但实际控制人信息被层层掩盖。
@@ -1385,7 +1388,7 @@ ${REPORT_DOC_CSS}
       amount_value: caseItem.amount_value || 0,
       created_at: caseItem.created_at || ''
     }
-    router.push({ name: 'case-detail' })
+    router.push({ name: 'case-detail', query: { case_id: caseItem.case_id } })
   }
 
   const handleResolveAlert = async (alertId) => {
@@ -1419,7 +1422,8 @@ ${REPORT_DOC_CSS}
 
   const viewCaseFromDashboard = (caseItem) => {
     selectedCase.value = caseItem
-    router.push({ name: 'case-detail' })
+    const cid = caseItem?.case_id || caseItem?.id
+    router.push({ name: 'case-detail', query: cid ? { case_id: cid } : {} })
   }
 
   const _initChartsImpl = async () => {

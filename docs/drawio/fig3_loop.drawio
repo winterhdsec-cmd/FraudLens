@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="fig3_loop" name="fig3_loop">
+    <mxGraphModel dx="1400" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="__p1" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="0" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="__p2" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="1240" y="680" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="x0" value="话术分析员" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="80" y="40" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="x1" value="资金追踪员" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="460" y="40" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="x2" value="串并研判员" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="840" y="40" width="300" height="80" as="geometry" /></mxCell>
+        <mxCell id="agg" value="汇总三方线索" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#F5F5F5;strokeColor=#999999;" vertex="1" parent="1"><mxGeometry x="470" y="190" width="300" height="70" as="geometry" /></mxCell>
+        <mxCell id="dia" value="证据对得上吗" style="rhombus;whiteSpace=wrap;html=1;fontSize=17;fontStyle=1;fontFamily=Microsoft YaHei;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="470" y="320" width="300" height="150" as="geometry" /></mxCell>
+        <mxCell id="ok" value="采纳：出具串并建议&lt;br&gt;附完整证据链" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="400" y="560" width="440" height="80" as="geometry" /></mxCell>
+        <mxCell id="rej" value="退回相关专家&lt;br&gt;重新查证" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#7A2E2A;" vertex="1" parent="1"><mxGeometry x="920" y="340" width="280" height="110" as="geometry" /></mxCell>
+        <mxCell id="man" value="反复对不上&lt;br&gt;转人工民警判断" style="rounded=0;whiteSpace=wrap;html=1;fontSize=17;fontFamily=Microsoft YaHei;fillColor=#F5F5F5;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="60" y="340" width="280" height="110" as="geometry" /></mxCell>
+        <mxCell id="xe0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#666666;fontSize=15;verticalAlign=middle;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="x0" target="agg"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="xe1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#666666;fontSize=15;verticalAlign=middle;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="x1" target="agg"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="xe2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#666666;fontSize=15;verticalAlign=middle;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="x2" target="agg"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="ad" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#666666;fontSize=15;verticalAlign=middle;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="agg" target="dia"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="dog" value="对得上" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#666666;fontSize=15;verticalAlign=middle;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontColor=#4F7A3A;fontStyle=1;" edge="1" parent="1" source="dia" target="ok"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="rj" value="对不上" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;dashed=1;strokeWidth=2;strokeColor=#B85450;fontColor=#B85450;fontSize=15;fontFamily=Microsoft YaHei;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="dia" target="rej"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="rb" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;dashed=1;strokeWidth=2;strokeColor=#B85450;fontFamily=Microsoft YaHei;exitX=0.5;exitY=0;entryX=1;entryY=0.5;" edge="1" parent="1" source="rej" target="x2"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="mn" value="反复不一致" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;dashed=1;strokeWidth=2;strokeColor=#999999;fontColor=#595959;fontSize=15;fontFamily=Microsoft YaHei;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="dia" target="man"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -13,6 +13,7 @@
 from sqlalchemy import (
     create_engine, text, Column, Integer, String, Text, Boolean, DateTime,
     Float, ForeignKey, JSON, LargeBinary, UniqueConstraint, PrimaryKeyConstraint, Index,
+    func, or_, and_, desc, asc, distinct, exists,
 )
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, scoped_session, relationship
 from sqlalchemy.pool import QueuePool
@@ -58,6 +59,13 @@ class _Database:
     Index = Index
     relationship = staticmethod(relationship)
     text = staticmethod(text)
+    func = staticmethod(func)
+    or_ = staticmethod(or_)
+    and_ = staticmethod(and_)
+    desc = staticmethod(desc)
+    asc = staticmethod(asc)
+    distinct = staticmethod(distinct)
+    exists = staticmethod(exists)
 
     def __init__(self):
         self._engine = None

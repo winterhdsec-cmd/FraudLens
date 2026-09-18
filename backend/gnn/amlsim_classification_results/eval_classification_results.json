@@ -1,0 +1,85 @@
+{
+  "experiment": "FraudLens GNN Optimization - AMLSim Supervised Binary Classification",
+  "timestamp": "2026-07-30T03:12:58.538249",
+  "dataset": {
+    "source": "AMLSim canonical",
+    "n_accounts": 36094,
+    "n_fraud": 10819,
+    "fraud_ratio": 0.2997451099905801,
+    "n_features": 12,
+    "main_split": "random 80/20 (seed=42)",
+    "time_split": "time-based 70/30 (strict, anti-leakage)",
+    "time_threshold": 104.3
+  },
+  "baselines": {
+    "GraphSAGE_supervised_cw": {
+      "auc": 0.7951364474237796,
+      "ap": 0.6034640250737238,
+      "f1": 0.6115480529445617,
+      "precision": 0.5285145888594165,
+      "recall": 0.7255348202093764,
+      "best_threshold": 0.5463340282440186,
+      "n_train": 28875,
+      "n_test": 7219,
+      "n_pos_train": 8622,
+      "n_pos_test": 2197
+    },
+    "GraphSAGE_supervised_no_cw": {
+      "auc": 0.787308169951168,
+      "ap": 0.5888871399715578,
+      "f1": 0.6040706605222734,
+      "precision": 0.5224178013948855,
+      "recall": 0.7159763313609467,
+      "best_threshold": 0.3249070942401886,
+      "n_train": 28875,
+      "n_test": 7219,
+      "n_pos_train": 8622,
+      "n_pos_test": 2197
+    },
+    "MLP_no_graph": {
+      "auc": 0.7923241515211993,
+      "ap": 0.6011613011564969,
+      "f1": 0.6053788011952892,
+      "precision": 0.49312714776632305,
+      "recall": 0.7837960855712335,
+      "best_threshold": 0.48757627606391907,
+      "n_train": 28875,
+      "n_test": 7219,
+      "n_pos_train": 8622,
+      "n_pos_test": 2197
+    },
+    "GraphSAGE_untrained": {
+      "auc": 0.5624120959267616,
+      "ap": 0.3249240663196159,
+      "f1": 0.48889973164186384,
+      "precision": 0.33394434260956507,
+      "recall": 0.9121529358215749,
+      "best_threshold": 0.5222593545913696,
+      "n_train": 28875,
+      "n_test": 7219,
+      "n_pos_train": 8622,
+      "n_pos_test": 2197
+    },
+    "LogisticRegression": {
+      "auc": 0.789716780077536,
+      "ap": 0.5918986237782652,
+      "f1": 0.604163022564282,
+      "precision": 0.7860719162494311,
+      "recall": 0.7860719162494311
+    }
+  },
+  "time_split_baselines": {
+    "GraphSAGE_cw_time_split": {
+      "auc": 0.7430065421655061,
+      "ap": 0.5146814196246376,
+      "f1": 0.5655058613221493,
+      "precision": 0.44947811355811795,
+      "recall": 0.7622798887859129,
+      "best_threshold": 0.01987123303115368,
+      "n_train": 150,
+      "n_test": 35944,
+      "n_pos_train": 29,
+      "n_pos_test": 10790
+    }
+  }
+}

@@ -294,7 +294,7 @@ class RedisPool:
                 # 尝试反序列化
                 try:
                     return pickle.loads(value)
-                except:
+                except Exception:  # 反序列化失败回退原值（不吞 KeyboardInterrupt）
                     return value
         except Exception as e:
             logger.error("Redis get failed", key=key, error=str(e))
@@ -364,7 +364,7 @@ class RedisPool:
                     return default
                 try:
                     return pickle.loads(value)
-                except:
+                except Exception:  # 反序列化失败回退原值（不吞 KeyboardInterrupt）
                     return value
         except Exception as e:
             logger.error("Redis hget failed", name=name, key=key, error=str(e))
@@ -379,7 +379,7 @@ class RedisPool:
                 for k, v in data.items():
                     try:
                         result[k] = pickle.loads(v)
-                    except:
+                    except Exception:  # 反序列化失败回退原值（不吞 KeyboardInterrupt）
                         result[k] = v
                 return result
         except Exception as e:
@@ -415,7 +415,7 @@ class RedisPool:
                 for v in values:
                     try:
                         result.append(pickle.loads(v))
-                    except:
+                    except Exception:  # 反序列化失败回退原值（不吞 KeyboardInterrupt）
                         result.append(v)
                 return result
         except Exception as e:
@@ -441,7 +441,7 @@ class RedisPool:
                 for v in values:
                     try:
                         result.add(pickle.loads(v))
-                    except:
+                    except Exception:  # 反序列化失败回退原值（不吞 KeyboardInterrupt）
                         result.add(v)
                 return result
         except Exception as e:

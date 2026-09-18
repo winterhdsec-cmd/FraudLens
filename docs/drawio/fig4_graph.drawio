@@ -1,0 +1,46 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="fig4_graph" name="fig4_graph">
+    <mxGraphModel dx="1400" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="__p1" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="-10" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="__p2" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="1240" y="690" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="cA" value="" style="rounded=1;html=1;fillColor=#F4F8FD;strokeColor=#6C8EBF;dashed=1;" vertex="1" parent="1"><mxGeometry x="60" y="80" width="510" height="380" as="geometry" /></mxCell>
+        <mxCell id="cB" value="" style="rounded=1;html=1;fillColor=#F6FBF5;strokeColor=#82B366;dashed=1;" vertex="1" parent="1"><mxGeometry x="580" y="140" width="400" height="300" as="geometry" /></mxCell>
+        <mxCell id="tA" value="自动圈出 · 疑似团伙A" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontStyle=1;fontSize=16;fontColor=#2F5B8F;" vertex="1" parent="1"><mxGeometry x="75" y="90" width="300" height="30" as="geometry" /></mxCell>
+        <mxCell id="tB" value="自动圈出 · 疑似团伙B" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontStyle=1;fontSize=16;fontColor=#4F7A3A;" vertex="1" parent="1"><mxGeometry x="680" y="150" width="290" height="30" as="geometry" /></mxCell>
+        <mxCell id="a1" value="案件1" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="110" y="160" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="a2" value="案件2" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="250" y="150" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="a3" value="案件3" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="150" y="290" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="acc" value="共享账户" style="ellipse;whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="330" y="250" width="130" height="70" as="geometry" /></mxCell>
+        <mxCell id="scr" value="同一话术" style="rhombus;whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFF2CC;strokeColor=#D79B00;" vertex="1" parent="1"><mxGeometry x="390" y="130" width="140" height="70" as="geometry" /></mxCell>
+        <mxCell id="b1" value="案件4" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="630" y="200" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="b2" value="案件5" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="790" y="300" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="ph" value="来电号码" style="ellipse;whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="640" y="350" width="130" height="70" as="geometry" /></mxCell>
+        <mxCell id="city" value="同城" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#F5F5F5;strokeColor=#999999;" vertex="1" parent="1"><mxGeometry x="470" y="30" width="140" height="70" as="geometry" /></mxCell>
+        <mxCell id="iso" value="案件6" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="1080" y="300" width="100" height="60" as="geometry" /></mxCell>
+        <mxCell id="e1" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#6C8EBF;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="210" y="200" as="sourcePoint" /><mxPoint x="400" y="270" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e2" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#6C8EBF;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="350" y="210" as="sourcePoint" /><mxPoint x="430" y="250" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e3" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#6C8EBF;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="250" y="320" as="sourcePoint" /><mxPoint x="330" y="295" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e4" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#D79B00;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="210" y="225" as="sourcePoint" /><mxPoint x="460" y="200" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e5" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#D79B00;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="350" y="165" as="sourcePoint" /><mxPoint x="388" y="165" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e6" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#82B366;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="730" y="235" as="sourcePoint" /><mxPoint x="840" y="320" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e7" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#82B366;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="700" y="260" as="sourcePoint" /><mxPoint x="690" y="350" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e8" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#CCCCCC;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="470" y="60" as="sourcePoint" /><mxPoint x="150" y="160" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e9" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#CCCCCC;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="610" y="65" as="sourcePoint" /><mxPoint x="665" y="200" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="e10" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#B85450;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="890" y="330" as="sourcePoint" /><mxPoint x="1080" y="330" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="note" value="只有一条弱关联&lt;br&gt;孤证不并" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;fontStyle=1;fontColor=#B85450;" vertex="1" parent="1"><mxGeometry x="900" y="240" width="280" height="50" as="geometry" /></mxCell>
+        <mxCell id="lg" value="" style="rounded=0;html=1;fillColor=#FAFAFA;strokeColor=#D9D9D9;" vertex="1" parent="1"><mxGeometry x="60" y="560" width="1140" height="90" as="geometry" /></mxCell>
+        <mxCell id="s1" value="" style="whiteSpace=wrap;html=1;fontSize=16;fontFamily=Microsoft YaHei;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="90" y="592" width="26" height="26" as="geometry" /></mxCell>
+        <mxCell id="t1" value="案件" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="126" y="590" width="90" height="30" as="geometry" /></mxCell>
+        <mxCell id="s2" value="" style="ellipse;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="260" y="588" width="40" height="34" as="geometry" /></mxCell>
+        <mxCell id="t2" value="账户 / 号码" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="310" y="590" width="160" height="30" as="geometry" /></mxCell>
+        <mxCell id="s3" value="" style="rhombus;html=1;fillColor=#FFF2CC;strokeColor=#D79B00;" vertex="1" parent="1"><mxGeometry x="500" y="588" width="40" height="34" as="geometry" /></mxCell>
+        <mxCell id="t3" value="话术类型" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;" vertex="1" parent="1"><mxGeometry x="550" y="590" width="130" height="30" as="geometry" /></mxCell>
+        <mxCell id="s4" style="endArrow=none;html=1;strokeWidth=2;fontFamily=Microsoft YaHei;strokeColor=#B85450;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="710" y="605" as="sourcePoint" /><mxPoint x="770" y="605" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="t4" value="弱关联（不采信为并案依据）" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="780" y="590" width="280" height="30" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

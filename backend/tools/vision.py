@@ -63,6 +63,19 @@ class VisionAnalyzer:
 
     def analyze(self, image_data: bytes, prompt: str, format: str = "png",
                 temperature: float = 0.1, max_tokens: int = 2048) -> Dict[str, Any]:
+        # G2 出域门禁：图片同样受 DISABLE_CLOUD_LLM 管控。
+        # 历史缺陷：本方法自建 OpenAI client，只校验 api_key，不校验云端开关，
+        # 且 mask_messages 只处理文本、对 image_url 原样透传 →
+        # 一旦关闭云端，文本路径已降级，图片却仍会把原始截图 base64 发出域。
+        # 这里补上门禁：关闭云端时直接走本地 OCR 降级，绝不出域。
+        from core.llm_client import cloud_llm_enabled
+
+        if not cloud_llm_enabled():
+            logger.info("[Vision] 云端 LLM 已关闭（DISABLE_CLOUD_LLM=1），图片不出域，降级本地 OCR")
+            fallback_text, method = self._try_fallback(image_data, prompt, format)
+            return {"success": True, "text": fallback_text, "model": "ocr_local",
+                    "note": "cloud_llm_disabled"}
+
         if not self.api_key or self.api_key == "mock-key":
             logger.warning("[Vision] 未配置 API Key，使用模拟模式")
             return self._mock_analyze(prompt)
@@ -100,8 +113,16 @@ class VisionAnalyzer:
         return {"success": True, "text": fallback_text, "model": "ocr_fallback", "note": last_error}
 
     def _try_fallback(self, image_data: bytes, prompt: str, format: str = "png") -> tuple:
-        from tools.ocr import ocr_image
-        ocr_text = ocr_image(image_data)
+        try:
+            from tools.ocr import ocr_image
+            ocr_text = ocr_image(image_data)
+        except Exception as e:
+            logger.warning(f"[Vision] 本地 OCR 降级失败: {e}")
+            ocr_text = ""
+        if not ocr_text or not ocr_text.strip():
+            return ("【图像识别不可用】当前已关闭云端大模型（数据不出域），"
+                    "且本地 OCR 未能提取到文字。如需图像理解，请在授权环境下临时开启云端 LLM。",
+                    "ocr")
         return f"【OCR文字识别结果】\n{ocr_text}\n\n【识别方式】OCR识别（视觉模型不可用，降级为文字识别）", "ocr"
 
     def _mock_analyze(self, prompt: str) -> Dict[str, Any]:
@@ -112,7 +133,14 @@ class VisionAnalyzer:
         }
 
     def is_available(self) -> bool:
-        return bool(self.api_key) and self.api_key != "mock-key"
+        """可用性判断：必须同时满足「云端开关已打开」+「配置了真实密钥」。"""
+        if not self.api_key or self.api_key == "mock-key":
+            return False
+        try:
+            from core.llm_client import cloud_llm_enabled
+            return cloud_llm_enabled()
+        except Exception:
+            return False
 
 
 def classify_image_complexity(image_data: bytes) -> str:

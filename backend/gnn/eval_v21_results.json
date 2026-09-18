@@ -1,0 +1,101 @@
+{
+ "dataset": {
+  "n_cases": 40,
+  "n_gangs": 5,
+  "seed": 42
+ },
+ "baselines": {
+  "KMeans": {
+   "nmi": 0.8972961662800546,
+   "ari": 0.8340425531914893,
+   "precision": 0.9333333333333333,
+   "recall": 0.8,
+   "f1": 0.8615384615384616,
+   "n_clusters": 6,
+   "n_cases": 40
+  },
+  "HDBSCAN-only": {
+   "nmi": 0.8972961662800546,
+   "ari": 0.8340425531914893,
+   "precision": 0.9333333333333333,
+   "recall": 0.8,
+   "f1": 0.8615384615384616,
+   "n_clusters": 6,
+   "n_cases": 40
+  },
+  "Semantic": {
+   "nmi": 0.8972961662800546,
+   "ari": 0.8340425531914893,
+   "precision": 0.9333333333333333,
+   "recall": 0.8,
+   "f1": 0.8615384615384616,
+   "n_clusters": 6,
+   "n_cases": 40
+  },
+  "CurrentSystem(fund)": {
+   "nmi": 0.7918756684685213,
+   "ari": 0.5894736842105263,
+   "precision": 0.5223880597014925,
+   "recall": 1.0,
+   "f1": 0.6862745098039216,
+   "n_clusters": 3,
+   "n_cases": 40
+  },
+  "CurrentGNN(GraphSAGE)": {
+   "nmi": 0.7382292832781817,
+   "ari": 0.55,
+   "precision": 0.6025641025641025,
+   "recall": 0.6714285714285714,
+   "f1": 0.6351351351351351,
+   "n_clusters": 6,
+   "n_cases": 40
+  },
+  "CurrentGNN(HAN-true)": {
+   "nmi": 0.9662397315857946,
+   "ari": 0.9459584295612009,
+   "precision": 1.0,
+   "recall": 0.9142857142857143,
+   "f1": 0.955223880597015,
+   "n_clusters": 6,
+   "n_cases": 40
+  }
+ },
+ "ablation": {
+  "remove_fund_chain": {
+   "nmi": 0.7918756684685214,
+   "ari": 0.5894736842105263,
+   "precision": 0.5223880597014925,
+   "recall": 1.0,
+   "f1": 0.6862745098039216,
+   "n_clusters": 3,
+   "n_cases": 40
+  },
+  "remove_gnn": {
+   "nmi": 0.6565996901838276,
+   "ari": 0.38246041412911086,
+   "precision": 0.5454545454545454,
+   "recall": 0.42857142857142855,
+   "f1": 0.4799999999999999,
+   "n_clusters": 7,
+   "n_cases": 40
+  },
+  "fund_chain_gain_f1": 0.0,
+  "han_no_text_channel": {
+   "nmi": 0.9662397315857946,
+   "ari": 0.9459584295612009,
+   "precision": 1.0,
+   "recall": 0.9142857142857143,
+   "f1": 0.955223880597015,
+   "n_clusters": 6,
+   "n_cases": 40
+  },
+  "dual_channel_gain_f1": 0.0
+ },
+ "notes": [
+  "聚类数估计: 估计 k=6（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+  "语义基线=BGE-large 本地嵌入",
+  "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+  "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+  "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+ ]
+}

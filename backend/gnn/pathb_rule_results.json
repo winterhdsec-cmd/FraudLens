@@ -1,0 +1,49 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_anchor_rings": 60,
+    "k_hop": 2,
+    "max_nodes": 8000,
+    "n_subgraph_nodes": 8000,
+    "n_in_rings": 3716,
+    "weights": {
+      "R1": 0.3,
+      "R2": 0.25,
+      "R3": 0.25,
+      "R4": 0.1,
+      "R5": 0.1
+    },
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 分支 C：AMLSim 风格规则探测器（无监督可解释）。规则权重为固定默认值，不针对 GT 调优；规则抓到模式明显的环，抓不到隐蔽环。AMLSim 为公开合成基准，不构成真实验证通过。"
+  },
+  "results": {
+    "topk_hit": {
+      "top5%": {
+        "k": 400,
+        "hits_in_rings": 216,
+        "ring_coverage": 0.0581,
+        "precision_at_k": 0.54
+      },
+      "top10%": {
+        "k": 800,
+        "hits_in_rings": 467,
+        "ring_coverage": 0.1257,
+        "precision_at_k": 0.5837
+      },
+      "top20%": {
+        "k": 1600,
+        "hits_in_rings": 987,
+        "ring_coverage": 0.2656,
+        "precision_at_k": 0.6169
+      }
+    },
+    "rule_diagnostics": {
+      "R2_fast_flow": 0.5852,
+      "R3_short_cycle": 0.5988,
+      "R4_imbalance": 0.4956,
+      "R5_large_outlier": 0.6142
+    },
+    "auc": 0.6388
+  },
+  "elapsed_s": 29.3
+}

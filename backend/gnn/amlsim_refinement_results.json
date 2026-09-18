@@ -1,0 +1,64 @@
+{
+  "honest_note": "AMLSim 大规模账户中心为 IBM 公开合成基准，非真实警务数据；本结果仅作外部难度基线，不构成'真实警务数据验证通过'。结果随锚点/子图选取参数剧烈变化：默认扩散设定下落回近盲扫量级，聚焦退化设定（已知环成员）可达高 F1 但属退化评测。",
+  "amlsim_refinement_spread(2hop_to_8000)": {
+    "directory": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_subgraph": 7978,
+    "n_rings_sub": 1149,
+    "k_hop": 2,
+    "blind_baseline_f1": 0.002,
+    "results": {
+      "raw+KMeans": {
+        "f1": 0.003645227619834942,
+        "precision": 0.4250702067909114,
+        "recall": 0.0018304624572699703,
+        "nmi": 0.5001802046657329,
+        "ari": 0.0011967636905868787
+      },
+      "trained_GNN+KMeans": {
+        "f1": 0.0025452973113161467,
+        "precision": 0.3367920700249261,
+        "recall": 0.001277475901109733,
+        "nmi": 0.49074063039104915,
+        "ari": 0.0003857691325968515
+      },
+      "Louvain(topology)": {
+        "f1": 0.110603589859193,
+        "precision": 0.28277232397018903,
+        "recall": 0.0687465630731189,
+        "nmi": 0.26288724610828645,
+        "ari": -0.001358702560779235
+      }
+    }
+  },
+  "amlsim_refinement_focused(ring_members+1hop)": {
+    "directory": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "variant": "focused(ring_members+k_hop)",
+    "n_subgraph": 6000,
+    "n_rings_sub": 1057,
+    "k_hop": 1,
+    "blind_baseline_f1": 0.002,
+    "results": {
+      "raw+KMeans": {
+        "f1": 0.004589654542131237,
+        "precision": 0.3930807764558547,
+        "recall": 0.002308303272992024,
+        "nmi": 0.5377782166620421,
+        "ari": 0.0017716491948765382
+      },
+      "trained_GNN+KMeans": {
+        "f1": 0.0028661866817919846,
+        "precision": 0.29679802955665024,
+        "recall": 0.0014400466257037062,
+        "nmi": 0.5270394545139473,
+        "ari": 0.000532589896367405
+      },
+      "Louvain(topology)": {
+        "f1": 0.0897396571894415,
+        "precision": 0.24167357993978145,
+        "recall": 0.055099824234334606,
+        "nmi": 0.290020930608859,
+        "ari": -4.190312073518487e-05
+      }
+    }
+  }
+}

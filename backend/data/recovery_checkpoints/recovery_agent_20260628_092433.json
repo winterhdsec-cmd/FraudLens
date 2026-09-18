@@ -1,0 +1,14 @@
+{
+  "checkpoint_id": "recovery_agent_20260628_092433",
+  "agent_id": "recovery_agent",
+  "timestamp": "2026-06-28T09:24:33.575264",
+  "state": {
+    "counter": 42,
+    "data": [
+      1,
+      2,
+      3
+    ]
+  },
+  "metadata": {}
+}

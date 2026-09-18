@@ -1,0 +1,48 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif; }
+body { background:#FFFFFF; padding:30px 38px; width:1260px; }
+.card { background:#FFFFFF; border:1.5px solid #D8E0E8; border-radius:10px; padding:20px 18px; }
+.card.dark { background:#1E3A5F; border:none; }
+.card.dark .t { color:#FFFFFF; }
+.t { font-size:17.5px; font-weight:700; color:#1E3A5F; }
+.st { font-size:14px; color:#34495E; margin-top:5px; line-height:1.6; }
+.tag { display:inline-block; background:#EAF1F8; color:#1E3A5F; border-radius:5px; padding:4px 10px; font-size:13px; font-weight:600; margin:6px 4px 0 0; }
+.tag.orange { background:#FDF1E4; color:#B45F1A; }
+.tag.green { background:#E6F4EC; color:#1D7A43; }
+.arrow { text-align:center; color:#1E3A5F; font-size:15px; line-height:1.3; align-self:center; }
+.arrow small { display:block; color:#95A5A6; font-size:12px; font-weight:600; }
+.note { text-align:center; color:#34495E; font-size:13px; margin-top:12px; line-height:1.6; background:#F5F7FA; border-radius:8px; padding:8px 12px; }
+</style></head><body>
+
+<div style="display:flex; flex-direction:column; gap:10px;">
+  <div style="display:flex; gap:14px; align-items:stretch;">
+    <div class="card" style="flex:1; text-align:center;">
+      <div class="t">结构通道</div>
+      <div class="st" style="margin-top:6px;">账户交易图<br>边 = 金额 log1p 加权</div>
+      <div style="margin-top:10px;">
+        <span class="tag">共享账户</span><span class="tag">共享违法者</span><br>
+        <span class="tag">案件类型</span><span class="tag">城市</span>
+      </div>
+      <div class="st" style="font-size:12.5px; color:#95A5A6; margin-top:8px;">刻画案件客观关联，资金流向与拆账结构</div>
+    </div>
+    <div class="card" style="flex:1; text-align:center;">
+      <div class="t">文本通道</div>
+      <div class="st" style="margin-top:6px;">话术 / 案情文本<br>BGE 语义嵌入（本地）</div>
+      <div style="margin-top:10px;">
+        <span class="tag">刷单返利</span><span class="tag">杀猪盘</span><span class="tag">冒充客服</span>
+      </div>
+      <div class="st" style="font-size:12.5px; color:#95A5A6; margin-top:8px;">结构受扰时提供稳定补强信号</div>
+    </div>
+  </div>
+  <div class="arrow" style="font-size:17px;">▼　▼</div>
+  <div class="card dark" style="text-align:center; padding:20px 18px;">
+    <span class="t">HAN 语义注意力融合</span>
+    <div class="st" style="color:#C9D6E4;">节点级注意力聚合元路径邻居 → 语义级注意力学习权重 βᵢ，自适应组合两通道与 5 条元路径（account / perpetrator / type / city / text）</div>
+  </div>
+  <div class="arrow" style="font-size:17px;">▼</div>
+  <div class="card" style="text-align:center; padding:20px 18px;">
+    <span class="t">团伙聚类（案件串并）</span>
+    <div class="st">GraphCL 自监督预训练 → 案件嵌入标准化 → KMeans 聚类，输出团伙分组</div>
+    <div style="margin-top:10px;"><span class="tag green">案件级研判结果</span></div>
+  </div>
+</div></body></html>

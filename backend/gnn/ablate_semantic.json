@@ -1,0 +1,228 @@
+{
+  "seed": 42,
+  "meta_paths": [
+    "account",
+    "perpetrator",
+    "type",
+    "city",
+    "text"
+  ],
+  "results": [
+    {
+      "preset": "P0_clean_40",
+      "n_cases": 40,
+      "n_true": 5,
+      "learn": {
+        "f1": 1.0,
+        "secs": 45.1,
+        "beta_stats": {
+          "beta": [
+            0.2499,
+            0.2346,
+            0.2406,
+            0.2183,
+            0.0566
+          ],
+          "range": 0.1932,
+          "std": 0.0724
+        }
+      },
+      "mean": {
+        "f1": 1.0,
+        "secs": 20.4,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": 0.0
+    },
+    {
+      "preset": "P1_light_40",
+      "n_cases": 40,
+      "n_true": 5,
+      "learn": {
+        "f1": 0.5088,
+        "secs": 23.9,
+        "beta_stats": {
+          "beta": [
+            0.2436,
+            0.2273,
+            0.249,
+            0.2132,
+            0.0669
+          ],
+          "range": 0.1821,
+          "std": 0.0677
+        }
+      },
+      "mean": {
+        "f1": 0.5088,
+        "secs": 37.6,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": 0.0
+    },
+    {
+      "preset": "P2_hard_40",
+      "n_cases": 40,
+      "n_true": 5,
+      "learn": {
+        "f1": 0.4889,
+        "secs": 40.2,
+        "beta_stats": {
+          "beta": [
+            0.2222,
+            0.2558,
+            0.2401,
+            0.2064,
+            0.0754
+          ],
+          "range": 0.1804,
+          "std": 0.0645
+        }
+      },
+      "mean": {
+        "f1": 0.5764,
+        "secs": 22.0,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": -0.0875
+    },
+    {
+      "preset": "P3_200",
+      "n_cases": 200,
+      "n_true": 10,
+      "learn": {
+        "f1": 0.3859,
+        "secs": 41.8,
+        "beta_stats": {
+          "beta": [
+            0.2554,
+            0.2511,
+            0.2237,
+            0.223,
+            0.0469
+          ],
+          "range": 0.2085,
+          "std": 0.0777
+        }
+      },
+      "mean": {
+        "f1": 0.3825,
+        "secs": 44.9,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": 0.0034
+    },
+    {
+      "preset": "P4_collide_40",
+      "n_cases": 40,
+      "n_true": 5,
+      "learn": {
+        "f1": 1.0,
+        "secs": 20.9,
+        "beta_stats": {
+          "beta": [
+            0.2632,
+            0.2534,
+            0.2346,
+            0.1992,
+            0.0496
+          ],
+          "range": 0.2135,
+          "std": 0.0783
+        }
+      },
+      "mean": {
+        "f1": 1.0,
+        "secs": 21.5,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": 0.0
+    },
+    {
+      "preset": "P5_collide_noise",
+      "n_cases": 40,
+      "n_true": 5,
+      "learn": {
+        "f1": 0.5293,
+        "secs": 27.2,
+        "beta_stats": {
+          "beta": [
+            0.2208,
+            0.2658,
+            0.2052,
+            0.2217,
+            0.0865
+          ],
+          "range": 0.1793,
+          "std": 0.0602
+        }
+      },
+      "mean": {
+        "f1": 0.6121,
+        "secs": 22.7,
+        "beta_stats": {
+          "beta": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "range": 0.0,
+          "std": 0.0
+        }
+      },
+      "delta_learn_minus_mean": -0.0828
+    }
+  ]
+}

@@ -1,0 +1,754 @@
+[
+  {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.8972961662800546,
+        "ari": 0.8340425531914893,
+        "precision": 0.9333333333333333,
+        "recall": 0.8,
+        "f1": 0.8615384615384616,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.8972961662800546,
+        "ari": 0.8340425531914893,
+        "precision": 0.9333333333333333,
+        "recall": 0.8,
+        "f1": 0.8615384615384616,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.8972961662800546,
+        "ari": 0.8340425531914893,
+        "precision": 0.9333333333333333,
+        "recall": 0.8,
+        "f1": 0.8615384615384616,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic(script)": {
+        "nmi": 0.8875301935444541,
+        "ari": 0.8018475750577367,
+        "precision": 0.875,
+        "recall": 0.8,
+        "f1": 0.8358208955223881,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.7016707240011572,
+        "ari": 0.513946587537092,
+        "precision": 0.5376344086021505,
+        "recall": 0.7142857142857143,
+        "f1": 0.6134969325153373,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.9662397315857946,
+        "ari": 0.9459584295612009,
+        "precision": 1.0,
+        "recall": 0.9142857142857143,
+        "f1": 0.955223880597015,
+        "n_clusters": 6,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.7918756684685214,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.6565996901838276,
+        "ari": 0.38246041412911086,
+        "precision": 0.5454545454545454,
+        "recall": 0.42857142857142855,
+        "f1": 0.4799999999999999,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.0,
+      "han_no_text_channel": {
+        "nmi": 0.9662397315857946,
+        "ari": 0.9459584295612009,
+        "precision": 1.0,
+        "recall": 0.9142857142857143,
+        "f1": 0.955223880597015,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": 0.0
+    },
+    "notes": [
+      "聚类数估计: 估计 k=6（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P0_clean_40",
+      "desc": "干净基线（复现当前 40 案设定，用于对照）",
+      "params": {
+        "seed": 42,
+        "n_gangs": 5,
+        "cases_per_gang": 8,
+        "cross": 0.0,
+        "intra": 1.0,
+        "attr_noise": 0.0
+      },
+      "elapsed_sec": 71.15,
+      "diverged": true
+    }
+  },
+  {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.7479808060087085,
+        "ari": 0.5904109589041096,
+        "precision": 0.6818181818181818,
+        "recall": 0.6428571428571429,
+        "f1": 0.6617647058823529,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.7359831885750838,
+        "ari": 0.5939467312348669,
+        "precision": 0.7410714285714286,
+        "recall": 0.5928571428571429,
+        "f1": 0.6587301587301587,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.7479808060087085,
+        "ari": 0.5904109589041096,
+        "precision": 0.6818181818181818,
+        "recall": 0.6428571428571429,
+        "f1": 0.6617647058823529,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "Semantic(script)": {
+        "nmi": 0.8229466227091836,
+        "ari": 0.6661117717003567,
+        "precision": 0.788135593220339,
+        "recall": 0.6642857142857143,
+        "f1": 0.7209302325581396,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.8603358536319637,
+        "ari": 0.7333654309099663,
+        "precision": 0.6751269035532995,
+        "recall": 0.95,
+        "f1": 0.7893175074183976,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.0,
+        "ari": 0.0,
+        "precision": 0.1794871794871795,
+        "recall": 1.0,
+        "f1": 0.30434782608695654,
+        "n_clusters": 1,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.7778153662136975,
+        "ari": 0.5956718671363865,
+        "precision": 0.6033519553072626,
+        "recall": 0.7714285714285715,
+        "f1": 0.6771159874608151,
+        "n_clusters": 8,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.6668878497625108,
+        "ari": 0.49182334936598165,
+        "precision": 0.4811715481171548,
+        "recall": 0.8214285714285714,
+        "f1": 0.6068601583113457,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.42248918065004865,
+        "ari": 0.19254658385093168,
+        "precision": 0.32142857142857145,
+        "recall": 0.38571428571428573,
+        "f1": 0.35064935064935066,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.1825,
+      "han_no_text_channel": {
+        "nmi": 0.8244499603855645,
+        "ari": 0.6506290890790136,
+        "precision": 0.6424581005586593,
+        "recall": 0.8214285714285714,
+        "f1": 0.7210031347962382,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": -0.0439
+    },
+    "notes": [
+      "聚类数估计: 估计 k=8（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P1_noise_40",
+      "desc": "同规模轻噪：跨团伙共享账户 5% / 团内共享率 90% / 属性噪声 10%",
+      "params": {
+        "seed": 42,
+        "n_gangs": 5,
+        "cases_per_gang": 8,
+        "cross": 0.05,
+        "intra": 0.9,
+        "attr_noise": 0.1
+      },
+      "elapsed_sec": 53.97,
+      "diverged": true
+    }
+  },
+  {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.6689221339699107,
+        "ari": 0.48067885117493475,
+        "precision": 0.7159090909090909,
+        "recall": 0.45,
+        "f1": 0.5526315789473685,
+        "n_clusters": 10,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.5700809973407396,
+        "ari": 0.35110356536502546,
+        "precision": 0.4740740740740741,
+        "recall": 0.45714285714285713,
+        "f1": 0.4654545454545455,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.671025656687871,
+        "ari": 0.5115359261700725,
+        "precision": 0.7647058823529411,
+        "recall": 0.4642857142857143,
+        "f1": 0.5777777777777777,
+        "n_clusters": 10,
+        "n_cases": 40
+      },
+      "Semantic(script)": {
+        "nmi": 0.8655077307148272,
+        "ari": 0.7411841249186727,
+        "precision": 1.0,
+        "recall": 0.6357142857142857,
+        "f1": 0.7772925764192139,
+        "n_clusters": 10,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.7016861552546848,
+        "ari": 0.5771084337349398,
+        "precision": 0.5888888888888889,
+        "recall": 0.7571428571428571,
+        "f1": 0.6625,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.0,
+        "ari": 0.0,
+        "precision": 0.1794871794871795,
+        "recall": 1.0,
+        "f1": 0.30434782608695654,
+        "n_clusters": 1,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.6079256522862587,
+        "ari": 0.3673123486682809,
+        "precision": 0.5267857142857143,
+        "recall": 0.42142857142857143,
+        "f1": 0.46825396825396826,
+        "n_clusters": 10,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.5738896177419393,
+        "ari": 0.43543717429067746,
+        "precision": 0.5590551181102362,
+        "recall": 0.5071428571428571,
+        "f1": 0.5318352059925094,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.4538050640583033,
+        "ari": 0.21123595505617979,
+        "precision": 0.39215686274509803,
+        "recall": 0.2857142857142857,
+        "f1": 0.33057851239669417,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.1307,
+      "han_no_text_channel": {
+        "nmi": 0.6466731370072714,
+        "ari": 0.39864940911648844,
+        "precision": 0.5109489051094891,
+        "recall": 0.5,
+        "f1": 0.5054151624548736,
+        "n_clusters": 10,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": -0.0372
+    },
+    "notes": [
+      "聚类数估计: 估计 k=10（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P2_noise_40_hard",
+      "desc": "同规模重噪：跨团伙共享 15% / 团内共享率 75% / 属性噪声 25%",
+      "params": {
+        "seed": 42,
+        "n_gangs": 5,
+        "cases_per_gang": 8,
+        "cross": 0.15,
+        "intra": 0.75,
+        "attr_noise": 0.25
+      },
+      "elapsed_sec": 62.68,
+      "diverged": true
+    }
+  },
+  {
+    "dataset": {
+      "n_cases": 200,
+      "n_gangs": 10,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.6131646991457451,
+        "ari": 0.4067677630222903,
+        "precision": 0.39213675213675214,
+        "recall": 0.6036842105263158,
+        "f1": 0.475440414507772,
+        "n_clusters": 10,
+        "n_cases": 200
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.6472558786207744,
+        "ari": 0.3119003761935448,
+        "precision": 0.544069640914037,
+        "recall": 0.2631578947368421,
+        "f1": 0.354735721887194,
+        "n_clusters": 28,
+        "n_cases": 200
+      },
+      "Semantic": {
+        "nmi": 0.7473461924637745,
+        "ari": 0.5967223584608268,
+        "precision": 0.5941897412619156,
+        "recall": 0.6889473684210526,
+        "f1": 0.6380697050938338,
+        "n_clusters": 10,
+        "n_cases": 200
+      },
+      "Semantic(script)": {
+        "nmi": 0.7872525618999985,
+        "ari": 0.5732982088020646,
+        "precision": 0.5436854646544876,
+        "recall": 0.7205263157894737,
+        "f1": 0.61973743775464,
+        "n_clusters": 10,
+        "n_cases": 200
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 0.6005367058411659,
+        "ari": 0.3272851489716608,
+        "precision": 0.2792465300727032,
+        "recall": 0.8894736842105263,
+        "f1": 0.42505030181086517,
+        "n_clusters": 4,
+        "n_cases": 200
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.0,
+        "ari": 0.0,
+        "precision": 0.09547738693467336,
+        "recall": 1.0,
+        "f1": 0.17431192660550457,
+        "n_clusters": 1,
+        "n_cases": 200
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.6064269389431285,
+        "ari": 0.30497837347914064,
+        "precision": 0.27689841715087155,
+        "recall": 0.7273684210526316,
+        "f1": 0.40110288782469883,
+        "n_clusters": 10,
+        "n_cases": 200
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.4937550847222397,
+        "ari": 0.2933487798121238,
+        "precision": 0.2667547668491599,
+        "recall": 0.7436842105263158,
+        "f1": 0.3926636098374322,
+        "n_clusters": 4,
+        "n_cases": 200
+      },
+      "remove_gnn": {
+        "nmi": 0.4581118264013899,
+        "ari": 0.1829088342849811,
+        "precision": 0.2170224411603722,
+        "recall": 0.41736842105263156,
+        "f1": 0.2855599567879006,
+        "n_clusters": 9,
+        "n_cases": 200
+      },
+      "fund_chain_gain_f1": 0.0324,
+      "han_no_text_channel": {
+        "nmi": 0.6426410597782057,
+        "ari": 0.3607495662782315,
+        "precision": 0.3287461773700306,
+        "recall": 0.6789473684210526,
+        "f1": 0.44299450549450553,
+        "n_clusters": 10,
+        "n_cases": 200
+      },
+      "dual_channel_gain_f1": -0.0419
+    },
+    "notes": [
+      "聚类数估计: silhouette 最优 k=10 与真值一致（无泄露）",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P3_noise_200",
+      "desc": "扩规模加噪：10 团伙 x 20 案 = 200（卡在 GraphCL 256 上限内）",
+      "params": {
+        "seed": 42,
+        "n_gangs": 10,
+        "cases_per_gang": 20,
+        "cross": 0.05,
+        "intra": 0.9,
+        "attr_noise": 0.1
+      },
+      "elapsed_sec": 202.37,
+      "diverged": true
+    }
+  },
+  {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.9771254479743019,
+        "ari": 0.9689243027888447,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.8687587063808418,
+        "ari": 0.77882797731569,
+        "precision": 0.9797979797979798,
+        "recall": 0.6928571428571428,
+        "f1": 0.811715481171548,
+        "n_clusters": 8,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.9771254479743019,
+        "ari": 0.9689243027888447,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic(script)": {
+        "nmi": 0.9771254479743019,
+        "ari": 0.9689243027888447,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.8436702930338519,
+        "ari": 0.6696562032884903,
+        "precision": 0.6502732240437158,
+        "recall": 0.85,
+        "f1": 0.7368421052631579,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.9771254479743019,
+        "ari": 0.9689243027888447,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "n_clusters": 6,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.7918756684685213,
+        "ari": 0.5894736842105263,
+        "precision": 0.5223880597014925,
+        "recall": 1.0,
+        "f1": 0.6862745098039216,
+        "n_clusters": 3,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.48265232427997495,
+        "ari": 0.2549707602339181,
+        "precision": 0.3541666666666667,
+        "recall": 0.4857142857142857,
+        "f1": 0.40963855421686746,
+        "n_clusters": 4,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.3137,
+      "han_no_text_channel": {
+        "nmi": 0.9771254479743019,
+        "ari": 0.9689243027888447,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": 0.0
+    },
+    "notes": [
+      "聚类数估计: 估计 k=6（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P4_collide_40",
+      "desc": "强模板碰撞：5 团伙共用 2 种话术（黑产话术包流通）",
+      "params": {
+        "seed": 42,
+        "n_gangs": 5,
+        "cases_per_gang": 8,
+        "cross": 0.0,
+        "intra": 1.0,
+        "attr_noise": 0.0,
+        "script_pool": 2
+      },
+      "elapsed_sec": 90.73,
+      "diverged": true
+    }
+  },
+  {
+    "dataset": {
+      "n_cases": 40,
+      "n_gangs": 5,
+      "seed": 42
+    },
+    "baselines": {
+      "KMeans": {
+        "nmi": 0.9562910342692754,
+        "ari": 0.9412854661262304,
+        "precision": 1.0,
+        "recall": 0.9071428571428571,
+        "f1": 0.9513108614232211,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "HDBSCAN-only": {
+        "nmi": 0.9662397315857946,
+        "ari": 0.9459584295612009,
+        "precision": 1.0,
+        "recall": 0.9142857142857143,
+        "f1": 0.955223880597015,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "Semantic": {
+        "nmi": 0.9562910342692754,
+        "ari": 0.9412854661262304,
+        "precision": 1.0,
+        "recall": 0.9071428571428571,
+        "f1": 0.9513108614232211,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "Semantic(script)": {
+        "nmi": 0.9562910342692754,
+        "ari": 0.9412854661262304,
+        "precision": 1.0,
+        "recall": 0.9071428571428571,
+        "f1": 0.9513108614232211,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "CurrentSystem(fund)": {
+        "nmi": 1.0,
+        "ari": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "CurrentGNN(GraphSAGE)": {
+        "nmi": 0.5274698680671323,
+        "ari": 0.3309255079006772,
+        "precision": 0.45588235294117646,
+        "recall": 0.44285714285714284,
+        "f1": 0.4492753623188406,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "CurrentGNN(HAN-true)": {
+        "nmi": 0.6824501198425788,
+        "ari": 0.512751677852349,
+        "precision": 0.5562130177514792,
+        "recall": 0.6714285714285714,
+        "f1": 0.6084142394822006,
+        "n_clusters": 7,
+        "n_cases": 40
+      }
+    },
+    "ablation": {
+      "remove_fund_chain": {
+        "nmi": 0.9313731656371964,
+        "ari": 0.9073005093378608,
+        "precision": 0.9407407407407408,
+        "recall": 0.9071428571428571,
+        "f1": 0.9236363636363636,
+        "n_clusters": 6,
+        "n_cases": 40
+      },
+      "remove_gnn": {
+        "nmi": 0.3381806857167143,
+        "ari": 0.116758933064922,
+        "precision": 0.26256983240223464,
+        "recall": 0.3357142857142857,
+        "f1": 0.29467084639498425,
+        "n_clusters": 5,
+        "n_cases": 40
+      },
+      "fund_chain_gain_f1": 0.0764,
+      "han_no_text_channel": {
+        "nmi": 0.7831087482718725,
+        "ari": 0.7101045296167248,
+        "precision": 0.8015873015873016,
+        "recall": 0.7214285714285714,
+        "f1": 0.7593984962406015,
+        "n_clusters": 7,
+        "n_cases": 40
+      },
+      "dual_channel_gain_f1": -0.151
+    },
+    "notes": [
+      "聚类数估计: 估计 k=7（silhouette 最优），真值 k=5——评估协议已修复，不再向聚类器泄露真值团伙数",
+      "语义基线(attr=结构化字段)=BGE-large 本地嵌入",
+      "语义基线(script=话术文本)=BGE-large 本地嵌入",
+      "当前GNN基线变体: currentGNN=GraphSAGE(embedding)+KMeans; HAN残实现Stage2修复",
+      "当前GNN(HAN)基线变体: currentGNN-HAN=true heterogeneous metapaths(Stage2 fix)",
+      "双通道消融: 去话术语义通道(HAN 仅结构/资金链) F1 对比见 ablation.dual_channel_gain_f1"
+    ],
+    "_probe": {
+      "name": "P5_collide_noise_40",
+      "desc": "强碰撞+轻噪：话术池 2 + 跨团伙 5% / 团内 90% / 属性噪声 10%",
+      "params": {
+        "seed": 42,
+        "n_gangs": 5,
+        "cases_per_gang": 8,
+        "cross": 0.05,
+        "intra": 0.9,
+        "attr_noise": 0.1,
+        "script_pool": 2
+      },
+      "elapsed_sec": 64.97,
+      "diverged": true
+    }
+  }
+]

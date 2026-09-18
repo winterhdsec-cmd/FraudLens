@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif; }
+body { background:#FFFFFF; padding:34px 40px; width:1260px; }
+.card { background:#FFFFFF; border:1.5px solid #D8E0E8; border-radius:10px; padding:20px 22px; }
+.card.dark { background:#1E3A5F; border:none; }
+.card.dark .t { color:#FFFFFF; }
+.t { font-size:19px; font-weight:700; color:#1E3A5F; }
+.st { font-size:14.5px; color:#34495E; margin-top:8px; line-height:1.75; }
+.tag { display:inline-block; background:#EAF1F8; color:#1E3A5F; border-radius:5px; padding:4px 10px; font-size:13px; font-weight:600; margin:8px 4px 0 0; }
+.tag.orange { background:#FDF1E4; color:#B45F1A; }
+.tag.green { background:#E6F4EC; color:#1D7A43; }
+.arrow { text-align:center; color:#1E3A5F; font-size:14px; line-height:1.4; align-self:center; }
+.arrow small { display:block; color:#B45F1A; font-size:13px; font-weight:700; }
+.note { text-align:center; color:#34495E; font-size:14px; margin-top:14px; line-height:1.7; background:#F5F7FA; border-radius:8px; padding:10px 14px; }
+.flow { display:flex; align-items:center; justify-content:center; color:#1E3A5F; font-size:16px; font-weight:700; margin:2px 0; }
+.flow small { margin-left:8px; color:#B45F1A; font-size:13.5px; font-weight:700; }
+</style></head><body>
+
+<div style="display:flex; flex-direction:column; gap:4px;">
+
+  <!-- 一级：案件级串并案 -->
+  <div class="card">
+    <span class="t">一级 · 案件级串并案（HAN 异构图聚类）</span>
+    <div class="st">
+      输入：案件异构图（5类节点：案件、账户、违法者、类型、城市、话术）<br>
+      5条元路径：共享账户 / 共享违法者 / 案件类型 / 城市 / 话术语义<br>
+      处理：节点级注意力聚合邻居 → 语义级注意力学习元路径权重，资金拓扑与话术文本双通道自适应融合
+    </div>
+    <div style="margin-top:10px;"><span class="tag">结构通道</span><span class="tag orange">文本通道</span><span class="tag green">免标签预训练</span></div>
+  </div>
+
+  <div class="flow">▼<small>串并案结果：输出团伙锚点（质量校验通过的关键收款账户）</small></div>
+
+  <!-- 二级：账户级扩线 -->
+  <div class="card">
+    <span class="t">二级 · 账户级扩线（GraphSAGE 定向扩线）</span>
+    <div class="st">
+      输入：一级输出的团伙锚点，作为扩线种子<br>
+      处理：在锚点周边资金链上取 k 跳嫌疑子图（局部子图，不做全量账户盲扫）<br>
+      输出：沿资金链上下游还原同伙网络，形成可处置的嫌疑子图
+    </div>
+    <div style="margin-top:10px;"><span class="tag orange">锚点种子</span><span class="tag green">局部子图</span><span class="tag">同伙还原</span></div>
+  </div>
+
+  <div class="flow">▼<small>处置输出</small></div>
+
+  <!-- 置信度门控 -->
+  <div class="card dark">
+    <span class="t">置信度门控（冻卡 / 并案决策）</span>
+    <div class="st" style="color:#C9D6E4;">
+      经验加权置信度（团伙规模、涉案金额、关联账户数、资金回流闭环）<br>
+      高置信（≥0.5）→ 建议冻结；低置信 → 待人工复核；全部结论落库审计表
+    </div>
+    <div style="margin-top:10px;"><span class="tag green">建议冻结</span><span class="tag orange">待人工复核</span><span class="tag">审计追溯</span></div>
+  </div>
+
+  <!-- 新案回流 -->
+  <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+    <div style="border-top:2.5px dashed #E67E22; flex:1;"></div>
+    <div style="color:#B45F1A; font-size:14.5px; font-weight:700;">↺ 新案回流：增量案件进入案件级重新聚类，锚点动态更新，两级循环往复</div>
+    <div style="border-top:2.5px dashed #E67E22; flex:1;"></div>
+  </div>
+
+  <div class="note">两级解耦收益：账户级扩线只在锚点周边小范围子图上做，计算量小、命中率高，契合“先串并案、再扩线追查”的真实反诈工作流</div>
+</div></body></html>

@@ -524,32 +524,30 @@ const currentGangRelationEvidence = computed(() => {
   const entitiesMap = g.matched_entities_map || {}
   const related = g.related_cases || []
   // 兼容 related_cases 为对象数组（带 reason/relation_type/matched_entities）或字符串数组
+  // P0 修复（2026-09-17）：后端落库的关联可能缺 reason/case_id，此前渲染成"白块"
+  // （白卡片内无任何文字）。现强制兜底：caseId 用序号、reason 给默认说明，保证每张卡都有内容。
+  const build = (cid, type, reason, sim, ents) => ({
+    caseId: cid,
+    typeLabel: type.label,
+    tagType: type.tagType,
+    similarity: sim || 0,
+    reason: reason || '基于话术语义与资金链信号的 GNN 聚类关联',
+    entities: ents || []
+  })
   if (Array.isArray(related) && related.length && typeof related[0] === 'object') {
-    return related.map(c => {
-      const meta = RELATION_TYPE_META[c.relation_type] || RELATION_TYPE_META.gnn_cluster
-      return {
-        caseId: c.case_id || c.caseId || '',
-        typeLabel: meta.label,
-        tagType: meta.tagType,
-        similarity: c.similarity || 0,
-        reason: c.reason || reasons[c.case_id] || '',
-        entities: c.matched_entities || entitiesMap[c.case_id] || []
-      }
-    })
+    return related
+      .map((c, i) => {
+        const meta = RELATION_TYPE_META[c.relation_type] || RELATION_TYPE_META.gnn_cluster
+        const cid = c.case_id || c.caseId || `案件 ${i + 1}`
+        return build(cid, meta, c.reason || reasons[c.case_id], c.similarity, c.matched_entities || entitiesMap[c.case_id])
+      })
+      .filter(e => e.caseId)
   }
   // 字符串数组：用 case_ids + relation_reasons 拼装
   const ids = g.caseIds || g.case_ids || []
-  return ids.map(cid => {
-    const meta = RELATION_TYPE_META.gnn_cluster
-    return {
-      caseId: cid,
-      typeLabel: meta.label,
-      tagType: meta.tagType,
-      similarity: 0,
-      reason: reasons[cid] || '',
-      entities: entitiesMap[cid] || []
-    }
-  })
+  return ids
+    .map((cid, i) => build(cid || `案件 ${i + 1}`, RELATION_TYPE_META.gnn_cluster, reasons[cid], 0, entitiesMap[cid]))
+    .filter(e => e.caseId)
 })
 
 const currentFlowPath = computed(() => {
@@ -1062,10 +1060,12 @@ watch(currentGang, () => {
   padding-right: 4px;
 }
 .relation-evidence-item {
-  border: 1px solid var(--border-color, #e5e7eb);
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
   border-radius: 10px;
   padding: 12px 14px;
-  background: var(--bg-elevated, #f9fafb);
+  /* P0 修复（2026-09-17）：原硬编码浅色 fallback 在暗色主题下"白底白字"整块发白。
+     改为主题自适应：bg-secondary 深色主题下是深面板色，文字仍用 --text-* 浅色，对比度恢复 */
+  background: var(--bg-secondary, #f3f4f6);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .relation-evidence-item:hover {

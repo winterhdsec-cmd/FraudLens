@@ -1,0 +1,23 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="fig7_quadrant" name="fig7_quadrant">
+    <mxGraphModel dx="1400" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="__p1" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="__p2" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="1130" y="830" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="hx" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="90" y="430" as="sourcePoint" /><mxPoint x="1090" y="430" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="vy" style="startArrow=classic;startFill=1;endArrow=none;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="570" y="50" as="sourcePoint" /><mxPoint x="570" y="790" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="al" value="通用情报大平台" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="80" y="442" width="220" height="30" as="geometry" /></mxCell>
+        <mxCell id="ar" value="反诈一线专用" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#595959;align=right;" vertex="1" parent="1"><mxGeometry x="890" y="442" width="200" height="30" as="geometry" /></mxCell>
+        <mxCell id="atop" value="事前预警" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="585" y="52" width="160" height="30" as="geometry" /></mxCell>
+        <mxCell id="ab" value="案发后串并研判" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="585" y="752" width="220" height="30" as="geometry" /></mxCell>
+        <mxCell id="q1" value="金融风控平台（同盾）" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontSize=16;fillColor=#F0F0F0;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="170" y="160" width="280" height="60" as="geometry" /></mxCell>
+        <mxCell id="q2" value="银行 / 运营商预警" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontSize=16;fillColor=#F0F0F0;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="680" y="160" width="280" height="60" as="geometry" /></mxCell>
+        <mxCell id="q3" value="通用知识图谱平台" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontSize=16;fillColor=#F0F0F0;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="130" y="300" width="280" height="60" as="geometry" /></mxCell>
+        <mxCell id="q4" value="电子取证平台（美亚）" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontSize=16;fillColor=#F0F0F0;strokeColor=#999999;fontColor=#595959;" vertex="1" parent="1"><mxGeometry x="170" y="580" width="280" height="60" as="geometry" /></mxCell>
+        <mxCell id="me" value="★ 按图索诈&lt;br&gt;案发后 · 一线反诈专用" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=18;" vertex="1" parent="1"><mxGeometry x="700" y="560" width="330" height="100" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

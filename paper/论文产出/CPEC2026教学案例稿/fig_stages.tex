@@ -1,0 +1,24 @@
+\documentclass[border=8pt]{standalone}
+\usepackage{ctex}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[
+    stage/.style={draw=black, rounded corners=4pt, minimum width=2.7cm,
+      minimum height=4.0cm, align=center, font=\small, inner sep=4pt,
+      text width=2.5cm},
+    arrow/.style={->, >=stealth, thick, shorten >=2pt, shorten <=2pt}
+  ]
+    \node[stage, fill=white] (S1) at (-5.25,0)
+      {\textbf{Lab1}\\\textbf{案情分析与研判流程}\\[2pt]分析案情·认识系统\\[2pt]\footnotesize 研判分析能力};
+    \node[stage, fill=white] (S2) at (-1.75,0)
+      {\textbf{Lab2}\\\textbf{工具辅助串并案}\\[2pt]人工 vs AI 对比\\[2pt]\footnotesize 人机协同能力};
+    \node[stage, fill=white] (S3) at (1.75,0)
+      {\textbf{Lab3}\\\textbf{冻卡决策与权衡}\\[2pt]门控调参·伦理角色扮演\\[2pt]\footnotesize 决策与伦理能力};
+    \node[stage, fill=white] (S4) at (5.25,0)
+      {\textbf{Lab4}\\\textbf{边界认知与反思}\\[2pt]系统失败·诚实反思\\[2pt]\footnotesize 边界认知能力};
+    \draw[arrow] (S1.east) -- (S2.west);
+    \draw[arrow] (S2.east) -- (S3.west);
+    \draw[arrow] (S3.east) -- (S4.west);
+  \end{tikzpicture}
+\end{document}

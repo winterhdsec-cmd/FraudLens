@@ -1,0 +1,117 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;color:#2C3E50;background:#fff;line-height:1.5}
+.wrap{width:1410px;margin:0 auto;padding:22px 22px 24px}
+h1{font-size:36px;font-weight:800;text-align:center;color:#1E3A5F;margin-bottom:6px;letter-spacing:1px}
+.sub{text-align:center;font-size:20px;color:#34495E;margin-bottom:18px;letter-spacing:.4px}
+.canvas{position:relative;margin:0 auto}
+.nd{position:absolute;background:#fff;border:1.6px solid;border-radius:11px;padding:12px 15px;z-index:1;box-shadow:0 2px 6px rgba(30,58,95,.07)}
+.nd.entry{box-shadow:none}
+.nd-t{font-size:23px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.cno{width:29px;height:29px;border-radius:50%;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nd-name{color:#2C3E50}
+.ent-d{display:block;font-size:20px;color:#34495E;font-weight:400;line-height:1.5}
+.nd-d{font-size:20px;color:#34495E;line-height:1.5;display:flex;gap:7px;align-items:flex-start;margin-bottom:2px}
+.dot{width:6px;height:6px;border-radius:50%;margin-top:8px;flex-shrink:0}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tri span{font-size:19px;color:#34495E;background:#fff;border:1px solid #E8EDF2;border-radius:7px;padding:6px 8px;line-height:1.45;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.tri b{color:#2C3E50;display:block;font-size:21px}
+.tri .chk{background:#fff;border:1px solid #F0D5D1;color:#34495E;font-weight:600}
+.chk-res{font-size:20px;font-weight:700;color:#922B21;border-top:1px dashed #E8B4AE;margin-top:7px;padding-top:6px}
+.elab{position:absolute;font-size:19px;font-weight:700;color:#34495E;background:#fff;border:1px solid #D5DBDB;border-radius:9px;padding:2px 9px;text-align:center;z-index:2;white-space:nowrap}
+.elab.ok{color:#1E8449;border-color:#82E0AA;background:#F2FBF5}
+.elab.bad{color:#922B21;border-color:#E8B4AE;background:#FDF5F4}
+.reflow{position:absolute;left:76px;top:660px;width:158px;height:44px;border:1.6px solid #E8B4AE;background:#FFF6F5;border-radius:9px;color:#C0392B;font-size:21px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:5px;z-index:2}
+.panel{position:absolute;background:#F5F7FA;border:1px solid #D5DBDB;border-radius:9px;padding:11px 14px}
+.panel-t{font-size:22px;font-weight:800;color:#1E3A5F;margin-bottom:8px}
+.wg{background:#fff;border:1px solid #D5DBDB;border-radius:7px;padding:7px 10px;margin-bottom:7px}
+.wg:last-child{margin-bottom:0}
+.wg b{display:block;font-size:20px;color:#2980B9;margin-bottom:2px}
+.wg span{font-size:19px;color:#34495E;line-height:1.45}
+.rh-row{display:flex;align-items:center;gap:7px}
+.rc{flex:1;text-align:center;font-size:20px;font-weight:700;border:1.5px solid;border-radius:7px;padding:6px 2px;background:#fff;line-height:1.3}
+.r-ar{color:#5D6D7E;font-size:13px;font-weight:800}
+.rh-note{font-size:19px;color:#34495E;line-height:1.4;margin-top:6px;border-top:1px dashed #D5DBDB;padding-top:5px}
+</style></head><body><div class="wrap"><h1>AI 会商反思闭环</h1><div class="sub">提出 — 质疑 — 复核 · 对不上就打回重议 · 3 轮不过转人工</div>
+
+<div class="canvas" style="width:1420px;height:1580px">
+<svg width="1420" height="1580" style="position:absolute;left:0;top:0;z-index:0">
+<defs>
+<marker id="mB" markerWidth="10" markerHeight="9" refX="8.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2980B9"/></marker>
+<marker id="mO" markerWidth="10" markerHeight="9" refX="8.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#E67E22"/></marker>
+<marker id="mP" markerWidth="10" markerHeight="9" refX="8.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8E44AD"/></marker>
+<marker id="mG" markerWidth="10" markerHeight="9" refX="8.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#27AE60"/></marker>
+<marker id="mR" markerWidth="10" markerHeight="9" refX="8.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#E74C3C"/></marker>
+</defs>
+<!-- 主流程连线 -->
+<path d="M 500 118 L 420 186" stroke="#2980B9" stroke-width="3" fill="none" marker-end="url(#mB)"/>
+<path d="M 920 118 L 1000 186" stroke="#E67E22" stroke-width="3" fill="none" marker-end="url(#mO)"/>
+<path d="M 410 382 L 410 466" stroke="#2980B9" stroke-width="3" fill="none" marker-end="url(#mB)"/>
+<path d="M 1000 382 L 1000 466" stroke="#E67E22" stroke-width="3" fill="none" marker-end="url(#mO)"/>
+<path d="M 710 637 L 710 723" stroke="#8E44AD" stroke-width="3" fill="none" marker-end="url(#mP)"/>
+<path d="M 477 962 L 475 1048" stroke="#27AE60" stroke-width="3" fill="none" marker-end="url(#mG)"/>
+<path d="M 943 962 L 945 1048" stroke="#E74C3C" stroke-width="3" fill="none" marker-end="url(#mR)"/>
+<!-- 回流：质检左侧→左侧空隙→回到串并 -->
+<path d="M 248 727 L 60 727 L 60 553 L 248 553" stroke="#E74C3C" stroke-width="3" stroke-dasharray="9,6" fill="none" marker-end="url(#mR)"/>
+</svg>
+
+<!-- 输入 -->
+<div class="nd entry" style="left:480px;top:15px;width:460px;height:103px"><div class="nd-t"><span class="cno" style="background:#5D6D7E">&#9654;</span><span class="nd-name">输入 · 新案件进入会商</span></div><div class="ent-d">案件要素（话术 / 资金 / 账户）+ 图嵌入候选簇</div></div>
+
+<!-- 话术分析员 -->
+<div class="nd" style="left:150px;top:190px;width:520px;height:192px;border-color:#2980B9;background:#F4F9FD"><div class="nd-t"><span class="cno" style="background:#2980B9">①</span><span class="nd-name" style="color:#2980B9">话术分析员</span></div>
+<div class="nd-d"><span class="dot" style="background:#2980B9"></span>识别话术模板（BGE 语义）</div>
+<div class="nd-d"><span class="dot" style="background:#2980B9"></span>判定作案阶段：引流 / 实施 / 洗钱</div>
+<div class="nd-d"><span class="dot" style="background:#2980B9"></span>输出话术簇与相似度</div></div>
+
+<!-- 资金追踪员 -->
+<div class="nd" style="left:750px;top:190px;width:520px;height:192px;border-color:#E67E22;background:#FEF9F2"><div class="nd-t"><span class="cno" style="background:#E67E22">②</span><span class="nd-name" style="color:#E67E22">资金追踪员</span></div>
+<div class="nd-d"><span class="dot" style="background:#E67E22"></span>查共享收款账户</div>
+<div class="nd-d"><span class="dot" style="background:#E67E22"></span>绘转账链条 · 识别取现模式</div>
+<div class="nd-d"><span class="dot" style="background:#E67E22"></span>输出资金关联子图</div></div>
+
+<!-- 串并研判员 -->
+<div class="nd" style="left:250px;top:470px;width:920px;height:167px;padding-left:32px;border-color:#8E44AD;background:#FBF8FD"><div class="nd-t"><span class="cno" style="background:#8E44AD">③</span><span class="nd-name" style="color:#6C3483">串并研判员 · 提出并案假设</span></div>
+<div class="tri"><span><b>综合①②证据</b>提出并案假设</span><span><b>附完整证据链</b>硬证据 + 软证据对应</span><span><b>打回回流</b>重新分派①②补证据</span></div></div>
+
+<!-- 质检复核 -->
+<div class="nd" style="left:250px;top:725px;width:920px;height:237px;border-color:#E74C3C;background:#FDF5F4"><div class="nd-t"><span class="cno" style="background:#E74C3C">④</span><span class="nd-name" style="color:#C0392B">质检复核（每轮必过）</span></div>
+<div class="tri"><span class="chk">&#9744; 证据链是否闭合？</span><span class="chk">&#9744; 分析员意见一致？</span><span class="chk">&#9744; 置信度是否达标？</span></div>
+<div class="chk-res">三问全过 &#10140; 出牌 ｜ 不一致 &#10140; 打回重议 ｜ 3 轮不过 &#10140; 转人工</div></div>
+
+<!-- 回流标签：置于质检与串并左侧空隙，不与箭头重叠 -->
+<div class="reflow">&#8634; 打回重议</div>
+
+<!-- 输出 -->
+<div class="nd" style="left:250px;top:1050px;width:455px;height:185px;border-color:#27AE60;background:#F2FBF5"><div class="nd-t"><span class="cno" style="background:#27AE60">&#10003;</span><span class="nd-name" style="color:#1E8449">输出团伙名单</span></div>
+<div class="nd-d"><span class="dot" style="background:#27AE60"></span>通过复核才输出</div>
+<div class="nd-d"><span class="dot" style="background:#27AE60"></span>逐条证据链 · 可追溯可质证</div>
+<div class="nd-d"><span class="dot" style="background:#27AE60"></span>附资金流向图与画像</div></div>
+
+<!-- 转人工 -->
+<div class="nd" style="left:715px;top:1050px;width:455px;height:185px;border-color:#E74C3C;background:#FDF5F4"><div class="nd-t"><span class="cno" style="background:#E74C3C">&#10007;</span><span class="nd-name" style="color:#C0392B">转人工复核</span></div>
+<div class="nd-d"><span class="dot" style="background:#E74C3C"></span>3 轮重议仍不过</div>
+<div class="nd-d"><span class="dot" style="background:#E74C3C"></span>降级人工处理 · 全过程留痕</div>
+<div class="nd-d"><span class="dot" style="background:#E74C3C"></span>结论可质证、责任可追溯</div></div>
+
+<!-- 底部：左 为节奏，右 为为什么 -->
+<div class="panel" style="left:250px;top:1320px;width:660px">
+  <div class="panel-t">一轮会商的节奏</div>
+  <div class="rh-row">
+    <div class="rc" style="border-color:#2980B9;color:#1A5276">第 1 轮<br>初判假设</div><div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#E67E22;color:#B05A12">第 2 轮<br>打回补证</div><div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#27AE60;color:#1E8449">第 3 轮<br>收敛通过</div><div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#E74C3C;color:#922B21">仍不过<br>转人工</div>
+  </div>
+  <div class="rh-note">每轮记录：谁提出、谁质疑、依据什么——事后可质证、可复盘</div>
+</div>
+
+<div class="panel" style="left:940px;top:1320px;width:430px">
+  <div class="panel-t">为什么必须设质检屏障？</div>
+  <div class="wg"><b>错误代价</b><span>警务场景中，错误并案代价远大于暂不出结论</span></div>
+  <div class="wg"><b>知己知彼</b><span>"知道自己知道多少"，是 AI 进入一线辅助的一道门槛</span></div>
+  <div class="wg"><b>全程留痕</b><span>每轮会商记录在案，结论可质证、责任可追溯</span></div>
+  <div class="wg" style="border-color:#82E0AA"><b style="color:#1E8449">敢说拿不准</b><span>证据不够就拒判，不出错牌是底线</span></div>
+</div>
+
+</div></div></body></html>

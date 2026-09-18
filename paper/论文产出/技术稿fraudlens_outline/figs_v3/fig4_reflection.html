@@ -1,0 +1,70 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif; }
+body { background:#FFFFFF; padding:34px 40px; width:1260px; }
+.card { background:#FFFFFF; border:1.5px solid #D8E0E8; border-radius:10px; padding:18px 16px; }
+.card.reflect { border:2px solid #E67E22; background:#FFFDF9; }
+.t { font-size:16.5px; font-weight:700; color:#1E3A5F; }
+.st { font-size:13.8px; color:#34495E; margin-top:6px; line-height:1.7; }
+.tag { display:inline-block; background:#EAF1F8; color:#1E3A5F; border-radius:5px; padding:3px 9px; font-size:12.5px; font-weight:600; margin:6px 4px 0 0; }
+.tag.orange { background:#FDF1E4; color:#B45F1A; }
+.tag.green { background:#E6F4EC; color:#1D7A43; }
+.arrow { text-align:center; color:#1E3A5F; font-size:14px; align-self:center; }
+.note { text-align:center; color:#34495E; font-size:13.5px; margin-top:12px; line-height:1.7; background:#F5F7FA; border-radius:8px; padding:9px 14px; }
+.flow { display:flex; align-items:center; justify-content:center; color:#1E3A5F; font-size:14px; font-weight:700; margin:2px 0; }
+</style></head><body>
+
+<div style="display:flex; flex-direction:column; gap:8px;">
+
+  <!-- 第一行：主流程 4 节点 -->
+  <div style="display:flex; gap:8px; align-items:stretch;">
+    <div class="card" style="flex:1; text-align:center;"><span class="t">规划 plan</span>
+      <div class="st">任务拆解<br>参数初始化<br>解析策略选定</div>
+      <div><span class="tag">入参</span></div>
+    </div>
+    <div class="arrow">▶</div>
+    <div class="card" style="flex:1; text-align:center;"><span class="t">预处理 preprocess</span>
+      <div class="st">要素抽取<br>账户 / 号码 / 金额<br>话术 BGE 语义嵌入</div>
+      <div><span class="tag orange">本地模型</span></div>
+    </div>
+    <div class="arrow">▶</div>
+    <div class="card" style="flex:1; text-align:center;"><span class="t">研判分析 analyze</span>
+      <div class="st">异构图构建<br>5 条元路径邻接<br>案件 / 账户特征画像</div>
+      <div><span class="tag">异构建模</span></div>
+    </div>
+    <div class="arrow">▶</div>
+    <div class="card" style="flex:1; text-align:center;"><span class="t">团伙聚类 cluster</span>
+      <div class="st">HAN / GraphSAGE 推理<br>案件嵌入标准化<br>聚类归并团伙</div>
+      <div><span class="tag green">输出结果</span></div>
+    </div>
+  </div>
+
+  <div class="flow">↕&nbsp; 每次研判结果回传反思节点打质量分</div>
+
+  <!-- 第二行：反思质检 -->
+  <div style="display:flex; gap:8px; align-items:stretch;">
+    <div class="card reflect" style="flex:1.6; text-align:center;">
+      <span class="t" style="color:#B45F1A;">反思质检 reflect</span>
+      <div class="st">quality_score 组合加权评分（聚类轮廓 / 团伙规模 / 证据一致性）<br>收敛判定：overall ≥ 0.6 且 retry &lt; max_iter，否则判定为未收敛</div>
+      <div><span class="tag orange">质量门</span><span class="tag">条件边</span></div>
+    </div>
+    <div class="card dark" style="flex:1; text-align:center; background:#1E3A5F; border:none;">
+      <span class="t" style="color:#FFFFFF;">收敛通过</span>
+      <div class="st" style="color:#C9D6E4;">输出研判结果<br>团伙画像 + 置信度门控<br>冻卡决策落库审计</div>
+      <div><span class="tag green">终态</span></div>
+    </div>
+  </div>
+
+  <!-- SVG 反馈线 -->
+  <svg width="1184" height="120" viewBox="0 0 1184 120" style="display:block;">
+    <!-- 未收敛橙虚线：reflect 左侧底部 → 弧线回 analyze -->
+    <path d="M 150 0 V 40 Q 200 110 560 108" stroke="#E67E22" stroke-width="2.6" fill="none" stroke-dasharray="8,6" stroke-linecap="round"/>
+    <path d="M 560 116 L 568 108 L 560 100" fill="#E67E22"/>
+    <text x="200" y="30" font-size="14" font-weight="700" fill="#B45F1A">未收敛：调参回连“研判分析”，触发真实重算</text>
+    <!-- 收敛绿实线：reflect 右侧底部 → 输出 -->
+    <path d="M 830 0 V 30 H 1184" stroke="#27AE60" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M 1176 26 L 1184 30 L 1176 34" fill="#27AE60"/>
+    <text x="880" y="26" font-size="14" font-weight="700" fill="#1D7A43">收敛：输出研判结果</text>
+  </svg>
+
+  <div class="note">LangGraph StateGraph 编排五个节点 · 反思机制借鉴 Reflexion 言语强化 · 回连至“研判分析”而非全链路重跑，以真实重算替代装饰性重跑</div>
+</div></body></html>

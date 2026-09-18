@@ -1,0 +1,103 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "k_hops": [
+      1,
+      2,
+      3
+    ],
+    "n_anchor_list": [
+      30,
+      60,
+      120
+    ],
+    "max_nodes": 8000,
+    "kmin": 4,
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 实验 2：扩线参数敏感性。结果随锚点/子图参数剧烈变化属预期（honest_note），本表量化该敏感性；AMLSim 公开合成基准，不构成真实验证通过。"
+  },
+  "grid": {
+    "k1_a30": {
+      "k_hop": 1,
+      "n_anchor_rings": 30,
+      "n_sub": 519,
+      "n_rings_sub": 313,
+      "ring_ratio": 0.6031,
+      "A2_F1": 0.2734,
+      "C_rule_AUC": 0.6032
+    },
+    "k1_a60": {
+      "k_hop": 1,
+      "n_anchor_rings": 60,
+      "n_sub": 1189,
+      "n_rings_sub": 676,
+      "ring_ratio": 0.5685,
+      "A2_F1": 0.3144,
+      "C_rule_AUC": 0.5957
+    },
+    "k1_a120": {
+      "k_hop": 1,
+      "n_anchor_rings": 120,
+      "n_sub": 2748,
+      "n_rings_sub": 1498,
+      "ring_ratio": 0.5451,
+      "A2_F1": 0.3503,
+      "C_rule_AUC": 0.6068
+    },
+    "k2_a30": {
+      "k_hop": 2,
+      "n_anchor_rings": 30,
+      "n_sub": 7993,
+      "n_rings_sub": 3691,
+      "ring_ratio": 0.4618,
+      "A2_F1": 0.1252,
+      "C_rule_AUC": 0.634
+    },
+    "k2_a60": {
+      "k_hop": 2,
+      "n_anchor_rings": 60,
+      "n_sub": 7978,
+      "n_rings_sub": 3714,
+      "ring_ratio": 0.4655,
+      "A2_F1": 0.1294,
+      "C_rule_AUC": 0.6374
+    },
+    "k2_a120": {
+      "k_hop": 2,
+      "n_anchor_rings": 120,
+      "n_sub": 7946,
+      "n_rings_sub": 3759,
+      "ring_ratio": 0.4731,
+      "A2_F1": 0.1294,
+      "C_rule_AUC": 0.6319
+    },
+    "k3_a30": {
+      "k_hop": 3,
+      "n_anchor_rings": 30,
+      "n_sub": 7993,
+      "n_rings_sub": 3691,
+      "ring_ratio": 0.4618,
+      "A2_F1": 0.1293,
+      "C_rule_AUC": 0.634
+    },
+    "k3_a60": {
+      "k_hop": 3,
+      "n_anchor_rings": 60,
+      "n_sub": 7978,
+      "n_rings_sub": 3714,
+      "ring_ratio": 0.4655,
+      "A2_F1": 0.1261,
+      "C_rule_AUC": 0.6374
+    },
+    "k3_a120": {
+      "k_hop": 3,
+      "n_anchor_rings": 120,
+      "n_sub": 7946,
+      "n_rings_sub": 3759,
+      "ring_ratio": 0.4731,
+      "A2_F1": 0.1292,
+      "C_rule_AUC": 0.6319
+    }
+  },
+  "elapsed_s": 168.7
+}

@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;color:#2C3E50;background:#fff;line-height:1.5}
+.wrap{width:1260px;margin:0 auto;padding:26px 22px 28px}
+h1{font-size:38px;font-weight:800;text-align:center;color:#1E3A5F;margin-bottom:7px;letter-spacing:1px}
+.sub{text-align:center;font-size:21px;color:#34495E;margin-bottom:20px;letter-spacing:.5px}
+h2{font-size:25px;font-weight:700;color:#1E3A5F;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:5px;height:18px;background:#2980B9;border-radius:2px}
+.panel{background:#F5F7FA;border:1px solid #D5DBDB;border-radius:9px;padding:14px}
+.row{display:flex;gap:12px}
+.col{flex:1}
+.desc{font-size:20px;color:#34495E;line-height:1.6}
+.center{text-align:center}
+
+.wrap{width:1410px}
+.canvas{position:relative;margin:0 auto}
+.nd{position:absolute;background:#fff;border:1.5px solid;border-radius:11px;padding:13px 16px;z-index:1;box-shadow:0 2px 7px rgba(30,58,95,.07)}
+.nd.entry{box-shadow:none}
+.nd-t{font-size:24px;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.cno{width:30px;height:30px;border-radius:50%;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nd-name{color:#2C3E50}
+.ent-d{display:block;font-size:21px;color:#34495E;font-weight:400;margin-left:34px;margin-top:5px;line-height:1.5}
+.nd-d{font-size:21px;color:#34495E;line-height:1.55;display:flex;gap:7px;align-items:flex-start;margin-bottom:3px}
+.dot{width:6px;height:6px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tri span{font-size:20px;color:#34495E;background:#fff;border:1px solid #E8EDF2;border-radius:7px;padding:7px 9px;line-height:1.5;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.tri b{color:#2C3E50;display:block;font-size:22px}
+.tri .chk{background:#fff;border:1px solid #F0D5D1;color:#34495E;font-weight:600}
+.chk-res{font-size:21px;font-weight:700;color:#922B21;border-top:1px dashed #E8B4AE;margin-top:8px;padding-top:7px}
+.elab{position:absolute;font-size:20px;font-weight:700;color:#34495E;background:#fff;border:1px solid #D5DBDB;border-radius:9px;padding:3px 9px;text-align:center;z-index:2;white-space:nowrap;transform:translateX(-50%)}
+.elab.ok{color:#1E8449;border-color:#82E0AA;background:#F2FBF5}
+.elab.bad{color:#922B21;border-color:#E8B4AE;background:#FDF5F4}
+.why{position:absolute;left:780px;top:1330px;width:610px;background:#F5F7FA;border:1px solid #D5DBDB;border-radius:9px;padding:12px 14px}
+.why-t{font-size:22px;font-weight:800;color:#1E3A5F;margin-bottom:8px}
+.wg{background:#fff;border:1px solid #D5DBDB;border-radius:7px;padding:8px 10px;margin-bottom:8px}
+.wg:last-child{margin-bottom:0}
+.wg b{display:block;font-size:21px;color:#2980B9;margin-bottom:3px}
+.wg span{font-size:20px;color:#34495E;line-height:1.5}
+.rhythm{position:absolute;left:50px;top:1330px;width:680px;background:#F8FAFC;border:1px solid #D5DBDB;border-radius:9px;padding:11px 14px}
+.rh-t{font-size:21px;font-weight:800;color:#2C3E50;margin-bottom:8px}
+.rh-row{display:flex;align-items:center;gap:8px}
+.rc{flex:1;text-align:center;font-size:21px;font-weight:700;border:1.5px solid;border-radius:7px;padding:7px 2px;background:#fff;line-height:1.35}
+.r-ar{color:#5D6D7E;font-size:14px;font-weight:800}
+.rh-note{font-size:20px;color:#34495E;line-height:1.45;margin-top:6px;border-top:1px dashed #D5DBDB;padding-top:5px}
+</style></head><body><div class="wrap"><h1>AI 会商反思闭环</h1><div class="sub">提出 — 质疑 — 复核 · 对不上就打回重议 · 3 轮不过转人工</div><div class="canvas" style="width:1420px;height:1720px">
+<svg width="1420" height="1720" style="position:absolute;left:0;top:0;z-index:0">
+<defs>
+<marker id="mB" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2980B9"/></marker><marker id="mO" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#E67E22"/></marker><marker id="mP" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E44AD"/></marker><marker id="mG" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#27AE60"/></marker><marker id="mR" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#E74C3C"/></marker><marker id="mGo" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#CA8A04"/></marker><marker id="mGray" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5D6D7E"/></marker><marker id="mLG" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#58B368"/></marker>
+</defs>
+
+<path d="M 295 116 L 295 148" stroke="#2980B9" stroke-width="3" fill="none" marker-end="url(#mB)"/>
+<path d="M 795 116 L 795 148" stroke="#E67E22" stroke-width="3" fill="none" marker-end="url(#mO)"/>
+<path d="M 295 330 L 295 418" stroke="#2980B9" stroke-width="3" fill="none" marker-end="url(#mB)"/>
+<path d="M 795 330 L 795 418" stroke="#E67E22" stroke-width="3" fill="none" marker-end="url(#mO)"/>
+<path d="M 560 590 L 560 678" stroke="#8E44AD" stroke-width="3" fill="none" marker-end="url(#mP)"/>
+<path d="M 360 900 L 360 1008" stroke="#27AE60" stroke-width="3" fill="none" marker-end="url(#mG)"/>
+<path d="M 760 900 L 760 1008" stroke="#E74C3C" stroke-width="3" fill="none" marker-end="url(#mR)"/>
+<path d="M 206 744 L 40 744 L 40 520 L 204 520" stroke="#E74C3C" stroke-width="3" stroke-dasharray="9,6" fill="none" marker-end="url(#mR)"/>
+<rect x="52" y="600" width="138" height="38" rx="9" fill="#FFF6F5" stroke="#E8B4AE" stroke-width="2"/>
+<text x="121" y="626" text-anchor="middle" font-size="23" font-weight="700" fill="#C0392B" font-family="Microsoft YaHei,sans-serif">&#8634; 打回重议</text>
+
+</svg><div class="nd entry" style="left:210px;top:0px;width:800px;height:116px"><div class="nd-t"><span class="cno" style="background:#5D6D7E">&#9654;</span><span class="nd-name" style="color:#2C3E50">输入 · 新案件进入会商</span></div><div class="ent-d">案件要素（话术/资金/账户）+ 图嵌入候选簇，同时下发给两位分析员</div></div><div class="nd" style="left:150px;top:150px;width:470px;height:180px;border-color:#2980B9;background:#F4F9FD"><div class="nd-t"><span class="cno" style="background:#2980B9">①</span><span class="nd-name" style="color:#2980B9">话术分析员</span></div><div class="nd-d"><span class="dot" style="background:#2980B9"></span>识别话术模板（BGE 语义）</div><div class="nd-d"><span class="dot" style="background:#2980B9"></span>判定作案阶段：引流 / 实施 / 洗钱</div><div class="nd-d"><span class="dot" style="background:#2980B9"></span>输出话术簇与相似度</div></div><div class="nd" style="left:590px;top:150px;width:470px;height:180px;border-color:#E67E22;background:#FEF9F2"><div class="nd-t"><span class="cno" style="background:#E67E22">②</span><span class="nd-name" style="color:#E67E22">资金追踪员</span></div><div class="nd-d"><span class="dot" style="background:#E67E22"></span>查共享收款账户</div><div class="nd-d"><span class="dot" style="background:#E67E22"></span>绘转账链条 · 识别取现模式</div><div class="nd-d"><span class="dot" style="background:#E67E22"></span>输出资金关联子图</div></div><div class="nd" style="left:210px;top:420px;width:800px;height:170px;padding-left:36px;border-color:#8E44AD;background:#FBF8FD"><div class="nd-t"><span class="cno" style="background:#8E44AD">③</span><span class="nd-name" style="color:#6C3483">串并研判员 · 提出并案假设</span></div><div class="tri"><span><b>综合①②证据</b>提出并案假设</span><span><b>附完整证据链</b>硬证据 + 软证据对应</span><span><b>打回回流</b>重新分派 ①② 补证据</span></div></div><div class="nd" style="left:210px;top:680px;width:800px;height:220px;border-color:#E74C3C;background:#FDF5F4"><div class="nd-t"><span class="cno" style="background:#E74C3C">④</span><span class="nd-name" style="color:#C0392B">质检复核（每轮必过）</span></div><div class="tri"><span class="chk">&#9744; 证据链是否闭合？</span><span class="chk">&#9744; 分析员意见一致？</span><span class="chk">&#9744; 置信度是否达标？</span></div><div class="chk-res">三问全过 &#10140; 出牌 ｜ 不一致 &#10140; 打回重议 ｜ 3 轮不过 &#10140; 转人工</div></div><div class="nd" style="left:210px;top:1010px;width:380px;height:185px;border-color:#27AE60;background:#F2FBF5"><div class="nd-t"><span class="cno" style="background:#27AE60">&#10003;</span><span class="nd-name" style="color:#1E8449">输出团伙名单</span></div><div class="nd-d"><span class="dot" style="background:#27AE60"></span>通过复核才输出</div><div class="nd-d"><span class="dot" style="background:#27AE60"></span>逐条证据链 · 可追溯可质证</div><div class="nd-d"><span class="dot" style="background:#27AE60"></span>附资金流向图与画像</div></div><div class="nd" style="left:630px;top:1010px;width:380px;height:185px;border-color:#E74C3C;background:#FDF5F4"><div class="nd-t"><span class="cno" style="background:#E74C3C">&#10007;</span><span class="nd-name" style="color:#C0392B">转人工复核</span></div><div class="nd-d"><span class="dot" style="background:#E74C3C"></span>3 轮重议仍不过</div><div class="nd-d"><span class="dot" style="background:#E74C3C"></span>降级人工处理 · 全过程留痕</div><div class="nd-d"><span class="dot" style="background:#E74C3C"></span>结论可质证、责任可追溯</div></div><div class="why"><div class="why-t">为什么必须设质检屏障？</div><div class="wg"><b>错误代价</b><span>警务场景中，错误并案的代价远大于暂不出结论</span></div><div class="wg"><b>知己知彼</b><span>"知道自己知道多少"是 AI 进入一线辅助决策的第一道门槛</span></div><div class="wg"><b>全程留痕</b><span>每轮会商记录在案，结论可质证、责任可追溯</span></div><div class="wg" style="border-color:#82E0AA"><b style="color:#1E8449">敢说拿不准</b><span>证据不够就拒判，不出错牌是底线</span></div></div>
+<div class="rhythm">
+  <div class="rh-t">一轮会商的节奏</div>
+  <div class="rh-row">
+    <div class="rc" style="border-color:#2980B9;color:#1A5276">第 1 轮<br>初判假设</div>
+    <div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#E67E22;color:#B05A12">第 2 轮<br>打回补证</div>
+    <div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#27AE60;color:#1E8449">第 3 轮<br>收敛通过</div>
+    <div class="r-ar">&#8594;</div>
+    <div class="rc" style="border-color:#E74C3C;color:#922B21">仍不过<br>转人工</div>
+  </div>
+  <div class="rh-note">每轮记录：谁提出、谁质疑、依据什么——事后可质证、可复盘</div>
+</div>
+
+<div class="elab" style="left:385px;top:246px">话术证据 · 阶段判定</div>
+<div class="elab" style="left:825px;top:246px">资金证据 · 账户链路</div>
+<div class="elab" style="left:610px;top:610px">并案假设 + 证据链</div>
+<div class="elab ok" style="left:400px;top:966px">&#10003; 三问全过</div>
+<div class="elab bad" style="left:820px;top:966px">3 轮仍不过</div>
+</div></div></body></html>

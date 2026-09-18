@@ -1,0 +1,132 @@
+{
+  "setting": {
+    "data_dir": "E:\\FraudLens\\backend\\gnn\\amlsim_real\\canonical",
+    "n_anchor_rings": 120,
+    "k_hop": 1,
+    "max_nodes": 8000,
+    "n_subgraph_nodes": 2748,
+    "n_in_rings": 1498,
+    "ring_ratio": 0.5451,
+    "blind_baseline_f1": 0.002,
+    "note": "Path B 最优组合管道：k=1 扩线 + k-core 候选 + 规则排序 + SCC 资金链环。无监督固定参数；AMLSim 公开合成基准，不构成真实验证通过。"
+  },
+  "gang_level": {
+    "kcore2_budget5%": {
+      "n_gangs_cand": 1,
+      "n_nodes_cand": 169,
+      "precision": 0.5385,
+      "recall": 0.0607,
+      "F1": 0.1092
+    },
+    "kcore2_budget10%": {
+      "n_gangs_cand": 2,
+      "n_nodes_cand": 354,
+      "precision": 0.6017,
+      "recall": 0.1422,
+      "F1": 0.23
+    },
+    "kcore2_budget20%": {
+      "n_gangs_cand": 4,
+      "n_nodes_cand": 682,
+      "precision": 0.6041,
+      "recall": 0.275,
+      "F1": 0.378
+    },
+    "kcore3_budget5%": {
+      "n_gangs_cand": 3,
+      "n_nodes_cand": 159,
+      "precision": 0.6667,
+      "recall": 0.0708,
+      "F1": 0.1279
+    },
+    "kcore3_budget10%": {
+      "n_gangs_cand": 5,
+      "n_nodes_cand": 277,
+      "precision": 0.6282,
+      "recall": 0.1162,
+      "F1": 0.1961
+    },
+    "kcore3_budget20%": {
+      "n_gangs_cand": 8,
+      "n_nodes_cand": 589,
+      "precision": 0.6112,
+      "recall": 0.2403,
+      "F1": 0.345
+    },
+    "kcore4_budget5%": {
+      "n_gangs_cand": 2,
+      "n_nodes_cand": 172,
+      "precision": 0.7326,
+      "recall": 0.0841,
+      "F1": 0.1509
+    },
+    "kcore4_budget10%": {
+      "n_gangs_cand": 4,
+      "n_nodes_cand": 293,
+      "precision": 0.7065,
+      "recall": 0.1382,
+      "F1": 0.2312
+    },
+    "kcore4_budget20%": {
+      "n_gangs_cand": 9,
+      "n_nodes_cand": 586,
+      "precision": 0.6792,
+      "recall": 0.2657,
+      "F1": 0.382
+    }
+  },
+  "fund_chain_level": {
+    "SCC_top5%": {
+      "n_scc_cand": 1,
+      "n_nodes_cand": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "F1": 0.0
+    },
+    "SCC_top10%": {
+      "n_scc_cand": 1,
+      "n_nodes_cand": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "F1": 0.0
+    },
+    "SCC_top20%": {
+      "n_scc_cand": 3,
+      "n_nodes_cand": 6,
+      "precision": 0.5,
+      "recall": 0.002,
+      "F1": 0.004
+    },
+    "cycles_len<=6_all": {
+      "n_nodes_cand": 913,
+      "precision": 0.6583,
+      "recall": 0.4012,
+      "F1": 0.4985
+    },
+    "SCC∩kcore3_top5%": {
+      "n_cand": 1,
+      "n_nodes_cand": 3,
+      "precision": 0.3333,
+      "recall": 0.0007,
+      "F1": 0.0013
+    },
+    "SCC∩kcore3_top10%": {
+      "n_cand": 1,
+      "n_nodes_cand": 3,
+      "precision": 0.3333,
+      "recall": 0.0007,
+      "F1": 0.0013
+    },
+    "SCC∩kcore3_top20%": {
+      "n_cand": 1,
+      "n_nodes_cand": 3,
+      "precision": 0.3333,
+      "recall": 0.0007,
+      "F1": 0.0013
+    }
+  },
+  "component_ablation": {
+    "A2_kcore4_pairwiseF1": 0.3508
+  },
+  "elapsed_s": 16.8
+}

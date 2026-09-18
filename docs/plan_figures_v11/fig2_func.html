@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;color:#2C3E50;background:#fff;line-height:1.5}
+.wrap{width:1260px;margin:0 auto;padding:26px 22px 28px}
+h1{font-size:38px;font-weight:800;text-align:center;color:#1E3A5F;margin-bottom:7px;letter-spacing:1px}
+.sub{text-align:center;font-size:21px;color:#34495E;margin-bottom:20px;letter-spacing:.5px}
+h2{font-size:25px;font-weight:700;color:#1E3A5F;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:5px;height:18px;background:#2980B9;border-radius:2px}
+.panel{background:#F5F7FA;border:1px solid #D5DBDB;border-radius:9px;padding:14px}
+.row{display:flex;gap:12px}
+.col{flex:1}
+.desc{font-size:20px;color:#34495E;line-height:1.6}
+.center{text-align:center}
+
+.tree-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;align-items:stretch}
+.root{background:#1E3A5F;border-radius:12px;padding:16px 20px;text-align:center;color:#fff;box-shadow:0 3px 10px rgba(30,58,95,.18)}
+.root-t{font-size:31px;font-weight:800;letter-spacing:1px}
+.root-d{font-size:22px;color:#D6E4F5;margin-top:6px;font-weight:600}
+.tree{background:#fff;border:1.5px solid #D5DBDB;border-radius:10px;padding:11px 11px 13px;display:flex;flex-direction:column;gap:8px}
+.tree.core{border:2px solid #82E0AA;background:#FBFEFC}
+.b-h{font-size:27px;font-weight:800;color:#fff;border-radius:7px;padding:7px 10px;text-align:center}
+.b-tag{font-size:20px;font-weight:700;text-align:center;margin-top:-2px;padding:3px 2px 2px;line-height:1.4}
+.leaf{background:#F8FAFC;border:1px solid #E3E8EE;border-radius:7px;padding:9px 12px}
+.leaf:hover{background:#F0F4F8}
+.lf-t{font-size:23px;font-weight:700;color:#2C3E50;line-height:1.4}
+.lf-d{font-size:20px;color:#34495E;margin-top:4px;line-height:1.45}
+.cross-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.cross{border:1.5px solid;border-radius:10px;padding:12px 14px}
+.cr-h{font-size:23px;font-weight:800;margin-bottom:9px}
+.cr-steps{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+.cr-steps span{flex:1;text-align:center;font-size:22px;font-weight:700;border:1.5px solid;border-radius:7px;padding:9px 6px;background:#fff;line-height:1.35}
+.cr-steps i{color:#5D6D7E;font-weight:800;font-size:15px;font-style:normal}
+</style></head><body><div class="wrap"><h1>系统功能结构</h1><div class="sub">四个功能模块 + 一套横切机制 · 民警只做录入、其余全自动 · 核心算法本地运行</div>
+<div class="root">
+  <div class="root-t">慧眼识诈 · 多智能体反诈团伙智能研判系统</div>
+  <div class="root-d">上传零散警情线索 &#8594; 自动串案成网 &#8594; 圈出疑似团伙 + 逐条证据链</div>
+</div>
+<div class="tree-row"><div class="tree"><div class="b-h" style="background:#E67E22">&#9312; 数据接入</div><div class="b-tag" style="color:#B05A12">民警零门槛录入</div><div class="leaf" style="border-left:4px solid #E67E22"><div class="lf-t">话术文本粘贴</div></div><div class="leaf" style="border-left:4px solid #E67E22"><div class="lf-t">案件 CSV 批量导入</div></div><div class="leaf" style="border-left:4px solid #E67E22"><div class="lf-t">聊天截图 OCR 提取</div></div><div class="leaf" style="border-left:4px solid #E67E22"><div class="lf-t">缺失字段留空标记</div><div class="lf-d">字段缺失不报错</div></div></div><div class="tree"><div class="b-h" style="background:#2980B9">&#9313; 要素解析</div><div class="b-tag" style="color:#1A5276">杂乱材料 &#8594; 规范要素</div><div class="leaf" style="border-left:4px solid #2980B9"><div class="lf-t">账户 / 手机号抽取</div></div><div class="leaf" style="border-left:4px solid #2980B9"><div class="lf-t">金额/时间/话术段落</div></div><div class="leaf" style="border-left:4px solid #2980B9"><div class="lf-t">多格式混合兼容</div><div class="lf-d">文本 + CSV + 图片同批</div></div></div><div class="tree core"><div class="b-h" style="background:#27AE60">&#9314; 团伙发现</div><div class="b-tag" style="color:#1E8449">核心算法 · 双通道一致采信</div><div class="leaf" style="border-left:4px solid #27AE60"><div class="lf-t">异构图构建</div><div class="lf-d">7 类节点 · 5 条元路径</div></div><div class="leaf" style="border-left:4px solid #27AE60"><div class="lf-t">双通道独立聚类</div><div class="lf-d">资金 Louvain + 话术 BGE</div></div><div class="leaf" style="border-left:4px solid #27AE60"><div class="lf-t">共识锚点 ∩</div><div class="lf-d">两通道严格一致</div></div><div class="leaf" style="border-left:4px solid #27AE60"><div class="lf-t">HAN 半监督判定</div><div class="lf-d">自适应门控 · 拒错牌</div></div><div class="leaf" style="border-left:4px solid #27AE60"><div class="lf-t">增量挂接</div><div class="lf-d">新警情随到随判</div></div></div><div class="tree"><div class="b-h" style="background:#8E44AD">&#9315; 成果输出</div><div class="b-tag" style="color:#6C3483">把结论交给民警</div><div class="leaf" style="border-left:4px solid #8E44AD"><div class="lf-t">团伙名单与画像</div></div><div class="leaf" style="border-left:4px solid #8E44AD"><div class="lf-t">逐条证据链报告</div></div><div class="leaf" style="border-left:4px solid #8E44AD"><div class="lf-t">资金流向可视化</div></div><div class="leaf" style="border-left:4px solid #8E44AD"><div class="lf-t">研判报告一键导出</div><div class="lf-d">docx · 可打印</div></div></div></div>
+<div class="cross-row">
+  <div class="cross" style="border-color:#8E44AD;background:#FBF8FD">
+    <div class="cr-h" style="color:#6C3483">&#9889; AI 会商反思闭环（横切 &#9314; &#8594; &#9315;）</div>
+    <div class="cr-steps">
+      <span style="border-color:#2980B9;color:#1A5276">话术<br>分析</span><i>&#8594;</i>
+      <span style="border-color:#E67E22;color:#B05A12">资金<br>追踪</span><i>&#8594;</i>
+      <span style="border-color:#8E44AD;color:#6C3483">串并<br>研判</span><i>&#8594;</i>
+      <span style="border-color:#E74C3C;color:#922B21">质检<br>复核</span><i>&#8594;</i>
+      <span style="border-color:#27AE60;color:#1E8449">3轮不过<br>转人工</span>
+    </div>
+  </div>
+  <div class="cross" style="border-color:#27AE60;background:#F2FBF5">
+    <div class="cr-h" style="color:#1E8449">&#128274; 核心算法本地运行（底线）</div>
+    <div class="cr-steps">
+      <span style="border-color:#27AE60;color:#1E8449">BGE 本地编码</span><i>&#8594;</i>
+      <span style="border-color:#27AE60;color:#1E8449">纯 CPU 可跑</span><i>&#8594;</i>
+      <span style="border-color:#27AE60;color:#1E8449">大模型可本地部署</span>
+    </div>
+  </div>
+</div>
+</div></body></html>

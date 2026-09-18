@@ -1,0 +1,2950 @@
+
+
+========== FILE: references_参考文献/“私教”还是“枪手”：基于大模型的计算机实践教学探索_李清勇.pdf (pages=8) ==========
+ 
+实  验  技  术  与  管  理 
+第41 卷  第5 期  2024 年5 月 
+ 
+Experimental Technology and Management 
+Vol.41  No.5  May 2024 
+                                        
+收稿日期:  2024-03-14 
+基金项目: 教育部“重点领域机器学习与算法课程群虚拟教研室”（教高厅函〔2023〕22 号） 
+作者简介: 李清勇（1979—），男，北京，博士，教授，主要研究方向为人工智能，liqy@bjtu.edu.cn。 
+引文格式: 李清勇，耿阳李敖，彭文娟，等. “私教”还是“枪手”：基于大模型的计算机实践教学探索[J]. 实验技术与管理, 2024, 
+41(5): 1-8. 
+Cite this article: LI Q Y, GENG Y L A, PENG W J, et al. Tutor or impostor: Exploring computer practice teaching based on large language 
+models[J]. Experimental Technology and Management, 2024, 41(5): 1-8. (in Chinese) 
+ 
+ISSN 1002-4956 
+CN11-2034/T 
+DOI: 10.16791/j.cnki.sjg.2024.05.001 
+特约专栏：大模型应用探索 
+编者按：当前，随着多模态大模型的迅猛发展，它不断地展示出为人类提供智能化、个性化服务的巨大潜能，
+以及在各行业、各领域广泛的应用前景。为探索大模型对高校教育模式带来的深刻影响，本期特邀北京交通
+大学李清勇教授，就大模型技术在计算机实践教学应用中的优势和不足进行了探讨，以期为大模型技术在教
+学实践中的合理应用提供参考。 
+“私教”还是“枪手”： 
+基于大模型的计算机实践教学探索 
+李清勇1，耿阳李敖1，彭文娟1，王  繁2，竺超今3 
+（1. 北京交通大学  计算机科学与技术学院，北京  100044；2. 教育部高等教育司课程教材与 
+实验室处，北京  100034；3. 北京交通大学 本科生院，北京  100044） 
+摘  要：以大模型为代表的新一代人工智能技术正深刻影响传统教学模式。在计算机实践教学过程
+中，如果大模型被合理应用，它可以充当学生的“私教”，辅助学生的个性化学习；否则大模型可
+能沦为学生完成作业的“枪手”，削弱学生的独立思考及实践能力。该文首先论述了计算机实践教
+学的层次，并分析了大模型对各个层次实践教学的正面和负面影响。然后，以“算法设计与分析”
+课程为案例，设计了面向算法设计实践的大模型应用模式，包括过程报告、逆向思考和集中考核等
+主要形式，初步应用结果表明，84.8%的学生在课程中使用大模型，其中51%的学生认可大模型的
+帮助作用，大模型应用显著提高了课程实践作业的完成度。 
+关键词：大模型；实践教学；算法设计；在线程序评测；代码生成 
+中图分类号：TP34; G642     文献标识码：A     文章编号：1002-4956(2024)05-0001-08 
+2022 年11 月，美国高科技公司OpenAI 发布大语
+言模型ChatGPT，其在自然语言理解、图文生成、人
+机交互等方面表现出优异性能，激发了人工智能研究
+和应用的新一轮热潮。ChatGPT 上线两个月内获得一
+亿活跃用户，成为历史上用户数增长最快的互联网应
+用。2023 年3 月，OpenAI 发布多模态大模型GPT-4，
+进一步增强了图文理解和自动编程等方面的能力，成
+为大模型的新里程碑。紧随其后，OpenAI 于2024 年
+2 月发布了Sora 大模型，它可根据用户指令生成1 min
+的高清视频，能生成具有多个角色、包含特定运动的
+复杂场景，初步展示了大模型理解物理世界的能力[1]。
+以GPT 为代表的大模型（本文统称为“大模型”）能
+够完成智能问答、内容创作、代码生成等复杂智力任
+务，对人类的信息获取方式、知识结构、学习模式等
+产生了重要影响。美国可汗学院和Open AI 合作推出基
+于GPT-4 的教育机器人Khanmigo。Khanmigo 定位为
+人工智能助教，用于为学生提供个性化的指导和辅导，
+它可以教授学生知识、引导学生思考，并提供辩论工
+具和写作辅导等功能；还可以帮助老师制定课程计
+划、批改作业。 
+随着大模型的快速发展，全球高度重视大模型对
+教育的影响，并制定相应的对策。美国发布了《人工
+智能与未来教学：洞见与建议》，探讨了大模型技术
+在教学中的应用潜力和风险，提出了新一代人工智能
+应用于教与学的7 条行动建议[2]。英国发布了《生成
+式人工智能在教育中的应用》，倡议教育部门充分利
+2 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+用大模型等新技术为学习者提供个性化、优质的教学
+服务[3]。澳大利亚宣布包括ChatGPT 在内的人工智能
+工具允许在所有学校使用[4]。中国政府也高度重视大
+模型给高等教育带来的挑战和机遇，教育部部长怀进
+鹏在2024 世界数字教育大会上发表主旨演讲《携手推
+动数字教育应用、共享与创新》，他强调“要科学研判
+人工智能技术对教育的影响，积极引导智能技术合理
+应用，让技术进步造福师生”。 
+本文首先分析计算机类实践教学体系的层次与内
+涵，然后深入分析大模型在计算机实践教学中的优势
+与不足，以及可能充当的角色：“私教”或者“枪手”。
+最后，结合“算法设计与分析”课程案例，探索了大
+模型应用模式和效果。 
+1  计算机实践教学体系 
+中国共产党第二十次全国代表大会报告指出：
+“教
+育、科技、人才是全面建设社会主义现代化国家的基
+础性、战略性支撑”。这是首次把教育、科技、人才
+进行“三位一体”战略部署。最近倡导的“新工科”
+建设高度重视培养工程实践能力强、创新能力强、具
+备国际竞争力的高素质复合型“新工科”人才。计算
+机类专业是培养新一代信息技术产业人才的主要学
+科，实践教学是巩固深化理论知识的重要途径，是培
+养创新实践能力的重要支撑。 
+计算机类实践教学体系一般包括课程实验、课程
+设计、毕业设计和专业实习、课外和社会实践等5 个
+类别[5]。 
+（1）课程实验一般是针对课程重要理论知识点
+设置的实践教学活动，旨在促进学生更好地理解和掌
+握理论知识，达到理论联系实践的教学效果。 
+（2）课程设计是指将一门或多门课程相关的实
+验内容结合在一起，形成具有综合性和设计性特点的
+实践教学活动。课程设计一般为单独设置的课程，强
+调培养学生综合运用多门课程知识解决实际问题的能
+力，包括系统/模块的分析、设计和集成等能力。 
+（3）毕业设计要求学生以适当的课题研究为背
+景，进行科学研究训练和实践，帮助学生实现从学校
+走向实际工作的过渡。它培养学生综合运用所学知识
+分析并解决实际问题的能力。 
+（4）专业实习包括认知实习、生产实习、毕业实
+习、科研实习等多种形式，旨在促进学生更好地认识、
+了解专业，并亲身接触和感受未来的实际工作。 
+（5）课外和社会实践进一步引导学生开展广泛
+的课外实践活动，主要形式包括学科竞赛、科研实践、
+社会实践等，促进学生将所学计算机专业知识与社会
+需求相结合。 
+从实验类型角度，实践教学遵循认知渐进原则，
+设置有验证型、设计型和综合型实验。从实验规模角
+度，实践教学过程一般从小规模开始，逐渐过渡到中
+等规模、较大规模任务。对于软件开发类实践活动，
+实验规模一般按照程序的代码行数来评估：小规模的
+以十计，中等规模的以百计，较大规模的以千计。计
+算机类专业本科生大一到大四积累的程序量至少应该达
+到2 万行[5]。  
+随着大模型等人工智能技术的更新迭代，计算机
+实践教学面临严峻挑战，其教学内容、教学方法和教
+学手段等需要适应大模型技术发展而改革创新[6]。 
+2  大模型赋能计算机实践教学 
+2.1  大模型的能与不能 
+大模型是一类基于GPT（generative pre-trained 
+transformer）架构的语言生成模型，比如ChatGPT 和
+ChatGLM 等，它们通过大规模的数据集进行预训练，
+学习语言的模式和结构。大模型的工作原理大致可以
+分为以下4 个部分： 
+（1）预训练。大模型在大量文本数据上进行预训
+练，学习语言的基本规则、语法和语义等。此阶段不
+针对特定任务，而是让模型掌握广泛的语言知识，具
+备通用的语言理解能力。 
+（2）微调。根据特定的任务或应用场景，对预训
+练模型进行微调。例如，针对人机问答任务，大模型
+可以在问答或对话数据上进一步训练；针对程序设计
+任务，大模型可以在指定程序设计语言的源代码数据
+集上精调。 
+（3）生成回应。在人机对话中，用户输入一段文
+本后，大模型会根据输入和学习到的语言模式生成合
+适的回应。模型会考虑输入文本的上下文语境，以及
+对话历史（如果有的话），来生成连贯且相关的回答。 
+（4）优化。通过用户反馈和持续的训练，不断优
+化模型的性能，使其生成的回答更加准确，更能满足
+用户的需求。 
+大模型的核心技术是Transformer 架构，它使用
+自注意力机制来捕捉文本中的长距离依赖关系，这使
+得模型能够理解复杂的语言结构并生成流畅的文本。
+此外，大规模的预训练数据使得大模型能够掌握广泛
+的知识和语言表达能力。大模型在很多现实场景中表
+现出媲美人类的智能。比如：ChatGPT 通过了谷歌公
+司的程序员面试，被评定为三级工程师[6]；GPT-4 在
+美国模拟律师资格考试中获得前10%的成绩，它在其
+他各类专业和学术基准测试中表现出与人类相当的水
+平[7]。 
+与传统人工智能技术相比，大模型具有以下3 方
+ 
+李清勇，等：“私教”还是“枪手”：基于大模型的计算机实践教学探索 
+3 
+ 
+面的显著优势： 
+（1）内容生成能力。以GPT 为代表的大模型应用
+深度神经网络模拟人类学习过程，从海量无标签的训
+练数据中学习到丰富的语境信息，形成对语言、图像
+或其他模态数据的深层理解，并利用大规模人工神经
+网络表达和存储学习到的知识[8]。这种知识往往抽象
+表征为词句之间的概率关系。用户输入文本序列时，
+大模型基于后续词的预测概率生成与输入文本相关的
+内容，展示了优异的上下文理解和内容生成能力。 
+（2）逻辑推理能力。大模型通过思维链构建强大
+的推理机制，它将复杂问题拆解为逻辑相关的多个简
+单子问题和多个步骤，逐步求解，形成完整的思考过
+程，实现未知问题的自动推理与回答[8]。大模型在自
+动文摘、自动编程和公式推导等方面表现优异。 
+（3）领域适配能力。大模型训练往往包括预训练
+和任务适配两个阶段。在预训练阶段，大模型基于无
+标注数据和自监督学习完成基础模型训练；在任务适
+配阶段，基础模型可以在特定领域的少量标注数据上
+进行监督训练与精调，从而适应特定应用领域和具体
+任务。当前，大模型在教育、金融和文艺等垂直领域
+得到广泛关注和应用[9-11]。 
+虽然大模型表现出了通用人工智能的特征，但是
+也存在一些不足[6,12]。首先，大模型泛化能力有限。
+经过任务适配和精调后，大模型在指定任务上表现出
+色，然而它们面对新任务、新数据时性能差强人意。
+其次，大模型可解释性差。基于深度学习技术的大模
+型被认为是“黑箱”，其智能涌现的机制尚未探究清
+楚，其内容生成的过程难以理解和解释。最后，大模
+型可靠性弱。大模型输出依赖于提示词和上下文语境，
+可能会产生意外的、不可靠的内容，甚至产生“幻觉”
+现象，生成一些错误或者不存在的内容。当然，大模
+型在隐私保护、偏见与公平性等方面也存在重要挑战。 
+2.2  大模型在实践教学中的角色 
+大模型在内容生成、逻辑推理和领域适配等方面
+具有优异性能，能在计算机实践教学的多个方面发挥
+积极作用，可以充当学生的“私教”，个性化指导和
+帮助学生更加高效地开展实践活动。但是，大模型作
+为高新技术实体，不同于在法律和道德约束下的人类，
+其生成内容和使用方式将面临知识产权、学术诚信等
+挑战。在实践教学中，大模型使用不当，有可能成为
+学生作弊的“枪手”，严重影响教学效果和教学管理。 
+具体在计算机实践教学过程中，大模型在知识库
+支撑、实践指导和个性化学习等方面具有广阔的应用
+空间，可以辅助学生动手实践，发挥“私教”的作用。 
+首先，大模型能为实践教学提供强大的知识库支
+撑。以GPT 为代表的大模型可以认为是海量知识的抽
+象表达，它能为学生提供专业实践过程所需要的数据、
+信息和知识。如果大模型经过相关学科领域的精调适
+配，它还可以提供更加细致和准确的专业知识、文献
+资料等，帮助学生更好地掌握学科方向的发展现状，
+提升专业素养。特别地，大模型还可以利用其多学科
+知识储备和跨学科知识理解，帮助学生建立更加全面
+的知识体系，助力学生建立多维度、系统性的实践观。
+在课程设计、毕业设计等实践环节，大模型在背景调
+研、文献总结等方面可以发挥积极作用。以程序设计
+为例，OpenAI 研发的代码大模型Codex 基于Github
+等网站的开源项目和代码集进行训练，汇聚丰富的项目
+案例和源码，并且覆盖了主流的程序设计语言，比如
+Python、C/C++和JAVA 等。 
+其次，大模型能为实践教学提供智能化、实时性
+指导反馈。以GPT 为代表的大模型在语言理解和文字
+创作方面性能优异，可以对实验报告和学术论文等进
+行评阅，包括自动检查用词、拼写、标点、表达和逻
+辑等常规任务，还可以进行系统性的写作风格润色和
+结构性调整，帮助学生提高技术报告和学术论文的写
+作能力。同时，大模型可以处理多种模态（文字、图
+像、语音和视频等）的数字资源，并用不同形式生成
+与呈现。大模型可以辅助学生设计解决方案并进行多
+维度展示。比如，学生设计复杂的系统/流程时，大模
+型可以辅助生成图像和视频，动态展示设计原理和实
+验步骤。特别地，大模型还具有较强的逻辑推理能力，
+可以协助编写程序。以GPT 为代表的大模型可以快速
+生成指定高级程序设计语言的代码框架、功能模块，
+帮助学生快速迭代设计的算法或者软件。另外，大模
+型还可以分析学生设计的代码，提供调试建议，帮助
+学生解决编程难点，推动软件设计的迭代速度。在程
+序/软件设计类课程中，CodeX 可提供大量相关案例，
+拓展学生的设计视野范围；CodeX 多角度解析设计需
+求的能力，也可以启发学生的设计思维。此外，CodeX
+生成的设计框架可推动学生进行更富创造性的设计迭
+代完善。 
+最后，大模型能为实践教学提供个性化学习服务。
+基于学生的学习轨迹和人机交互数据，大模型可以深
+入理解学生个体的知识背景和学习需求，从而推荐适
+合学生的学习资料，并构建虚拟的个性化学习情境。
+比如，在软件设计类的实践项目中，大模型可以为学
+生提供个性化的教学案例，辅助构建需要的硬件和软
+件环境，综合评价设计方案。在算法设计实践任务中，
+大模型可以辅助学生发现所提算法的不足，促进其进
+一步思考和优化，不断超越自我；大模型还可以提供
+不同的设计思路，启发学生尝试一题多解，培养其创
+新素养。 
+4 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+“高科技是一把双刃剑”，如果学生不当使用大模
+型，大模型可能会沦为学生完成作业的“枪手”，对教
+育教学产生消极影响。在计算机实践教学中，教育工
+作者需要特别关注大模型在以下3 个方面的负面影响。 
+（1）作弊行为。针对课程实验、课程设计等实践
+环节的特定任务，比如文献综述、实验报告和程序设
+计等，大模型可以直接生成较高质量的任务答案。如
+果学生直接拷贝大模型输出结果完成实践教学任务，
+则会形成难以辨别的作弊行为，这不仅仅影响学生个
+体的学习态度和效果，而且会在学生群体中造成考核
+成绩的不公平，严重影响教学秩序。 
+（2）思维惰性。大模型可以随时随地给学生提供
+问题的现成答案，可能导致学生“不懂就问”，放弃高
+集中度、深入的主动思考。这种行为会严重影响学生
+对学习过程的思维认知，加剧学习的被动化和碎片化，
+不利于培养学生深度思考和终身学习等习惯。在实践
+教学的问题求解和设计过程中，如果学生过度依赖大
+模型，可能导致学生的思维惰性，弱化其参与系统性、
+连续性的独立思维训练。 
+（3）认知偏差。如果大模型的训练数据或者规则
+带有价值观偏向，那么大模型倾向于输出与该价值观
+相符的内容，向学生传递有偏见的或有害的信息。“培
+养什么人、怎样培养人、为谁培养人”是中国高等教
+育的根本性问题，需要高度重视大模型在意识形态领
+域的潜在影响。另外，大模型可以显著提高信息推送
+的精准度，但是也会产生“信息茧房”效应，即学生
+只能获取与自己观点相符的信息，不断强化甚至固化
+其观点和认知，影响学生的视野和全面发展。 
+3  案例分析 
+大模型是人工智能技术的突破性进步，它必将会
+像个人电脑、智能手机等产品一样影响社会生活的方
+方面面。李培根院士指出“工程中的易变性、不确定
+性、复杂性和模糊性等问题足以让我们全面地审视现
+在的专业教育，而依稀可见的拐点，更需要从理念到
+方式的变革，而非修补式的改革”[13]。高等教育需要
+积极拥抱以大模型为代表的新一代人工智能技术，在
+教学过程中主动应变[14]。本节以作者主讲课程“算法
+设计与分析”为例，阐述在算法设计实践中大模型的
+运用方式和初步成效。 
+3.1  课程简介 
+“算法是软件的灵魂”，算法是计算机学科的重要
+理论基础，也是软件设计的重要技术基础。“算法设计
+与分析”课程是教育部“101 计划”计算机科学专业
+的12 门核心课程之一，在计算机类专业人才培养中长
+期以来占据重要的位置。该课程强调理论与实践的结
+合，在学生的专业素质和能力培养体系中发挥重要的
+作用[15]。 
+该课程除了讲授枚举算法、分治策略、动态规划、
+贪心算法、回溯法和分支限界法等经典算法模型和理
+论，还强调算法设计实践，即设计时间复杂度和空间
+复杂度合理的算法以解决具体问题。 
+算法设计实践是重要的教学环节，它可以促进学
+生深入理解算法原理，培养学生举一反三、灵活设计
+算法解决具体问题的能力。作者高度重视算法设计实
+践，自主研发了“北京交通大学计算思维与算法实训
+平台”
+①开展实践教学。该平台是一个在线程序评测
+（online judge，OJ）系统，用户可以在线提交算法源
+代码，OJ 系统对源代码进行编译和执行，并通过预先
+设计的测试数据来检验算法的正确性。OJ 系统布置的
+题目遵循规定的格式，如图1 所示，一般包括题目描
+述、输入数据、输出数据、样例输入、样例输出、样
+例说明等条目；另外题目还包括时间限制和空间限制，
+即时间复杂度和空间复杂度的具体要求。用户提交题
+目的源代码后，OJ 系统实时反馈评测结果，主要结果
+类型包括“Accept”“Compile Error”“Runtime Error”
+“Wrong Answer”“Time Limit Exceeded”“Memory 
+Limit Exceeded”等，结果类型的内涵描述见表1。 
+ 
+ 
+ 
+图1  OJ 题目样例 
+ 
+表1  OJ 系统反馈结果类型及内涵 
+结果类型 
+内涵描述 
+Accept 
+提交源码答案正确，且满足时间和空间
+复杂度要求 
+Compile Error 
+提交源码存在编译错误 
+Runtime Error 
+提交源码在运行时出现错误 
+Wrong Answer 
+提交源码运行后的答案不正确 
+Time Limit Exceeded 
+提交源码运行时间超出限制 
+Memory Limit Exceeded
+提交源码运行占用内存超出限制 
+ 
+                                                                
+① 平台网址：https://algo.bjtu.edu.cn/  
+ 
+李清勇，等：“私教”还是“枪手”：基于大模型的计算机实践教学探索 
+5 
+ 
+一般地，每章算法都在OJ 系统布置10 道左右题
+目，并指定完成的时间周期，学生独立完成所有题目，
+并通过OJ 系统自动评测。OJ 系统的自动评测和实时
+反馈等功能有效促进了算法设计实践，培养了学生的
+算法设计和问题求解能力[16]。 
+3.2  大模型运用模式 
+CodeX 等大模型展示了优异的编码能力，使得基
+于OJ 系统的算法设计实践面临新形势。一方面，大
+模型可以直接生成部分题目的代码，并顺利通过OJ
+系统的评测，大模型有可能成为代替学生完成作业的
+“枪手”。也就是说，学生输入题目描述和必要的提示
+词后，大模型可以输出对应问题的源代码，然后学生
+拷贝源代码并在OJ 系统提交，能够获得“Accept”结
+果。OJ 系统无法有效识别学生提交代码是否由大模型
+生成，这种作弊行为可以蒙混过关。另外一方面，大
+模型可以提供算法设计的思路，并辅助学生进行代码
+调试和优化，可以充当学生个性化学习的“私教”。比
+如，面对毫无头绪的题目时，学生可以通过与大模型
+的交互寻找算法设计思路，或者搜索相关知识点，进
+一步学习理解算法原理。 
+针对大模型在算法设计实践教学中的利弊，课程
+允许学生使用大模型等AI 工具，并设计了以下应对
+策略，形成了算法设计实践教学的新模式。 
+首先，重视设计过程。传统模式主要关注结果，即
+OJ 系统评测学生提交算法源代码的正确性，并自动反
+馈评测结果。在大模型发布之前，学生需要手动编写和
+调试代码，并且通过OJ 系统的评测。除了个别学生的
+抄袭行为，学生的实践过程是独立自主完成的。OJ 系
+统配置有代码查重模块，可以发现大部分的抄袭行为。
+但是，大模型具备直接生成代码甚至答案的能力，评测
+结果导向的模式面临严峻挑战，需要更加关注实现过
+程。为了引导学生正确使用大模型，新模式鼓励学生运
+用大模型辅助自己解决实践作业，但是要求学生撰写大
+模型实践报告（模板见图2），记录自己与大模型的交
+互过程，并进行使用总结。实践报告促进学生形成正确
+的实践观，理性且高效地运用大模型等AI 新工具。 
+ 
+算法设计与分析课程 
+基于大模型的实践报告 
+姓  名：         学  号： 
+1. 题目描述 
+注释：描述求解问题，包括OJ 上的题面描述，以及必要的分析，包括求解算法和复杂度等，标出自己认知的难度级别：难，中等，
+容易。 
+1.1 题面描述 
+1.2 算法类型和描述 
+1.3 难度级别 
+2. AI 大模型描述 
+注释：描述使用的大模型产品，以及调用的方式。 
+3. 交互过程描述 
+注释：描述应用大模型求解问题的过程，包含多次交互。每次交互至少包括以下要素：（1）输入提示词信息；（2）大模型的输出；
+（3）根据大模型结果，自己修订代码、提交OJ 后的结果。 
+4. 实验总结 
+注释：总结此次实验过程及结果，描述自己的体会、对大模型的评价。 
+ 
+图2  基于大模型的实践报告模板 
+ 
+其次，探索逆向思考。传统模式强调从“问题”
+到“算法源码”的正向过程，但是大模型可以辅助学
+生快速完成该正向过程，显著降低了学生独立思考和
+手动编程的难度，不利于培养学生的实践动手能力。
+新模式除了完成大模型辅助下的正向过程之外，还探
+索“算法源码”到“设计思想”的逆向思考过程。针
+对每次实践作业，课程安排独立的研讨环节，深入研
+究大模型辅助生成的代表性算法源码，剖析其算法逻
+辑、数据结构和程序模块等内容，并分析算法复杂度。
+另外，课程引导学生探索在不同提示词下大模型生成
+源代码的差异，创造多样化的求解算法，培养学生的
+创新思维。 
+最后，设置封闭考核。开放条件下的OJ 系统评
+测结果难以有效考察学生的学习成效。新模式设计“课
+堂比赛”的封闭考核环节，在无大模型辅助的环境下
+考核学生的算法设计能力。具体地，授课教师组织选
+课学生在机房（断开外网、屏蔽大模型）开展算法设
+计比赛，比赛排名规则参考国际大学生程序设计竞赛。
+课堂比赛旨在打破学生对大模型的依赖，重视独立思
+考能力。 
+3.3  初步成效 
+作者讲授的“算法设计与分析”课堂共有46 名学
+生，学生自由决定是否在算法设计实践环节使用大模
+型，并且对选用大模型无限制。另外，通过自愿报名
+6 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+方式，课程征集了12 名志愿者主动撰写并反馈大模型
+实践报告。课程在OJ 系统布置了6 次算法设计作业，
+安排了2 次随堂的课堂比赛，课程总评成绩主要由OJ
+作业、课堂比赛和期末考试三部分构成。 
+在本学期教学过程中，39 名学生使用过大模型，
+7 名学生未使用大模型。按照使用频次统计（见图3），
+未使用的有7 人，偶尔（0<频次≤6）使用的学生人
+数为3 人，频繁（频次≥50）使用的学生人数为20
+人，平常（介于中间）使用的学生人数为16 人。使用
+大模型的学生比例为84.8%，大部分学生表现出拥抱
+大模型的积极态度，而且频繁使用的学生比例比较大。
+与个别学生谈话结果表明：学生容易形成对大模型的
+依赖，尤其是在取得正面反馈结果的情况下，即使用
+效果越好则更加愿意使用。 
+ 
+ 
+ 
+图3  课程中大模型使用率分布 
+ 
+按照大模型产品类别统计（见图4），学生主要使
+用OpenAI 的CodeX、微软的BingAI、百度的文心一
+言、科大讯飞的星火大模型。大部分同学选择CodeX，
+占比为48.7%。 
+ 
+ 
+ 
+图4  课程中大模型产品选用分布 
+ 
+按照学生的使用体验统计（见图5），3 名学生选
+择“非常有帮助”，17 名学生选择“有帮助”，11 名学
+生选择“一般”，8 名学生选择“帮助不大”。超过一
+半的学生对于大模型持肯定态度，也有约20%的学生
+认为“帮助不大”。结果表明，大模型具备较好的辅助
+能力，能够帮助学生更好地完成学习任务，但是其性
+能和易用性还有较大提升空间。 
+ 
+ 
+图5  学生使用体验分布 
+ 
+此次实验共收到48 份（12 名志愿者每人提交4
+次）大模型实践报告，通过分析实践报告，观察到以
+下主要现象：约10%的实践报告表明经过3 次左右大
+模型交互可以获得题目的正确算法代码，需要人工参
+与度较低；约6%的实践报告表明大模型反馈错误的
+信息；其余实践报告表明大模型可以提供有帮助的思
+路，基于大模型输出代码以及人工优化，可以获得正
+确答案，但是需要比较多的人工参与。 
+本学期93%的学生完成了全部的OJ 作业，完成
+度显著高于上学期，大模型对于学生完成算法设计实
+践作业产生了促进作用。每次课堂比赛设置5 道题目，
+包括容易题1 道、中等难度题3 道，较难题目1 道，
+学生平均解题数量为2.3 题，低于预期目标（3 题）。
+课堂比赛在封闭条件（断开外网、屏蔽大模型）下进
+行，学生展示的实践能力低于在OJ 作业中的表现，
+大模型可能对于学生独立编程能力培养产生一定负面
+影响。期末考试成绩总体与上学期持平，学生对于算
+法理论和时间复杂度分析等理论知识掌握达成课程
+目标。 
+4  结语 
+以大模型为代表的新一代人工智能技术发展日新
+月异，它们在教育领域的应用推陈出新，计算机实践
+教学中的教与学都面临新形势。本文分析了大模型技
+术的优势和不足，论述了大模型对计算机实践教学的
+影响。大模型可以是“私教”，为学生提供个性化辅导；
+它也可能沦为“枪手”，弱化学生的学习积极性，产生
+负面影响。以“算法设计与分析”课程为案例，本文
+提出了大模型应用模式，并分析了应用效果。初步结
+果表明，大模型在算法设计实践中产生了积极作用，
+显著提升了实践作业的完成度，但是也对学生独立自
+主的实践能力培养有潜在影响。 
+正如教育部部长怀进鹏在十四届全国人大二次会
+议民生主题记者会指出“人工智能对教育系统来说是
+把‘金钥匙’，不仅影响未来的教育，也影响着教育的
+未来。把人工智能技术深入到教育教学和管理全过程、
+ 
+李清勇，等：“私教”还是“枪手”：基于大模型的计算机实践教学探索 
+7 
+ 
+全环节，研究其有效性、适应性，让青年学生更加主
+动地学，让教师更加创造性地教。”教育工作者需要高
+度重视人工智能对教育的影响，并积极探索和应对。
+未来将进一步思考和探索以下2 个问题：首先，探索
+“教师-智能体-学生”联合的实践教学体系，构建新
+技术形态下的培养目标、培养过程和实践条件；其次，
+探索“人机共强”的新型教学方法。教学考核除了考
+察交付成果，更加需要重视学生的实践过程，采取开
+放式评估、学生相互评价等方式。教师除了知识传授
+之外，还需要重视自身对AI 工具的应用水平，并有
+效引导学生正确使用，尽量使得大模型成为“私教”
+而不是“枪手”。 
+参考文献 (References) 
+[1] 
+BROOKS T, PEEBLES B, HOLMES C, et al. Video generation 
+models as world simulators[EB/OL]. (2024-02-15) [2024-03-20]. 
+https://openai.com/research/video-generation-models-as-world- 
+simulators. 
+[2] 
+US Department of Education. Artificial intelligence and the 
+future of teaching and learning: Insights and recommendations 
+[EB/OL]. (2023-05-01)[2024-03-20]. https://tech.ed.gov/ai-future- 
+of-teaching-and-learning/. 
+[3] 
+UK Government. Generative artificial intelligence (AI) in 
+education[EB/OL]. (2023-10-26) [2024-03-20]. https://www. 
+gov.uk/government/publications/generative-artificial-intelligenc
+e-in- education. 
+[4] 
+Australian Government Department of Education. Australian 
+framework for generative artificial intelligence (AI) in schools 
+[EB/OL]. (2023-11-17)[2024-03-20]. https://www.education. 
+gov.au/schooling/resources/australian-framework-generative-art
+ificial-intelligence-ai-schools. 
+[5] 
+王志英，蒋宗礼，杨波，等. 计算机科学与技术专业实践教
+学体系与规范研究[J]. 中国大学教学，2009(2): 42–44. 
+WANG Z Y, JIANG Z L, YANG B, et al. Research on the 
+practical teaching system and norms of computer science and 
+technology major[J]. China University Teaching, 2009(2): 42– 
+44. (in Chinese) 
+[6] 
+姜春茂，段莹. ChatGPT 背景下的计算机实践类课程改革初
+探[J]. 实验技术与管理，2023, 40(12): 1–7. 
+JIANG C M, DUAN Y. Preliminary exploration of computer 
+practical course reform in context of ChatGPT[J]. Experimental 
+Technology and Management, 2023, 40(12): 1–7. (in Chinese) 
+[7] 
+DREIBELBIS E. ChatGPT passes Google coding interview for 
+level 3 engineer with $183K salary[EB/OL]. (2023-07-28) 
+[2024-03-20]. https://www.pcmag.com/news/chatgpt-passes-google- 
+codinginterview-for-level-3-engineer-with-183k-salary. 
+[8] 
+ACHIAM J, ADLER S, AGARWAL S, et al. GPT-4 technical 
+report[Z]. arXiv preprint arXiv: 2303.08774, 2023 
+[9] 
+陈慧敏，刘知远，孙茂松. 大语言模型时代的社会机遇与挑
+战[J/OL]. 计算机研究与发展(2024-02-20) [2024-03-14]. 
+https://link.cnki.net/ urlid/11.1777.TP.20240219.1454.026. 
+CHEN H M, LIU Z Y, SUN M S. Social opportunities and 
+challenges in the era of large language models[J/OL]. Journal of 
+Computer Research and Development(2024-02-20) [2024- 
+03-14]. https://link.cnki.net/urlid/11.1777.TP.20240219.1454.026. 
+(in Chinese) 
+[10] 曹培杰，谢阳斌，武卉紫，等. 教育大模型的发展现状、创
+新架构及应用展望[J]. 现代教育技术，2024, 34(2): 5–12. 
+CAO P J, XIE Y B, WU H Z, et al. The development status, 
+innovation architecture and application prospects of educational 
+big models[J]. Modern Educational Technology, 2024, 34(2): 
+5–12. (in Chinese) 
+[11] 吴丰华，韩文龙. 大型语言模型对高等教育的影响与中国应
+对[J]. 高等理科教育，2024(1): 75–83. 
+WU F H, HAN W L. The impact of large language model on 
+higher education and China’s response[J]. Higher Education of 
+Sciences, 2024(1): 75–83. (in Chinese) 
+[12] 徐慧，鞠小林，王皓晨. 大模型下编程教学面临的挑战与应
+对[J]. 计算机教育，2023(11): 60–64.  
+XU H, JU X L, WANG H C. Challenges and responses facing 
+programming education under the context of large models[J]. 
+Computer Education, 2023(11): 60–64. (in Chinese) 
+[13] 李培根. 迎接拐点：前瞻工程教育的变革[J]. 高等工程教育
+研究，2023(5): 1–6, 40. 
+LI P G. Embracing the inflection point: Forward-looking of 
+transformational changes in engineering education[J]. Research in 
+Higher Education of Engineering, 2023(5): 1–6, 40. (in Chinese) 
+[14] 刘邦奇，聂小林，王士进，等. 生成式人工智能与未来教育
+形态重塑：技术框架、能力特征及应用趋势[J]. 电化教育研
+究，2024, 45(1): 13–20. 
+LIU B Q, NIE X L, WANG S J, et al. Generative artificial 
+intelligence and the reshaping of future education: Technical 
+framework, capability characteristics and application trends [J]. 
+e-Education Research, 2024, 45(1): 13–20. (in Chinese) 
+[15] 周蓓，许瑾晨，弋宗江，等. 提升学生编程能力的实践探索：
+以算法设计与分析课程为例[J]. 计算机教育，2024(2): 61–64. 
+ZHOU B, XU J C, GE Z J, et al. Exploration of enhancing students' 
+programming abilities: A course case study of algorithm design 
+and analysis[J]. Computer Education, 2024(2): 61–64. (in Chinese) 
+[16] 秦汉林，卢成浪，邹会来. OJ 系统和在线课程混合驱动的程
+序设计课程教学新模式[J]. 计算机教育，2023(6): 189–193. 
+QIN H L, LU C L, ZOU H L. A new teaching model for 
+programming courses driven by OJ system and online courses 
+[J]. Computer Education, 2023(6): 189–193. (in Chinese) 
+8 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+Tutor or impostor: Exploring computer practice teaching  
+based on large language models 
+LI Qingyong1, GENG Yangliao1, PENG Wenjuan1, WANG Fan2, ZHU Chaojin3 
+(1. School of Computer Science and Technology, Beijing Jiaotong University, Beijing 100044, China; 2. Department of Higher Education,  
+Ministry of Education, Beijing 100034, China; 3. School of Undergraduate, Beijing Jiaotong University, Beijing 100044, China) 
+Abstract: [Objective] Large language models (LLMs) have demonstrated remarkable performance in various fields, including natural 
+language understanding, multimodal generation, and human–computer interaction. These advancements have led to profound changes in 
+conventional educational paradigms, particularly in computer-related education. LLMs can serve as “personalized tutors” for students, 
+tailoring their educational journey to meet each student’s unique needs. However, the improper use of LLMs may lead students to rely too 
+much on them, potentially diminishing their independent thinking and practical skills. This study elucidates the nuanced influence of 
+LLMs on computer practice teaching, including the promise they hold and the challenges they pose. [Methods] This paper elaborates on 
+the landscape of computer practice education, dissecting it into five levels: course experiments, course design, graduation projects, 
+professional internships, and extracurricular and social engagement. Each level plays a critical role in the holistic development of students’ 
+skills and knowledge. This exploration continues with an in-depth examination of the working principles and core technologies of LLMs, 
+demonstrating their advantages over traditional AI techniques in terms of content generation, logical reasoning, and domain adaptation 
+capabilities. Based on these advantages, this study analyzes how LLMs can revolutionize computer practice teaching. It depicts a 
+dual-edged sword: on the one hand, LLMs can act as an inexhaustible repository of knowledge, offer real-time, intelligent guidance, and 
+provide personalized teaching services. However, they can engender a culture of cheating, foster cognitive inertia, and introduce cognitive 
+biases among learners. [Results] The narrative is further enriched by a case study of the “Algorithm Design and Analysis” course taught by 
+the authors, highlighting the tangible benefits and challenges of integrating LLMs into practical education. This course is the cornerstone 
+of computer science education and serves as an ideal backdrop for evaluating the practical implications of these technologies. This study 
+explores a set of application patterns emphasizing process reports, reverse engineering thinking, and centralized assessments. We show the 
+initial benefits of this innovative teaching approach. Of the 46 students in the class who were free to choose whether to use LLMs, 84.8% 
+opted to use LLMs, and 51% of those who used them believed that LLMs were of great help. Notably, up to 93% of the students 
+completed all practical assignments, achieving a higher completion rate than the previous semester. However, during the closed-book 
+exams, the students’ average scores were lower than their average homework scores, indicating that their independent programming ability 
+could be negatively affected. [Conclusions] Although LLMs can serve as “personalized tutors” providing individualized guidance, they 
+may also act as “impostors”, undermining the development of students’ problem-solving skills. The benefits of the strategic application of 
+LLMs in enhancing students’ learning experience are demonstrated through the lens of the “Algorithm Design and Analysis” course while 
+cautioning against over-reliance risks. The findings suggest that when used judiciously, these technologies can enrich the learning process 
+and foster a more engaging, effective, and tailored educational journey for computer science students. 
+Key words: large language models; practice teaching; algorithm design; online judge; code generation 
+ 
+（编辑：张利芳） 
+ 
+
+
+========== FILE: references_参考文献/集成AI大语言模型的在线编程实验平台设计与实现_厉旭杰.pdf (pages=7) ==========
+ 
+实  验  技  术  与  管  理 
+第41 卷  第8 期  2024 年8 月 
+ 
+Experimental Technology and Management 
+Vol.41  No.8  Aug. 2024 
+                                        
+收稿日期:  2024-05-17 
+基金项目: 浙江省高校实验室工作研究项目（YB202123） 
+作者简介: 厉旭杰（1981—），男，浙江温州，硕士，高级实验师，实验中心主任，CCF 高级会员，主要研究方向为人工智能、图形图像，
+lixujie101@aliyun.com。 
+引文格式: 厉旭杰，顾雨辰，姚持恩. 集成AI 大语言模型的在线编程实验平台设计与实现[J]. 实验技术与管理, 2024, 41(8): 215-221. 
+Cite this article: LI X J, GU Y C, YAO C N. Design and implementation of an online programming experiment platform integrated with AI large 
+language models[J]. Experimental Technology and Management, 2024, 41(8): 215-221. (in Chinese) 
+ 
+ISSN 1002-4956 
+CN11-2034/T 
+DOI: 10.16791/j.cnki.sjg.2024.08.030 
+集成AI 大语言模型的在线编程实验平台设计与实现 
+厉旭杰，顾雨辰，姚持恩 
+（温州大学 计算机与人工智能学院，浙江 温州  325035） 
+摘  要：传统在线编程实验平台受限于反馈信息的局限性、忽视代码风格及规范性、代码的可读性、代码的
+效率等多种因素，不利于学生的学习和发展。该文设计并实现了一个集成AI 大语言模型的在线编程实验平
+台方案，该方案在传统平台基础上，引入了大语言模型的实时代码建议、程序安全扫描和判题结果分析优化
+功能。通过AI 大语言模型的实时分析、诊断和优化建议，大大提高了教学效果，增强了学生与系统的互动，
+能够使学生更好的理解编程概念并提升解决问题的能力。该研究证实了AI 模型在编程教育中的价值，并为
+人工智能在高等教育技术的应用提供了新的视角和策略。 
+关键词：大语言模型；编程实验平台；程序设计；人工智能 
+中图分类号：TP311.1     文献标识码：A     文章编号：1002-4956(2024)08-0215-07 
+在信息技术飞速发展的背景下，计算机科学在高
+等教育中的影响力日益显著。编程不仅是计算机专业
+学生的核心技能，也是其他专业学生解决具体问题和
+开展创新活动的重要工具。掌握扎实的编程技能，对
+学生未来在科技领域的职业发展具有重要作用。传统
+的程序设计教学在实践教学环节存在诸多不足，例如
+反馈机制的延迟与局限性、对代码风格与规范性的忽
+视、代码可读性差等，这些问题会严重影响学生的学
+习体验和发展潜力。针对这些问题，应引入智能化的
+教学工具和环境，提供即时、具体、多维度的反馈，
+强化学生的编程实践能力，培养对代码质量的敏感性，
+并提升解决实际问题的能力，从而有效提升计算机科
+学教育的质量和效果。 
+在计算机科学教育领域，大语言模型（LLM）展
+现出能够清晰且系统地解释复杂的计算机科学知识和
+概念的能力[1]。这些模型在对话生成、语言翻译、编
+程辅助等多个方面表现出色，因此LLM 是编程教学
+和支持工具的有力候选者[2-4]。例如，DeepMind 的
+AlphaCode 在Codeforces 的程序设计竞赛中展示了卓
+越的性能，增强了公众对于LLM 在高级程序设计竞
+赛中的期望。2023 年12 月，中国计算机学会（CCF）
+对国内的智谱清言和国外的ChatGPT 大语言模型在
+CSP-J 和CSP-S 测试中的表现进行了对比。对比结果
+显示，这些大语言模型展现了强大的编程能力。AI 大语
+言模型的兴起为编程教育提供了新的视角和可能性[5-6]。
+目前主流的AI 编程辅助工具，如GitHub Copilot、
+Tabnine、Kite、Codota、DeepCode 和Intellicode 等，
+在代码生成、错误诊断和编程建议提供方面展示了卓
+越的能力。这些工具的整合能够显著增强在线编程实
+验平台的功能，使之不仅能够判断代码的正确性，还
+能提供实时的、针对性的编程指导和优化建议[7-9]。这
+种技术的应用不仅能优化学习过程，同时是教育者用
+来提升教学效果的强大工具。 
+在大语言模型领域中，目前主流的模型包括：
+ChatGPT[10]、Claude、智谱清言、星火讯飞、文心一
+言、通义千问等，其中国内大语言模型智谱清言和通
+义千问作为开源模型，为本项目的大语言模型本地化
+部署提供了可行方案。2024 年6 月阿里巴巴开源了通
+义千问2.0，智谱AI 开源了GLM4 模型。本文引入由
+清华大学KEG 实验室与智谱AI 公司共同开发的大语
+言模型智谱清言GLM4，以及OpenAI 公司的GPT4
+两个大语言模型，设计并实施了一个集成AI 大语言
+模型的在线编程实验平台。该平台充分利用AI 的高
+级能力，旨在为学生提供一个更加互动、智能和富有
+教育意义的编程学习环境。平台的显著优势包括：通
+过AI 智能分析学生的编程习惯和错误模式，提供改
+216 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+进的代码反馈质量以及深入的代码评价和优化建议；
+并且通过实时错误诊断和解决方案，加速学习过程，
+提高学习效率。我们期望通过这一平台显著提升程序
+设计课程的教学质量和学生的学习成效。截至目前，
+尚未见到任何编程实验平台整合AI 大语言模型来进
+行编程教学。与当前市场上侧重于生成代码响应的AI
+辅助工具相比，本项目提出的平台更加注重在学生独
+立完成代码编写后，对所编写的代码进行个性化分析，
+提供深入反馈，并给出针对性建议。这种教学方法加
+强了教学的互动性和个性化，为编程教育领域引入了
+创新的教学工具，也是教学模式的一次创新。 
+1  传统在线编程实验平台的缺陷 
+传统在线编程实验平台如ACM 在线判题系统，
+对高校学生的编程学习至关重要，不仅提供了实际
+编程实践的机会，帮助学生应用并深入理解编程概
+念，还能通过即时反馈机制帮助学生快速识别和纠
+正编程错误[11]。这些系统对学生的编程能力提供了
+一个公平且标准化的评估环境，并且能够通过组织
+编程竞赛，激发学生的竞争意识和求知欲。虽然这
+些传统平台在高校编程教育中发挥了重要作用，但
+仍存在如下一些结构性缺陷，限制了学生的学习成
+效和潜力发挥[12]。 
+（1）反馈信息的局限性。传统判题系统通常只能
+告知结果是否通过，而缺乏对错误代码的详细解释和
+反馈，不利于学生很好地理解错误产生的根本原因，
+进而抓住纠正错误的机会。 
+（2）对代码风格和规范性的忽视。这些平台往往
+只关注代码的功能性，而忽视代码的风格和规范性，
+这可能导致学生编写的代码虽功能正确，但在可读性、
+可维护性和扩展性方面表现不佳。 
+（3）测试用例的不完整性。如果测试用例设计不
+充分或覆盖不全面，可能无法捕捉代码中的边界条件
+或特殊情况，从而导致评估结果不准确。在这种情况
+下，学生的代码虽能通过测试，但可能在实际应用中
+表现不佳。 
+（4）缺乏实时互动指导。许多平台无法提供实时
+反馈或互动指导，当学生遇到难题时无法即时获得帮
+助，有可能增加学习的挫败感。 
+（5）安全性和隔离机制不足。传统平台在隔离执
+行代码和限制系统资源访问方面考虑不充分，缺乏有
+效的沙箱技术和严格的权限管理。 
+（6）处理延迟和并发性限制。在高并发请求情况
+下，由于服务器资源和处理能力限制，判题响应时间
+显著增加，严重影响用户体验和系统的整体效率。 
+2  实验平台框架设计 
+近年来，大语言模型在自然语言处理领域取得了
+显著进展。这些模型通过分析和学习大量数据，掌握
+了语言的复杂模式，展示出卓越的文本生成、理解及
+交互能力[13-14]，不仅极大地提高了机器处理人类语言
+的能力，而且开拓了其在其他领域尤其是编程辅助等
+领域的应用前景。将大语言模型融入在线编程实验平
+台，能够实现代码自动生成、错误诊断、智能编程建
+议等功能，显著增强学习平台的互动性和适应性，帮
+助学生以更有效和更有针对性的方式学习编程，并为
+教师提供强大的教学支持工具，提升教育效果和学习
+体验。本项目提出的集成AI 大语言模型的在线编程
+实验平台设计与实现分为五个主要步骤，如图1 所示。
+每一步骤都具有独特的功能和意义，能够显著提升编
+程学习和实践的效率及质量。 
+传统的在线编程实验平台通常只涵盖图1 框架中
+的步骤1 和步骤4，而本项目重点引入了步骤2、3 和
+5，其作用和意义分述如下。 
+ 
+ 
+ 
+图1  平台设计框架 
+ 
+厉旭杰，等：集成AI 大语言模型的在线编程实验平台设计与实现 
+217 
+ 
+1）大语言模型实时代码建议阶段。 
+在实时代码建议阶段，大语言模型为用户提供了
+一系列功能，包括题目分析、语法检查、错误检测、
+智能代码建议、生成测试用例和代码解释。本阶段通
+过结合具体的题目信息（如问题描述、编程语言、输
+入输出、提交限制等）和用户的代码输入，设计针对
+性的提示词，通过后端服务器向大语言模型 API 接口
+发起请求，并将得到的反馈信息及时传递给用户。具
+体功能描述如下。 
+（1）题目分析。根据提供的问题描述，解释和阐
+明题目的具体要求，帮助学生更清晰地理解所期望完
+成的任务。 
+（2）语法检查。对学生输入的代码进行实时检查，
+自动识别语法错误（如括号不匹配、变量未声明、语
+法结构错误等），并提供相应的修正建议。 
+（3）错误检测。深入分析代码，识别潜在的逻辑
+错误或代码缺陷，并给出详尽的错误报告，辅助学生
+改进代码。 
+（4）智能代码建议。根据学生的编程环境和上下
+文，提供变量命名、函数调用等智能编程建议，以提
+高代码的整洁性和执行效率。 
+（5）生成测试用例。基于输入输出样例和问题描
+述，自动构造相应的测试用例，助力学生验证代码的
+正确性。 
+（6）代码解释。对于学生编写的代码段提供详细
+的解释和文档，清晰解析代码的功能和目的，增强学
+生对代码的理解。 
+在用户代码实时分析阶段，学生的代码将被实时
+检查和分析，而非仅在代码提交服务器后进行，这意
+味着学生可以在代码提交至服务器判题之前获得必要
+的指导和智能代码建议。这种人机协同编程方式极大
+地提升了学生的编程效率和质量，同时有效节省了服
+务器资源，减少了系统的不必要负担。这一机制不仅
+缩短了学生获取反馈的等待时间，还使平台能更高效
+地处理大量代码提交，优化学习和评估流程，从而使
+学习体验更加流畅和高效。此外，这种实时的错误检
+测和反馈过程在培养学生自我纠错能力和深化理解相
+关知识方面具有重要意义，有助于学生更快地掌握编
+程技巧并提高解决问题的效率。 
+2）大语言模型程序安全扫描阶段。 
+传统在线编程平台采用一系列综合安全措施来确
+保运行环境的安全，包括应用沙箱技术隔离用户代码、
+限制系统资源访问、执行静态代码分析以识别潜在风
+险，并对程序资源使用进行限制。这些措施坚守最小
+权限原则，有效降低了安全风险，保证了平台的稳定
+性和安全性。但这些措施往往缺乏足够的灵活性和适
+应性。在使用大语言模型对用户代码进行安全性检查
+过程中，本实验平台相较于传统平台的标准安全措施
+有以下显著优势。 
+（1）广泛的安全问题识别。能够理解并适应不断
+变化的安全威胁，包括新兴的安全漏洞和复杂的攻击
+技术，其适应能力远超传统的安全工具。传统的安全
+工具通常只依赖已知漏洞数据库和固定的检测模式。 
+（2）灵活的学习和更新能力。模型能够持续学习
+和适应最新的安全威胁及解决方案。与传统的静态安
+全工具相比，不需要手动更新规则和定义，仅需要更
+新提示词[15-16]就能迅速应对新的安全挑战[17]。 
+（3）减少误报和提高精确度。利用先进的机器学
+习算法，可以有效减少误报，提高安全漏洞检测的准
+确性。通过不断学习，能够从新的数据中优化安全检
+测模型，逐步提升判断的精确度。 
+我们精心设计了一系列提示词，以指导大语言模
+型进行深入的代码安全性分析和反馈。这些提示词涵
+盖以下安全检查内容： 
+（1）文件系统访问检查。“请分析此代码是否试
+图访问或修改文件系统，并指出具体代码位置及提供
+安全建议。” 
+（2）系统注册表访问检查。“审查此代码是否包
+含访问或修改系统注册表的操作，并提出可能的风险
+及改进措施。” 
+（3）内存和资源限制。“评估此代码是否可能导
+致内存泄漏或过度消耗CPU 资源，并建议如何优化资
+源使用。” 
+通过这些详细且具体的提示词，大语言模型能够
+精确识别代码中的安全漏洞和潜在风险，并提供实际
+的改进建议。这不仅增强了服务器的安全性，还显著
+提高了服务器对程序安全性的检查效率，减轻了服务
+器的资源负担。这一系统优化措施不仅提升了安全审
+核的质量，还有效提高了整体的运维效率。 
+3）大语言模型判题结果分析优化阶段。 
+在大语言模型的判题结果分析优化阶段，充分利
+用服务器的反馈来提升大语言模型对代码的分析能
+力。当服务器反馈代码通过时，大语言模型不仅确认
+代码的正确性，还将提供优化建议，例如代码效率提
+升、可读性和维护性增强等。这不仅有助于开发者提
+升编码技能，也促进了更高质量代码的编写。反之，
+若服务器反馈代码未通过，我们设计的提示词将结合
+服务器判题错误信息、题目信息及用户提交的代码，
+对代码进行更加深入的错误分析，帮助用户理解错误
+原因并提供改进建议。这种反馈方式不是简单地指出
+错误，而是更侧重于帮助学生准确理解错误原因并提
+供有效的纠正方法。例如，对于数组越界错误，大语
+218 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+言模型会详细解释相关概念，指出具体的错误代码行，
+并提供改正建议。此外，整合服务器判题结果的方式
+使问题分析优化阶段的反馈更为精确。服务器判题通
+常包括更全面的测试用例和编译器编译和执行结果，
+使大语言模型能够在更广泛的上下文中评估代码，从
+而提供更详细和精确的反馈。 
+3  实时通信设计 
+本项目采用前后端开发技术实现了集成AI 大语
+言模型的在线编程实验平台，前端使用vue 框架，后
+端基于FastAPI 框架，实现了与大语言模型的交互，
+利用WebSocket 技术实现了客户端与服务器之间的实
+时通信。这一系统设计旨在提供实时的文本交互体验，
+快速响应用户输入并生成流畅自然的回复。本项目引
+入的智谱清言GLM4 和Open AI GPT4 两个大语言模
+型，能够处理包括技术性对话在内的复杂对话场景。
+系统的核心设计聚焦于实时性、可扩展性和安全性，
+通过WebSocket 保证消息传输的低延迟和高效率。此
+外，对每个用户的聊天会话进行独立管理和存储，维
+护对话上下文的连贯性并提供个性化体验。在安全性
+方面，系统特别强调保护用户数据和隐私安全。图2
+显示了系统实时通信工作流程，包括：用户通过前端
+界面发送消息，WebSocket 协议支持的全双工通信立
+即将消息传输到服务器；连接建立后，服务器维护持
+续的会话状态，独立管理每个用户的聊天会话并存储
+会话历史；接下来，系统接收并存储用户的提示词，
+这些提示词成为生成回复的基础；根据这些提示词调
+用大语言模型，生成高质量的文本回复；最后，生成
+的回复通过WebSocket 连接实时发送回用户。这一流
+程的快速和高效是系统设计的关键，旨在确保用户能
+够获得及时反馈，大大增强交互的自然流畅性。 
+4  平台实现效果 
+图3 展示了本项目整合AI 大语言模型的在线编
+程实验平台实现效果。该平台的界面划分为四个主要
+区域：问题区、功能区、代码区和AI 反馈区。问题
+区提供了对编程任务的详细描述，功能区集成了大语
+言模型提供的实时代码建议（步骤2）、程序安全扫描/
+服务器判题（步骤3 和步骤4）及判题结果分析与优
+化（步骤5）。代码区用于展示用户提交的代码，AI
+反馈区显示了用户基于功能区操作所得到的大语言模
+型反馈。图3 展示了当用户点击“代码优化”按钮时，
+大语言模型对用户的源代码从代码风格、可读性及效
+率等多个维度进行的全面分析，以及提供的优化后的
+代码及其详尽解释。从图示中可以看到，尽管用户提
+交的代码在步骤4 的服务器判题中已获得“AC”
+（accept，即通过）结果，代码的风格和效率却明显
+存在提升空间。传统的在线编程实验平台通常仅限于
+评价程序的输出结果，而本项目开发的平台通过引入
+大语言模型，能够从更多维度评价用户代码，提供更 
+ 
+ 
+ 
+图2  系统实时通信工作流程 
+ 
+ 
+ 
+图3  集成AI 大语言模型的在线编程实验平台实现效果 
+ 
+厉旭杰，等：集成AI 大语言模型的在线编程实验平台设计与实现 
+219 
+ 
+为深入的反馈和建议。这不仅使用户能够通过与大语
+言模型的交互更有效地改进自己的代码，还有助于培
+养良好的编程习惯，进一步提高编程技能和代码质量。
+该平台极大地扩展了传统编程教育工具的功能，为用
+户提供了一个更为丰富和动态的学习环境。 
+5  平台评测与评价 
+在我校计算机与人工智能学院的程序设计课程
+中，我们针对大语言模型编写程序的准确性进行了实
+证研究。本研究选取了334 道涵盖大一程序设计全范
+围的题目作为样本，通过使用大语言模型生成的程序
+代码，提交至判题系统进行验证，探讨了提示词中信
+息量对程序准确性的具体影响。研究结果显示，提示
+词仅包含题目基本信息和指定的编程语言标准（如
+C++98）时，由GPT4 编写的程序的准确率达到92.5%。
+这一结果表明，GPT4 能够在一定程度上正确执行基
+本程序逻辑和算法，尽管在处理复杂数据和边界条件
+时的表现可能有所不足。但当提示词中加入完整的测
+试数据后，程序的准确率显著提升至95.2%，说明具
+体测试数据的引入对优化程序逻辑和增强程序在各种
+情况下的表现具有重要作用。进一步地，当提示词包
+括服务器判题的反馈结果后，程序准确率进一步提升
+至97.9%，剩余错误题目的错误主要集中在处理图形、
+公式等非文本元素，或题目表述不明确的情况，这些
+情况往往需要加入对题目中图表和公式的解析能力。
+因此，在提示词中加入更多信息，有助于大语言模型
+更好地理解题目信息和规定要求，给出高质量的程序
+代码。由表1 可见，GLM4 的准确率比GPT4 略低，
+表现也相当出色。此研究不仅展示了大语言模型在程
+序设计辅助教学中的潜力，也指出了AI 在处理特定
+类型题目时的局限性。未来的研究可探索更精细的提
+示词设计策略并结合专门的图表、公式解析技术，从
+而进一步提高程序的准确率和应用广度。 
+ 
+表1  提示词包含信息和准确率定量分析 
+题目信息 语言标准 测试数据 服务器判题结果 
+准确率/% 
+ 
+ 
+ 
+ 
+GPT4
+GLM4
+√ 
+√ 
+ 
+ 
+92.5
+81.5
+√ 
+√ 
+√ 
+ 
+95.2
+83.4
+√ 
+√ 
+√ 
+√ 
+97.9
+84.7
+ 
+此外，本研究还对48 位使用系统的学生进行了问
+卷调查。调查结果显示，95.8%的学生认为，通过大
+语言模型的辅助能够使他们更深入地理解题目并获得
+针对性的编程指导。学生普遍认为，该系统提供的反
+馈和建议极大地提升了他们的编程技能，提高了解决
+问题的效率。尽管辅助后的代码可能仍存在错误，但
+他们认为所获得的参考建议十分有价值。学生的这些
+反馈进一步验证了系统在提升编程教学效率和优化学
+生学习体验方面的实际效果。 
+6  实验平台滥用风险 
+大语言模型虽能为高等教育带来显著助益，但也
+伴随潜在的滥用风险[18-19]。这些模型通过提供即时反
+馈和深入的编程知识，极大地提高了学习效率，使学
+生能够快速掌握新的编程语言和解决问题的策略。尤
+其在处理复杂的编程难题时，这些智能工具不仅能够
+提出创新的解决方案，还有助于培养学生的逻辑思维
+能力。但这些模型的便利性也可能诱使学生产生过度
+依赖性，而忽视独立思考。一些学生可能会借助这些
+工具直接完成编程任务，在短期内看似提高了效率，
+实质上却可能削弱自身解决问题能力和创新思维的培
+养。这种依赖性不仅可能导致学生在没有相应工具支
+持情况下难以独立编程，还可能在长远发展中影响其
+作为软件开发者的职业成长。 
+为了应对这些挑战，本项目开发的集成AI 大语
+言模型的在线编程实验平台对交互做了相应的限制。
+该平台在步骤2 实时代码建议阶段不直接提供完整的
+代码答案，而是根据用户提交的代码提供具体的改进
+建议，仅在用户代码通过时，系统在代码优化阶段才
+会给出完整的优化代码，让学生清楚地知道，哪些地
+方需要改进。这种策略鼓励学生自主编写和调试代码，
+同时利用AI 模型提供的指导和建议进行优化。这样
+的设计确保了学生能够在享受现代技术带来的便利的
+同时，保持和发展自己独立处理和解决编程问题的能
+力。通过这种平衡方法，平台旨在训练学生主动学习
+和问题解决技能，避免成为纯粹的代码生成工具。鼓
+励学生探索和理解AI 提出的解决方案背后的逻辑，
+从而深化对编程原则和算法的理解，这不仅有助于他
+们掌握必要的技术技能，更重要的是培养他们成为未
+来能够自主学习和创新的软件开发者。此外，教育者
+可以通过监控学生与系统的交互，识别过度依赖AI
+的行为模式，并在必要时进行干预。这样的系统设计
+和使用策略，在确保教学目标实现的同时减少了潜在
+的滥用风险。 
+7  大语言模型辅助下的多元评价 
+人工智能正在对高等教育产生深远的影响，正在
+推动教育重心从“学习知识”向“强化能力”转变，
+教学模式由传统的“师生交互”向“师生机深度交互”
+转变，学生从“被动学习”向“自主学习”转变。据
+此，教学评价方式也应从单一的“结果评价”转向“多
+元评价”。在这种背景下，传统的程序设计课程以题目
+220 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+是否正确（AC）为唯一判定标准的评估方法可能无法
+全面评价学生的编程能力。因此，我们提出以下针对
+学生的考核点，以建立一个以学生为中心、以能力培
+养为导向的多元评价体系：①代码质量评估：利用大
+语言模型对学生提交的代码进行全面分析，包括代码
+的结构、可读性、风格一致性及算法效率。这种方法
+可以帮助教师更客观地评估学生的编程技能。②自我
+修正和反思：鼓励学生在初次提交代码后，利用大语
+言模型提供的反馈进行自我修正。学生随后需提交一
+份反思报告，详述他们如何根据反馈改进代码，从而
+促进学生的自我学习和批判性思考。③增加大语言模
+型辅助的考试：在编程考试中允许学生使用大语言模
+型作为辅助工具，需要明确的是，禁止使用模型直接
+提供的代码生成功能，仅限于使用代码审查、错误诊
+断等辅助功能。 
+8  结语 
+本文设计与实现了一个集成AI 大语言模型的在
+线编程实验平台。相较于传统的在线编程实验平台，
+本平台通过集成大语言模型，有效弥补了现有系统的
+不足，提供了一个更智能、更个性化的编程学习环境。
+该平台利用强大的语言模型实现了代码的实时分析、
+错误诊断及优化建议，极大地丰富了学生的学习体验，
+提供了个性化的编程指导。这种技术的引入不仅显著
+提升了学生的编程技能，更重要的是增强了学生的问
+题解决能力和创新意识。通过与AI 模型的互动，学
+生能够在理解复杂编程概念的同时，学习如何应对实
+际编程中遇到的各种挑战。此外，AI 模型提供的个性
+化反馈和建议，使学生能够从错误中学习，逐步改进
+自己的代码，从而在实际开发中更加自信和熟练。因
+此，这种集成AI 技术的在线编程实验平台不仅具有
+重要的教育意义，而且展现出广阔的应用前景。它预
+示着编程教育的未来方向，将对未来的编程教育模式
+产生深远影响。 
+参考文献 (References) 
+[1] 
+克劳斯·迈因策尔，贾积有，张誉月. ChatGPT 和人工智能:
+从基本原理到教育应用[J]. 北京大学教育评论，2023, 21(1): 
+35–48, 188. 
+KLAUS M, JIA J Y, ZHANG Y Y. ChatGPT and artificial 
+intelligence: From foundations to applications in education. 
+Peking University Education Review, 2023, 21(1): 35–48, 188. 
+(in Chinese) 
+[2] 
+YIMAZ R, YILMAZ F G K. The effect of generative artificial 
+intelligence(AI): Based tool use on students’ computational 
+thinking skills, programming self-efficacy and motivation[J]. 
+Computers and Education: Artificial Intelligence, 2023(4): 100147. 
+[3] 
+VUKOJIČIĆ M, KRSTIĆ J. ChatGPT in programming education: 
+ChatGPT as a programming assistant[J]. InspirED Teachers’ 
+Voice, 2023(1): 7–13. 
+[4] 
+李会春. ChatGPT 技术热潮下教育变革的挑战和对策[J]. 复
+旦教育论坛，2023, 21(2): 13–23. 
+LI H C. The challenges and countermeasures of educational 
+transformation under the trend of ChatGPT technology[J]. 
+Fudan Education Forum, 2023, 21(2): 13–23. (in Chinese) 
+[5] 
+JAROMIR S, ARAV A, CHRISTOPHER B et al. Can generative 
+pre-trained transformers (GPT) pass assessments in higher 
+education programming courses?[C]//Proceedings of the 2023 
+Conference on Innovation and Technology in Computer Science 
+Education. Milan, 2023:117–123. 
+[6] 
+王筱竹，JOSEPH O，DANNY B，等. 人工智能辅助会话式
+编程：一种性别包容的程序设计教学法[J]. 中国远程教育，
+2018(8): 70–78. 
+WANG X Z, JOSEPH O, DANNY B, et al. AI-assisted conversational 
+programming: A gender-inclusive approach to programming 
+education[J]. Chinese Journal of Distance Education, 2018(8): 
+70–78. (in Chinese) 
+[7] 
+丁宝根，钟阳阳. “ChatGPT+高等教育”变革的驱动因素、
+主要障碍及有关建议[J]. 现代教育技术，2024, 34(4): 60–68. 
+DING B G, ZHANG Y Y. Driving factors, key barriers, and 
+relvant recommendations for the transformation of “ChatGPT + 
+higher education”[J]. Modern Educational Technology, 2024, 
+34(4): 60–68. (in Chinese) 
+[8] 
+周文辉，赵金敏. ChatGPT 对研究生创新能力培养的价值与
+挑战[J]. 高校教育管理，2024, 18(2): 42–52. 
+ZHANG W H, ZHAO J M. ChatGPT's value and challenge to 
+the cultivation of graduate students’ innovation ability[J]. Journal of 
+Higher Education Management, 2024, 18(2): 42–52. (in Chinese) 
+[9] 
+翟洁，李艳豪，孟天鑫，等. 基于决策树和大模型的个性化
+计算机实验教学探索与实践[J]. 实验技术与管理，2023, 40(12): 
+8–15. 
+ZHAI J, LI Y H, MENG T X, et al. Exploration and practice of 
+personalized computer laboratory teaching based on decision 
+trees and large 
+models[J]. Experimental 
+Technology and 
+Management, 2023, 40(12): 8–15. (in Chinese) 
+[10] BROWN T, MANN B, RYDER N, et al. Language models are 
+few-shot learners[J]. Advances in Neural Information Processing 
+Systems, 2020(33): 1877–1901. 
+[11] 姜春茂，段莹. ChatGPT 背景下的计算机实践类课程改革初
+探[J]. 实验技术与管理，2023, 40(12): 1–7, 23. 
+JIANG C M, DUAN Y. Preliminary exploration of computer 
+practical course reform in context of ChatGPT[J]. Experimental 
+Technology and Management, 2023, 40(12): 1–7, 23. (in Chinese) 
+[12] 李德光，李晓辉，张庆熙，等. 面向Online Judge 提交日志
+的用户编程行为可视分析[J]. 计算机辅助设计与图形学学
+报，2020, 32(11): 1731–1741. 
+LI D G, LI X H, ZHANG Q X, et al. Visualization analysis of 
+user programming behavior for online judge submission log[J]. 
+Journal of Computer-Aided Design & Computer Graphics, 
+ 
+厉旭杰，等：集成AI 大语言模型的在线编程实验平台设计与实现 
+221 
+ 
+2020, 32(11): 1731–1741. (in Chinese) 
+[13] 吴娜，沈思，王东波. 基于开源LLMs 的中文学术文本标题
+生成研究：以人文社科领域为例[J/OL]. 情报科学, (2024-03- 
+15) [2024-08-12]. http://kns.cnki.net/kcms/detail/22.1264.G2. 
+20240315.1607.010.html. 
+WU N, SHEN S, WANG D B. Chinese academic text title 
+generation based on open source large language models: Taking 
+the humanities and social sciences as an example[J]. Information 
+Science, (2024-03-15) [2024-08-12]. http://kns.cnki.net/kcms/ 
+detail/22.1264.G2.20240315.1607.010.html. (in Chinese) 
+[14] 王梦如，姚云志，习泽坤，等. 基于知识编辑的大模型内容生成
+安全分析[J]. 计算机研究与发展，2024, 61(5): 1143– 1155. 
+WANG M R, YAO Y Z, XI Z K, et al. Safety analysis of large 
+model content generation based on knowledge editing[J]. Journal of 
+Computer Research and Development, 2024, 61(5): 1143–1155. 
+(in Chinese) 
+[15] LIU P, YUAN W, FU J, et al. Pre-train, prompt, and predict: A 
+systematic survey of prompting methods in natural language 
+processing[J]. ACM Computing Surveys, 2023, 55(9): 1–35. 
+[16] SHIN E, RAMANATHAN M. Evaluation of prompt engineering 
+strategies for pharmacokinetic data analysis with the ChatGPT 
+large language model[J]. Journal of Pharmacokinetics and 
+Pharmacodynamics, 2024, 51(2): 101–108. 
+[17] BAKHSHANDEH A, KERAMATFAR A, NOROUZI A, et al. 
+Using ChatGPT as a static application security testing tool[Z]. 
+arXiv: 2023(2308): 14434. 
+[18] RAHMAN M M, WATANOBE Y. ChatGPT for education and 
+research: Opportunities, threats, and strategies[J]. Applied Sciences. 
+2023, 13(9): 5783. 
+[19] WHALEN J, MOUZA C. ChatGPT: Challenges, opportunities, 
+and implications for teacher education[J]. Contemporary Issues 
+in Technology and Teacher Education, 2023, 23(1): 1–23. 
+Design and implementation of an online programming experiment  
+platform integrated with AI large language models 
+LI Xujie, GU Yuchen, YAO Chien 
+(College of Computer Science and Artificial Intelligence, Wenzhou University, Wenzhou 325035, China) 
+Abstract: [Objective] In the era of rapid technological advancement, computer science has emerged as a cornerstone of higher education, 
+with programming skills being crucial for students to solve problems and innovate in this field. However, traditional online programming 
+platforms have limitations due to inadequate feedback, disregard for code style and standards, and issues with code readability and 
+efficiency, potentially hindering students’ educational outcomes and developmental potential. Thus, this paper designs and implements an 
+online programming laboratory platform integrated with artificial intelligence (AI) large language models, specifically Zhipu Qingyan 
+GLM4 and OpenAI's GPT4. [Methods] Using WebSocket technology, the platform enables real-time communication between clients and 
+servers, offering real-time code suggestions, program security scanning, and optimization of judgment results. This integration of large 
+language models into a collaborative human–machine programming approach significantly enhances the efficiency and quality of student 
+programming. During the real-time code suggestion phase, the large language models provide functionalities such as problem analysis, 
+syntax checking, error detection, intelligent coding suggestions, test case generation, and code explanations. At this stage, the system not 
+only checks for compilation errors but also provides feedback on aspects such as code style, execution efficiency, and readability. In the 
+program security scanning phase, the models accurately identify security vulnerabilities and potential risks within the code, enhancing 
+server security, improving the efficiency of security checks, and reducing the server's security burden while educating students on the 
+importance of software safety. In the results analysis and optimization phase, the large language models conduct in-depth error analysis or 
+provide optimization suggestions based on the judgment servers' results. [Results] This study sampled 334 problems covering the entire 
+range of a first-year programming curriculum. It performed a quantitative accuracy analysis of the code generated by GLM4 and GPT4, 
+with both models showing excellent performance. Notably, when prompts included problem information, judging language standards, test 
+data, and server judgment results, GPT4 achieved an accuracy rate of 97.9%, which was slightly higher than that of GLM4. The paper also 
+discussed the potential risks of large language model misuse and measures in system design to mitigate these risks, ensuring that students 
+maintain their ability to think independently and innovate with AI assistance. In response to the profound impact of AI on higher education, 
+this research explored the establishment of a student-centered, capability-oriented multifaculture evaluation system in programming 
+courses supported by large language models. [Conclusions] This system shifts the focus from traditional outcome-based evaluations to 
+those that foster comprehensive skill and process development. Through real-time analysis, diagnostics, and optimization suggestions 
+provided by AI large language models, teaching effectiveness is significantly enhanced. Moreover, student interaction with the system is 
+strengthened, facilitating a deeper understanding of programming concepts and enhancing problem-solving skills. The integrated AI model 
+platform developed in this project effectively boosts students' programming skills and innovative thinking, promotes autonomous learning 
+capabilities, and confirms the value of AI models in programming education, providing new perspectives and strategies for the application 
+of AI in higher education technology. 
+Key words: large language models; programming experiment platform; program design; artificial intelligence 
+ 
+（编辑：张文杰） 
+
+
+========== FILE: references_参考文献/基于通用大语言模型的计算机系统创新实验设计_张金 (1).pdf (pages=9) ==========
+ 
+实  验  技  术  与  管  理 
+第41 卷  第10 期  2024 年10 月 
+ 
+Experimental Technology and Management 
+Vol.41  No.10  Oct. 2024 
+                                        
+收稿日期:  2024-08-09    修改日期:  2024-08-13 
+基金项目: 教育部高教司实验教学和教学实验室建设研究项目（SYJX2024-025）；天津市高等学校研究生教育改革研究计划项目-重点项目
+（TJYGZ53）；天津市普通高等学校本科教学改革与质量建设研究计划项目（B231005505） 
+作者简介: 张金（1979—），男，天津，博士，教授，主要研究方向为计算机体系结构、认知科学与脑数据处理、实验室建设与实验教学，
+zhangjin@nankai.edu.cn。 
+引文格式: 张金，宫晓利，高小鹏，等. 基于通用大语言模型的计算机系统创新实验设计[J]. 实验技术与管理, 2024, 41(10): 1-9. 
+Cite this article: ZHANG J, GONG X L, GAO X P, et al. Innovative experimental design of computer systems based on general large language 
+models[J]. Experimental Technology and Management, 2024, 41(10): 1-9. (in Chinese) 
+ 
+ISSN 1002-4956 
+CN11-2034/T 
+DOI: 10.16791/j.cnki.sjg.2024.10.001 
+特约专栏——大模型应用探索（Ⅱ） 
+编者按：本期专栏推出由南开大学、北京航空航天大学、东南大学专家撰写的文章——《基于通用大语言模型的
+计算机系统创新实验设计》，阐述基于大语言模型的计算机类课程实验教学的目标和框架设计，并以具体课程为例，
+阐述综合性创新实验的设计方法，以期为大模型技术在教学实践中的应用提供参考。 
+基于通用大语言模型的计算机系统创新实验设计 
+张  金1，宫晓利1，高小鹏2，段  峰3，熊宏齐4 
+（1. 南开大学  网络空间安全学院，天津  300071；2. 北京航空航天大学 计算机学院，北京  100191；
+3. 南开大学 天津市介入脑机与智能康复重点实验室，天津  300071； 
+4. 东南大学 物理学院，江苏 南京  211189） 
+摘  要：大语言模型等颠覆性智能技术正在推进新质生产力的快速发展和形成，对传统知识驱
+动型教学模式产生了极大冲击，也对高校人才培养的能力目标提出了新的挑战。该文首先在分
+析实验教学培养学生新型创新能力的基础上，提出“既定方向、多元路径、弹性目标”的实验
+课程设计框架，以及培养“智能协同创新”能力的综合性实验设计方法；然后以计算机组成原
+理课程为例，详述了综合性创新实验案例的设计方法；最后结合实验课程实施情况，分析了学
+生能力培养成效。 
+关键词：大语言模型；实验设计；计算机系统；智能协同；系统能力 
+中图分类号：G642.4；TP302     文献标识码：A     文章编号：1002-4956(2024)10-0001-09 
+人工智能技术对高等教育产生了极大的影响，教
+育部2018 年工作要点提出，启动“人工智能+教师队
+伍建设”行动计划；同年，教育部印发的《高等学校
+人工智能创新行动计划》提出，到2020 年，基本完成
+适应新一代人工智能发展的高校科技创新体系和学科
+体系的优化布局，重点任务包括推动高校人工智能领
+域科技成果转化与示范应用；2018 年，教育部决定在
+宁夏回族自治区部分院校和北京外国语大学开展人工
+智能助推教师队伍建设行动试点工作，探索人工智能
+助推教师管理优化、助推教师教育改革、助推教育教
+学创新、助推教育精准扶贫的新路径。 
+2022 年，以大语言模型为代表的生成式智能涌
+现，社会整体生产力在人工智能的赋能下正以前所未
+有的速度发展。2023 年，人工智能的训练成本下降了
+4 万倍、综合能力提高了60 万倍，各种整合人工智能
+的辅助系统已经让知识驱动型工作者的工作效率提升
+了9 倍[1]。如同蒸汽机、电力等划时代创新技术，大
+语言模型正在改变人类社会的生产生活方式。时代的
+巨变给高校人才培养工作提出了更高的要求。 
+教育部高度重视大语言模型等新一代人工智能技
+术的发展，教育部部长怀进鹏在2024 世界数字教育大
+会上发表了“携手推动数字教育应用、共享与创新”
+的主旨演讲，提出促进智能技术与教育教学（AI for 
+education）、科学研究（AI for science）、社会（AI for 
+society)的深度融合，推动“以智助学、以智助教、以
+智助管、以智助研”，坚持“数字向善”。2024 年3 月，
+教育部启动实施“LEAD 行动（人工智能大模型应用
+示范行动）”，并推动师生一同创造教育领域的专有大
+模型“GEST”，其中，G 是Generative 生成式，E 是
+Education 教育，S 是Special 专用，T 是Transformer
+2 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+网络模型。2024 年4 月，教育部公布了首批18 个“人
+工智能+高等教育”应用场景典型案例，作为相关工
+作探索实践的参考和借鉴。 
+从宏观前景展望到具体实现方法，国内研究者从
+不同角度展开了人工智能赋能高等教育的相关研究。
+王繁等基于人工智能在高等教育数字化中的机遇和挑
+战，提出了宏观性的展望和分析[2]。王烽等从基础环
+境、运行机制、治理体系等方面提出了更为具体的设
+想和思路[3]。张男星等从技术变革与高等教育的关系
+角度，探讨了智能化过程可能带来的价值和风险[4]。孔
+祥维等聚焦“新商科”，开展数智化本科课程研究[5]。
+姚诚伟等尝试利用大语言模型改造文科实验教学方法[6]。
+张金等从计算机系统能力培养的角度，提出大语言模
+型背景下重塑实验教学能力目标[7]。翟洁等尝试将大
+语言模型引入教学评价工作[8]。许晓飞等利用人工智
+能构造创新实践教学平台，通过学科的交叉融合帮助
+学生了解人工智能技术应用进展[9]。苏嘉红等分析生
+成式智能对教育影响和应用[10]。 
+生成式智能技术的发展和对教育的影响也是国外
+学者高度关注的问题[11-12]，既有学者思考生成式智能
+可能带来的风险[13]，也有学者在探索将大语言模型与
+实验教学融合[14]。美国针对人工智能技术在教育教学
+中的赋能应用，给出了“全新互动”等6 种结合方式，
+并提出了“可信与安全”等7 条行动建议[15]。英国从
+教师和教育技术专家的角度，分别给出了相应的倡议
+与探讨[16]。澳大利亚针对生成式人工智能技术在高校
+教学中的应用，发布了覆盖教学与学习、人类与社会
+福祉、透明度、公平性、问责制和持续改进等6 个方
+面的核心原则和指导性声明[17]。 
+本文结合当前大语言模型的技术特点和应用方
+式，探讨了大语言模型时代要求学生应具备的实验实
+践能力，以及相应培养目标的制定思路。 
+1  大语言模型带来的能力培养需求变化与挑战 
+1.1  人工智能带来的产业人才需求变化 
+人工智能技术对社会各个产业产生了颠覆性的影
+响，知识驱动型工作面临着极大的冲击和挑战，如《北
+京航空航天大学计算机科学与技术专业分析报告》显
+示了近年来企业对计算机专业人才能力的需求急剧变
+化（表1）[18]。各种以知识和浅层经验驱动的工作岗
+位需求下降态势显著，而强调设计等创新性能力要求
+的岗位需求则呈现明显的上升趋势。 
+自2023 年大语言模型等生成式智能工具产业化
+以来，人工智能的训练成本和推理成本分别以每年
+75%和86%的幅度急剧下降，ARK 基金会预测2030 
+表1  计算机专业就业岗位部分技能需求变化     % 
+专业知识与技能 
+均值 
+2018 年 2022 年
+涨跌
+Java 语言开发 
+28.20 
+31.10 
+21.00 
+–10.10
+数据库应用 
+34.50 
+37.40 
+28.10 
+–9.30
+Web 前端技术 
+17.70 
+20.30 
+12.70 
+–7.50
+网页制作 
+15.00 
+17.60 
+10.10 
+–7.50
+Java Web 开发技术 
+15.10 
+17.50 
+10.20 
+–7.30
+移动安卓应用开发 
+11.10 
+13.40 
+6.70 
+–6.70
+Java Script 开发 
+13.50 
+15.80 
+9.20 
+–6.60
+移动端框架应用 
+11.30 
+12.50 
+8.70 
+–3.80
+大数据分析与处理 
+10.20 
+11.10 
+7.30 
+–3.80
+分布式系统与云计算 
+10.20 
+11.00 
+7.50 
+–3.50
+统计分析 
+12.50 
+12.90 
+10.70 
+–2.30
+Oracle 数据库应用 
+13.00 
+13.60 
+11.40 
+–2.20
+Linux 系统开发应用技术 
+20.70 
+21.40 
+19.30 
+–2.10
+专业科研 
+14.30 
+15.00 
+13.00 
+–2.00
+Python 语言开发 
+12.80 
+13.0 
+11.40 
+–1.60
+数据可视化技术 
+13.80 
+13.90 
+12.40 
+–1.50
+算法设计与分析 
+12.60 
+13.20 
+11.70 
+–1.50
+计算机视觉应用 
+3.83 
+3.43 
+5.01 
+1.58
+C 语言开发 
+23.88 
+23.37 
+27.79 
+4.42
+计算机控制技术 
+5.98 
+4.47 
+10.39 
+5.92
+嵌入式系统开发 
+6.71 
+5.15 
+11.48 
+6.33
+计算机硬件开发 
+9.01 
+6.87 
+15.32 
+8.45
+自动机与自动线运行与维护
+16.26 
+13.45 
+23.56 
+10.11
+注：数值为每个能力在100 个岗位描述中出现的比例。 
+ 
+年前后，人工智能会将大多数知识驱动型工作变成自
+动化，从而大幅提高生产力[1]。目前产业对人才的需
+求正在发生剧烈变化，由于大语言模型本质上是基于
+超大规模数据训练的概率计算机，因此，各种可以将
+经验以数据化方式进行表述的工作，在理论上都可以
+被其接管。 
+在人工智能技术的推动下，社会对产业人才的需
+求正在发生巨大变化。与此同时，普通高等学校以知
+识和浅层技能为主要能力培养目标的人才培养方案、课
+程体系和实验教学体系面临着巨大的挑战。 
+1.2  大语言模型时代高校实验能力培养目标的变革 
+实验教学是培养专业实践能力的关键途径，承担
+着将理论知识转化为实践能力的重要职责。产业需要
+的是具备解决真实、复杂问题能力的人才，故高校人
+才培养目标的调整必定首先源于实验教学的变革。在
+新质生产力时代，实验能力培养目标与社会对人才的
+能力需求应趋于一致。 
+以大语言模型为代表的生成式智能致使知识和浅
+层经验的重要性日益降低，因此在实验教学中必然需
+要对其比例予以下调。2023 年，教育部开展了国家级
+ 
+张  金，等：基于通用大语言模型的计算机系统创新实验设计 
+3 
+ 
+实验教学示范中心阶段性总结工作，将实验分为基础
+实验、专业实验、综合实验和创新实验，综合创新性
+实验将成为未来实验教学设计的主要方向。 
+大语言模型等新一代人工智能技术重新界定了社
+会对人才的需求，高校实验教学的重要任务是重新探
+究和确立顺应此种需求的能力培养目标，设计更多的
+综合创新性实验，以抽象和还原真实、复杂问题的场
+景来达成能力培养的目标。 
+2  面向“智能协同创新”能力培养的综合性实
+验设计方法 
+2.1  大语言模型时代的“智能协同创新”能力 
+大语言模型使大多数基于经验的浅层技能型工作
+变为自动化。因此，未来多数产业中的工作场景都将
+依赖于人机协同作业来完成，即由具备响应能力的智
+能体与人配合完成工作。由此可见，如何在人工智能
+的辅助下更优地解决真实问题，将是未来相关从业者
+一项必备的关键能力。 
+由大数据训练而成的大语言模型在各类场景中的
+创新性仍显不足，难以完成那些缺乏较大规模数据支
+撑的创新性工作，即采用新的思路、机制、方法或者
+技术来高质量、高效能地解决问题。创新不单是新质
+生产力背景下最核心的人才能力要求，也将是未来产
+业最为急切的能力需求。因此，在当下的人才培养体
+系中，如何引导学生学会与大语言模型等智能体协作，
+共同实现创新，将成为一项重要的能力培养目标。 
+2.2  基于“智能协同创新”的能力培养目标设计思路 
+从专业设立、课程构建到实验设计，均需将“智
+能协同创新”这一能力与本专业的特性相结合，将其
+细化为具体的能力目标。在此进程中，应充分考量以
+下五个方面的因素。 
+（1）时代变革。在明确当前高等教育使命的基础
+上，结合高等教育的发展规律与时代的要求，细化并
+落实能力培养模板。如在能力设计中要体现“教育、
+科技、人才”三位一体的要求，充分考虑“科教融汇、
+产教融合”的需求等。 
+（2）产业前瞻。人才的培养输出最终要符合国家
+发展和产业实际需求。在生产力飞速发展的当下，必
+须前瞻性地研判技术发展的趋势，充分考量学生步入
+社会时产业的实际发展状况，避免在计算机教学中仍
+使用陈旧的软件工具或平台。 
+（3）专业特征。创新能力的细化要与学科和专业
+特征相融合，除了共性的方法论，还需要有与专业相
+结合的部分，如计算机系统的调试、移植等。 
+（4）人机差异。要充分认识大语言模型等智能体
+的“不能”，尤其是机理上决定的“不能”，这才是未
+来社会对人才最为迫切的需求，如面向某个垂直应用
+或者全新需求的计算机系统设计能力。 
+（5）科技伦理。科技伦理是开展科学研究、技术
+开发等科技活动所遵循的价值理念和行为规范，是促
+进科技事业健康发展的重要保障[19]。无论何时，科技
+向善都是需要坚守的原则，更是人工智能时代学生的
+必备素养。 
+2.3  面向真实问题的综合性创新实验设计框架 
+为了培养智能协同创新等大语言模型时代所要求
+的能力，实验教学势必将向面向真实问题的综合性创
+新实验转型。从实验过程和结果的视角进行观察，教
+学实验大致可以分为表2 中的4 种实验。 
+ 
+表2  教学实验分类 
+实验类型
+实验过
+程（技术
+路线）
+实验 
+结果 
+运用场景 
+确定性实验
+确定 
+确定 
+用以复现或者验证已有的结论
+命题类半开
+放实验 
+不确定 
+确定 
+用以考察和锻炼学生的设计和
+实践能力 
+实践性半开
+放实验 
+确定 
+不确定 
+适于考察和锻炼学生的实践操
+作技能 
+开放性实验
+不确定 
+不确定 
+适于于学生创新性训练项目 
+ 
+为了锻炼学生的创新能力，还原真实问题的复杂
+场景，命题类的半开放性实验和开放性实验是进行综
+合创新性实验的较优选择。本文提出“既定方向、多
+元路径、弹性目标”的综合性创新实验设计框架，如
+图1 所示。图中左侧为教师递进式研判和选型的设计
+工作，右侧为在大语言模型等智能体上开展验证的支
+撑性工作。 
+该框架于真实问题背景下，设定了一个清晰但富
+有弹性的目标，鼓励学生从不同角度出发，采用多元
+化的方法与途径来寻求解决方案。这种设计不但考验
+了学生的创新思维，还强化了他们面对不确定性与挑
+战时的适应能力。动态的结果评估机制确保实验过程
+的全面性与公正性，促进学生的进一步深入思考和持
+续改进。 
+在开展综合性实验设计之前，首先需明确在本次
+实验中计划锻炼和培养学生的何种能力，原则上这些
+能力均应在专业或者课程计划中予以设计和规范。 
+（1）真实问题选型。实验应源自真实的产业问题、
+科研问题或工程实践问题，并以该问题核心部分或者
+关键部分的解决作为实验活动的设计依据。该问题应
+具有一定的时效性，在激发学生兴趣的同时培养其对
+产业前沿的关注，这也是有效融入课程思政元素的途
+径。在问题选型中：一方面要确保该问题的解决需要 
+4 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+ 
+ 
+图1  实验设计框架 
+ 
+综合运用多种能力和多领域知识；另一方面，也要确
+保可以采用多种不同的技术路线来完成相关工作，以
+锻炼学生对问题的分析和解决能力。设计的实验命题
+应是大语言模型等智能体难以直接完成的，但可以从
+各种辅助性工作的形式协助和加速解决的任务。 
+（2）弹性目标确定。“弹性”指最终的结果性目
+标不是一个标准数值，而是一个合理的区间，以此激
+发学生的创新精神和挑战意识，促使其不断思考和调
+整自身方案，以追求更好的结果，甚至刷新纪录。最
+终的指标可以是功能性指标，也可以是技术性指标，
+但都应具备可量化的特性，同时都应具有连续性分布
+的特征，即具备可比较的特点。若指标存在多个维度，
+则应充分考量指标维度之间的关联性特征，如是否存
+在正交等问题。同时，大语言模型等智能体应具备配
+合优化相关指标的工作能力。 
+（3）技术路线验证。首先，确认基本环境能够支
+撑该实验的完成，即具备相关的场地、设备、耗材等
+条件；其次，设计实验完成的标准路径，并充分考虑
+实验可能存在的多种技术路线，给出中间的里程碑节
+点；同时，提供里程碑节点阶段性产出交付成果，以
+防意外导致实验无法继续进行；最后，在大语言模型
+等智能体的配合下，开展验证性实验，并给出各个节
+点和总体的参考性指标。 
+（4）实验指南撰写。首先，注重实验方案设计背
+景的阐述和说明，强化工程、产业、社会等方面的实
+际需求，帮助学生养成关心政治、关心产业发展、关
+心前沿技术、关心国计民生的习惯；其次，在给出建
+议路线的同时，适当对任务各环节的划分进行说明，
+尤其是里程碑式节点的作用和建议指标；最后，充分
+研判实验中可能出现的技术安全问题和科技伦理问
+题，通过大语言模型等智能体进行验证后在指南中予
+以阐释。 
+3  综合性创新实验设计与运行实例 
+3.1  运行实施课程简介 
+“计算机组成原理”是计算机系统类课程中的标
+志性课程，同时也是教育部“101 计划”下计算机科
+学专业的12 门核心课程之一，在计算机专业人才的培
+养体系中占据着重要地位。它与数据结构、操作系统、
+计算机网络等课程一并被纳入全国硕士研究生招生考
+试的计算机学科专业基础综合考试大纲。 
+南开大学面向二年级本科生开设计算机组成原理
+ 
+张  金，等：基于通用大语言模型的计算机系统创新实验设计 
+5 
+ 
+课程综合创新实验，该课程是首批国家级一流本科课
+程（线下）、天津市高校课程思政示范课程、天津市创
+新创业示范课程，也是教育部-华为智能基座项目的入
+选课程。该课程的迭代建设周期较长，建设基础良好。
+该课程以“能力培养”为目标、以“迭代设计”为引
+领，通过对计算机系统评价、指令设计、数据通路设
+计、流水线设计、存储系统设计等的学习，培养学生
+的创新能力、自主学习能力和解决真实复杂问题能力，
+具备了“智能协同”类综合创新实验的实施条件。 
+3.2  实验设计与思路 
+3.2.1  能力培养目标设计 
+计算机系统能力是指能够运用计算机系统层面的
+基本原理构建以计算机技术为核心的应用系统，进而
+解决实际问题的能力。这不仅是国际计算机科学课程
+大纲（CS2013）中的设计与表述，也是教育部计算机
+教学指导委员会重点支持的能力培养方向。结合教育
+心理学家本杰明·布鲁姆的六级认知层次思维模型
+（记忆、理解、应用、分析、评价、创新），在计算
+机组成原理课程中，把“智能协同创新能力”界定为
+分析、评价和创新3 个能力层次，解析为如表 3 所
+示的10 项能力[7]。 
+ 
+表3  计算机系统方向能力细化表 
+学习
+能力
+层级 
+计算机
+系统 
+能力 
+说明 
+分析 
+迁移 
+比对分析不同系统，将现有任务向其他平台迁移
+分解 
+分析将现有系统或工作分解为多个子系统 
+纠错 
+根据迹象、反馈等信息分析，查找、定位和修正
+错误 
+抽象 
+分析复杂系统，将其分层级、分类别描述 
+评价 
+评测 
+从多角度对某系统或任务进行量化评价 
+遴选 
+根据某种原则在多种路线或系统中进行选择 
+重构 
+采用不同的方法或路径实现原有系统 
+创新 
+集成 
+连接多个系统使之可以顺利工作 
+优化 
+根据目标改造现有系统，提升效能 
+设计 
+根据目标要求创建新的系统 
+ 
+3.2.2  实验选题设计 
+依据“既定方向、多元路径、弹性目标”的原则与
+思路，选取了常规大语言模型中的核心工作之一——
+“注意力分数”计算任务的实现与优化，作为本次实
+验的选题。该选题具有显著的时代特征，契合“四个
+面向”的要求，容易引发学生的兴趣。为确保梯度，
+将整体任务划分为“实现”和“优化”两个部分。其
+中，“实现”部分的核心任务是培养学生的“抽象”和
+“分解”能力，即能从真实问题中快速抽象出关键的
+技术环节与核心工作，在此实例中需将核心工作确定
+为实现张量乘法的工作。而“优化”部分则用于锻炼
+表3 中其他能力。学生能够根据自己的知识和能力结
+构选择不同的硬件平台、语言来构建不同的技术路线，
+选择不同的优化方法来最终优化目标，从而达成以学
+习为中心或以学生为中心的个性化教学目标。 
+3.2.3  弹性目标设计 
+依照设计初衷，本次实例的弹性目标选定为“时
+间指标”，即优化后程序的最短运行时间，在实验指南
+中给出了“一切为了时间”的设计要求。不同路线、
+不同平台、不同方法会产生不同的效果，这种跨平台、
+跨语言、跨方法乃至跨课程知识体系的半开放实验方
+式，对于学生自主学习能力和解决真实复杂问题能力
+的培养有很大的促进作用。 
+同理，亦可以将空间指标选为优化目标，如结合
+FPGA 设计的时空统一优化，特别是在恰当的硬件配
+合下，还能够将功率作为优化目标，甚至可将成本因
+素纳入优化目标。 
+3.2.4  技术路线设计 
+为了综合锻炼培养目标的10 项能力，实验被划分
+为代码生成（即实现）、性能优化和任务迁移3 个部分。 
+1）代码生成。 
+学生需要依据实验指南中的问题背景抽象出张量
+乘法，特别是具体的张量维度，此部分重点是培养学
+生的抽象能力。此时，可配合大语言模型来了解问题
+背景知识，以确定各种参数，并且需以报告文档的形式
+说明抽象、思考和确定量化参数的缘由（图2）。 
+在对照实验标准要求（即各种参数配置）的基础
+上，学生能够独立编写代码或者在大语言模型辅助下
+编写代码，此代码需经过人工和大语言模型的共同评
+估，评估主要聚焦于代码规范性和接口检查方面。同
+时，可自主选择代码语言和硬件平台，实验提供了 
+x86、MIPS 和ARM 硬件平台，其中ARM 平台作为
+最终的移植目标平台。 
+2）性能优化。 
+本次实验设定的优化要求为时间优化，学生自行
+设计路线与方法实施优化，既可以对教材提供的方法
+加以优化，也可通过网络或者大语言模型检索相关办
+法，甚至可以直接让大语言模型协助修改来增进性能。
+但在此之前，学生需要与大模型协作，自行构筑基本
+的性能评价模式和方法，能对未来的改进效能予以评
+估。同时，在高级语言层面完成优化后，仍需在汇编
+语言等底层代码层面再度进行优化，并评估相应成效，
+撰写相关报告（图3）。 
+3）任务迁移。 
+学生需要达成一次从底层代码向ARM 平台移植 
+6 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+ 
+ 
+注：红色表示实验指南中会给出的内容；蓝色表示大语言模型可以配合的工作；绿色表示需要交付的工作文档。 
+图2  代码生成实验技术路线示意图 
+ 
+ 
+ 
+注：红色表示实验指南中会给出的内容；蓝色表示大语言模型可以配合的工作；绿色表示需要交付的工作文档。 
+图3  性能优化实验技术路线示意图 
+ 
+的工作，并在移植后再次与大语言模型合作，保障移
+植后的代码能够平稳运作，而且在性能上臻于最优。 
+随堂实验完结之后，要求学生依据本次实验完成
+一次自主创新的实验设计，以提升自身的能力短板。
+在设计实验的过程中能够运用大语言模型进行辅助和
+协同工作，完成场景构建、实验指南撰写等（图4）。 
+3.2.5  实验指南设计 
+本次实验未涉及技术安全的相关内容，主要在实
+验环境、实验条件、实验提交、技术路线关键节点选
+择等方面予以一定的提示。 
+ 
+张  金，等：基于通用大语言模型的计算机系统创新实验设计 
+7 
+ 
+ 
+ 
+注：红色表示实验指南中会给出的内容；蓝色表示大语言模型可以配合的工作；绿色表示需要交付的工作文档。 
+图4  任务迁移实验技术路线示意图 
+ 
+在实验环境方面，介绍了虚拟机系统支撑不同硬
+件平台的情形，并给出了使用方法与权限说明。在实
+验条件方面，本次实验未限定大语言模型工具，并且
+在指南中鼓励学生同时选取多种大模型进行对比，或
+组合开展协同工作，以培养和锻炼学生评价与遴选的
+能力。在实验提交方面，设定提交的格式与位置。 
+3.2.6  能力训练设计 
+在本次综合性实验中，针对“智能协同创新能力”
+衍生出的10 项能力，均有相应的实验环节和任务设
+计，具体如表4 所示。 
+ 
+表4  实验环节设计与能力对应表 
+学习能
+力层级 
+计算机系
+统能力 
+对应实验环节与设计 
+对应任务
+分析 
+迁移 
+将现有工作向ARM 等平台迁移 
+任务迁移
+分解 
+问题导出为张量乘法 
+代码生成
+纠错 
+实验调试 
+各个任务
+抽象 
+问题导出为张量乘法 
+代码生成
+评价 
+评测 
+建立性能评价方法 
+性能优化
+遴选 
+根据大语言模型建议选择优化方案 各个任务
+重构 
+面向移植平台的优化 
+任务迁移
+创新 
+集成 
+提交接口与代码集成 
+各个任务
+优化 
+性能优化、任务迁移 
+各个任务
+设计 
+自主创新实验设计 
+任务迁移
+ 
+4  实验运行实施与成效分析 
+4.1  实验组织与运行情况 
+实验于南开大学2023—2024 学年第二学期的“计
+算机组成原理”课程中予以实施，参与人员为2022
+级计算机科学与技术专业全体本科生，共计141 人。 
+实验分两部分展开：课内3 课时的独立实验要求
+学生以个人为单位完成代码生成和性能优化部分的工
+作；课后则以小组为单位完成任务迁移的相关工作。 
+实验场所为南开大学计算机实验教学中心，实验
+条件包括各种可直接访问的开放式大模型，以及x86、
+MPS 和ARM 平台。其中，MIPS 平台以虚拟机的形式
+提供，ARM 平台以物理服务器远程连接的方式供应。 
+4.2  实验数据分析 
+参与实验的141 名学生皆提交了实验报告，其中
+135 人完成了整个实验流程，整体完成率达95.7%，
+表明实验整体设计契合学生能力要求。在实验过程中，
+学生们选用的大语言模型多为“通义千问”和“文心
+一言”，另有其他3 种大语言模型被选用，这表明实验
+的开放性获得了良好保障，也证实目前各类大语言模
+型在辅助系统优化方面不存在显著差异。 
+在实验平台的选择方面，学生主要运用了x86 和
+ARM 两种架构的计算机平台。绝大多数学生主要采用 
+C/C++语言进行实验，这说明C/C++语言在实现效率
+方面的能力依旧出色，并获得了学生的认同。同时，
+鉴于Python 在数据处理和快速开发方面的优势，亦有
+部分学生选择使用Python。 
+实验结果以小组为单位提交，具体分布如图5所示。
+由图可知，在大模型的协助下，95.7%的小组能够顺
+利完成迁移和改进的实验任务。其中，近75%的小组
+能够使程序在25 s 内完成运算，约17%的小组能够对
+8 
+ 
+实  验  技  术  与  管  理 
+ 
+ 
+程序进行更深入的优化，使程序执行时间降低至10 s
+以下。程序执行时间基本呈双峰分布，符合实验设计
+初衷，实现了有效的分级评价。 
+ 
+ 
+ 
+图5  实验性能优化时间分布 
+ 
+4.3  实验成效分析 
+通过分析实验报告，学生在编写和优化矩阵乘法
+代码的过程中，遇到了各种编程问题与性能瓶颈。在
+大语言模型的协助下，他们于实践中学会了解决这些
+问题，不但加深了计算机基础知识的学习，还对“智
+能协作”有了更为深刻的理解与体会。通过与智能系
+统的协作，学生感受到智能技术对学习和工作的助力，
+并对大模型在未来科技中的应用有了更深入的认知。 
+在达成基础实验要求的基础上，学生达到了课程
+的基本教学目标，还展现出对知识探索的热忱和对技
+术应用的深刻领会。他们通过自主创新实验设计，进
+一步深化对智能协作能力的理解。根据学生实验的情
+况，自主创新设计主要涵盖以下两个大类。 
+第一类是对实验背景的创新。学生们参照实验指
+导书，将实验背景迁移至不同的领域。例如：有的学
+生选取cache 和流水线等体系结构机制，结合大模型
+探究了这些机制在不同应用场景下的性能表现和优化
+策略；有的学生聚焦于算法层面，如高斯消元和傅里
+叶变换等经典算法，通过实验来验证算法的效率和适
+用性，甚至尝试对这些算法进行改进或优化。 
+第二类是对实验步骤的创新。一些学生不满足于
+现有的实验框架，他们提出了额外的实验步骤，以期
+望进行更深层次的学习和理解。如学生将实验迁移至 
+FPGA（现场可编程门阵列）上，这不仅要求他们对
+硬件编程有深入的认识，还需要他们掌握如何在硬件
+层面实现和优化算法。 
+中国教育报在线报道了相关工作[20]。此外，在实
+验后的访谈环节中，所有的学生均提及了学习路径的
+问题，即从“问学于教材向问学于智能的转变”，这是
+教学改革的重要方向，即大语言模型时代的自主学习
+能力培养。 
+5  结语 
+大语言模型等人工智能技术作为新质生产力论述
+中所提及的颠覆性、革命性技术，正引发着各个行业
+的变革，影响了社会对人才能力的需求。鉴于此，高
+等教育的改革不但需要探索人工智能技术在助学、助
+教、助管、助研等方面的应用，还应当重视新型人才
+能力的培养。本文提出了“智能协同创新”的能力培
+养目标，在此基础之上设计了相关的综合性实验教学
+方法，并将其应用于实践教学当中。 
+在新质生产力时代，高等教育的教学改革研究务
+必要具备前瞻性，着眼于未来产业的发展趋向、真实
+的业务场景以及能力需求的变化。除了本文重点研讨
+的创新能力培养之外，自主学习能力的培养同样是契
+合新质生产力发展需求的一项重要任务，将成为未来
+实验教育教学改革的重要研究方向之一。 
+参考文献 (References) 
+[1] 
+ARK Investment Management LLC. Big ideas 2024[Z/OL]. (2024- 
+01-31)[2024-08-01]. https://www.ark-invest.com/big-ideas-2024. 
+[2] 
+王繁，刘永强，周天华. 人工智能引领高等教育数字化创新
+发展[J]. 中国高等教育，2024（增刊1）：9–12. 
+WANG F, LIU Y Q, ZHOU T H. Artificial intelligence leads the 
+digital innovation and development in higher education[J]. 
+China Higher Education, 2024(S1): 9–12. (in Chinese) 
+[3] 
+王烽，王繁. 无限的可能：世界高等教育数字化发展报告
+（2023）[J]. 中国高等教育，2024（增刊1）：13–18. 
+WANG F, WANG F. Infinite possibilities: Report on the digital 
+development of global higher education (2023)[J]. China Higher 
+Education, 2024(S1): 13–18. (in Chinese) 
+[4] 
+张男星，王新凤. 技术变革与高等教育的互构路径及其反思
+[J]. 高等工程教育研究，2023(4): 110–115. 
+ZHANG N X, WANG X F. The mutual construction path and 
+reflection of technological change and higher education[J]. 
+Research on Higher Engineering Education, 2023(4): 110–115. 
+(in Chinese) 
+[5] 
+孔祥维，王明征，陈熹. 数字经济下“新商科”数智化本科
+课程建设的实践与探索[J]. 中国大学教学，2022(8): 31–36. 
+KONG X W, WANG M Z, CHEN X. The practice and 
+exploration of digitally intelligent undergraduate curriculum 
+construction for ‘new business studies’ under the digital economy 
+[J]. China University Teaching, 2022(8): 31–36. (in Chinese) 
+[6] 
+姚诚伟，陈春晖，陈梅. 面向文科学生的AI 自然语言生成实
+验与教学设计[J]. 实验技术与管理，2024, 41(4): 177–184. 
+YAO C W, CHEN C H, CHEN M. Artificial intelligence natural 
+language generation experiment and instruction design for the 
+liberal arts students[J]. Experimental Technology & Management, 
+2024, 41(4): 177–184. (in Chinese) 
+[7] 
+张金，宫晓利，高小鹏. 面向大模型时代计算机系统能力培养的
+智能协同教学实验设计[J]. 实验室科学，2024, 27(2): 21–23. 
+ZHANG J, GONG X L, GAO X P. Intelligent collaborative 
+teaching experiment design for cultivating computer system 
+capabilities in the era of large models[J]. Laboratory Science, 
+2024, 27(2): 21–23. (in Chinese) 
+[8] 
+翟洁，李艳豪，孟天鑫，等. 基于决策树和大模型的个性化
+计算机实验教学探索与实践[J]. 实验技术与管理，2023, 
+40(12): 8–15. 
+ZHAI J, LI Y H, MENG T X, et al. Exploration and practice of 
+personalized computer laboratory teaching based on decision 
+trees and large models[J]. Experimental Technology & Management, 
+ 
+张  金，等：基于通用大语言模型的计算机系统创新实验设计 
+9 
+ 
+2023, 40(12): 8–15. (in Chinese) 
+[9] 
+许晓飞，米洁，陈雯柏. 人工智能视域下协同过滤推荐系统
+的工程训练平台[J]. 实验技术与管理，2019, 36(4): 109–113. 
+XU X F, MI J, CHEN W B. Platform of engineering training for 
+collaborative filtering recommendation system based on artificial 
+intelligence teaching application of graphical programming project 
+for embedded artificial intelligence and internet of things[J]. 
+Experimental Technology and Management, 2019, 36(4): 109– 
+113. (in Chinese) 
+[10] SU J, YANG W. Unlocking the power of ChatGPT: A framework 
+for applying generative AI in education[J]. ECNU Review of 
+Education, 2023, 6(3): 355–366. 
+[11] BAIDOO-ANU D, ANSAH L O. Education in the era of generative 
+artificial intelligence(AI): Understanding the potential benefits 
+of ChatGPT in promoting teaching and learning[J]. Journal of 
+AI, 2023, 7(1): 52–62. 
+[12] GEESJE V D B, ELIZE D P. ChatGPT and generative AI: 
+Possibilities for its contribution to lesson planning, critical thinking 
+and openness in teacher education[J]. Education Sciences, 2023, 
+13(10): 1–12. 
+[13] JO A. The promise and peril of generative AI[J]. Nature, 2023, 
+614(1): 214–216. 
+[14] SINGH H, TAYARANI-NAJARAN M H, YAQOOB M. Exploring 
+computer science students’ perception of ChatGPT in higher 
+education: A descriptive and correlation study[J]. Education 
+Sciences, 2023, 13(9): 924. 
+[15] Office of Educational Technology, Department of Education, 
+USA. Artificial intelligence and the future of teaching and 
+learning: Insights and recommendations[Z/OL]. (2023-05-01) 
+[2024-08-01]. https://tech.ed.gov/ai-future-of-teaching-and-learning/. 
+[16] UK Government. Generative artificial intelligence (AI) in 
+education[Z/OL]. (2023-10-26) [2024-08-01]. https://www.gov.uk/ 
+government/publications/generative-artificial-intelligence-in-ed
+ucation. 
+[17] Department of Education, Australian Government. Australian 
+framework for generative artificial intelligence (AI) in schools 
+[Z/OL]. (2023-11-17)[2024-08-01]. https://www.education.gov.au/ 
+schooling/resources/australian-framework-generative-artificial-i
+ntelligence-ai-schools. 
+[18] 北京航空航天大学计算机学院. 北京航空航天大学计算机科
+学与技术专业分析报告[R]. 2022. 
+School of Computer Science and Engineering, Beihang University. 
+Analysis report on computer science and technology specialty 
+of Beihang University[R]. 2022. (in Chinese) 
+[19] 中共中央办公厅 国务院办公厅印发《关于加强科技伦理治理
+的意见》[Z/OL]. (2022-03-20)[2024-08-01]. https://www.gov.cn/ 
+zhengce/2022-03/20/content_5680105.html. 
+The General Office of the Communist Party of China Central 
+Committee and the General Office of the State Council issued 
+“Opinions on Strengthening the Governance of Scientific and 
+Technological Ethics”[Z/OL]. (2022-03-20)[2024-08-01]. https://www. 
+gov.cn/zhengce/2022-03/20/content_5680105.html. (in Chinese) 
+[20] 陈欣然. 南开大学：学生与大模型一起做实验[Z/OL]. (2024- 
+07-01) [2024-08-01]. http://www.jyb.cn/rmtzcg/xwy/wzxw/202407/ 
+t20240701_2111216592.html. 
+CHEN X R. Nankai University: Students conduct experiments 
+with large models.[Z/OL]. (2024-07-01)[2024-08-01]. http://www.jyb.cn/ 
+rmtzcg/xwy/wzxw/202407/t20240701_2111216592.html. (in Chinese) 
+Innovative experimental design of computer systems based  
+on general large language models 
+ZHANG Jin1, GONG Xiaoli1, GAO Xiaopeng2, DUAN Feng3, XIONG Hongqi4 
+(1. College of Cyber Science, Nankai University, Tianjin 300071, China; 2. School of Computer Science and Engineering, Beihang  
+University, Beijing 100191, China; 3. Tianjin Key Laboratory of Interventional Brain-Computer Interface and Intelligent  
+Rehabilitation, Nankai University, Tianjin 300071, China; 4. School of Physics, Southeast University, Nanjing 211189, China) 
+Abstract: [Objective] Disruptive intelligent technologies, such as large language models, are rapidly advancing and reshaping productivity, 
+posing challenges to traditional knowledge-driven teaching models and setting new expectations for talent cultivation in higher education. 
+Integrating these large language models with existing course content and designing new experiments to achieve talent cultivation goals in 
+the intelligent era is crucial. This involves improving students’ digital literacy and training various abilities. [Methods] To address these 
+challenges, this study focuses on talent cultivation ability goals in the context of new productivity. The study analyzes the technical 
+characteristics and applications of current large language models, explores the practical skills that students need, and sets corresponding 
+cultivation goals. This study introduces the concept of “intelligent collaborative innovation ability,” which involves cultivating students’ 
+innovation skills using artificial intelligence technologies such as large language models. This study discusses how to internalize this 
+ability across different majors and proposes an innovative experimental design method characterized by “predetermined direction, diverse 
+paths, and dynamic results.” This method involves setting clear yet flexible goals for real engineering problems and encouraging students 
+to seek solutions from various perspectives using diverse methods. This design tests students’ innovative thinking and strengthens their 
+adaptability to uncertainties and challenges. A dynamic result evaluation mechanism ensures comprehensive and fair assessment, 
+promoting deeper thinking and continuous improvement. [Results] To address these challenges, this study begins with a focus on talent 
+cultivation in the era of new productivity. The study analyzes the technical characteristics and applications of current large language 
+models, explores the practical skills that students need, and sets corresponding cultivation goals. This study introduces the concept of 
+“intelligent collaborative innovation ability,” which involves cultivating students’ innovation skills using artificial intelligence technologies 
+such as large language models. This study discusses how to internalize this ability across different majors and proposes an innovative 
+experimental design method characterized by “predetermined direction, diverse paths, and dynamic results.” This method involves setting 
+clear yet flexible goals for engineering problems and encouraging students to seek solutions from various perspectives using diverse 
+methods. This design tests students’ innovative thinking and strengthens their adaptability to uncertainties and challenges. A dynamic 
+result evaluation mechanism ensures comprehensive and fair assessment, promoting deeper thinking and continuous improvement. 
+[Conclusions] The study can transform teaching methods to focus on students and learning, effectively cultivating innovation and 
+autonomous learning abilities. This method allows for personalized cultivation and a hierarchical evaluation. The proposed ability 
+cultivation direction and experimental design method can serve as a reference model for innovative teaching practices across various 
+disciplines when integrated with large language models. 
+Key words: large language model; experimental design; computer system; intelligent collaboration; system capacity 
+（编辑：孙浩） 
+
+
+========== FILE: references_参考文献/新工科背景下“解决复杂工程问题”能力培养研究——以信息安全专业综合实习为例_向尕.pdf (pages=8) ==========
+第21卷第9期
+2022年9月
+Vol. 21 No. 9
+Sept. 2022
+软件导刊
+Software Guide
+新工科背景下“解决复杂工程问题”能力
+培养研究
+——以信息安全专业综合实习为例
+向
+尕，张仰森，李
+军，吕金娜
+（北京信息科技大学信息管理学院，北京100192）
+摘
+要：以新工科背景下工程教育认证中解决复杂工程问题能力培养为研究目标，并以信息安全专业实习实践教学
+为例，分析目前存在的问题与不足，提出基于案例仿真的复杂工程问题能力提升教改方法，并结合敏捷开发的Scrum
+模式进行项目实践教学，指出解决复杂工程问题能力培养中意志品质及核心素养的重要性，并建立相应的训练机制。
+以综合实习实践教学过程和效果反馈为例，分析该方法的实施效果，为培养学生的复杂工程问题解决能力提供参考。
+关键词：复杂工程问题；综合实习；Scrum；核心素养
+DOI：10. 11907/rjdk. 221711
+开放科学（资源服务）标识码（OSID）：
+中图分类号：G642
+文献标识码：A
+文章编号：1672-7800（2022）009-0211-08
+Research on the Ability Training of "Solving Complex Engineering
+Problems" Under the Background of New Engineering
+——Taking the Comprehensive Practice of Information Security as an Example
+XIANG Ga，ZHANG Yang-sen，LI Jun，LYU Jin-na
+（School of Information Management，Beijing Information Science and Technology University，Beijing 100192，China）
+Abstract：Take the ability training of solving complex engineering problems in the background of new engineering for education certification
+as research objectives，it is proposed that teaching reform method for improving the ability to solve complex engineering problems based on
+case simulation to solve the issues existing in current comprehensive practice of information security course which is chosen as an example. At
+the same time，agile scrum is combined into the comprehensive practice teaching. Corresponding training mechanism is designed to strengthen
+the training of core will quality which is necessary for complex engineering problems solving. From the teaching results and student feedback，
+it shows that the method is effective which can provide reference for complex engineering problem solving ability training.
+Key Words：complex engineering problems；comprehensive practice；Scrum；core accomplishment
+0
+引言
+2016 年6 月2 日，中国顺利成为《华盛顿协议》正式会
+员，这是国际上对我国工程教育质量的认可，标志着我国
+工程教育又迈出了重大步伐，从国际高等教育发展趋势的
+跟随者转向领跑者［1］。为提高相关工程技术人才进入工
+业界的从业预备教育质量，很多学校都开展了工程教育专
+业认证工作。截至2020 年底，全国共有257 所普通高等学
+校1 600 个专业通过了工程教育认证［2］。在工程教育本科
+收稿日期：2022-07-01
+基金项目：北京信息科技大学2021年度高教研究课题（2021GJYB30）；北京信息科技大学校级重点教改项目（2021JGZD07）；国家自然
+科学基金项目（U1936111）；北京市高等教育学会一般课题（YB202191）；北京信息科技大学校级教改项目（2022JGYB31）
+作者简介：向尕（1975-），女，博士，CCF会员，北京信息科技大学信息管理学院讲师，研究方向为面向产出的教学改革、信息安全、自然
+语言处理；张仰森（1962-），男，博士，CCF杰出会员，北京信息科技大学信息管理学院教授、博士生导师，研究方向为中文信
+息处理、人工智能；李军（1983-），男，博士，CCF 会员，北京信息科技大学信息管理学院副教授、硕士生导师，研究方向为网
+络安全、智能信息系统；吕金娜（1981-），女，博士，CCF会员，北京信息科技大学信息管理学院讲师，研究方向为智能信息处
+理、多媒体分析。本文通讯作者：向尕。
+2022 年
+软件导刊
+专业认证中，解决“复杂工程问题”是其区别于其他类型工
+程教育认证的特征，也是我国高等院校本科工程专业达成
+工程教育认证要求的重点和难点［1］。
+工程教育认证引领培养高水平的工程技术人才。在
+工程教育认证中，从毕业要求到各专业课程目标，以面向
+产出为导向，着力培养“解决复杂工程问题”能力，这也是
+科研院所、企业等用人单位对工程技术人才培养的迫切要
+求［3］。解决复杂工程问题的内涵包括：必须运用深入的工
+程原理并经过分析才可能解决；需求涉及多方面的技术、
+工程和其他因素，并可能相互存在一定冲突；需要通过建
+立合适的抽象模型才能解决，在建模过程中需要体现出创
+造性；不是仅靠常用方法就可以完全解决；问题中涉及的
+因素可能没有完全包含在专业标准和规范中；问题相关各
+方利益不完全一致；具有较高的综合性，包含多个相互关
+联的子问题［4］。对于解决复杂工程问题内涵的准确理解
+及其映射在课程体系和具体课程中的教学内容和教学模
+式建设，直接影响本科工程教育中“解决复杂工程问题”能
+力培养效果。
+对于如何在具体的教学实践中，从教学内容、教学模
+式和实践方法各方面进行改进，培养学生解决复杂工程问
+题的能力，已有很多探讨。文献［5］提出坚持“政府提供平
+台、学校针对培养、企业全程协助”的应用型人才“联合”培
+养模式。文献［6］从企业视角给出我国工程教育培养模式
+改进思路。文献［7］提出改进的教学模式，从系统设计类
+课程层面，培养学生解决复杂工程问题的能力。文献［8］
+探索采用半开放式项目驱动教学方法进行解决复杂工程
+问题能力培养。文献［9］通过多种考核方式、选择验证数
+学物理模型问题和解决特定领域复杂工程问题两个层级
+的题目作为教学内容等方式，逐步培养学生解决复杂工程
+问题的能力。文献［10］结合《MATLAB 在数字信号处理中
+的应用》课程，提出了一套以培养学生具有解决复杂工程
+问题能力为目的的教学改革方案。文献［11］研究以解决
+复杂工程问题能力培养为目标的综合实践课程群建设。
+文献［12］提出教学实践、工程实践、创新实践和企业实践
+协同互补。这些研究结合具体课程或者课程群，着力加强
+解决复杂工程问题能力培养，从教学框架、内容和模式上
+进行研究和探索。解决复杂工程问题能力培养的方法和
+内容，与具体专业和课程有较为紧密的联系。此外，应更
+多考虑工作模式的引入，让学生更好地适应真实的工作模
+式和流程，并加大对解决复杂工程问题意志品质及核心素
+养的培养和训练。
+鉴于此，本文以信息安全专业实习实践教学为例，分
+析目前存在的问题与不足，提出基于案例仿真的解决复杂
+工程问题能力提升教改方法，结合业界广泛采用的敏捷开
+发Scrum 模式进行项目实践教学，提出解决复杂工程问题
+能力培养中意志品质及核心素养的重要性，并建立相应的
+训练机制。
+1
+面向“解决复杂工程问题”能力培养的实践
+教学现状
+北京信息科技大学信息安全专业2020 年通过教育部
+工程教育专业认证自评报告评审，2021 年5 月通过专家组
+入校检查。在该过程中，针对解决复杂工程问题能力培
+养，在整个专业的教学培养体系范围内进行全面审视和反
+思。大家认为，要想真正落实解决复杂工程问题能力培
+养，需要建立整体框架，并在各课程中予以分解实施。本
+文开展新工科工程认证背景下“解决复杂工程问题”能力
+培养研究，以信息安全专业综合实习的实践教学为依托，
+探索面向“解决复杂工程问题”能力培养的实践教学改革。
+综合实习是信息安全专业重要环节，在专业实践教学
+中具有重要作用。它是专业实践教学的重要课程和高级
+阶段，主要目标是培养学生综合运用所学专业知识，解决
+较为复杂的信息安全问题。同时，它是解决复杂工程问题
+能力培养的重要阵地，也是学生走上工作岗位之前，对实
+际工作的一次高仿真模拟。通过授课反思、教学团队讨
+论、学生课程反馈和对企业的调研，以信息安全专业综合
+实习实践教学为例，加强“解决复杂工程问题”能力培养。
+在具体实践中存在如下问题：
+（1）实习内容复杂度不够，且与专业耦合度低。实习
+是信息安全专业实践教学的重要环节，主要形式包括校外
+分散实习和校内基地实习。学生分散在单位实习，虽然能
+够亲身体会实际工作环境和团队氛围，但是限于各种条件
+（如工作岗位的内容和性质等）及实习时间较短，学生一般
+从事较为简单和边缘性的技术工作，较少接触与前期专业
+知识学习紧耦合且具有综合性的实习内容；在校内实习基
+地实习，存在实习环境和实习内容仿真性和综合性欠缺的
+问题。这些困难导致学生难以真正体会到信息专业复杂
+工程问题的解决过程，也难以将大学本科前三年多所学的
+专业知识综合运用于较复杂专业技术问题的解决上。因
+此，需要定制面向信息安全专业且能综合运用已学专业知
+识的实习内容，以进行具有综合性质的“解决复杂工程问
+题”能力培养。此外，需要提高校内基地实习内容的真实
+性，进一步打造综合性实习平台，创设高仿真实习环境，以
+加强“解决复杂工程问题”能力培养。
+（2）业界最新和主流研发模式融入较少。校内综合实
+习和一些课内实践中较少引入业界最新和主流的研发模
+式，而这些研发模式正是毕业生走上工作岗位所必须掌握
+的，也是培养解决复杂工程问题能力的有力武器。因此，
+通过调研业界最新和主流的研发模式，经过适当裁剪，融
+入学生综合实习，既对最新的研发流程和合作模式加以实
+践运用，又有助于培养合作解决复杂工程问题的能力。
+（3）对于解决复杂工程问题的意志品质及核心素养训
+·
+· 212
+第9 期
+向
+尕，张仰森，李
+军，等：新工科背景下“解决复杂工程问题”能力培养研究
+练较少。目前，综合实习及实践教学侧重对专业技术的运
+用训练，较少考虑对于解决复杂工程问题所需的意志品质
+和核心素养的训练和培养，而这是正是实际研发工作所必
+需的。
+以上问题在其他实践教学课程中也会存在，不利于新
+工科背景下“解决复杂工程问题”能力培养。
+“解决复杂工
+程问题”能力培养贯穿本科实践教学全过程，需要多门课
+程有机结合，形成具有逻辑关系的实践培养路线作支撑。
+本文紧紧围绕“解决复杂工程问题能力培养”的“逻辑
+主线”，从教学内容设计、教学模式调整和教学实践改革展
+开研究，探索解决复杂工程问题能力培养的可行方案。以
+综合实习课程为例，基于案例仿真、采用面向解决复杂工
+程问题的方式，引导并鼓励学生综合运用所学专业知识，
+展开复杂工程问题解决方案分析、实践和归纳总结，从而
+持续提升“解决复杂工程问题”的能力，使学生毕业后具有
+较强的复杂工程问题解决能力，提高其核心竞争力和长久
+可持续发展力。
+2
+基于案例仿真的解决复杂工程问题能力培
+养方法
+以提升解决复杂工程问题能力培养为研究目标，以信
+息安全专业实习教学为例，针对目前实践教学中存在的问
+题，本文按照如下思路展开教学改进研究：首先，建立基于
+案例仿真的实践教学框架；然后，在此框架下基于网络空
+间综合演练平台，以金融行业的省级集团为实习背景，设
+计与专业耦合度高、具有综合性和仿真性的综合实习内
+容；接着，引入敏捷开发Scrum 开发模式，组织学生以
+Scrum Team 为单位进行仿真项目研发实践；最后，在整个
+综合实习的过程中，引导和培养学生解决复杂工程问题所
+必备的意志品质，进行核心素养训练。
+2.1
+基于案例仿真的实践教学框架
+为建立与专业耦合度高、具有综合性和复杂性的实习
+内容和环境，引入敏捷开发Scrum 开发模式，建立意志品
+质及核心素养训练机制。首先需建立基于案例仿真的实
+践教学框架，如图1所示。
+（1）软硬件平台。搭建超融合一体机机群环境，部署
+网络空间综合演练平台软件和网络攻防平台软件，为设计
+复杂问题场景提供软硬件基础。
+（2）内容设计层。基于综合实习的软硬件平台，以设
+计与信息安全专业紧耦合的实习内容为目标，为学生提供
+具有综合性与仿真性的实习内容和仿真项目。具体可分
+为三大类：复杂场景的渗透测试及安全加固、信息安全相
+关软件的开发和面向问题的技术研发。需要学生综合运
+用前3 年所学专业知识，面向较为复杂的专业工程问题，
+自行思考解决方案并实施，并对实施结果进行评价和测
+试，形成一个解决复杂工程问题的完整闭环。
+（3）过程控制层。在实习的过程中，需要引入过程性
+控制方法和策略，让学生将所学的软件工程知识运用于具
+体复杂工程问题的合作开发，并引入企业广泛采用的敏捷
+开发Scrum 过程进行研发控制，使学生在仿真的研发流程
+中深入体会团队角色和团队合作。
+（4）实施层。基于过程控制，在实施中采用分角色、分
+阶段验收，Scrum 开发管理等方法进行项目实施，跟踪问题
+解决过程以帮助和支持学生进行项目实施。
+（5）意志品质和核心素养训练。解决复杂工程问题所
+必备的意志品质和核心素养训练尤为重要，其在目前综合
+实习训练中较为欠缺。在综合实习中，应建立系统性的训
+练机制，引导、培养和强化学生在面对问题时，敢于迎难而
+上，坚持对问题解决方案的探索，屡败屡战，直至找到妥善
+优化的解决方案并实施。在该过程中，需增强技术自信，
+以更好地促进解决复杂工程问题能力提升。
+2.2
+仿真实习环境与综合实习内容设计
+2.2.1
+仿真实习环境建立
+校内实习基地的集中实习，在定制与专业紧耦合的实
+习内容方面具有优势。为了提高实习环境和内容的真实
+性，尽可能接近真实实习单位的工作环境和内容，可以利
+用合适的软硬件平台及虚拟技术，打造高度仿真的信息安
+全专业实习环境，亲历实际信息安全问题和大型安全项目
+研发及运维过程，在高度仿真的实习环境中，提高解决信
+息安全专业复杂工程问题的能力。本专业的综合实习软
+硬件平台包括网络空间综合演练平台和网络攻防演练平
+台，网络空间综合演练平台主要架构如图2 所示，主要分
+为3 部分：①由10 台超融合一体服务器组成的网络空间综
+合演练平台服务器系统；②教师及管理员客户端；③学生
+分组客户端。
+该平台聚焦于培养学生的信息安全技术综合运用能
+力和对复杂网络的规划与管理能力，面向信息安全基础教
+学后的进阶实训需求，为准毕业生提供综合实训平台。实
+训内容基于真实的项目案例，搭建靶场、还原真实网络环
+境，包含行业背景介绍、网络拓扑搭建、防火墙、路由器等
+设备配置、系统设置、渗透攻击测试、网络防护等。
+2.2.2
+具有综合性与仿真性的复杂工程问题设计
+基于搭建的仿真实习环境软硬件平台，进一步为学生
+设计与专业耦合度高的实习内容，如基于真实案例仿真的
+实习内容。该实习内容可以由综合实习的软硬件平台承
+综合实习 软硬件平台
+网络空间综合演练平台
+网络攻防平台
+安全组网+渗透测试+安全加固
+信息安全软件开发
+面向问题的技术研发
+以组为单位，按模块分工
+基于敏捷开发Scrum的研发
+面向问题的解决过程
+项目分阶段、分角色验收
+Story->Task->Status Check
+问题解决方案->实施
+核心
+素养
+意志
+品质
+训练
+培养
+软硬件
+平台
+内容
+设计
+过程
+控制
+实施
+Fig. 1
+Practice training framework based on case simulation
+图1
+基于案例仿真的实践教学框架
+·
+· 213
+2022 年
+软件导刊
+载，如网络空间综合演练平台和网络攻防平台。设计的综
+合实习内容必须具有综合性和仿真性的鲜明特点，能够承
+载设计复杂工程问题供学生实践，实现综合运用所学知识
+解决专业复杂工程问题的基本目标。在此框架下，可以设
+计3种类型的综合实习内容：
+（1）综合运用计算机网络、防火墙、渗透测试、网络攻
+防、操作系统、信息安全等所学知识，解决面向金融行业省
+级集团公司真实网络安全组网、渗透测试和安全加固的复
+杂工程问题。学生可以在高度仿真的实习环境中综合运
+用所学专业先修知识，进行解决方案的尝试和实践，比如
+配置真实的防火墙、路由器，并进行全网络的长攻击链路
+渗透和安全加固方案设计及实施。
+（2）基于复杂行业拓扑网络的信息安全防护软件开发
+项目。需要学生基于所学的计算机和信息安全知识，运用
+软件工程中学习的软件开发全生命周期（需求分析、设计、
+开发、测试和维护），进行复杂工程问题开发和测试。
+（3）开放性和动态问题解决。在进行第（1）和第（2）类
+实习内容时，大概率会碰到各种技术问题。这些问题的出
+现虽然具有一定的偶然性（由于编程缺陷、配置错误和不
+当操作等），但在实际工作中，碰到这种开放性、动态的技
+术问题是必然的。对这些动态问题的定位、解决方案的探
+索和实施验证，非常具有挑战性，也是锻炼学生解决复杂
+工程问题的好机会。面对没有碰到过的技术问题，需要学
+生自行细心分析问题表征现象，然后抽丝剥茧寻找解决问
+题的线索，深入思考问题产生的逻辑，并逐渐提出解决问
+题的方案。在实施解决方案时，有时会发现未能有效解决
+问题，这正是培养学生解决问题能力的绝好机会。只有意
+志坚定、坚持不懈、持续努力地继续寻找方案，才能最终战
+胜困难、解决问题。这种体验是非常可贵的，有这种实习
+体验，能极大地帮助学生建立技术自信，提高解决问题的
+能力。
+2.3
+敏捷开发Scrum研发模式引入
+基于设计的实习内容，组织学生分组进行综合实习。
+在该过程中，运用业界流行的敏捷开发Scrum 流程，可以
+改善学生实习中缺少仿真的、面向专业的实习环境，加大
+对大型项目研发过程的深入了解。
+大型项目的完成必须是团队多人合作完成，有的项目
+甚至是异地多点的工程师共同合作完成。因此，团队合作
+在解决复杂工程问题中非常重要。综合实习是培养学生
+团队合作能力的一个合适阵地，但是以往团队合作常常流
+于形式，学习主动性强、动手能力强的学生经常做得多，而
+主动性弱、动手能力弱的学生参与较少。因此，考虑引入
+真实的项目团队合作管理方式，如敏捷开发的Scrum 项目
+开发管理过程进行管理，以学生为主体，明确每人的分工
+和产出，每天通过15 分钟的晨会进行全组项目进展汇报，
+实现全程过程性跟踪，让学生明白团队合作的意义和有效
+方式，也能督促学习主动性弱、动手能力弱的学生更多地
+参与项目实践。
+本文开展基于敏捷开发Scrum 的综合实习过程研究与
+落地实践。通过调研国际和国内优秀的大型技术性公司
+的开发流程和采用的软件开发模型，针对实践教学需求，
+进行适当裁剪，采用基于敏捷开发Scrum 的仿真研发模
+式，如图3所示。
+按照Scrum 流程定义，教师承担Product Owner（PO）角
+色，负责项目需求定义；学生按5-6 人一组分别组队Scrum
+Team；每队选出一名Scurm Master（SM）。具体分为4 个
+阶段：
+Fig. 2
+Architecture for cyberspace comprehensive exercise platform
+图2
+网络空间综合演练平台架构
+Product Owner
+(由教师担任)
+项目计划
+Scrum Master
+（由学生小组长担任）
+Sprint计划
+Scrum Team
+（由学生担任）
+Daily Run
+Sprint
+项目小结（Review）
+Scrum Team
+（由学生担任）
+Product Owner
+(由教师担任)
+实习报告            答辩
+实验验收            项目交付
+Fig. 3
+Agile Scrum model for practice teaching
+图3
+面向实践教学的敏捷开发Scrum过程模型
+·
+· 214
+第9 期
+向
+尕，张仰森，李
+军，等：新工科背景下“解决复杂工程问题”能力培养研究
+（1）项目计划阶段。在实习开始之初，由Product Own⁃
+er 给出项目需求定义，给出Product Backlog，并将需求分发
+给Scrum Team。
+（2）Sprint 计划阶段。Scrum Master 根据需求，跟组内
+成员充分讨论，分解为Task List，细化任务，并为每一个
+task分配一位成员。
+（3）Daily Run 阶段。每天进行Standup Meeting，每位
+小组成员总结自己已完成的工作，给出下一步工作计划，
+并将自己碰到的技术问题拿出来讨论，一起商讨可行的技
+术方案及实施方案。
+（4）项目小结（Review）阶段。在项目收尾或实践教学
+结课阶段，以Scrum Team（学生）为单位向Product Owner
+（教师）进行项目小结汇报，阐述项目实施情况，碰到的技
+术问题、解决问题的过程和实施结果，以及综合实习的收
+获和体会等。
+以综合实习为例，在教学实践中引入敏捷开发Scrum
+流程，帮助学生完成从学校学习到岗位工作的顺利过渡，
+使团队合作不流于形式，让学生能体会到团队合作的重要
+意义和真正作用。
+2.4
+意志品质与核心素养训练机制建立
+目前，实践教学多侧重对专业技术的综合运用，很少
+考虑对解决复杂工程问题所需意志品质及核心素养的训
+练和培养。鉴于此，本文构建一套对于解决复杂工程问题
+所需意志品质及核心素养的训练机制，提供较为系统且面
+向解决复杂工程问题的意志品质和核心素养训练及实践。
+以综合实习为例，在开始之初，介绍实习内容的主要
+目标、技术路线和复杂度，明确提出在自身面对技术问题
+和难题时，应具有坚定不移、屡败屡战的意志品质。实际
+上，在长期的研发工作中，这是成为优秀工程师的必备素
+养。在实习过程中，鼓励学生通过独立思考、小组讨论及
+动手实践等方式持续探索技术问题的解决方案，并教授相
+应的方法。这些有助于学生体验技术问题的复杂性、独当
+一面解决问题的艰巨性，以及获得技术自信，提高解决复
+杂工程问题的能力。
+3
+实施情况分析
+3.1
+综合性仿真项目实习内容实践分析
+基于案例仿真的综合实习实践教学框架设计实习内
+容，具体以面向金融行业省级集团公司真实网络为实习背
+景，在网络空间综合演练平台上，设计具有综合性和仿真
+性的实习内容，结合信息安全专业特点，设计需要综合运
+用计算机网络、防火墙、渗透测试、网络攻防、操作系统等
+所学知识，解决安全组网、渗透测试和安全加固的复杂工
+程问题实习内容。实习内容包括两类：面向金融行业省级
+集团公司真实网络安全组网、渗透测试和安全加固的复杂
+工程问题；开放性和动态问题的解决实施。
+为评估开展基于案例仿真的解决复杂工程问题能力
+培养的教学效果，对北京信息科技大学信息安全专业2018
+级学生进行问卷调查，共发放问卷66 份，收回有效答卷42
+份。结果显示，59.52% 的学生认为此综合实习课程内容有
+趣，40.48% 认为比较有趣，如图4 所示。对于实习内容综
+合性的反馈，19.05% 的学生认为所学的多门专业课程完全
+能够用上，47.62% 能够用上，33.33% 认为基本能够用上，
+如图5 所示。这表明综合实习内容设计具有综合性，同时
+也可以看出还需继续改进实习内容设计，以契合学生综合
+实习需求，提高他们的参与兴趣。
+3.2
+敏捷开发Scrum过程实施分析
+基于敏捷开发Scrum 流程对不同的实习内容采用不同
+的实施策略和过程控制。对于面向金融行业省级集团公
+司真实网络安全组网、渗透测试和安全加固的复杂工程问
+题，采用学生分组形成Scrum 团队、按模块进行，分步进行
+过程性验收。对于基于复杂行业拓扑网络的信息安全防
+护软件开发项目，基于软件开发全生命周期和仿真实研发
+团队的角色划分，按照敏捷开发Scrum 过程模型进行实
+施。进行Story 定义，分解为task，明确分到具体团队成员，
+进行task 状态跟踪。开放性和动态问题的解决实施，也可
+以采用敏捷开发Scrum 过程进行组织实施和过程性验收。
+除进行task 状态跟踪，还可以由教师引导周期性进行
+Scrum 团队每次15 分钟的项目会议，帮助学生熟悉项目进
+展汇报、团队交互等具体研发活动。
+此次教改中，教师结合综合实习的具体内容，先介绍
+敏捷开发Scrum 的基本概念、角色划分和主要流程，让学
+有趣, 
+59.52%
+比较有趣, 
+40.48%
+Fig. 4
+Survey for course interest
+图4
+课程内容兴趣度调查结果
+19.05%
+47.62%
+33.33%
+0%
+0%
+10.00%
+20.00%
+30.00%
+40.00%
+50.00%
+60.00%
+Fig. 5 Comprehensive survey and feedback of internship content
+图5
+实习内容综合性调查反馈
+·
+· 215
+2022 年
+软件导刊
+生先对敏捷开发Scrum 有个基本的了解；然后并将学生分
+为5~6 人一组，组成Scrum 团队，按照Scrum 流程，与综合
+实习内容结合，进行按角色的实践，教师分时参与到每个
+Scrum 团队中，结合实践阐述敏捷模型的特点和优点，引导
+进行Scrum 团队的周期性项目会议，帮助学生熟悉项目进
+展汇报、团队交互等具体研发活动。
+从学生反馈中可以看到，7.14% 的学生认为自己理解
+了敏捷开发Scrum 的特点和主要流程，71.43% 的学生基本
+了解，另有21.43% 的学生不太了解，如图6所示。
+此外，对于Scrum 的实践，对自己理解“团队合作完成
+项目”是否有帮助，16.67% 的学生认为“有很大帮助”，
+80.95% 的学生认为有帮助，2.38% 认为没有帮助，如图7
+所示。
+可以看到，采用这种理论与具体实践同时并进的方
+式，对于学生理解大型项目中的开发流程、项目管理和团
+队合作的原则、方法和工具，有良好效果（78.57% 的学生认
+为基本理解或者理解敏捷开发Scrum 的特点和主要流程；
+97.62% 的学生认为Scrum 的实践对自己理解“团队合作完
+成项目”有很大帮助或者有帮助）。如果只是介绍敏捷开
+发Scrum 理论，则难以获得如此效果。综合实习中碰到的
+很多复杂技术问题，都是以小组为单位，经过合作分析、互
+相启发解决思路、合力实施完成的，在解决问题受挫时，更
+是团队互相鼓励，角色互相支持，最终自行解决问题，获得
+巨大的成就感和技术自信，提升解决复杂工程问题的
+能力。
+3.3
+开放性和动态问题的解决实施情况分析
+在综合实习中，每个Scrum 团队都会碰到很多技术问
+题，有的问题与操作有关，有的问题与软件平台有关，还有
+的与操作系统、网络和防火墙配置有关。这些问题有的比
+较简单，有的分析起来十分复杂，需要学生综合运用所学
+专业知识“打硬仗”，这是培养学生解决复杂工程问题的大
+好机会。在教学实践中，教师提供恰当支持，进行技术路
+线的逻辑分析和解决思路的支持，具体问题解决则尽可能
+交由学生完成，让他们充分体验“面对问题”—“独立思考
+解决方案”—“实施解决方案”—“解决问题”的过程，在反
+复迭代和螺旋式上升过程中，提高解决复杂工程问题的能
+力和自信。如图8 所示，通过学生反馈可知，95.24% 的学
+生认为在综合实习中体验到了“面对问题”—“独立思考解
+决方案”—“实施解决方案”—“解决问题”的过程，并提升
+自己解决复杂工程问题的能力和自信。
+3.4
+交叉分析
+通过对学生各项反馈关联项的交叉分析，得到以下有
+趣结果。如图9 所示，在认为“本课程有趣”的学生中，72%
+的学生能够理解或者完全理解本实习中的复杂渗透技术
+思路，28% 的学生基本理解；而在认为本课程“比较有趣的
+学生”中，仅35.29% 能够理解或者完全理解本实习中的渗
+透思路，58.82% 的学生基本理解，另有5.88% 的学生基本
+不理解。
+由此可以看出，学生对于课程的兴趣能在很大程度上
+影响其对课程主要技术思路的理解，因此提高趣味建设，
+激发学生的好奇心和探索心理十分重要。
+在体验到“面对问题”—“独立思考解决方案”—“实施
+解决方案”—“解决问题”过程的学生中，97.5% 的学生认为
+自己解决技术问题的能力有提升；没有体验到面对问题、
+解决问题过程的学生中，只有50% 认为自己解决技术问题
+95.24%
+4.76%
+0.00%
+20.00%
+40.00%
+60.00%
+80.00%
+100.00%
+是
+否
+通过综合实习，解决问题能力是否有提高？
+Fig. 8
+Survey for solving complex engineering problem ability
+promotion
+图8
+解决问题能力提升调查
+Fig. 6
+Knowledge mastering degree for agile scrum
+图6
+敏捷开发Scrum知识掌握情况
+16.67%
+80.95%
+2.38%
+0.00%
+10.00%
+20.00%
+30.00%
+40.00%
+50.00%
+60.00%
+70.00%
+80.00%
+90.00%
+有很大帮助
+有帮助
+没帮助
+Fig. 7
+The impact for applying agile scrum practice
+图7
+敏捷开发Scrum项目实践的作用
+Fig. 9
+Cross analysis1：course interest and penetration test knowl⁃
+edge mastering
+图9
+交叉分析1：实习课程内容兴趣度和渗透思路理解与掌握
+·
+· 216
+第9 期
+向
+尕，张仰森，李
+军，等：新工科背景下“解决复杂工程问题”能力培养研究
+的能力有提升。如图10 所示。这充分显示，让学生面对
+技术问题，甚至是正确答案未知的问题，让学生综合运用
+所学自行探索问题的解决方案，是培养解决问题能力的有
+效途径之一。
+3.5
+可量化的评价量表设计
+基于案例仿真的实践教学框架，根据内容设计和过程
+控制两层内容，设计评价量表如表1所示。
+基于案例仿真实践教学框架的评价量表充分考虑客
+观、可量化和过程性3 个方面，设计三大类10 个观测指标
+点。在此之前，是通过平时成绩和实验成绩进行评价，比
+较主观和笼统，同时也缺乏对过程的评价。表1 中设置3
+个评价大类（分阶段的过程性验收、小组展示、实习报告）；
+对每一类再进行细分，并落实到10 个具体观测指标点。
+其中，观测点①-④，完全可以采用客观评价标准，每个实
+验阶段都有具体的技术验证方法判断该阶段是否成功完
+成，可量化地覆盖实践过程（实验阶段一、二、三）和最终结
+果评价（实验阶段四）；观测点⑤-⑥、⑧-⑩也能客观量化
+评价；观测点⑦评价答辩陈述情况，主观性稍强，但可以通
+过制定细致的评价标准加以一定程度的弥补。
+通过以上基于案例仿真实践教学框架设计的可量化
+评价量表，可以客观、细致地观察学生实践学习中的过程
+性成果和最终成果，能可量化地覆盖实践过程和最终的实
+践结果评价。此外，可以进一步细粒度地分析学生在综合
+实习项目实践中的学习情况，便于调整教学内容、优化教
+学重点，帮助教师为学生提供更好的教学引导和支持，从
+而提高实践教学效果。
+3.6
+意志品质及核心素养训练
+解决复杂工程问题能力培养除注重技术素质培养，也
+应开展必备的意志品质及核心素养训练。本研究结合综
+合实习课程的教与学，进行了较为系统的、面向解决复杂
+工程问题的意志品质和核心素养训练。从学生给出的调
+查反馈和实习总结中，选取部分内容分析意志品质及核心
+素养训练效果，如表2所示。
+可以看到，有不少学生真切感受到了在解决复杂工程
+问题的过程中，如下几种意志品质和核心素养帮助他们战
+胜了困难，最终解决了复杂的技术问题：①积极思考、善于
+观察；②直面问题不放弃、戒骄戒躁；③团结互助、团队合
+作。有这样的心理体验，对于学生们将来走上工作岗位，
+成为解决复杂技术问题的能手，具有非常重要的意义。
+4
+结语
+本文研究“解决复杂工程问题”能力培养，以信息安全
+专业实习实践教学为例，提出基于案例仿真的解决复杂工
+程问题能力培养教学改进方法，并结合敏捷开发的Scrum
+Fig. 10
+Cross analysis2：solving problem experiences and solving
+problem ability promotion
+图10
+交叉分析2：解决问题过程体验和解决问题能力提升
+Table 2
+Student feedback
+表2
+学生感受反馈
+序号
+1
+2
+3
+4
+5
+6
+7
+学生感受反馈
+在本次实习项目中，我认真参与了每一个环节，遇到问
+题时积极思考，善于观察，认真查找问题的来源，遇到
+不懂的求助他人、查找资料，当别人遇到问题时我也会
+相互帮忙、一起看问题，最终所有问题都迎刃而解，达
+到预期效果，成功完成项目
+本次实习我获得了安全组网、外网渗透和内网渗透等
+的实践知识，培养了技术归纳、探索能力，锻炼了勇于
+直面问题、戒骄戒躁的意志品质，感受到了团结协作，
+相互帮助的合作精神
+在诸多次尝试过程中，虽然出现了很多问题，但是在我
+们耐心查询，仔细思考，不断探索的过程中，这些问题
+都被我们逐一解决
+极大锻炼了我遇到问题不惧艰难险阻，细致耐心动脑
+解决问题的能力
+戒骄戒躁，团队配合，共同提高我们的专业知识与实战
+能力
+和我一同负责内网渗透的XX 同学在这次实验里让我
+深刻感受到了面对困难不放弃的重要性，体会到了小
+组合作在实验中的意义
+本次实验不仅让我收获了知识还在团队协作中获得了
+友谊
+关键词
+积极思考
+善于观察
+直面问题
+戒骄戒躁
+团结互助
+耐心查询
+仔细思考
+不惧艰难险阻
+戒骄戒躁
+团队配合
+面对困难
+不放弃
+小组合作
+团队协作
+获得友谊
+Table 1
+Evaluation Scale
+表1
+评价量表
+评价大类
+分阶段的过程性验收
+小组展示
+实习报告
+可量化观测指标点
+①实验阶段一：安全组网步骤
+技术验收
+②实验阶段二：外网渗透步骤
+技术验收
+③实验阶段三：内网渗透步骤
+技术验收
+④实验阶段四：安全加固步骤
+技术验收
+⑤是否按时交付
+⑥流程是否完整性
+⑦答辩陈述情况
+⑧报告中组网分析正确清晰，
+渗透方案设计思路清晰合理
+⑨报告中有完整的漏洞分析，
+漏洞利用结果分析，加固方案
+设计
+⑩是否调研最新漏洞，正确分
+析发展趋势
+占比（%）
+7.5
+7.5
+7.5
+7.5
+10
+10
+10
+15
+15
+10
+·
+· 217
+2022 年
+软件导刊
+模式进行项目实践实施，同时注重相关意志品质和核心素
+养培养。根据实践和反馈数据，本文所提方法能有效提升
+解决复杂工程问题能力培养。实践表明：①贴近专业、基
+于案例仿真的内容设计，是解决复杂工程问题能力培养的
+重要基础；②面向问题解决的实践，是培养学生解决复杂
+工程问题能力的重要途径；③解决复杂工程问题能力培养
+中，还须同步进行必备的意志品质和核心素养训练和培
+养。这些方法及其在综合实习中的实践经验可以向其他
+相关课程推广应用，以提升解决复杂工程问题能力培养。
+下一步研究方向：①设计更能激发学生兴趣的、贴近
+技术发展和实际需求的实习内容和技术目标，激发学生的
+兴趣；②融合实习内容和意志品质训练，建立更为系统的
+“面对问题”—“独立思考解决方案”—“实施解决方案”—
+“解决问题”训练场景，让学生综合运用所学自行探索问题
+的解决方案，培养解决问题能力。
+参考文献：
+［1］
+YANG Y G，MENG B，WANG W A. On "problem of complex engineer⁃
+ing" in engineering education from perspective of enterprise technology in⁃
+novation［J］. Research in Higher Education of Engineering，2017，163
+（2）：72-78.
+杨毅刚，孟斌，王伟楠. 如何破解工程教育中有关“复杂工程问题”的
+难点——基于企业技术创新视角［J］. 高等工程教育研究，2017，163
+（2）：72-78.
+［2］
+China Engineering Education Accreditation Association. Notice on pub⁃
+lishing the list of majors that have passed the engineering education certifi⁃
+cation［EB/OL］. https：//www. ceeaa. org. cn/gcjyzyrzxh/xwdt/tzgg56/626727/
+index. html.
+中国工程教育专业认证协会. 关于发布已通过工程教育认证专业名
+单的通告［EB/OL］. https：//www. ceeaa. org. cn/gcjyzyrzxh/xwdt/tzgg56/
+626727/index. html.
+［3］
+XIANG G，KANG H Y，SUN X. Exploration of software engineering prac⁃
+tice teaching oriented to the cultivation of ability to solve complex engineer⁃
+ing problems［J］. Computer Education，2021（10）：161-165.
+向尕，康海燕，孙璇. 面向解决复杂工程问题能力培养的软件工程实践
+教学探索［J］. 计算机教育，2021（10）：161-165.
+［4］
+JIANG Z L. Undergraduate engineering education：focusing on the cultiva⁃
+tion of students′ ability to solve complex engineering problems［J］. China
+University Teaching，2016（11）：27-30，84.
+蒋宗礼. 本科工程教育：聚焦学生解决复杂工程问题能力的培养［J］.
+中国大学教学，2016（11）：27-30，84.
+［5］
+QIAN Z J，GONG S R，XU W B. Research and practice on the training
+mode of applied undergraduate computer professionals facing complex engi⁃
+neering problems［J］. Computer Education，2017，15（6）：10-13.
+钱振江，龚声蓉，徐文彬. 面向复杂工程问题的应用型本科计算机类
+专业人才培养模式研究和实践［J］. 计算机教育，2017，15（6）：10-13.
+［6］
+YANG Y G，WANG W N，MENG B. Research on improving engineering
+education model aiming at enhancing capacity to solve complicated engi⁃
+neering problems ［J］.
+Research in Higher Education of Engineering，
+2017，165（4）：63-67.
+杨毅刚，王伟楠，孟斌. 以提升解决“复杂工程问题”能力为目标的工程
+教育培养模式改进研究［J］. 高等工程教育研究，2017，165（4）：63-67.
+［7］
+DAI M H. System design course system for complex engineering problems
+［J］. Computer Education，2018，16（8）：78-81，85.
+戴牡红. 面向复杂工程问题的系统设计类课程体系［J］. 计算机教育，
+2018，16（8）：78-81，85.
+［8］
+XU Z H，LI Y，DONG Y F，et al. Training practice of semi open project
+driven complex engineering problem ability［J］. Computer Education，
+2019，17（2）：37-40.
+许智宏，李妍，董永峰，等. 半开放式项目驱动复杂工程问题能力培养
+实践［J］. 计算机教育，2019，17（2）：37-40.
+［9］
+PAN Y Q，MAO Q R. Cultivation of students′ ability to solve complex en⁃
+gineering problems in programming course［J］. Computer Education，
+2018，16（9）：4-6，11.
+潘雨青，毛启容. 程序设计课程中学生解决复杂工程问题的能力培养
+［J］. 计算机教育，2018，16（9）：4-6，11.
+［10］
+LI H Y，CAO F C，CHENG Y A，et al. Teaching exploration of "applica⁃
+tion of MATLAB in digital signal processing" focusing on the cultivation
+of ability to solve complex engineering problems［J］. Journal of Higher Ed⁃
+ucation，2021，7（12）：75-80.
+李海洋，曹凤才，程怡安，等. 聚焦解决复杂工程问题能力培养的
+《MATLAB 在数字信号处理中的应用》教学探索［J］. 高教学刊，
+2021，7（12）：75-80.
+［11］
+WANG X Y，DONG Z，ZHAI Y J. Construction of comprehensive prac⁃
+tice course group aiming at cultivation of ability to solve complex engi⁃
+neering problems：taking“design and implementation of thermal control
+system for large-scale thermal power units”as example［J］. Experimen⁃
+tal Technology and Management ，2020，37（9）：212-218.
+王晓燕，董泽，翟永杰. 以解决复杂工程问题能力培养为目标的综合
+实践课程群建设——以“大型火电机组热控系统设计及实现”为例
+［J］. 实验技术与管理，2020，37（9）：212-218.
+［12］
+ZHU Z W，CHU K B，JIAO Z Q，et al. Practical educational model for
+electronic information majors with guidance of ability training to solve
+complex engineering problems［J］. Experimental Technology and Manage⁃
+ment ，2019，36（7）：1-4.
+朱正伟，储开斌，焦竹青，等. 以解决复杂工程问题能力为导向的电子
+信息类实践育人模式［J］. 实验技术与管理，2019，36（7）：1-4.
+（责任编辑：孙娟）
+·
+· 218

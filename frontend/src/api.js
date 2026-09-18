@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { io } from 'socket.io-client'
 import { store } from './store.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5003'
@@ -34,50 +33,84 @@ api.interceptors.response.use(
 )
 
 // ========== WebSocket ==========
+// 后端提供的是原生 FastAPI WebSocket（/ws/{session_id}，见 backend/routes/system.py:
+// `@router.websocket('/ws/{session_id}')`），扇出进度消息为 {event, data, ts}。
+// 这里用原生 WebSocket 客户端对接，避免 socket.io-client 与后端 socket.io 缺失导致握手 403。
 let socket = null
+let wsManuallyClosed = false
+let wsReconnectTimer = null
+let wsRetry = 0
+
+const WS_MAX_RETRY = 5
+
+function buildWsUrl(sessionId) {
+  const base = WS_URL.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:').replace(/\/+$/, '')
+  return `${base}/ws/${encodeURIComponent(sessionId)}`
+}
 
 export function connectSocket(sessionId, callbacks = {}) {
   if (socket) {
-    socket.disconnect()
+    wsManuallyClosed = true
+    socket.close()
+  }
+  wsManuallyClosed = false
+  wsRetry = 0
+
+  const open = () => {
+    if (wsManuallyClosed || socket) return
+    let ws
+    try {
+      ws = new WebSocket(buildWsUrl(sessionId))
+    } catch (e) {
+      console.warn('⚠️ WebSocket 创建失败:', e.message)
+      callbacks.onError?.(e)
+      return
+    }
+    socket = ws
+
+    ws.onopen = () => {
+      if (isDev) console.log('🔌 WebSocket connected (native)')
+      callbacks.onConnect?.(sessionId)
+    }
+
+    ws.onmessage = (ev) => {
+      let msg
+      try { msg = JSON.parse(ev.data) } catch { return }
+      if (msg && msg.event === 'analysis_progress') {
+        callbacks.onProgress?.(msg.data)
+      } else if (msg && msg.event === 'analysis_complete') {
+        callbacks.onComplete?.(msg.data)
+      }
+    }
+
+    ws.onerror = (e) => {
+      console.warn('⚠️ WebSocket 错误:', e)
+      callbacks.onError?.(e)
+    }
+
+    ws.onclose = () => {
+      if (ws === socket) socket = null
+      callbacks.onDisconnect?.()
+      if (!wsManuallyClosed && wsRetry < WS_MAX_RETRY) {
+        wsRetry += 1
+        wsReconnectTimer = setTimeout(open, Math.min(3000 * wsRetry, 10000))
+      }
+    }
   }
 
-  socket = io(WS_URL, {
-    transports: ['websocket', 'polling'],
-    query: { session_id: sessionId }
-  })
-
-  socket.on('connect', () => {
-    if (isDev) console.log('🔌 WebSocket connected:', socket.id)
-    callbacks.onConnect?.(socket.id)
-  })
-
-  socket.on('analysis_progress', (data) => {
-    if (isDev) console.log('📊 Progress:', data)
-    callbacks.onProgress?.(data)
-  })
-
-  socket.on('analysis_complete', (data) => {
-    if (isDev) console.log('✅ Analysis complete:', data)
-    callbacks.onComplete?.(data)
-  })
-
-  socket.on('disconnect', () => {
-    if (isDev) console.log('🔌 WebSocket disconnected')
-    callbacks.onDisconnect?.()
-  })
-
-  socket.on('connect_error', (err) => {
-    console.warn('⚠️ WebSocket connection error:', err.message)
-    callbacks.onError?.(err)
-  })
-
+  open()
   return socket
 }
 
 export function disconnectSocket() {
+  wsManuallyClosed = true
   if (socket) {
-    socket.disconnect()
+    socket.close()
     socket = null
+  }
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer)
+    wsReconnectTimer = null
   }
 }
 
@@ -168,7 +201,8 @@ export async function startAnalysis(messages, sessionId, accountsTx) {
   if (accountsTx && accountsTx.length) {
     body.accounts_tx = accountsTx
   }
-  const response = await api.post('/agent-analyze', body)
+  // 多智能体研判流水线（BGE 嵌入+GNN 团伙发现）实测可达 120s+，单独放宽超时避免偶发超时
+  const response = await api.post('/agent-analyze', body, { timeout: 300000 })
   return response.data
 }
 

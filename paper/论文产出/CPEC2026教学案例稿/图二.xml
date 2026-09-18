@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="127.0.0.1">
+  <diagram id="mv1tvKkUZUH0Gi3V_FVR" name="第 1 页">
+    <mxGraphModel dx="796" dy="877" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cL" parent="1" style="container=1;html=1;whiteSpace=wrap;rounded=0;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;verticalAlign=top;collapsible=0;" value="" vertex="1">
+          <mxGeometry height="520" width="220" x="15" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrL" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#333333;strokeWidth=1.5;fontSize=14;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="案情理解" vertex="1">
+          <mxGeometry height="28" width="220" as="geometry" />
+        </mxCell>
+        <mxCell id="nL1" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="教师导入案情" vertex="1">
+          <mxGeometry height="48" width="192" x="14" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nL2" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="学生分组认领" vertex="1">
+          <mxGeometry height="40" width="192" x="14" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="sampleL" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;spacingLeft=12;" value="&lt;b&gt;案情数据样例&lt;/b&gt;&lt;br&gt;&lt;br&gt;案情编号　TX-2024-0810&lt;br&gt;受害人账户　A-1024&lt;br&gt;转账对象　B-2048, C-3001&lt;br&gt;金额序列　5000→3000→2000" vertex="1">
+          <mxGeometry height="112" width="192" x="14" y="164" as="geometry" />
+        </mxCell>
+        <mxCell id="nL3" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10.5;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;数据预处理&lt;/b&gt;&lt;br&gt;字段对齐 · 缺失处理" vertex="1">
+          <mxGeometry height="48" width="192" x="14" y="292" as="geometry" />
+        </mxCell>
+        <mxCell id="nL4" parent="cL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10.5;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;双通道特征构建&lt;/b&gt;&lt;br&gt;&lt;br&gt;BGE 语义嵌入&lt;br&gt;&lt;br&gt;HAN / GraphSAGE 图特征" vertex="1">
+          <mxGeometry height="140" width="192" x="14" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="cM" parent="1" style="container=1;html=1;whiteSpace=wrap;rounded=0;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;verticalAlign=top;collapsible=0;" value="" vertex="1">
+          <mxGeometry height="520" width="220" x="285" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM" parent="cM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#333333;strokeWidth=1.5;fontSize=14;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="FraudLens 操作内核" vertex="1">
+          <mxGeometry height="28" width="220" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" parent="cM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="录入案情" vertex="1">
+          <mxGeometry height="42" width="188" x="16" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" parent="cM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;调用 AI 研判工具&lt;/b&gt;&lt;br&gt;（Lab2 工具辅助串并案）&lt;br&gt;&lt;br&gt;语义召回&lt;br&gt;团伙聚类&lt;br&gt;反思" vertex="1">
+          <mxGeometry height="96" width="188" x="16" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" parent="cM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="查看候选结果" vertex="1">
+          <mxGeometry height="42" width="188" x="16" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="rh" parent="cM" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;" value="可信？" vertex="1">
+          <mxGeometry height="70" width="64" x="78" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="lab4" parent="cM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;fontSize=11;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="Lab4 边界认知" vertex="1">
+          <mxGeometry height="48" width="130" x="45" y="412" as="geometry" />
+        </mxCell>
+        <mxCell id="cR" parent="1" style="container=1;html=1;whiteSpace=wrap;rounded=0;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;verticalAlign=top;collapsible=0;" value="" vertex="1">
+          <mxGeometry height="520" width="220" x="555" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrR" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#333333;strokeWidth=1.5;fontSize=14;fontStyle=1;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="决策输出与评价" vertex="1">
+          <mxGeometry height="28" width="220" as="geometry" />
+        </mxCell>
+        <mxCell id="cardR" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;研判结果样例&lt;/b&gt;&lt;br&gt;候选团伙 #001&lt;br&gt;置信度 0.89 · 风险等级 高&lt;br&gt;关键账户 5 个" vertex="1">
+          <mxGeometry height="62" width="192" x="14" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;人机协同决策&lt;/b&gt;&lt;br&gt;学生 + 系统&lt;br&gt;（Lab3 冻卡决策与伦理权衡）" vertex="1">
+          <mxGeometry height="52" width="192" x="14" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10.5;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;输出产物&lt;/b&gt;&lt;br&gt;候选团伙 ID&lt;br&gt;可解释证据链&lt;br&gt;决策建议" vertex="1">
+          <mxGeometry height="72" width="192" x="14" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="&lt;b&gt;教学评价&lt;/b&gt;&lt;br&gt;审计日志 + 教师评价 → 回流学情" vertex="1">
+          <mxGeometry height="50" width="192" x="14" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="theory" parent="cR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#333333;strokeWidth=1.5;fontSize=10;fontFamily=Microsoft YaHei;verticalAlign=middle;align=center;" value="研—训—评闭环 · 证据链可解释 · 反诈伦理决策" vertex="1">
+          <mxGeometry height="50" width="192" x="14" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="eL1" edge="1" parent="1" source="nL1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="nL2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eL2" edge="1" parent="1" source="nL2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="sampleL" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eL3" edge="1" parent="1" source="sampleL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="nL3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eL4" edge="1" parent="1" source="nL3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="nL4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em1" edge="1" parent="1" source="m1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="m2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em2" edge="1" parent="1" source="m2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="m3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em3" edge="1" parent="1" source="m3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="rh" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eNo" edge="1" parent="1" source="rh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;labelBackgroundColor=#FFFFFF;" target="lab4" value="否">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-18" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eYes" edge="1" parent="1" source="rh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=12;fontStyle=1;fontFamily=Microsoft YaHei;labelBackgroundColor=#FFFFFF;" target="cardR" value="是">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="8" y="-12" as="offset" />
+            <Array as="points">
+              <mxPoint x="545" y="360" />
+              <mxPoint x="545" y="96" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eFeat" edge="1" parent="1" source="nL4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.7;fontSize=10;fontStyle=1;fontFamily=Microsoft YaHei;labelBackgroundColor=#FFFFFF;" target="m2" value="特征输入">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="18" y="-115" as="offset" />
+            <Array as="points">
+              <mxPoint x="248" y="451" />
+              <mxPoint x="248" y="196" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eRet" edge="1" parent="1" source="lab4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=0.5;entryX=0;entryY=0.9;fontSize=10;fontStyle=1;fontFamily=Microsoft YaHei;labelBackgroundColor=#FFFFFF;" target="m2" value="复盘 → 重审">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="8" as="offset" />
+            <Array as="points">
+              <mxPoint x="274" y="461" />
+              <mxPoint x="274" y="215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eCard" edge="1" parent="1" source="cardR" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="r1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" edge="1" parent="1" source="r1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="r2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er2" edge="1" parent="1" source="r2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="r3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eTheory" edge="1" parent="1" source="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="theory" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eReflux" edge="1" parent="1" source="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#333333;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;fontStyle=1;fontFamily=Microsoft YaHei;labelBackgroundColor=#FFFFFF;" target="nL1" value="评价 → 再学情">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" as="offset" />
+            <Array as="points">
+              <mxPoint x="770" y="380" />
+              <mxPoint x="770" y="558" />
+              <mxPoint x="10" y="558" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

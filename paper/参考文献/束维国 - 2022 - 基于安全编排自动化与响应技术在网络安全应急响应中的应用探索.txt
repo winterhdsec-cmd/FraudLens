@@ -1,0 +1,263 @@
+基于安全编排自动化与响应技术在网络安全应急响应中
+的应用探索
+束维国
+（安
+徽省经济和信息化厅信息中心， 安 徽合肥230001）
+摘 要：随着互联网和数字经济的快速发展，网络攻击事件日益频繁， 为妥善处置和应对企业关键信息基础设施可
+能发生的突发事件，确保关键信息基础设施的安全、稳定、持续运行， 防止给企业造成重大影响和经济损失， 需进一
+步加强网络安全与信息化应急保障能力。 网络安全应急处置能力是安全防护的最后一道防线， 巩固应急防线对安全
+能力建设至关重要。基于此， 简要介绍了当前网络安全形势和网络 安全应急响应面临的挑战，对安全编排自动化与
+响应（SOAR）技术在网络安全应急响应中的应用进行了深入探讨，以打造更加智能、高效的网络安全应急处置能力。
+关键词：安全编排 SOAR应急响应
+中图分类号： TP393 文献标识码： A 文章编号： 2095-0748 （2022） 08-0112-03
+引言
+在网络安全 工作中，攻与防的
+对抗本质是人与人
+的对抗，但如何最大限度发挥人的经验和能力， 必须
+要采用必要的自动 化工具。本文作者有着 多年从事信
+息化和网络 安全工作 经验，敏锐地发现随着网络安全
+攻防对抗的日趋 激烈，网络安全单纯指望防范和阻止
+的策略已经失效， 必须更加注重检测与响应， 从而提
+出了网络安全的应 急响应自动化编排技术。
+1网络安全形势
+随着互联网 的发展，政府机构与中大型企业单位
+也在不断进 行数字化转型 。业务的不断转型升级， 也
+带来了新的安全威 胁，如何构建更加高效的网络安全
+应急体系也变得尤为重要。
+由于新型数字货币 的出现，黑产的变现 方式变得
+更加丰富， 难溯源的特点导致黑产 更加猖獗。 2019 年
+以来，政府单位，医疗机构成为了攻击者的主要目标，
+攻击者通 过窃取重要 用户数据进行贩卖和诈骗，或者
+在核心系统上 种植勒索 病毒进行敲诈勒索。
+2网络安全应急响应挑战
+从最近的安全事件来看，安全意 识的漏洞、0day
+漏洞的爆发成为主要 入侵原因。因此， 安全建设并不
+是一劳永逸，当前的安全 策略不能保 证未来的安全，
+我们需要在安全 事件爆发之时， 与攻击者赛跑， 尽快
+响应，将安全事件的 危害降到最 低。
+攻击者在攻 击时已经用上了自动 化工具、协同作
+战工具，例如：国外知名渗透测试工具CobaltStrike。
+CobaltStrike是一款以Metasploit为基础的 GUI框架
+式渗透测试工具， 集远程控制、权限提升、横向渗透、
+内网穿透以及文件管理 功能为一体， 主要用于团队作
+战，被称为渗透测试神兵利器，可以让多个攻击者同时连接到团 队服务器上进行协同作战。对于防守方，
+大部分情 况下还是徒手作战阶段，网络安全应急工程
+师各自凭借工 作经验进 行处置。由于防守方的技术水
+平不同，应急响应的速度和效果往往不一样。目前中
+大型企业和机构组织已经完成大部分的安全基础 架
+构建设，具备较为完善的安全防御能力。入侵检测能
+力、高级威胁感知（APT） 能力和态势感知能力都逐渐
+具备，但是检测之后的应急处置能力还有待提升。由
+于处置过程缺乏统 一的调度指挥， 安全事件处置没有
+标准化、 流程化和自动化。面对日益增加的安全检测
+能力，企业急需 一套编排驱动的设备协同工具和响应
+处置平台， 以提升安全响应的速度和效率，降低MT-
+TR（平均故障恢复 时间） ，加速应急响应[1
+]。
+3安全编排技术的实战化应用
+企业和组
+织机构的安全 运营工作在人员指挥调
+度、告警研判 、应急响应、经验积累及协同作战诸多方
+面面临的挑战越来越突出。为了应对挑战，顺应安全
+运营未来发展的新趋势，SOAR（SecurityOrchestration ,
+Automation and Response，安全编排自动化与响应 ）应
+运而生。早在2015年，Gartner最先提出SOAR，并将
+其定义为安全 运维分析与报告（SecurityOperations
+Analytics and Reporting）。随着安全运维技术 的快速发
+展与演变，到了 2017年，Gartner重新将SOAR定义
+为安全编排自动 化与响应，并将其看作是安全编排与
+自动化（SecurityOrchestration and Automation ，SOA）、
+安全事件响应平台（Security Incident ResponsePlat-
+form，SIRP）和威胁情报平台（Threat Intelligence Plat-
+form，TIP）三者的结合。G artner认为，SOAR技术这样
+的创新技术 仍然在不断地演化和改进，未来它的涵义
+可能有所变化，但是目标不 会变化，仍然是围绕着网
+收稿日期： 20
+22-07-27
+作者简介： 束维国（1967—），男，安徽合肥人， 硕士，毕业于合肥工业大学， 高级工程师， 研究方向为电子政务建设应用。总第 218期
+2022年第 8期现代工业经济和信息化
+Mo
+dern Industrial Economy and InformationizationTotal218
+No.8，2022
+DOI:10.16525/j.cnki.14-1362/n.2022.08.043信息安全
+2022
+年第 8期
+络安全运维 、加速应急响 应的目的进 行迭代。
+安全工程师 在处理一次安
+全应急的时候， 需要在
+不同设备中 进行切换 ，登陆各种安全设备进行数据提
+取。例如：登陆Web应用防火墙（WAF）设备获取Web
+攻击信息、登陆主机入侵检测（HIDS）平台获取主机
+告警信息、登陆全流量设备筛选特定流量信息、登陆
+CMDB系统查询资产归属。除此之外，还需要借助一
+些外部互 联网的一 些查询工具 ，例如： IP地址归属地
+查询、威胁情报、在线加解密工 具等。通过安全工程师
+综合研判并 进行相应的 处置，处置动作有：下线主机、
+发送邮件或者钉钉 通知、记录应急处置过程等。
+在使用SOAR技术之前， 不同的安全工程师的思
+路和水平不同，处理相同的安全事件的方式也有所不
+同。使用SOAR技术之后， 安全运 营过程进 行标准化、
+数字化规范 ，当遇到相同 安全事件，都采取统一标准、
+统一步骤 执行，避免出现因人员能力的差距导致实际
+应急效果不可 控。并且，整个流程通过SOAR的协同
+作战平台记录， 处置过程可追 溯， 经验可 沉淀。
+3.1一次基于 SOAR的实战
+通过SOAR的安
+全编排技术，制定标准 SOP流
+程，把原本需要 多人、多设备参与的应急处置事件，按
+照预定的工作剧本（PlayBook）进行应急响应， 从而加
+速了整个应急流程，减少人工消耗的时间，提升安全
+响应效率 。
+例如， 在阿里云环境下，当阿里云态势感知发现
+有“反弹端口连 接”的行为， 安全工程师一般会按以下
+处置流程 进行处理：
+1）确定失陷主 机IP。
+2） 发送消息、通知（钉钉、邮件）到管理员。
+3）登陆实现主 机查询网络 会话历史。
+4）登陆主机入 侵检测平台，查看主机进程的上下
+文信息。
+5）确定是否为生产环境。
+6） 对非生产环境直接隔离 。
+7） 对生产 环境封禁反弹的目标 IP。
+8） 发送处置结 果消息到管 理员。
+以上是按先后顺序进行处置，并且， 从发生反弹
+端口的告警到 管理员到 岗处置，就已经有一个很大的
+延迟时间。接下来进 行这些基础操作， 对于一个熟练
+的安全工程师， 也需要 10～20min的执行时间，可能
+在这个时间内，黑客都已经完成了数据窃取、木马种
+植和勒索病毒 种植。
+以上应急案例可以通过使用安全编排自动化技
+术，把将预定义的工作流（WorkFlow） 和工作剧本
+（PlayBook）事故调查 处置流程进 行标准化。
+通过自动化 编排技术，可以把以上的应急流程编成安全剧本 ，把原本几十分钟的应急事件缩短到几分
+钟以内。并且整个 流程有记录，可以沉淀成知识库和
+应急实战经验 。融合了编 排自动化技术的安全应 急响
+应处置平台，能够适应更多复杂场景的安全 应急响
+应， 以更加 贴近实战的方式为安全团队赋能 。
+3.2SOAR的实战意义
+面向实战
+化安全运营的安全编排自动化与响应
+系统， 能够将 繁杂的安全 运营（尤其是安全响应）过程
+梳理为任务和剧本 ，将分散的安全工具与功能转化为
+可编程的应用和动作 ，然后借助编排和自动化技术，
+将人员、工具和流程高度协同，解决安全运营响应中
+人员匮乏、安全事件响应不及时、重复性运维工作多、
+安全设备 之间缺乏协 同以及联动 性差等问题 。其主要
+意义有以下 几点：
+1）整合资源、 协同连接。系统将分散的设 备、人员
+和流程等安全运营所需的各种资源有机地整合到一
+起，强调人如何借 助编排和自动化高效利用各种安全
+资源， 实现人 与设备、设备与设备的连接与协作，解决
+安全运营的最后一公 里落地问题，体现了实战化安全
+运营的理念 。
+2）自动运营 、减负增效。利用系统的编排与自动
+化功能，可以将安全 操作流程或其片段转变成编排化
+的安全剧本，并尽可能自动化地执行， 从而大幅降低
+安全运营人员，尤其是一线安全运营人员的工作负
+担，减轻工作 压力，提升工作效率， 在现有人员条件下
+执行更多的任务。
+3）增强告警 、快速分诊。处理告警信息是安全运
+营的一项重要工 作。系统能够在不改变 告警分诊过 程
+的情况下， 将部分处理流程编排化、自动化，缩短整个
+过程的耗时，让人更多地进行决策，而不是获取上下
+文信息和 来回切换 工具， 从而提升单位时间内处理告
+警的数量和质 量。
+4） 快速响应、及时补救。安全运营人员可以将针
+对不同威胁的响应行动方案以预案的形式编写成安
+全剧本，纳入剧本库统 一管理。在威胁触发后 ， 在有人
+参与或者无 人参与的 情况下，自动地执行相关预案，图1
+标准化事故调查处置流程
+开始反弹端口连接
+端口反弹事件
+告警处置发送消息统一消息发送结束
+主机进程上下文
+折取主机进程上
+下文网络会话上下文
+从VPCFlow取消
+网络会话历史
+是否生产
+环境？主机隔离
+安全组策略-
+隔离指定主机
+NY束维国：基于安全编排自动化与响应技术在网络安全应急响应中的应用探索 113··
+现代工业经济和信息化
+xd
+gyjjxxhx@ 163.com 第12卷
+如执行防火墙阻断操作、执行账号禁用操作、终止
+某
+个进程等 ，大大缩短 手动执行预案所耗费的时间。事
+后还能对处置过程进行复盘， 对预案进行改进，积累
+相关经验。
+5）动态防御、 持续优化。安全运营的很大一部分
+工作都是在进行 安全对抗，而对抗的过程是在不断动
+态变化的 。系统具备 很强的可塑性和可扩展性， 安全
+运营人员能够根据实战情况动态调整和组合流程和
+剧本。系统能 够自动记录所有对抗过程的操作记录，
+便于事后 总结归纳 ，持续优化[2
+]。
+6）提升人
+效、高效度量。通过编排与自动化技术
+手段，提升人的运营水平和绩效，帮助安全运营人员
+从繁重的低 端重复性 劳动中解脱出来，将工作中心转
+移到高端创造性工作中 去，提升安全运营人员的技能水平。同时，借助本系统， 可以实现安全 运营效果的 自
+动化、数字化度量，让安全管理者更客观、快速地掌握
+安全运营 团队的绩 效， 以及安全 运营的实际 效果。
+4结语
+面对日益增长 的攻击事件， 安全人员的挑战也日
+益严峻。除了事前评估 ，事前布防以 外，加速应急 响应
+也是安全建 设的重要研究方向。 通过引入SOAR智能
+编排自动化与响应 技术并在实战中 应用，可有效提高
+安全建设最后一公里的水平 ，提升安全运 营质量。
+参考文献
+[1]王刚，秦益飞，杨正权.基于可视化的
+安全策略链编排框架[J].中
+国信息化， 2020 （7）：78-80.
+[2]赵旭，王伟，陈惠娟.省级网络安全应急管理问题及对策[J].保密
+科学技术， 2018（2）：56-60.
+（编辑：
+郭萍茹）
+Application
+of Security Orchestration Based Automation and Response Technology in Network
+Security Emergency Response
+Sh
+u Weiguo
+（Information Center, Anhui Province Department of Economy and Information Technology, Hefei Anhui
+230001）
+Abst
+ract:With the ra pid development of the Internet and digital economy, networkattacks arebecoming more and more fre quent.In order
+toproperly handle and res pond topossible emergencies in the critical information infrastructure of enter prises,ensure the safe ,stable and
+continuous o peration of the critical information infrastructure ,andprevent major im pacts and economic losses to enter prises,it is necessary
+to further strengthen the net worksecurity and information technology emergency security ca pability.Networksecurity emergency res ponse
+capability is the last line of defense for security protection,and consolidation of emergency defense is essential for security cap acity
+building.Based on this ,the current net worksecurity situation and the challenges facing net worksecurity emergency res ponse are briefly
+introduced ,and the a pplication of security orchestration automation and res ponse(SOAR)technology in net worksecurity emergency
+response is discussed in de pth to create a more intelligent and efficient net worksecurity emergency res ponse capability.
+Key words: security orchestration ; SOAR;emergency res ponse
+提升了电力 工程的自动 化技术，操作更
+加简单、方便、
+快捷、一定的时间内 工作效率得到了很大的提升。培
+养相关人才也是 非常重要的， 人员素质提升掌握的技
+术也增多 ，智能化技术 覆盖面多 ，工作效率也 将加快。
+参考文献
+[1]李金波.浅谈电气工程
+及其自动化的智能化技术应用[J].橡塑技
+术与装备， 2015（22）：50-51.[2]袁中浩.电气工程及其自动化技术智能化设计与应用[J].中国战
+略新兴产业， 2018（20）：35．
+[3]张拯民.电气工程及其自动化的智能化技术应用探究[J].工程技
+术：（全文版）2016 （11）：212.
+[4]冯瑶.电气工程及其自动化的智能化技术应用分析[J].企业技术
+开发，2016， 35（4）：112.
+（编辑：刘
+楠）
+Applicatio n
+of Intelligent Technology in Electrical Engineering and Its Automation
+Wang
+Tao
+（Nanchang College of Engineering, Nanchang Jiangxi 330099 ）
+Abst
+ract:The conce pt of electrical engineering and its automation and intelligent technology is introduced ,the advantages of the
+application of intelligent technology of electrical engineering and its automation are analyzed ,and the s pecific case a pplication of intelligent
+technology of electrical engineering automation and the de velopment of going to slee pare studied for the reference of people in the same
+industry.
+Key words: electrical engineering and its automation ;intelligent technology ;application（上接第1
+06页）114··

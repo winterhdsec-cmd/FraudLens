@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -434,7 +434,18 @@ async def prometheus_metrics():
 
 _static_dir = os.path.join(os.path.dirname(__file__), 'static')
 if os.path.isdir(_static_dir):
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+    # 静态资源（assets/*、vite.svg、favicon 等）直接托管
+    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="static_assets")
+    # SPA history 路由 catch-all：非 API、非真实静态文件的路径一律回落到 index.html，
+    # 保证前端路由（/dashboard、/case-detail 等）直接访问或刷新不 404。
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        if full_path in ("", "index.html"):
+            return FileResponse(os.path.join(_static_dir, "index.html"))
+        probe = os.path.normpath(os.path.join(_static_dir, full_path))
+        if probe.startswith(_static_dir) and os.path.isfile(probe):
+            return FileResponse(probe)
+        return FileResponse(os.path.join(_static_dir, "index.html"))
 
 if __name__ == '__main__':
     import uvicorn

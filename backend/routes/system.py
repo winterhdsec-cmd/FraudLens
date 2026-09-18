@@ -130,24 +130,46 @@ def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user: dict
         orchestrator = OrchestratorAgent(llm_client=get_llm_client())
         
         # 将消息格式转换为案件列表
+        # P0 演示修复（2026-09-17）：单条消息若包含多起案情（"受害人"等信号），
+        # 复用 text_to_cases 拆分为多案——否则整段文本只算 1 案，n_cases<3 聚类被
+        # 关闭，团伙发现永远为空并触发 model_conflict 异常卡。
+        try:
+            from agents.text_to_cases import text_to_cases as _text_to_cases
+            _split_enabled = True
+        except Exception:
+            _split_enabled = False
         cases = []
         for msg in raw_messages:
             if isinstance(msg, dict):
                 # 兼容聊天格式 {role, content}：把 content 提取为 description，
                 # 否则按通用字段透传（保留 description/case_id 等）
                 content = msg.get("content") or msg.get("description") or ""
-                if content:
-                    extra = {k: v for k, v in msg.items() if k not in ("role", "content")}
+                if not content:
+                    continue
+                extra = {k: v for k, v in msg.items() if k not in ("role", "content")}
+                sub = _text_to_cases(content, source="文本") if _split_enabled else []
+                if len(sub) >= 2:
+                    # 多案文本：拆分后逐案补齐 victim_name（analyze 透传用）
+                    for _c in sub:
+                        _c.setdefault("victim_name", _c.get("victim", ""))
+                    cases.extend(sub)
+                else:
                     cases.append({
                         "description": content,
                         "case_id": msg.get("case_id", f"case_{len(cases)}"),
                         **extra,
                     })
             elif isinstance(msg, str):
-                cases.append({
-                    "description": msg,
-                    "case_id": f"case_{len(cases)}"
-                })
+                sub = _text_to_cases(msg, source="文本") if _split_enabled else []
+                if len(sub) >= 2:
+                    for _c in sub:
+                        _c.setdefault("victim_name", _c.get("victim", ""))
+                    cases.extend(sub)
+                else:
+                    cases.append({
+                        "description": msg,
+                        "case_id": f"case_{len(cases)}"
+                    })
         
         result = orchestrator.process(cases, context={"accounts_tx": data.accounts_tx})
 
@@ -208,6 +230,25 @@ def api_agent_analyze(data: AnalyzeRequest, request: Request, current_user: dict
         # 【P0 修复】研判产出的团伙-案件关联必须落库 GangCaseRelation
         # 旧版只写 Gang 表 + FreezeDecision，但 GangCaseRelation 是空的，
         # 导致前端 getCaseGang 永远返回 undefined，案件卡片不显示所属团伙。
+        # P0 演示修复（2026-09-17）：研判产出的案件同时落库 cases 表，
+        # 否则案件管理/总览/详情永远看不到新导入的案件（此前仅内存返回）。
+        try:
+            from database.crud import save_case as _save_case
+            _saved_cases = 0
+            for _c in (result.get('cases') or []):
+                if not _c or not _c.get('case_id'):
+                    continue
+                try:
+                    _save_case(_c, session_id=result.get('session_id', session_id))
+                    _saved_cases += 1
+                except Exception as _ce:
+                    logger.warning(f"案件 {_c.get('case_id')} 落库失败: {_ce}")
+            if _saved_cases:
+                logger.info(f"研判案件已落库: {_saved_cases} 个")
+                from database.crud import _cache_clear as _cc2
+                _cc2()
+        except Exception as _e:
+            logger.warning(f"研判案件落库失败(不影响返回): {_e}")
         try:
             from database.crud import save_gang, _cache_clear
             _gangs_for_rel = result.get('gangs', []) or []

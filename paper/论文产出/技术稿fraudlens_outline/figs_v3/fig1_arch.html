@@ -1,0 +1,56 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif; }
+body { background:#FFFFFF; padding:28px 34px; width:1260px; }
+.card { background:#FFFFFF; border:1.5px solid #D8E0E8; border-radius:10px; padding:14px 18px; }
+.card.dark { background:#1E3A5F; border:none; }
+.card.dark .t { color:#FFFFFF; }
+.t { font-size:17px; font-weight:700; color:#1E3A5F; }
+.st { font-size:13.5px; color:#34495E; margin-top:4px; line-height:1.55; }
+.tag { display:inline-block; background:#EAF1F8; color:#1E3A5F; border-radius:5px; padding:3px 9px; font-size:12.5px; font-weight:600; margin:3px 3px 0 0; }
+.tag.orange { background:#FDF1E4; color:#B45F1A; }
+.tag.green { background:#E6F4EC; color:#1D7A43; }
+.arrow { text-align:center; color:#1E3A5F; font-size:15px; line-height:1.25; }
+.arrow small { display:block; color:#95A5A6; font-size:11.5px; font-weight:600; }
+.note { text-align:center; color:#34495E; font-size:12.5px; margin-top:10px; line-height:1.5; }
+</style></head><body>
+
+<div style="display:flex; flex-direction:column; gap:6px;">
+  <!-- 交互层 -->
+  <div class="card" style="display:flex; align-items:center; gap:16px;">
+    <div style="min-width:190px;"><div class="t">交互层</div><div class="st">一线研判人员 · Web 界面（Vue3）</div></div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+      <div class="card" style="border-style:dashed; padding:8px 12px;"><span class="t" style="font-size:14.5px;">案件线索上传</span><span class="st">话术文本 · 案件数据表（CSV）· 报案截图</span></div>
+      <div style="display:flex; gap:8px;">
+        <div class="card" style="flex:1; padding:8px 12px;"><span class="t" style="font-size:14.5px;">研判统计</span><span class="st">ECharts 团伙规模 / 类型分布 / 资金走向</span></div>
+        <div class="card" style="flex:1; padding:8px 12px;"><span class="t" style="font-size:14.5px;">团伙关系图</span><span class="st">vis-network 异构图可视化 · 画像卡下载</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▲ 研判结果与报告下发 <small>（画像卡 · 置信度 · 审计日志）</small></div>
+  <div class="arrow">▼ 案件线索与研判指令</div>
+  <!-- 决策协同层 -->
+  <div class="card" style="display:flex; align-items:center; gap:16px;">
+    <div style="min-width:190px;"><div class="t">决策协同层</div><div class="st">系统核心 · FastAPI 接口<br>LangGraph StateGraph 编排</div></div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; gap:8px;">
+        <div class="card" style="flex:1; padding:8px 12px; text-align:center;"><span class="t" style="font-size:14px;">要素抽取</span><span class="st">账户 / 金额 / 角色</span></div>
+        <div class="card" style="flex:1; padding:8px 12px; text-align:center;"><span class="t" style="font-size:14px;">话术识别</span><span class="st">刷单 · 杀猪盘 · 冒充客服</span></div>
+        <div class="card" style="flex:1; padding:8px 12px; text-align:center;"><span class="t" style="font-size:14px;">特征画像</span><span class="st">案件 / 账户多维特征</span></div>
+        <div class="card" style="flex:1; padding:8px 12px; text-align:center;"><span class="t" style="font-size:14px;">反思复核</span><span class="st">低置信回算 · 门控把关</span></div>
+      </div>
+      <div class="st" style="font-size:12.5px; color:#95A5A6;">多智能体流水线：分工执行 → 反思节点质检 → 未收敛回连重算（上限 max_iter）</div>
+    </div>
+  </div>
+  <div class="arrow">▲ 异构资金链图 / 语义向量 / 案件特征 <small>（派生视图 · 可重建）</small></div>
+  <div class="arrow">▼ 写入案件与团伙结果</div>
+  <!-- 数据模型层 -->
+  <div class="card" style="display:flex; align-items:center; gap:16px;">
+    <div style="min-width:190px;"><div class="t">数据模型层</div><div class="st">数据不出域 · 全本地运行</div></div>
+    <div style="flex:1; display:flex; gap:8px;">
+      <div class="card" style="flex:1; padding:8px 12px;"><span class="t" style="font-size:14px;">MySQL</span><span class="st">案件 / 账户 / 团伙关系数据</span></div>
+      <div class="card" style="flex:1; padding:8px 12px;"><span class="t" style="font-size:14px;">异构资金链图 · 向量</span><span class="st">case-account-perpetrator-type-city-text</span></div>
+      <div class="card" style="flex:1; padding:8px 12px;"><span class="t" style="font-size:14px;">BGE 本地语义模型</span><span class="st">话术嵌入推理（不依赖外部 API）</span></div>
+    </div>
+  </div>
+  <div class="note">数据流向自顶向下逐层加工，研判结论经审计落库（FreezeDecision 表），支持追溯</div>
+</div></body></html>

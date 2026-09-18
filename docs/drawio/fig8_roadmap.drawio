@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="fig8_roadmap" name="fig8_roadmap">
+    <mxGraphModel dx="1400" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="__p1" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="__p2" value="" style="fillColor=none;strokeColor=none;html=1;" vertex="1" parent="1"><mxGeometry x="1430" y="530" width="1" height="1" as="geometry" /></mxCell>
+        <mxCell id="tl" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#666666;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="80" y="270" as="sourcePoint" /><mxPoint x="1390" y="270" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="n1" value="" style="ellipse;html=1;fillColor=#82B366;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="232" y="252" width="36" height="36" as="geometry" /></mxCell>
+        <mxCell id="n2" value="" style="ellipse;html=1;fillColor=#6C8EBF;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="692" y="252" width="36" height="36" as="geometry" /></mxCell>
+        <mxCell id="n3" value="" style="ellipse;html=1;fillColor=#999999;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="1152" y="252" width="36" height="36" as="geometry" /></mxCell>
+        <mxCell id="cd1" value="" style="rounded=1;html=1;fillColor=#EEF7EC;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="80" y="60" width="380" height="150" as="geometry" /></mxCell>
+        <mxCell id="cd1h" value="已完成" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontStyle=1;fontSize=19;fontColor=#82B366;" vertex="1" parent="1"><mxGeometry x="96" y="72" width="200" height="34" as="geometry" /></mxCell>
+        <mxCell id="cd1b" value="全流程系统可运行&lt;br&gt;真实难度数据验证&lt;br&gt;本地私有化部署" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;align=left;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="96" y="112" width="348" height="92" as="geometry" /></mxCell>
+        <mxCell id="cd2" value="" style="rounded=1;html=1;fillColor=#EBF2FB;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="520" y="340" width="380" height="150" as="geometry" /></mxCell>
+        <mxCell id="cd2h" value="进行中" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontStyle=1;fontSize=19;fontColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="536" y="352" width="200" height="34" as="geometry" /></mxCell>
+        <mxCell id="cd2b" value="一线民警试点试用&lt;br&gt;反诈中心走访调研&lt;br&gt;专利申请跟进" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;align=left;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="536" y="392" width="348" height="92" as="geometry" /></mxCell>
+        <mxCell id="cd3" value="" style="rounded=1;html=1;fillColor=#F5F5F5;strokeColor=#999999;" vertex="1" parent="1"><mxGeometry x="980" y="60" width="360" height="150" as="geometry" /></mxCell>
+        <mxCell id="cd3h" value="下一步" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontStyle=1;fontSize=19;fontColor=#999999;" vertex="1" parent="1"><mxGeometry x="996" y="72" width="200" height="34" as="geometry" /></mxCell>
+        <mxCell id="cd3b" value="推广更多县市验证&lt;br&gt;接入更多线索类型&lt;br&gt;沉淀一线打法规范" style="text;html=1;fontSize=17;fontFamily=Microsoft YaHei;fontSize=16;align=left;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="996" y="112" width="328" height="92" as="geometry" /></mxCell>
+        <mxCell id="c1" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#BFBFBF;fontFamily=Microsoft YaHei;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="n1" target="cd1"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="c2" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#BFBFBF;fontFamily=Microsoft YaHei;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n2" target="cd2"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+        <mxCell id="c3" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#BFBFBF;fontFamily=Microsoft YaHei;exitX=0.5;exitY=0;entryX=0.45;entryY=1;" edge="1" parent="1" source="n3" target="cd3"><mxGeometry relative="1" as="geometry"></mxGeometry></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,151 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;color:#2C3E50;background:#fff;line-height:1.5}
+.wrap{width:1260px;margin:0 auto;padding:26px 22px 28px}
+h1{font-size:38px;font-weight:800;text-align:center;color:#1E3A5F;margin-bottom:7px;letter-spacing:1px}
+.sub{text-align:center;font-size:21px;color:#34495E;margin-bottom:20px;letter-spacing:.5px}
+h2{font-size:25px;font-weight:700;color:#1E3A5F;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:5px;height:18px;background:#2980B9;border-radius:2px}
+.panel{background:#F5F7FA;border:1px solid #D5DBDB;border-radius:9px;padding:14px}
+.row{display:flex;gap:12px}
+.col{flex:1}
+.desc{font-size:20px;color:#34495E;line-height:1.6}
+.center{text-align:center}
+
+.row1{display:flex;gap:0;align-items:stretch}
+.chan{flex:1;border:2px solid;border-radius:11px;padding:14px 16px}
+.chan-h{font-size:23px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.ch-ic{font-size:17px}
+.chan-d{font-size:21px;color:#34495E;line-height:1.55;margin-bottom:10px}
+.clu-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.clu{text-align:center;font-size:20px;color:#34495E;border:2px solid;border-radius:8px;padding:7px 2px;background:#fff;line-height:1.45}
+.clu b{font-size:23px;color:#2C3E50}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:4px 9px}
+.pc div{font-size:20px;padding:5px 8px;border-radius:6px;line-height:1.4}
+.pc-ok{background:#fff;color:#1E8449;border:1px solid #D4EFDF}
+.pc-no{background:#fff;color:#922B21;border:1px solid #F2D7D5}
+.flow-col{width:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0}
+.fa{width:44px;height:44px;border-radius:50%;background:#fff;border:2.5px solid #D5DBDB;color:#34495E;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800}
+.fa.fl{transform:scaleX(-1)}
+.fa-l{font-size:20px;color:#34495E;font-weight:600}
+.anchor{width:625px;flex-shrink:0;border:2.5px solid #CA8A04;background:#FEFCF3;border-radius:11px;padding:14px 16px}
+.an-h{font-size:24px;font-weight:800;color:#8A6208;text-align:center;margin-bottom:10px}
+.badge{display:flex;align-items:center;justify-content:center;gap:7px;background:#fff;border:1px solid #F0E2BC;border-radius:10px;padding:11px 12px;margin-bottom:10px}
+.bdg-c1{font-size:27px;font-weight:800;color:#B05A12;border:2px solid #F5CBA7;border-radius:7px;padding:5px 11px;background:#FDF2E9}
+.bdg-cap{font-size:43px;font-weight:800;color:#8A6208}
+.bdg-c2{font-size:27px;font-weight:800;color:#1E8449;border:2px solid #82E0AA;border-radius:7px;padding:5px 11px;background:#EAFAF1}
+.bdg-mid{font-size:19px;color:#8A6208;font-weight:700;margin-left:3px}
+.an-cond{background:#fff;border:1px solid #F0E2BC;border-radius:9px;padding:10px 12px;margin-bottom:9px}
+.an-t{font-size:22px;font-weight:800;color:#8A6208;margin-bottom:5px}
+.an-r{font-size:20px;color:#34495E;margin-bottom:3px;line-height:1.45}
+.an-gate{background:#FDF5F4;border:1px solid #E8B4AE;border-radius:9px;padding:11px 16px;font-size:21px;color:#922B21;font-weight:600;line-height:1.6}
+.split-lab{position:absolute;font-size:22px;font-weight:800;border:2px solid;border-radius:14px;padding:4px 12px;white-space:nowrap;transform:translateX(-50%)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.r2card{border:2px solid;border-radius:11px;padding:14px 16px 16px}
+.r2-h{font-size:24px;font-weight:800;margin-bottom:10px}
+.ex{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #D5DBDB;border-radius:9px;padding:9px 11px;margin-bottom:9px;flex-wrap:nowrap}
+.ex-c{font-size:24px;font-weight:800;color:#34495E;background:#F5F7FA;border-radius:7px;padding:4px 9px;white-space:nowrap}
+.ex-op{font-size:22px;color:#34495E;font-weight:600;white-space:nowrap}
+.ex-r{font-size:23px;font-weight:800;border:2px solid;border-radius:7px;padding:4px 9px;white-space:nowrap}
+.r2-d{font-size:21px;color:#34495E;line-height:1.6}
+.r2-d b{color:#2C3E50}
+.pipe{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #D5DBDB;border-radius:9px;padding:11px;margin-bottom:9px}
+.pp{flex:1;text-align:center;font-size:21px;font-weight:700;border:2px solid;border-radius:8px;padding:9px 4px;line-height:1.45}
+.p-ar{color:#5D6D7E;font-weight:800;font-size:15px}
+.strat{margin-top:13px;background:#fff;border:1px solid #D5DBDB;border-radius:11px;padding:13px 15px}
+.strat-h{font-size:22px;font-weight:800;color:#1E3A5F;margin-bottom:10px}
+.strat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.st{border:2px solid;border-radius:9px;padding:10px 12px;font-size:21px;color:#34495E;line-height:1.55;background:#F8FAFC}
+.st b{margin-right:5px}
+.incr{margin-top:13px;background:#EBF5FB;border:1px solid #AED6F1;border-radius:11px;padding:13px 15px}
+.incr-h{font-size:22px;font-weight:800;color:#1A5276;margin-bottom:10px}
+.incr-row{display:flex;align-items:center;gap:9px}
+.incr-step{flex:1;text-align:center;font-size:21px;font-weight:700;border:2px solid;border-radius:9px;padding:9px 4px;background:#fff;line-height:1.45}
+.incr-ar{color:#5D6D7E;font-weight:800;font-size:15px}
+.incr-note{font-size:21px;color:#34495E;line-height:1.55;margin-top:9px;border-top:1px dashed #AED6F1;padding-top:6px}
+.incr-note b{color:#1A5276}
+.foot{margin-top:12px;display:flex;align-items:center;gap:13px;background:#FEF9E7;border:1px solid #F5CBA7;border-radius:10px;padding:11px 15px}
+.foot-l{flex:1;font-size:21px;color:#7D6608;line-height:1.55}
+.foot-l b{color:#8A6208}
+.foot-chips{display:flex;gap:8px;flex-shrink:0}
+.fc2{font-size:22px;font-weight:800;border-radius:15px;padding:5px 14px;white-space:nowrap}
+</style></head><body><div class="wrap"><h1>共识伪标签 · 双通道一致才采信</h1><div class="sub">资金 Louvain + 话术 KMeans &#8594; 交集锚点 &#8594; 半监督微调 HAN &#8594; hybrid 出牌 · 增量模式随到随判</div><div class="row1"><div class="chan" style="border-color:#F5CBA7;background:#FEFBF6"><div class="chan-h" style="color:#B05A12"><span class="ch-ic">💰</span>资金通道 C₁ · Louvain 社区发现</div><div class="chan-d">在资金共享子图上做社区发现，按共享收款账户天然分组。账户是硬证据，可信度高。</div><div class="clu-row"><div class="clu" style="border-color:#F5CBA7">资金簇 1<br><b>4 案</b></div><div class="clu" style="border-color:#F5CBA7">资金簇 2<br><b>5 案</b></div><div class="clu" style="border-color:#F5CBA7">资金簇 3<br><b>3 案</b></div></div><div class="pc"><div class="pc-ok">✔ 硬证据，可信度高</div><div class="pc-ok">✔ 对账户数据直接可用</div><div class="pc-no">✘ 账户缺失 / 打码时失效</div><div class="pc-no">✘ 无账户案件无法分组</div></div></div><div class="flow-col"><div class="fa">&#10148;</div><span class="fa-l">取簇号</span></div>
+<div class="anchor">
+  <div class="an-h">&#127919; 共识锚点 A = C&#8321; &#8745; C&#8322;</div>
+  <div class="badge">
+    <div class="bdg-c1">C&#8321;</div>
+    <div class="bdg-cap">&#8745;</div>
+    <div class="bdg-c2">C&#8322;</div>
+    <div class="bdg-mid">双通道严格一致的交集</div>
+  </div>
+  <div class="an-cond">
+    <div class="an-t">锚点采信三条件</div>
+    <div class="an-r">&#9312; 两通道分组完全一致</div>
+    <div class="an-r">&#9313; 簇规模 &lt; 25% 总案件数</div>
+    <div class="an-r">&#9314; 锚点数量 &#8805; 下限阈值</div>
+  </div>
+  <div class="an-gate">&#9888; 触发拒绝（门控）：巨簇弃用 · 锚点不足整批转人工——宁可不出牌，也不出错牌</div>
+</div>
+<div class="flow-col"><div class="fa fl">&#10148;</div><span class="fa-l">取簇号</span></div><div class="chan" style="border-color:#82E0AA;background:#F7FCF9"><div class="chan-h" style="color:#1E8449"><span class="ch-ic">💬</span>话术通道 C₂ · BGE + KMeans</div><div class="chan-d">本地 BGE 模型编码话术语义，KMeans 按语义相似度聚类，能抓住模板演化。</div><div class="clu-row"><div class="clu" style="border-color:#82E0AA">话术簇 1<br><b>4 案</b></div><div class="clu" style="border-color:#82E0AA">话术簇 2<br><b>5 案</b></div><div class="clu" style="border-color:#82E0AA">话术簇 3<br><b>3 案</b></div></div><div class="pc"><div class="pc-ok">✔ 语义层面抓模板变化</div><div class="pc-ok">✔ 对文字材料直接可用</div><div class="pc-no">✘ 话术碰撞时可能误并</div><div class="pc-no">✘ 语义接近的模板难分</div></div></div></div><div style="position:relative;width:100%;margin:-2px auto 0">
+<svg width="100%" height="76" viewBox="0 0 1260 76" preserveAspectRatio="xMidYMid meet" style="display:block;margin:0 auto">
+<defs>
+<marker id="sG" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#27AE60"/></marker>
+<marker id="sB" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2980B9"/></marker>
+</defs>
+<path d="M 630 4 L 630 28" stroke="#5D6D7E" stroke-width="3.5" fill="none"/>
+<path d="M 630 28 L 360 28 L 360 58" stroke="#27AE60" stroke-width="3.5" fill="none" marker-end="url(#sG)"/>
+<path d="M 630 28 L 900 28 L 900 58" stroke="#2980B9" stroke-width="3.5" fill="none" marker-end="url(#sB)"/>
+</svg>
+<div class="split-lab" style="left:28.6%;top:14px;color:#1E8449;border-color:#82E0AA;background:#F2FBF5">是锚点（两通道一致）&#8594; 采信交集</div>
+<div class="split-lab" style="left:71.4%;top:14px;color:#1A5276;border-color:#AED6F1;background:#F4F9FD">非锚点（仅单通道）&#8594; HAN 判定</div>
+</div>
+<div class="row2">
+  <div class="r2card" style="border-color:#82E0AA;background:#F7FCF9">
+    <div class="r2-h" style="color:#1E8449">&#10003; 锚点案件 &#10140; 直接采用交集标签</div>
+    <div class="ex">
+      <span class="ex-c">案件 2</span>
+      <span class="ex-op">C&#8321; = 资金簇1 &#8741; C&#8322; = 话术簇1</span>
+      <span class="ex-op">&#8658;</span>
+      <span class="ex-r" style="background:#EAFAF1;border-color:#82E0AA;color:#1E8449">标签 = 团伙A &#10003;</span>
+    </div>
+    <div class="r2-d">两条<b>独立</b>证据同时指向同一个答案，置信度最高——同时作为"教材"（监督信号）喂给图网络。</div>
+  </div>
+  <div class="r2card" style="border-color:#AED6F1;background:#F6FAFD">
+    <div class="r2-h" style="color:#1A5276">&#9679; 非锚点案件 &#10140; HAN 微调后 argmax 判定</div>
+    <div class="pipe">
+      <span class="pp" style="border-color:#82E0AA;color:#1E8449">锚点标签作监督</span><span class="p-ar">&#10148;</span>
+      <span class="pp" style="border-color:#8E44AD;color:#6C3483">微调 HAN 分类头</span><span class="p-ar">&#10148;</span>
+      <span class="pp" style="border-color:#AED6F1;color:#1A5276">嵌入 &#8594; argmax &#8594; 团伙归属</span>
+    </div>
+    <div class="r2-d">借锚点的高置信度完成监督，又覆盖全部案件——不需要一条人工标注。</div>
+  </div>
+</div>
+
+<div class="strat">
+  <div class="strat-h">出牌策略（hybrid · 半监督）</div>
+  <div class="strat-grid">
+    <div class="st" style="border-color:#82E0AA"><b style="color:#1E8449">&#9312; 锚点案件</b>直接采信交集标签，不依赖模型</div>
+    <div class="st" style="border-color:#AED6F1"><b style="color:#1A5276">&#9313; 非锚点案件</b>用微调后 HAN 的 argmax 判定</div>
+    <div class="st" style="border-color:#E8B4AE"><b style="color:#922B21">&#9314; 触发门控</b>整簇拒出牌，转人工复核</div>
+  </div>
+</div>
+
+<div class="incr">
+  <div class="incr-h">&#128279; 增量模式 · 新警情随到随判（不重算全量）</div>
+  <div class="incr-row">
+    <span class="incr-step" style="border-color:#2980B9;color:#1A5276">新警情到达</span>
+    <span class="incr-ar">&#10148;</span>
+    <span class="incr-step" style="border-color:#CA8A04;color:#8A6208">资金 + 话术双匹配</span>
+    <span class="incr-ar">&#10148;</span>
+    <span class="incr-step" style="border-color:#27AE60;color:#1E8449">双信号一致 &#8594; 挂入团伙</span>
+    <span class="incr-ar">&#10148;</span>
+    <span class="incr-step" style="border-color:#E74C3C;color:#922B21">不一致 &#8594; 留待观察</span>
+  </div>
+  <div class="incr-note">200 案实测比全量重算<b>高 8 分</b>——流式挂接反而更准；团伙画像 = 账户池 + 话术质心，随新案自动更新。</div>
+</div>
+
+<div class="foot">
+  <div class="foot-l"><b>自适应 k 门控</b>：数据自身信号异常时自动往更细粒度搜索，直到巨簇消失——触发者是数据，不是测试集反调。</div>
+  <div class="foot-chips"><span class="fc2" style="background:#EAFAF1;color:#1E8449">P3 场景 +0.19</span><span class="fc2" style="background:#FDF2E9;color:#B05A12">P1 场景 +0.06</span></div>
+</div>
+</div></body></html>

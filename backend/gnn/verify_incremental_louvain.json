@@ -1,0 +1,78 @@
+[
+  {
+    "preset": "P2_hard_40",
+    "desc": "重噪 40 案（5 团伙×8）",
+    "n_cases": 40,
+    "n_library": 20,
+    "n_stream": 20,
+    "text_threshold": 0.7,
+    "f1_full": 0.6786,
+    "f1_incremental": 0.6185,
+    "delta": -0.0601,
+    "hold_ok": 0,
+    "match_precision": 0.8571,
+    "matched_cases": 14,
+    "held_cases": 6,
+    "hold_ratio": 0.3,
+    "phase1_gangs": 5,
+    "final_gangs": 6,
+    "time_phase1_s": 17.4,
+    "time_full_s": 17.8,
+    "step_log": [
+      {
+        "step": 0,
+        "chunk_cases": 10,
+        "matched": 8,
+        "held": 2,
+        "new_gangs": 0,
+        "known_gangs_after": 5
+      },
+      {
+        "step": 1,
+        "chunk_cases": 10,
+        "matched": 6,
+        "held": 4,
+        "new_gangs": 1,
+        "known_gangs_after": 6
+      }
+    ]
+  },
+  {
+    "preset": "P3_200",
+    "desc": "轻噪 200 案（10 团伙×20）",
+    "n_cases": 200,
+    "n_library": 100,
+    "n_stream": 100,
+    "text_threshold": 0.7,
+    "f1_full": 0.5263,
+    "f1_incremental": 0.6089,
+    "delta": 0.0826,
+    "hold_ok": 1,
+    "match_precision": 0.5795,
+    "matched_cases": 88,
+    "held_cases": 12,
+    "hold_ratio": 0.12,
+    "phase1_gangs": 6,
+    "final_gangs": 10,
+    "time_phase1_s": 29.9,
+    "time_full_s": 37.0,
+    "step_log": [
+      {
+        "step": 0,
+        "chunk_cases": 50,
+        "matched": 41,
+        "held": 9,
+        "new_gangs": 3,
+        "known_gangs_after": 9
+      },
+      {
+        "step": 1,
+        "chunk_cases": 50,
+        "matched": 47,
+        "held": 3,
+        "new_gangs": 1,
+        "known_gangs_after": 10
+      }
+    ]
+  }
+]

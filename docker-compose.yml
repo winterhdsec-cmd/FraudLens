@@ -1,4 +1,12 @@
 services:
+  # ============================================================
+  # ⚠️ 安全提示（复赛/交付前必读）
+  # 下方 `${VAR:-默认值}` 中的默认值（DB_PASSWORD / REDIS_PASSWORD /
+  # MINIO_ROOT_PASSWORD / JWT_SECRET_KEY）仅为「零配置一键启动」而保留，
+  # 属演示级弱口令，切勿用于任何真实环境。
+  # 生产/交付部署请务必先在 .env 中显式设置这 4 个变量，
+  # 可执行 `python backend/scripts/secure_standalone.py` 自动生成强随机值。
+  # ============================================================
   mysql:
     image: mysql:8.0
     restart: unless-stopped
@@ -83,6 +91,8 @@ services:
       TLS_ENABLED: ${TLS_ENABLED:-0}
       # G2：云端 LLM 默认关闭（数据不出域）；演示需云端智能时置 0
       DISABLE_CLOUD_LLM: ${DISABLE_CLOUD_LLM:-0}
+      # G2：出向 prompt 脱敏（掩身份证/银行卡/手机号/邮箱），默认开启，禁止置 0
+      CLOUD_LLM_MASK: ${CLOUD_LLM_MASK:-1}
       MINIO_ENDPOINT: minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fraudlens}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fraudlens123}
@@ -234,6 +244,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       TLS_ENABLED: ${TLS_ENABLED:-0}
       DISABLE_CLOUD_LLM: ${DISABLE_CLOUD_LLM:-0}
+      CLOUD_LLM_MASK: ${CLOUD_LLM_MASK:-1}
       MINIO_ENDPOINT: minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fraudlens}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fraudlens123}

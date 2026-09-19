@@ -24,10 +24,11 @@ PYTHON = sys.executable or "python"
 SUITE = [
     ("_verify_seed_consistency.py", "种子数据逻辑一致性不变量", False),
     ("_smoke_frontend_api.py", "前端全部 GET 接口巡检", False),
+    ("_verify_persons_collision.py", "重点人员碰撞比对（含停用排除反断言）", False),
     ("_verify_merge_panel.py", "并案建议面板（列表/过滤/驳回/鉴权）", True),
     ("_verify_seed_api.py", "脱敏数据 API 可见性与覆盖率", False),
     ("_verify_chat_memory.py", "会话记忆持久化（Redis 真实路径）", True),
-    ("_e2e_chat_memory.py", "会话记忆持久化路由层 E2E", True),
+    ("_e2e_chat_memory.py", "会话记忆持久化路由层 E2E + 侧边栏契约", True),
 ]
 
 # 汇总时从各脚本尾部抓取"结果"行
@@ -83,7 +84,6 @@ def main() -> int:
     print(f"Python: {PYTHON}")
     print(f"计划执行 {len(suite)} 个脚本")
     print("=" * 78)
-
     results = []
     for i, (script, desc, _side) in enumerate(suite, 1):
         print(f"\n[{i}/{len(suite)}] {script} — {desc}")

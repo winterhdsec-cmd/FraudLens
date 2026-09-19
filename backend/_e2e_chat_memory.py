@@ -128,10 +128,45 @@ def main():
     check("HTTP 200", r9.status_code == 200, f"实际 {r9.status_code}")
     check("count 为 0", r9.json()["count"] == 0)
 
+    # --- 7.5 会话列表契约（前端侧边栏依赖它） ---
+    # 前端 ChatView 侧边栏用 id/title/messageCount/lastActive 四个字段渲染，
+    # 并按 lastActive 倒序展示。此处守护该契约，避免后端改字段名后前端静默空列表。
+    print("\n[7.5] GET /api/chat/sessions 契约（侧边栏数据源）")
+    import time as _t
+    trio = []
+    for i, q in enumerate(["冒充公检法怎么识别", "杀猪盘的资金特征", "刷单诈骗的量刑"]):
+        s = f"e2e_ord_{uuid.uuid4().hex[:8]}"
+        mem = ShortTermMemory(session_id=s)
+        mem.add_message("user", q)
+        mem.add_message("assistant", f"回答 {i}")
+        trio.append((s, q))
+        _t.sleep(1.05)  # 拉开 lastActive，保证排序可判定
+
+    rl = client.get("/api/chat/sessions")
+    check("HTTP 200", rl.status_code == 200, f"实际 {rl.status_code}")
+    lst = rl.json().get("sessions", [])
+    ids = [s["id"] for s in lst]
+    check("三个会话都在列表中", all(s in ids for s, _ in trio),
+          f"缺 {[s for s, _ in trio if s not in ids]}")
+    if all(s in ids for s, _ in trio):
+        sub = [s for s in lst if s["id"] in [x for x, _ in trio]]
+        check("按 lastActive 倒序（最新在前）",
+              [x["id"] for x in sub] == [x for x, _ in reversed(trio)],
+              f"实际顺序 {[x['id'][-6:] for x in sub]}")
+        check("字段齐备 id/title/messageCount/lastActive",
+              all(all(k in x for k in ("id", "title", "messageCount", "lastActive")) for x in sub))
+        check("标题取自首条 user 消息",
+              all(x["title"].startswith(q[:6]) for x, (_, q) in zip(sub, reversed(trio))),
+              f"实际 {[x['title'] for x in sub]}")
+        check("messageCount 为 2", all(x["messageCount"] == 2 for x in sub),
+              f"实际 {[x['messageCount'] for x in sub]}")
+
     # --- 8. 清理 ---
     print("\n[8] 清理测试数据")
     ShortTermMemory(session_id=sid).clear()
     ShortTermMemory(session_id=sid_other).clear()
+    for s, _ in trio:
+        ShortTermMemory(session_id=s).clear()
     from core.redis_pool import get_redis_pool
     from memory.short_term import HISTORY_KEY_PREFIX
     with get_redis_pool().get_client() as c:

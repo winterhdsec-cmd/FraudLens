@@ -34,6 +34,7 @@ Thumbs.db
 # Build output
 backend/reports/
 frontend/dist/
+frontend/dist_*/
 static/
 *.egg-info/
 dist/

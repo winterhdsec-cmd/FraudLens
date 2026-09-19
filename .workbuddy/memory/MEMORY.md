@@ -48,7 +48,16 @@
 - **教方法 ≠ 代劳产出**：用户说"教你读"时，交付的是**可迁移的方法/关注点清单/自检技巧**，不是把内容嚼碎喂给他。
 - 参考文献只留正文 `\cite` 实引；降 AI 检测率但**诚实边界原样保留**。
 
-## 九、回归验证入口（2026-09-19 建）
-`python backend/run_verifications.py` 一键跑 6 个脚本、汇总通过/失败（退出码 0/1）：
-`_verify_seed_consistency.py`（数据不变量 14 项）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40 项）· `_verify_merge_panel.py`（并案建议面板 37 项）· `_verify_seed_api.py`（脱敏数据可见性 18 项）· `_verify_chat_memory.py`（会话持久化 24 项）· `_e2e_chat_memory.py`（路由层 E2E 20 项）。**合计 153 项，当前全绿。**
-新增数据一致性缺陷时，先跑 `backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复。
+## 九、回归验证入口（2026-09-19 建，7 脚本 / 172 项）
+`python backend/run_verifications.py` 一键跑全部并汇总（退出码 0/1），也可传关键词只跑部分：
+`_verify_seed_consistency.py`（数据不变量 14）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40）· `_verify_persons_collision.py`（重点人员碰撞比对 19）· `_verify_merge_panel.py`（并案建议面板 37）· `_verify_seed_api.py`（脱敏数据可见性 18）· `_verify_chat_memory.py`（会话持久化 24）· `_e2e_chat_memory.py`（路由层 E2E + 侧边栏契约 26）。**当前全绿。**
+- 新增数据一致性缺陷 → 先 `python backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复。
+- 验证脚本必须 `load_dotenv` 并 `wait_for_redis()` 自举依赖，否则会"依赖环境碰巧有 Redis"而假通过。
+
+## 十、申报书排版规范（改申报书前必读）
+`docs/申报书排版原则.md`（2026-09-19 从隔离区抢救）：正文行距固定值 **22 磅**（表格内部与封面个人信息表除外）；每页尽量填满不留大片空白；图题在下、表题在上、解释段紧跟；禁止 1×1 表格嵌套二级标题；编号体系 一、/（一）/1./（1）全文统一；正文含图题统一**小四 12pt**，不得混用五号；**申报书不得含专利相关内容**（尚未申请专利）、不得含论文全文（论文作独立附件）；附录仅放佐证材料清单；避免"供评委参考"等解释性语言；全文用大白话解释术语，避免过度技术化与参数堆叠。
+
+## 十一、已知易复发陷阱
+- **静默降级**最危险：「接口 200」≠「功能在工作」。见 `repo-health-audit` 技能阶段 2.5。
+- **取样陷阱**：用 `.query().first()` 取样做验证会赌运气（本次曾取到唯一那条 `is_active=False` 记录，一度误判碰撞功能有 bug）。取样要带明确条件。
+- **N+1**：列表接口逐条查关联表会放大耗时（`merge.py` 曾 14 条建议打 28 次库 → 101ms；改一次 `IN` 批量取回后 20ms）。

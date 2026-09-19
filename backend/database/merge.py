@@ -125,6 +125,9 @@ def get_merges(status=None, limit=200, offset=0):
 
     status: None / 'all' 表示全部；否则按该状态过滤（pending/approved/rejected）。
     返回 (items, total)。每条附带两侧案件的标题、受害人、类型，便于前端直接渲染。
+
+    性能：两侧案件用**一次 IN 查询**批量取回后在内存里查表，
+    避免「每条建议查 2 次 Case」的 N+1（14 条建议原本要打 28 次库）。
     """
     query = MergeSuggestion.query
     if status and status != 'all':
@@ -135,10 +138,20 @@ def get_merges(status=None, limit=200, offset=0):
         MergeSuggestion.similarity.desc(), MergeSuggestion.id.desc()
     ).offset(offset).limit(limit).all()
 
+    if not suggestions:
+        return [], total
+
+    # 一次性把这批建议涉及的所有案件取回，构建 case_id -> Case 映射
+    case_ids = {s.case_id_a for s in suggestions} | {s.case_id_b for s in suggestions}
+    case_map = {
+        c.case_id: c
+        for c in Case.query.filter(Case.case_id.in_(case_ids)).all()
+    }
+
     result = []
     for s in suggestions:
-        case_a = Case.query.filter_by(case_id=s.case_id_a).first()
-        case_b = Case.query.filter_by(case_id=s.case_id_b).first()
+        case_a = case_map.get(s.case_id_a)
+        case_b = case_map.get(s.case_id_b)
         result.append({
             'id': s.id,
             'case_id_a': s.case_id_a,

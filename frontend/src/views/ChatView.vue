@@ -8,7 +8,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button @click="showHistory = !showHistory" class="btn-icon" title="会话历史">
+        <button @click="toggleHistory" class="btn-icon" title="会话历史">
           <span><el-icon><Files /></el-icon></span>
         </button>
         <button @click="newSession" class="btn-icon" title="新会话">
@@ -602,6 +602,48 @@ export default {
     };
 
     /**
+     * 拉取服务端（Redis）会话列表，与本地 localStorage 索引做**并集**合并。
+     *
+     * 为什么不能只靠本地：localStorage 只记得住"这个浏览器聊过什么"。
+     * 换了浏览器、清了缓存、或换了机器，之前的会话就再也进不了侧边栏——
+     * 而它们其实完好地存在服务端。服务端才是权威来源，本地只做补充。
+     *
+     * 用并集而非覆盖：本地可能持有服务端没有的信息（如刚创建但还没落库的
+     * 「新会话」占位），直接覆盖会把它抹掉。
+     */
+    const syncServerSessions = async () => {
+      try {
+        const resp = await api.get('/api/chat/sessions')
+        const list = resp.data?.sessions || []
+        const byId = new Map()
+        // 服务端优先，视为权威
+        for (const s of list) {
+          if (s?.id) byId.set(s.id, { ...s })
+        }
+        // 本地补齐服务端缺失或为空字段
+        for (const s of sessions.value) {
+          if (!s?.id) continue
+          const exist = byId.get(s.id)
+          if (!exist) {
+            byId.set(s.id, { ...s })
+            continue
+          }
+          if (!exist.title && s.title) exist.title = s.title
+          if (!exist.messageCount && s.messageCount) exist.messageCount = s.messageCount
+          if (!exist.lastActive && s.lastActive) exist.lastActive = s.lastActive
+        }
+        const merged = [...byId.values()].sort((a, b) =>
+          String(b.lastActive || '').localeCompare(String(a.lastActive || ''))
+        )
+        sessions.value = merged.slice(0, 30)
+        persistSessions()
+      } catch (e) {
+        // 服务端不可用时保留本地索引，不打扰用户
+        console.warn('同步服务端会话列表失败（可忽略）:', e)
+      }
+    }
+
+    /**
      * 页面进入时恢复上次对话。
      * 优先级：本地 sessionId → 后端拉历史；失败则回落到服务端会话列表里的最近一条。
      */
@@ -610,34 +652,38 @@ export default {
       if (sessionId.value) {
         try {
           await loadSession(sessionId.value);
-          if (messages.value.length > 0) return;
+          if (messages.value.length > 0) {
+            // 本地恢复成功后，仍要把服务端其它会话补进侧边栏，
+            // 否则换过浏览器/清过缓存的历史会话永远找不回来
+            await syncServerSessions();
+            return;
+          }
         } catch (e) {
           console.warn('本地 sessionId 恢复失败，尝试服务端会话列表:', e);
         }
       }
 
       // 2) 回落：查服务端持久化的会话列表（Redis），取最近一条
-      try {
-        const resp = await api.get('/api/chat/sessions');
-        const list = resp.data?.sessions || [];
-        if (list.length > 0) {
-          // 用服务端数据重建本地索引（含标题/消息数/活跃时间），刷新后列表不再丢
-          sessions.value = list.slice(0, 30);
-          persistSessions();
-          const mostRecent = list[0].id;
-          if (mostRecent !== sessionId.value) {
-            await loadSession(mostRecent);
-          }
+      await syncServerSessions();
+      const mostRecent = sessions.value[0]?.id;
+      if (mostRecent && mostRecent !== sessionId.value) {
+        try {
+          await loadSession(mostRecent);
+        } catch (e) {
+          console.warn('恢复最近会话失败（可忽略）:', e);
         }
-      } catch (e) {
-        // 无历史或接口不可用时静默降级为空对话，不打扰用户
-        console.warn('恢复服务端会话列表失败（可忽略）:', e);
       }
     };
 
     watch(messages, () => {
       scrollToBottom();
     }, { deep: true });
+
+    /** 打开侧边栏时顺带同步一次服务端列表，保证看到的是最新的 */
+    const toggleHistory = () => {
+      showHistory.value = !showHistory.value;
+      if (showHistory.value) syncServerSessions();
+    };
 
     onMounted(() => {
       adjustTextareaHeight();
@@ -653,6 +699,7 @@ export default {
       messagesContainer,
       inputTextarea,
       showHistory,
+      toggleHistory,
       showShortcuts,
       sessions,
       quickActions,

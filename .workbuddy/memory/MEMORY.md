@@ -32,7 +32,8 @@
 
 ## 六、工程状态（B+ 科研原型级，**绝不可称生产部署**）
 - 已落地：JWT+RBAC、审计双表、LangGraph 真闭环、HAN 真异构、多环境配置、docker-compose 全栈。
-- 缺口：TLS 待证书、真实警务数据端到端验证缺、案卷 OCR→结构化待接、**止付冻结仅 Mock**（`backend/tools/freeze_executor.py`，真实对接待警务协调）。
+- 缺口：TLS 待证书、真实警务数据端到端验证缺、案卷 OCR→结构化待接、**止付冻结仅 Mock**（`backend/tools/freeze_executor.py`，真实对接需警务协调）。
+- **止付冻结链路已于 2026-09-19 修好**（此前**从未成功过**）：`MockFreezeExecutor` 按 `t.get("account")`/`t.get("bank")` 取值，而前端与创建接口写的是 `account_number`/`bank_name` → 静默跳过全部账户 → **0 条回执、工单恒为 `failed`**（3 张线上工单全中）。已加 `_pick()` 兼容三套字段名；状态推导抽成 `_derive_freeze_status()`（`pending` 不再算失败）；并收紧执行门控（**admin 也不得执行未审批工单**，原先可绕过审批链直接冻结）。
 - 9 张空表**已于 2026-09-19 填充脱敏演示数据**（`backend/seed_empty_tables.py`，幂等可复现，`SEED=20260918`）：persons 364 / accounts 545 / phones 364 / evidence_items 424 / merge_suggestions 14 / imported_fund_flows 29 / freeze_approvals 4 / freeze_receipts 3 / review_opinions 4。脱敏规范：手机 `138****8888`、卡 `6222 **** **** 8888`、身份证 `4201**********1234`、人名 `张*明`。
 - `gnn/pathb_*`、`experiment_*`、`probe_*`、`backend/test_*.py` 为实验残留，非主线。
 
@@ -48,11 +49,12 @@
 - **教方法 ≠ 代劳产出**：用户说"教你读"时，交付的是**可迁移的方法/关注点清单/自检技巧**，不是把内容嚼碎喂给他。
 - 参考文献只留正文 `\cite` 实引；降 AI 检测率但**诚实边界原样保留**。
 
-## 九、回归验证入口（2026-09-19 建，7 脚本 / 172 项）
+## 九、回归验证入口（2026-09-19 建，8 脚本 / 209 项）
 `python backend/run_verifications.py` 一键跑全部并汇总（退出码 0/1），也可传关键词只跑部分：
-`_verify_seed_consistency.py`（数据不变量 14）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40）· `_verify_persons_collision.py`（重点人员碰撞比对 19）· `_verify_merge_panel.py`（并案建议面板 37）· `_verify_seed_api.py`（脱敏数据可见性 18）· `_verify_chat_memory.py`（会话持久化 24）· `_e2e_chat_memory.py`（路由层 E2E + 侧边栏契约 26）。**当前全绿。**
-- 新增数据一致性缺陷 → 先 `python backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复。
+`_verify_seed_consistency.py`（数据不变量 17）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40）· `_verify_persons_collision.py`（重点人员碰撞比对 19）· `_verify_freeze_executor.py`（冻结执行器字段兼容+审批门控+端到端 31）· `_verify_merge_panel.py`（并案建议面板 37）· `_verify_seed_api.py`（脱敏数据可见性 18）· `_verify_chat_memory.py`（会话持久化 24）· `_e2e_chat_memory.py`（路由层 E2E + 侧边栏契约 26）。**当前全绿。**
+- 新增数据一致性缺陷 → 先 `python backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复（覆盖 merge_suggestions / freeze_approvals / freeze_orders 三类）。
 - 验证脚本必须 `load_dotenv` 并 `wait_for_redis()` 自举依赖，否则会"依赖环境碰巧有 Redis"而假通过。
+- 探针读跨连接写入前须 `db.session.rollback()`（MySQL REPEATABLE READ 会一直用旧快照）；清理测试数据注意外键顺序（先删 `approval_nodes` 再删 `approval_flows`）。
 
 ## 十、申报书排版规范（改申报书前必读）
 `docs/申报书排版原则.md`（2026-09-19 从隔离区抢救）：正文行距固定值 **22 磅**（表格内部与封面个人信息表除外）；每页尽量填满不留大片空白；图题在下、表题在上、解释段紧跟；禁止 1×1 表格嵌套二级标题；编号体系 一、/（一）/1./（1）全文统一；正文含图题统一**小四 12pt**，不得混用五号；**申报书不得含专利相关内容**（尚未申请专利）、不得含论文全文（论文作独立附件）；附录仅放佐证材料清单；避免"供评委参考"等解释性语言；全文用大白话解释术语，避免过度技术化与参数堆叠。

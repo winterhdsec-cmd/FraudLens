@@ -59,6 +59,23 @@ class FreezeExecutor:
         raise NotImplementedError
 
 
+def _pick(d: Dict[str, Any], *keys: str) -> str:
+    """按优先级取第一个非空字段值。
+
+    工单 `target_accounts` 是 JSON 列，历史/不同入口写入过三套字段名：
+      - 前端与创建接口：`account_number` / `bank_name` / `account_name`
+      - 早期格式：`account` / `bank` / `holder`
+      - 纯字符串：直接是账号
+    执行器必须都能认，否则字段名一处不匹配就会**静默跳过全部账户、
+    产出 0 条回执、工单恒为 failed**（历史上真实发生过）。
+    """
+    for k in keys:
+        v = d.get(k)
+        if v is not None and str(v).strip():
+            return str(v).strip()
+    return ""
+
+
 class MockFreezeExecutor(FreezeExecutor):
     """Mock 实现：模拟止付冻结执行成功，生成回执。
 
@@ -73,21 +90,30 @@ class MockFreezeExecutor(FreezeExecutor):
         receipts = []
         targets = order.target_accounts or []
         if isinstance(targets, str):
-            # 兼容旧格式
-            targets = [{"account": targets, "bank": "", "holder": ""}]
+            # 兼容旧格式：整个字段就是一个账号字符串
+            targets = [targets]
+        if isinstance(targets, dict):
+            targets = [targets]
 
         for t in targets:
-            account = t.get("account", "") if isinstance(t, dict) else str(t)
-            bank = t.get("bank", "") if isinstance(t, dict) else ""
+            if isinstance(t, dict):
+                # 兼容三套字段名（见 _pick 文档）
+                account = _pick(t, "account_number", "account", "account_no", "card_number")
+                bank = _pick(t, "bank_name", "bank", "bank_code")
+                holder = _pick(t, "account_name", "holder", "name")
+            else:
+                account = str(t).strip()
+                bank = holder = ""
             if not account:
                 continue
             # Mock：所有账户模拟执行成功
             external_ref = f"MOCK-{order.order_id}-{account[-4:]}"
+            who = f"（户名 {holder}）" if holder else ""
             receipts.append(FreezeReceiptDTO(
                 target_account=account,
                 bank_name=bank,
                 execution_status="success",
-                execution_message=f"Mock 执行成功：账户 {account} 已冻结（模拟）",
+                execution_message=f"Mock 执行成功：账户 {account} 已冻结（模拟）{who}",
                 executed_by=self.EXECUTOR_NAME,
                 external_ref=external_ref,
                 freeze_until=datetime.utcnow() + timedelta(days=self.FREEZE_DURATION_DAYS),

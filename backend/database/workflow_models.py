@@ -161,8 +161,12 @@ class FreezeOrder(db.Model):
 
     # 止付类型：止付(紧急)/冻结(正式)/续冻/解冻
     action_type = db.Column(db.String(20), default='冻结')  # 止付/冻结/续冻/解冻
-    # 目标账户清单
-    target_accounts = db.Column(JSON, default=list)  # [{account, bank, holder}]
+    # 目标账户清单。
+    # 实际字段名为 [{account_number, account_name, bank_name}]（前端与创建接口一致）。
+    # 早期曾写作 {account, bank, holder}，读取方若按老字段名取值会静默拿不到账号
+    # → 跳过全部账户 → 执行产出 0 条回执、工单恒为 failed。
+    # 读取方请用 tools/freeze_executor.py::_pick 的兼容取值，勿硬编码单一字段名。
+    target_accounts = db.Column(JSON, default=list)
     # 法律依据
     legal_basis = db.Column(db.String(500), default='')
     # 申请理由

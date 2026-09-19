@@ -197,6 +197,76 @@ def fix_approvals(dry_run):
     return changed
 
 
+def audit_orders():
+    """freeze_orders 状态与 freeze_receipts 是否自洽。
+
+    V8  工单 status='failed' 却存在 success/pending 回执（"失败"与"有进展"矛盾）
+    V9  工单 status='executed' 却存在非 success 回执
+    V10 工单有回执但缺 executed_at；或 executed_at 早于 approved_at
+    """
+    rows = db.session.execute(T(
+        "SELECT order_id, status, approved_at, executed_at FROM freeze_orders"
+    )).fetchall()
+    v8, v9, v10 = [], [], []
+    for order_id, status, approved_at, executed_at in rows:
+        recs = db.session.execute(T(
+            "SELECT execution_status FROM freeze_receipts WHERE order_id=:o"
+        ), {"o": order_id}).fetchall()
+        st = [r[0] for r in recs]
+        succ = sum(1 for x in st if x == 'success')
+        pend = sum(1 for x in st if x in ('pending', 'processing'))
+        if status == 'failed' and (succ > 0 or pend > 0):
+            v8.append((order_id, status, st))
+        if status == 'executed' and any(x != 'success' for x in st):
+            v9.append((order_id, st))
+        if st and executed_at is None:
+            v10.append((order_id, '有回执但缺 executed_at'))
+        elif approved_at and executed_at and executed_at < approved_at:
+            v10.append((order_id, f'executed_at({executed_at}) < approved_at({approved_at})'))
+    return {"total": len(rows), "v8": v8, "v9": v9, "v10": v10}
+
+
+def derive_status(statuses):
+    """与 routes/workflow.py::_derive_freeze_status 保持同一口径。"""
+    if not statuses:
+        return None  # 无回执不动（可能确实还没执行）
+    success = sum(1 for x in statuses if x == 'success')
+    pending = sum(1 for x in statuses if x in ('pending', 'processing'))
+    if success == len(statuses):
+        return 'executed'
+    if success > 0 or pending > 0:
+        return 'partial'
+    return 'failed'
+
+
+def fix_orders(dry_run):
+    a = audit_orders()
+    print(f"\n[freeze_orders] 共 {a['total']} 条")
+    print(f"  V8 failed 却有 success/pending 回执 : {len(a['v8'])} 条 {[(x[0], x[2]) for x in a['v8']]}")
+    print(f"  V9 executed 却有非 success 回执      : {len(a['v9'])} 条 {a['v9']}")
+    print(f"  V10 executed_at 缺失或早于 approved  : {len(a['v10'])} 条 {a['v10']}")
+
+    if dry_run:
+        print("  （dry-run，未修改）")
+        return 0
+
+    rows = db.session.execute(T("SELECT order_id, status FROM freeze_orders")).fetchall()
+    changed = 0
+    for order_id, status in rows:
+        st = [r[0] for r in db.session.execute(T(
+            "SELECT execution_status FROM freeze_receipts WHERE order_id=:o"
+        ), {"o": order_id}).fetchall()]
+        target = derive_status(st)
+        if target and target != status:
+            db.session.execute(T("UPDATE freeze_orders SET status=:s WHERE order_id=:o"),
+                               {"s": target, "o": order_id})
+            print(f"    {order_id}: {status} → {target}（回执 {st}）")
+            changed += 1
+    db.session.commit()
+    print(f"  → 已修正 {changed} 条")
+    return changed
+
+
 def main():
     ap = argparse.ArgumentParser(description="修复种子数据逻辑一致性缺陷")
     ap.add_argument("--dry-run", action="store_true", help="只报告，不修改")
@@ -214,23 +284,27 @@ def main():
 
     n1 = fix_merges(args.dry_run)
     n2 = fix_approvals(args.dry_run)
+    n3 = fix_orders(args.dry_run)
 
     print("\n" + "=" * 60)
     if args.dry_run:
         print("审计完成。去掉 --dry-run 即可执行修复。")
-    else:
-        print(f"修复完成：merge_suggestions {n1} 处、freeze_approvals {n2} 处")
-        print("\n复检：")
-        a1 = audit_merges()
-        a2 = audit_approvals()
-        bad1 = len(a1["v1"]) + len(a1["v2"]) + len(a1["v3"]) + len(a1["v4"])
-        bad2 = len(a2["v5"]) + len(a2["v6"]) + len(a2["v7"])
-        print(f"  merge_suggestions 残留违规：{bad1}")
-        print(f"  freeze_approvals  残留违规：{bad2}")
-        print("  " + ("全部干净 ✓" if bad1 == 0 and bad2 == 0 else "仍有违规，请检查 ✗"))
-        return 0 if (bad1 == 0 and bad2 == 0) else 1
-    print("=" * 60)
-    return 0
+        return 0
+
+    print(f"修复完成：merge_suggestions {n1} 处、freeze_approvals {n2} 处、freeze_orders {n3} 处")
+    print("\n复检：")
+    a1 = audit_merges()
+    a2 = audit_approvals()
+    a3 = audit_orders()
+    bad1 = len(a1["v1"]) + len(a1["v2"]) + len(a1["v3"]) + len(a1["v4"])
+    bad2 = len(a2["v5"]) + len(a2["v6"]) + len(a2["v7"])
+    bad3 = len(a3["v8"]) + len(a3["v9"]) + len(a3["v10"])
+    print(f"  merge_suggestions 残留违规：{bad1}")
+    print(f"  freeze_approvals  残留违规：{bad2}")
+    print(f"  freeze_orders     残留违规：{bad3}")
+    total_bad = bad1 + bad2 + bad3
+    print("  " + ("全部干净 ✓" if total_bad == 0 else f"仍有 {total_bad} 项违规，请检查 ✗"))
+    return 0 if total_bad == 0 else 1
 
 
 if __name__ == "__main__":

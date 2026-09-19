@@ -25,6 +25,7 @@ SUITE = [
     ("_verify_seed_consistency.py", "种子数据逻辑一致性不变量", False),
     ("_smoke_frontend_api.py", "前端全部 GET 接口巡检", False),
     ("_verify_persons_collision.py", "重点人员碰撞比对（含停用排除反断言）", False),
+    ("_verify_freeze_executor.py", "止付冻结执行器字段兼容+审批门控+端到端", True),
     ("_verify_merge_panel.py", "并案建议面板（列表/过滤/驳回/鉴权）", True),
     ("_verify_seed_api.py", "脱敏数据 API 可见性与覆盖率", False),
     ("_verify_chat_memory.py", "会话记忆持久化（Redis 真实路径）", True),

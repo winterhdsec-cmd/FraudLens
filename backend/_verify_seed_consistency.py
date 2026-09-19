@@ -146,6 +146,35 @@ check("I13 冻结到期时间应晚于创建时间",
 check("I14 execution_status 非空",
       [r[0] for r in fr if not r[2]])
 
+# ────────────────────── freeze_orders ↔ freeze_receipts ──────────────────────
+# 工单终态必须与回执自洽。历史上执行器读错字段名 → 0 条回执 → 工单恒为 failed，
+# 而种子回执却是 success，形成"工单失败但回执成功"的矛盾。
+print("\n[freeze_orders ↔ freeze_receipts 自洽性]")
+fo = db.session.execute(T(
+    "SELECT order_id, status, approved_at, executed_at FROM freeze_orders"
+)).fetchall()
+print(f"  样本量：{len(fo)} 条工单")
+
+v15, v16, v17 = [], [], []
+for order_id, status, approved_at, executed_at in fo:
+    st = [r[0] for r in db.session.execute(T(
+        "SELECT execution_status FROM freeze_receipts WHERE order_id=:o"
+    ), {"o": order_id}).fetchall()]
+    succ = sum(1 for x in st if x == "success")
+    pend = sum(1 for x in st if x in ("pending", "processing"))
+    if status == "failed" and (succ > 0 or pend > 0):
+        v15.append((order_id, status, st))
+    if status == "executed" and any(x != "success" for x in st):
+        v16.append((order_id, status, st))
+    if st and executed_at is None:
+        v17.append((order_id, "有回执但缺 executed_at"))
+    elif approved_at and executed_at and executed_at < approved_at:
+        v17.append((order_id, f"executed_at({executed_at}) < approved_at({approved_at})"))
+
+check("I15 failed 工单不得存在 success/pending 回执", v15)
+check("I16 executed 工单不得存在非 success 回执", v16)
+check("I17 有回执则须有 executed_at，且不得早于 approved_at", v17)
+
 # ────────────────────────── 汇总 ──────────────────────────
 print("\n" + "=" * 74)
 print(f"结果：{len(PASS)} 通过 / {len(FAIL)} 失败")

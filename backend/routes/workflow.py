@@ -51,6 +51,28 @@ router = APIRouter(prefix='/api/workflow', tags=['办案工作流'])
 # ──────────────────────────────────────────────────────────────────────
 # 模块加载时注册 freeze_order 审批回调：审批通过即执行止付冻结
 # ──────────────────────────────────────────────────────────────────────
+def _derive_freeze_status(receipts_dto) -> str:
+    """由回执推导工单终态。
+
+    语义：**只有全部回执都失败才算 failed**。
+    历史上把 `pending`（已提交银行、等待回执）也算作失败，导致
+    「冻结指令已送达银行」却显示工单失败 —— 语义错误，且会让演示页
+    出现"工单失败但回执正常"的自相矛盾。
+      - 全部 success            → executed
+      - 存在 success 或 pending  → partial（有进展，未全部落定）
+      - 其余（全 failed）        → failed
+    """
+    if not receipts_dto:
+        return 'failed'
+    success = sum(1 for d in receipts_dto if d.execution_status == 'success')
+    pending = sum(1 for d in receipts_dto if d.execution_status in ('pending', 'processing'))
+    if success == len(receipts_dto):
+        return 'executed'
+    if success > 0 or pending > 0:
+        return 'partial'
+    return 'failed'
+
+
 def _on_freeze_order_approved(flow: ApprovalFlow):
     """止付冻结审批通过回调：执行冻结并落库回执。"""
     order_id = flow.business_id
@@ -77,17 +99,12 @@ def _on_freeze_order_approved(flow: ApprovalFlow):
                 freeze_until=dto.freeze_until,
             )
             db.session.add(rec)
-        # 统计执行结果
-        success_count = sum(1 for d in receipts_dto if d.execution_status == 'success')
-        if receipts_dto and success_count == len(receipts_dto):
-            order.status = 'executed'
-        elif success_count > 0:
-            order.status = 'partial'
-        else:
-            order.status = 'failed'
+        # 统计执行结果（口径见 _derive_freeze_status）
+        order.status = _derive_freeze_status(receipts_dto)
         order.executed_at = datetime.utcnow()
         db.session.commit()
-        logger.info(f"止付冻结工单 {order_id} 执行完成：{success_count}/{len(receipts_dto)} 成功")
+        logger.info(f"止付冻结工单 {order_id} 执行完成："
+                    f"{sum(1 for d in receipts_dto if d.execution_status == 'success')}/{len(receipts_dto)} 成功")
     except Exception as e:
         db.session.rollback()
         logger.error(f"止付冻结执行异常（工单 {order_id}）: {e}")
@@ -778,9 +795,18 @@ async def api_execute_freeze_order(order_id: str, request: Request,
             return JSONResponse(status_code=404, content={"success": False, "error": "工单不存在"})
         if not _check_rbac(current_user, order.department or ''):
             return JSONResponse(status_code=403, content={"success": False, "error": "无权操作"})
-        if current_user.get('role') != 'admin' and order.status not in ('approved', 'failed', 'partial'):
-            raise HTTPException(status_code=400,
-                                detail=f"工单状态 {order.status} 不可执行（需 approved/failed/partial）")
+        # 状态门控：冻结是法定强制措施，"审批通过"是法律前提而非角色特权。
+        # 原先写成 `role != 'admin' and status not in (...)`，导致 **admin 可执行
+        # draft / pending_approval / rejected 的工单**，即完全绕过审批链直接冻结
+        # 他人账户。现改为纯状态门控（对所有人一致）：
+        #   approved/failed/partial 允许 —— approved 走正常路径，
+        #   failed/partial 用于"审批通过后自动执行失败时的 admin 手动重试"。
+        # 自动执行若抛异常，回调会把工单置为 failed（见 _on_freeze_order_approved），
+        # 因此重试路径不会因收紧而丢失。
+        if order.status not in ('approved', 'failed', 'partial'):
+            raise HTTPException(
+                status_code=400,
+                detail=f"工单状态 {order.status} 不可执行（须先审批通过；可执行状态：approved/failed/partial）")
 
         executor = get_freeze_executor()
         receipts_dto = executor.execute(order)
@@ -797,12 +823,8 @@ async def api_execute_freeze_order(order_id: str, request: Request,
             )
             db.session.add(rec)
         success_count = sum(1 for d in receipts_dto if d.execution_status == 'success')
-        if receipts_dto and success_count == len(receipts_dto):
-            order.status = 'executed'
-        elif success_count > 0:
-            order.status = 'partial'
-        else:
-            order.status = 'failed'
+        # 口径见 _derive_freeze_status（pending 不计为失败）
+        order.status = _derive_freeze_status(receipts_dto)
         order.executed_at = datetime.utcnow()
         db.session.commit()
 

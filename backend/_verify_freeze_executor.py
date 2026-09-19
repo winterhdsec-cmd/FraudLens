@@ -167,6 +167,63 @@ finally:
         db.session.execute(T("DELETE FROM freeze_orders WHERE order_id=:o"), {"o": gate_oid})
         db.session.commit()
 
+# ── E12 详情接口字段契约（前端工单详情对话框依赖） ──
+# 加这道护栏的原因：本项目出过「前端读的字段后端不给 → 静默空白/0 条」的缺陷
+# （执行器读 account 而数据是 account_number）。详情页字段多，最容易再犯，
+# 故把「前端实际读取的字段」固化成断言。
+print("\n[E12] 详情接口字段契约（前端工单详情对话框依赖）")
+db.init_app()
+main.app.dependency_overrides[get_current_user] = lambda: ADMIN
+client = TestClient(main.app)
+db.session.rollback()
+sample = db.session.query(FreezeOrder).filter_by(status="executed").first()
+if not sample:
+    sample = db.session.query(FreezeOrder).first()
+if not sample:
+    check("存在可校验的工单样本", False, "库中无工单")
+else:
+    d = client.get(f"/api/workflow/freeze-orders/{sample.order_id}").json()
+    check("顶层含 order/approvals/receipts/approval_flows",
+          all(k in d for k in ("order", "approvals", "receipts", "approval_flows")),
+          f"实际 {sorted(d.keys())}")
+
+    o = d.get("order") or {}
+    order_fields = ["order_id", "case_id", "action_type", "status", "freeze_amount",
+                    "applicant_name", "department", "created_at", "approved_at",
+                    "executed_at", "legal_basis", "reason", "target_accounts"]
+    miss = [k for k in order_fields if k not in o]
+    check("order 含前端所读全部字段", not miss, f"缺 {miss}")
+
+    # 关键：目标账户必须是 account_number/account_name/bank_name
+    ta = o.get("target_accounts") or []
+    if ta and isinstance(ta[0], dict):
+        check("target_accounts 用 account_number 而非 account",
+              "account_number" in ta[0], f"实际键 {sorted(ta[0].keys())}")
+        check("target_accounts 含 account_name / bank_name",
+              "account_name" in ta[0] and "bank_name" in ta[0], f"实际键 {sorted(ta[0].keys())}")
+
+    if d.get("receipts"):
+        rf = ["target_account", "bank_name", "execution_status", "external_ref",
+              "freeze_until", "execution_message"]
+        miss_r = [k for k in rf if k not in d["receipts"][0]]
+        check("receipts 含前端所读全部字段", not miss_r, f"缺 {miss_r}")
+
+    if d.get("approval_flows"):
+        f0 = d["approval_flows"][0]
+        check("approval_flows 含 flow_id/status/summary/approval_chain",
+              all(k in f0 for k in ("flow_id", "status", "summary", "approval_chain")),
+              f"缺 {[k for k in ('flow_id','status','summary','approval_chain') if k not in f0]}")
+        chain = f0.get("approval_chain") or []
+        if chain:
+            check("approval_chain 节点含 level/role/user_name",
+                  all(k in chain[0] for k in ("level", "role", "user_name")),
+                  f"实际键 {sorted(chain[0].keys())}")
+
+    if d.get("approvals"):
+        af = ["approval_level", "approver_role", "approver_name", "decision", "comment", "created_at"]
+        miss_a = [k for k in af if k not in d["approvals"][0]]
+        check("approvals 含前端所读全部字段", not miss_a, f"缺 {miss_a}")
+
 # ── E9/E10 端到端 ──
 print("\n[E9/E10] 端到端：创建 → 提交 → 批准 → executed 且有回执")
 oid = flow = None

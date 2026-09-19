@@ -129,6 +129,7 @@
                 <template #default="{ row }">
                   <el-button link size="small" @click="viewFreezeOrder(row)">详情</el-button>
                   <el-button v-if="row.status === 'draft' || row.status === 'rejected'" link size="small" type="primary" @click="onSubmitFreeze(row)">提交审批</el-button>
+                  <el-button v-if="row.status === 'failed' || row.status === 'partial'" link size="small" type="warning" @click="onExecuteFreeze(row)">执行重试</el-button>
                   <el-button link size="small" @click="onDownloadFreezeDoc(row)">文书</el-button>
                   <el-button v-if="row.status === 'draft' || row.status === 'pending_approval'" link size="small" type="danger" @click="onCancelFreeze(row)">撤销</el-button>
                 </template>
@@ -295,6 +296,131 @@
       </el-card>
     </div>
 
+    <!-- 冻结工单详情：基本信息 + 审批链 + 执行回执 -->
+    <el-dialog v-model="showFreezeDetail" :title="`冻结工单详情 · ${freezeDetail.order?.order_id || ''}`" width="860px" top="6vh">
+      <div v-loading="freezeDetailLoading">
+        <template v-if="freezeDetail.order">
+          <!-- 状态条 -->
+          <div class="fd-status-bar">
+            <el-tag :type="freezeStatusType(freezeDetail.order.status)" size="large">
+              {{ freezeStatusLabel(freezeDetail.order.status) }}
+            </el-tag>
+            <span class="fd-amount" v-if="freezeDetail.order.freeze_amount">
+              涉案金额 ¥{{ Number(freezeDetail.order.freeze_amount).toLocaleString() }}
+            </span>
+            <span class="fd-dept" v-if="freezeDetail.order.department">{{ freezeDetail.order.department }}</span>
+          </div>
+
+          <!-- 基本信息 -->
+          <h4 class="fd-title">基本信息</h4>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="案件编号">{{ freezeDetail.order.case_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="动作类型">{{ freezeDetail.order.action_type || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ freezeDetail.order.applicant_name || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatTime(freezeDetail.order.created_at) }}</el-descriptions-item>
+            <el-descriptions-item label="批准时间">{{ formatTime(freezeDetail.order.approved_at) }}</el-descriptions-item>
+            <el-descriptions-item label="执行时间">{{ formatTime(freezeDetail.order.executed_at) }}</el-descriptions-item>
+            <el-descriptions-item label="法律依据" :span="2">{{ freezeDetail.order.legal_basis || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="事由" :span="2">{{ freezeDetail.order.reason || '—' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <!-- 目标账户：字段名以接口为准（account_number/account_name/bank_name） -->
+          <h4 class="fd-title">
+            目标账户
+            <span class="fd-count">{{ (freezeDetail.order.target_accounts || []).length }} 个</span>
+          </h4>
+          <el-table :data="freezeDetail.order.target_accounts || []" size="small" border>
+            <el-table-column type="index" label="#" width="46" />
+            <el-table-column prop="account_name" label="户名" width="110">
+              <template #default="{ row }">{{ row.account_name || '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="account_number" label="账号" min-width="190" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.account_number || '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="bank_name" label="开户行" width="150">
+              <template #default="{ row }">{{ row.bank_name || '—' }}</template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 审批链 -->
+          <h4 class="fd-title">
+            审批链
+            <span class="fd-count">{{ (freezeDetail.approval_flows || []).length }} 条流程</span>
+          </h4>
+          <template v-if="(freezeDetail.approval_flows || []).length">
+            <div v-for="f in freezeDetail.approval_flows" :key="f.flow_id" class="fd-flow">
+              <div class="fd-flow-head">
+                <b>{{ f.flow_id }}</b>
+                <el-tag :type="approvalStatusType(f.status)" size="small">{{ f.status }}</el-tag>
+                <span class="fd-flow-summary">{{ f.summary }}</span>
+              </div>
+              <div class="fd-chain">
+                <div v-for="n in (f.approval_chain || [])" :key="n.level"
+                     class="fd-node" :class="{ done: f.status === 'approved' }">
+                  <span class="fd-node-lv">{{ n.level }}</span>
+                  <span class="fd-node-role">{{ n.role }}</span>
+                  <span class="fd-node-user">{{ n.user_name }}</span>
+                </div>
+              </div>
+            </div>
+            <!-- 已表决记录（含批语） -->
+            <el-table v-if="(freezeDetail.approvals || []).length" :data="freezeDetail.approvals"
+                      size="small" border style="margin-top:8px">
+              <el-table-column prop="approval_level" label="层级" width="60" align="center" />
+              <el-table-column prop="approver_role" label="角色" width="120" />
+              <el-table-column prop="approver_name" label="审批人" width="120" />
+              <el-table-column prop="decision" label="结论" width="94">
+                <template #default="{ row }">
+                  <el-tag :type="row.decision === 'approved' ? 'success' : 'warning'" size="small">
+                    {{ row.decision === 'approved' ? '同意' : row.decision }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="comment" label="批语" min-width="200" show-overflow-tooltip />
+              <el-table-column label="时间" width="140">
+                <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+              </el-table-column>
+            </el-table>
+          </template>
+          <el-empty v-else description="尚未提交审批" :image-size="60" />
+
+          <!-- 执行回执 -->
+          <h4 class="fd-title">
+            执行回执
+            <span class="fd-count">{{ (freezeDetail.receipts || []).length }} 条</span>
+          </h4>
+          <el-table v-if="(freezeDetail.receipts || []).length" :data="freezeDetail.receipts" size="small" border>
+            <el-table-column prop="target_account" label="冻结账号" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="bank_name" label="开户行" width="140">
+              <template #default="{ row }">{{ row.bank_name || '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="execution_status" label="执行状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="receiptStatusType(row.execution_status)" size="small">
+                  {{ row.execution_status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="external_ref" label="外部单号" width="150" show-overflow-tooltip />
+            <el-table-column label="冻结至" width="140">
+              <template #default="{ row }">{{ formatTime(row.freeze_until) }}</template>
+            </el-table-column>
+            <el-table-column prop="execution_message" label="回执说明" min-width="200" show-overflow-tooltip />
+          </el-table>
+          <el-empty v-else
+                    :description="freezeDetail.order.status === 'draft' ? '尚未提交审批，暂无回执'
+                                  : '审批通过后自动执行；若无回执请点击「提交审批」重试'"
+                    :image-size="60" />
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="showFreezeDetail = false">关闭</el-button>
+        <el-button type="primary" @click="onDownloadFreezeDoc(freezeDetail.order)">
+          <el-icon><Download /></el-icon> 下载文书
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 新建止付工单对话框 -->
     <el-dialog v-model="showFreezeDialog" title="新建止付/冻结工单" width="640px">
       <el-form :model="freezeForm" label-width="100px">
@@ -379,7 +505,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MagicStick, Plus, Delete, Refresh, WarningFilled } from '@element-plus/icons-vue'
+import { MagicStick, Plus, Delete, Refresh, WarningFilled, Download } from '@element-plus/icons-vue'
 import {
   getCaseLifecycle, transitionCaseStatus, getCaseTimeline,
   listInvestigations, createInvestigation, downloadInvestigationReport,
@@ -388,6 +514,7 @@ import {
   listReviews, resolveReview,
   listPendingApprovals, listApprovals, approveFlow, rejectFlow,
   fetchMergeSuggestions, generateMergeSuggestions, rejectMergeSuggestion, confirmMergeSuggestion,
+  fetchFreezeOrderDetail, executeFreezeOrder,
 } from '../api.js'
 import { useAppState } from '../composables/useAppState.js'
 
@@ -419,6 +546,10 @@ const invLoading = ref(false)
 const freezeOrders = ref([])
 const showFreezeDialog = ref(false)
 const freezeSubmitting = ref(false)
+// 工单详情（含审批链与执行回执）
+const showFreezeDetail = ref(false)
+const freezeDetailLoading = ref(false)
+const freezeDetail = reactive({ order: null, approvals: [], receipts: [], approval_flows: [] })
 const freezeForm = reactive({
   action_type: '冻结',
   freeze_amount: 0,
@@ -725,12 +856,44 @@ async function onSubmitFreeze(row) {
     if (res.success) {
       ElMessage.success(`已提交审批，审批流：${res.flow_id}`)
       await loadFreezeOrders()
+      // 详情对话框开着时同步刷新，让审批链立即出现
+      if (showFreezeDetail.value && freezeDetail.order?.order_id === row.order_id) {
+        await loadFreezeDetail(row.order_id)
+      }
       await loadTimeline(selectedCaseId.value)
     } else {
       ElMessage.error(res.error || '提交失败')
     }
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('提交失败：' + (e.message || e))
+  }
+}
+
+async function onExecuteFreeze(row) {
+  // 执行重试：仅 approved / failed / partial 可执行（后端状态门控）
+  try {
+    await ElMessageBox.confirm(
+      `对工单 ${row.order_id} 重新执行止付冻结？\n（仅"已批准/执行失败/部分执行"状态可执行，未审批工单会被拒绝）`,
+      '执行冻结', { type: 'warning' }
+    )
+  } catch (e) {
+    return // 用户取消
+  }
+  try {
+    const res = await executeFreezeOrder(row.order_id)
+    if (res.success) {
+      ElMessage.success(`执行完成，工单状态：${res.status}（回执 ${(res.receipts || []).length} 条）`)
+      await loadFreezeOrders()
+      if (showFreezeDetail.value && freezeDetail.order?.order_id === row.order_id) {
+        await loadFreezeDetail(row.order_id)
+      }
+      await loadTimeline(selectedCaseId.value)
+    } else {
+      ElMessage.error(res.error || '执行失败')
+    }
+  } catch (e) {
+    const msg = e?.response?.data?.detail || e?.response?.data?.error || e.message || e
+    ElMessage.error('执行失败：' + msg)
   }
 }
 
@@ -741,6 +904,9 @@ async function onCancelFreeze(row) {
     if (res.success) {
       ElMessage.success('已撤销')
       await loadFreezeOrders()
+      if (showFreezeDetail.value && freezeDetail.order?.order_id === row.order_id) {
+        await loadFreezeDetail(row.order_id)
+      }
       await loadTimeline(selectedCaseId.value)
     }
   } catch (e) {
@@ -749,7 +915,42 @@ async function onCancelFreeze(row) {
 }
 
 function viewFreezeOrder(row) {
-  ElMessageBox.alert(JSON.stringify(row, null, 2), `工单 ${row.order_id}`, { customClass: 'json-dialog' })
+  // 拉取完整详情（含审批链与执行回执）渲染，而非把原始 JSON 直接弹窗
+  freezeDetail.order = row
+  freezeDetail.approvals = []
+  freezeDetail.receipts = []
+  freezeDetail.approval_flows = []
+  showFreezeDetail.value = true
+  loadFreezeDetail(row.order_id)
+}
+
+const freezeStatusLabel = (s) => ({
+  draft: '草稿', pending_approval: '待审批', approved: '已批准',
+  rejected: '已驳回', executed: '已执行', partial: '部分执行',
+  failed: '执行失败', cancelled: '已撤销',
+}[s] || s || '—')
+
+const receiptStatusType = (s) => ({
+  success: 'success', pending: 'warning', processing: 'warning', failed: 'danger',
+}[s] || 'info')
+
+async function loadFreezeDetail(orderId) {
+  freezeDetailLoading.value = true
+  try {
+    const res = await fetchFreezeOrderDetail(orderId)
+    if (res.success) {
+      freezeDetail.order = res.order || freezeDetail.order
+      freezeDetail.approvals = res.approvals || []
+      freezeDetail.receipts = res.receipts || []
+      freezeDetail.approval_flows = res.approval_flows || []
+    } else {
+      ElMessage.error(res.error || '工单详情加载失败')
+    }
+  } catch (e) {
+    ElMessage.error('工单详情加载失败：' + (e.message || e))
+  } finally {
+    freezeDetailLoading.value = false
+  }
 }
 
 async function onDownloadFreezeDoc(row) {
@@ -1304,5 +1505,119 @@ function trySelectCase(cid) {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+
+/* ── 冻结工单详情 ── */
+.fd-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.fd-amount {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffc53d;
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-dept {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.fd-title {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fd-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: rgba(0, 212, 255, 0.09);
+}
+
+.fd-flow {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  margin-bottom: 8px;
+}
+
+.fd-flow-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.fd-flow-summary {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.fd-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.fd-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.fd-node.done {
+  background: rgba(82, 196, 26, 0.12);
+  border-color: rgba(82, 196, 26, 0.35);
+  color: #95de64;
+}
+
+.fd-node-lv {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+}
+
+.fd-node-role {
+  font-weight: 600;
+}
+
+.fd-node-user {
+  color: inherit;
+  opacity: 0.75;
 }
 </style>

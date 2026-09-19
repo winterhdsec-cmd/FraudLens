@@ -334,6 +334,12 @@ export async function fetchFundFlowImportHistory(params = {}) {
   return response.data
 }
 
+// ========== 止付冻结工单详情（含审批链与执行回执） ==========
+export async function fetchFreezeOrderDetail(orderId) {
+  const response = await api.get(`/api/workflow/freeze-orders/${orderId}`)
+  return response.data
+}
+
 // ========== Search ==========
 export async function searchCases(query) {
   const response = await api.get('/api/search', { params: { q: query } })

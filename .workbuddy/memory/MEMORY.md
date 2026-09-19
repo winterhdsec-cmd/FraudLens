@@ -1,93 +1,54 @@
-# FraudLens 项目长期记忆（精简版）
+# FraudLens 项目长期记忆
 
-## 官方定义与真实架构（代码可指认）
-- 多智能体编排 + 图神经网络的反诈团伙智能研判系统；面向公安反诈中心/基层派出所，单机/内网部署，不追求云端商业化。
-- 交互层 Vue3+Element Plus+ECharts+vis-network；决策协同层 FastAPI + **LangGraph StateGraph 真反思闭环**（规划→预处理→分析→聚类→反思，条件边回连）；数据层 MySQL+Redis + BGE-large 本地推理 + 云端 LLM（**当前=阿里云百炼 DashScope 千问 qwen3.8-flash（2026-08-26 新发多模态 MoE，1M上下文）**，OpenAI 兼容）+ GNN。
+## 一、项目定义与真实架构（代码可指认）
+多智能体编排 + 图神经网络的反诈团伙智能研判系统；面向公安反诈中心/基层派出所，单机/内网部署。
+- 交互层：Vue3 + Element Plus + ECharts + vis-network（`frontend/`）
+- 决策层：FastAPI + **LangGraph StateGraph 真反思闭环**（规划→预处理→分析→聚类→反思，条件边回连，`backend/agents/orchestrator.py`）
+- 数据层：MySQL + Redis + BGE-large 本地推理 + 云端 LLM（OpenAI 兼容）+ GNN（`backend/gnn/`）
+- 运行环境：后端 `backend/`（端口 5003），MySQL 库 `fraudlens`，Redis 6379；`.env`（docker-compose 注入）+ `backend/key.env`（`main.py`/`tasks.py` dotenv 直接加载）**双份配置**
 
-## 云端 LLM 配置要点（2026-08-29 切换）
-- **双文件陷阱**：云端 LLM 的 key/endpoint/model 必须同时改两处才生效——根目录 `.env`（docker-compose 注入）与 `backend/key.env`（`main.py`/`tasks.py` 用 dotenv 直接加载）。只改一处会被另一处覆盖。
-- 变量名仍沿用 `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL`（代码只认这几个名），endpoint=`https://dashscope.aliyuncs.com/compatible-mode/v1`，模型=`qwen3.8-flash`（**2026-08-26 新发多模态 MoE，1M 上下文，OpenAI 兼容，文本/图像/视频全能**；要切最强档改 `qwen3.8-max`）。
-- 切换前为 DeepSeek（`deepseek-chat` + `https://api.deepseek.com/v1`），已整体迁移至阿里云。
-- `DISABLE_CLOUD_LLM=0` 启用云端（默认 `1` 关闭）；`CLOUD_LLM_MASK=1` 出向 prompt 脱敏（身份证/银行卡/手机号/邮箱，**姓名不掩**）。2026-09-18 起 `CLOUD_LLM_MASK` 已注入 docker-compose（backend+celery），此前**完全缺失**。
-- 图片识别（tools/vision.py）复用同一模型，qwen3.8-flash 多模态可看图。**2026-09-18 已补门禁**：`analyze()` 先查 `cloud_llm_enabled()`，云端关闭时直接降级本地 OCR（`model=ocr_local`），图片不再绕过开关出域。
+## 二、诚实口径金律（最高优先级，任何产出不得违反）
+- **合成 ≠ 真实验证**；增量边界须量化；GNN 非全设定占优。
+- 合成 HAN hard F1=0.947 / clean=1.0；dual-channel gain hard=+0.202；独立 Semantic 基线 clean 1.0 / hard 1.0。
+- 真实 AMLSim（43,614 账户 / 1,305 环）全图 F1≈0.002–0.010，**所有方法含 GNN 均失效**；Elliptic 盲扫全败。这是「增量边界量化」发现，**非「验证通过」**。
+- ⚠️ 旧记「GNN 0.784 / Louvain 0.822」在任何结果文件都不存在，**已作废禁用**。
+- **「数据不出域」不能说满**，统一口径＝**「本地优先 + 出向脱敏」**：① 代码默认 `DISABLE_CLOUD_LLM=1`，但 `.env` / `backend/key.env` / `docker-compose.yml` 的 `${DISABLE_CLOUD_LLM:-0}` 覆盖为 **0（云端开）**，演示实际连阿里云百炼；② 文本出向有脱敏（`CLOUD_LLM_MASK=1`，掩身份证/银行卡/手机号/邮箱，**姓名不掩**）；③ 图片路径已于 2026-09-18 补门禁（`tools/vision.py` 先查 `cloud_llm_enabled()`，关闭则降级本地 OCR）。→ 对外统一表述：**「核心算法全本地；云端大模型可一键切断、切断后自动降级本地 OCR/规则；上云文本强制脱敏」**。PPT/申报书/论文/专利四处口径必须一致。
 
-## 诚实口径金律（最高优先级，任何产出不得违反）
-- 合成 ≠ 真实验证；增量边界须量化；GNN 非全设定占优。
-- 合成 HAN hard F1=0.947/clean=1.0；dual-channel gain hard=+0.202；独立 Semantic 基线 clean 1.0/hard 1.0。
-- 真实 AMLSim（43,614账户/1,305环）全图 F1≈0.002–0.010，所有法含 GNN 失效；Elliptic 盲扫全败。这是「增量边界量化」发现，非「验证通过」。
-- **2026-09-16 新增：「数据不出域」不能说满，统一改口径为「本地优先 + 出向脱敏」**（用户质询后查证）。事实：① 代码默认 `DISABLE_CLOUD_LLM=1`（`core/config.py:54`），但 `.env:17`、`backend/key.env:10`、`docker-compose.yml` 的 `${DISABLE_CLOUD_LLM:-0}` 都把它覆盖为 **0（云端开）**，当前演示是连阿里云百炼 qwen3.8-flash 的；② 文本出向**有脱敏**（`CLOUD_LLM_MASK=1`，掩身份证/银行卡/手机号/邮箱，**姓名不掩**）；③ ~~图片路径漏~~ **← 已于 2026-09-18 修复，见下条**。→ 对外统一表述：**"核心算法全本地；云端大模型可一键切断、切断后自动降级本地 OCR/规则；上云文本强制脱敏"**。PPT/申报书/论文/专利四处口径必须一致。
-
-- **2026-09-18 修复：vision.py 图片出域门禁绕过（已闭环，口径可收紧）**。① 根因：`VisionAnalyzer` 自建 `OpenAI` client，只校验 api_key，不查 `DISABLE_CLOUD_LLM`，且 `mask_messages` 对 `image_url` 原样透传 → 关云端时文本已降级、**图片仍 base64 出域**。② 修法：`analyze()` 入口先查 `cloud_llm_enabled()`，关闭则直接走本地 OCR 返回 `model=ocr_local`；`is_available()` 同步纳入开关判断。③ 双向实测：关→`ocr_local` 不出域；开→`qwen3.8-flash` 识图正常。④ 同时补注入 `docker-compose.yml` 的 `CLOUD_LLM_MASK`（原先**完全缺失**，backend+celery 两服务现均已注入）。→ **现在可以说"切断云端后图片与文本都不出域"**，但「姓名不掩」「图片内容本身若含隐私，开启云端时仍会出域」这两点仍需诚实保留；对外主口径仍建议沿用「本地优先＋出向脱敏」。
-
-## GNN 优化路线（核心贡献）
-- Track A 资金链 GraphSAGE（#C44 加权邻接 log1p）：环子图 F1 未训练 0.084→训练后 **0.866（×4.7）**；baseline 二值 0.183。
+## 三、GNN 优化路线（核心贡献）
+- Track A 资金链 GraphSAGE（#C44 加权邻接 log1p）：环子图 F1 未训练 0.084 → 训练后 **0.866（×4.7）**；baseline 二值 0.183。
 - Track B 案情异构图 HAN 双通道（合成）。
-- 扩线(refinement)设定：AMLSim 锚点 k跳下**拓扑基线 Louvain F1 由盲扫 0.002 提至约 0.11（约一个数量级）**；**训练后 GNN 未见显著增益**（0.0025）。⚠️ 2026-08-04 核验：旧记的"GNN 0.784/Louvain 0.822"在任何结果文件都不存在，**已作废禁用**；论文已统一改为诚实表述（摘要/贡献/结论/Lab4）。
+- 扩线(refinement)：AMLSim 锚点 k 跳下拓扑基线 Louvain F1 由盲扫 0.002 → 约 0.11（约一个数量级）；**训练后 GNN 未见显著增益**（0.0025）。
 
-## 工程状态（B+ 科研原型级，绝不可称生产部署）
+## 四、云端 LLM 配置要点
+- **双文件陷阱**：key/endpoint/model 必须**同时改 `.env` 与 `backend/key.env`**，只改一处会被另一处覆盖。
+- 变量名沿用 `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL`（代码只认这几个名），endpoint=`https://dashscope.aliyuncs.com/compatible-mode/v1`，模型=`qwen3.8-flash`（多模态 MoE，1M 上下文；最强档改 `qwen3.8-max`）。
+- `DISABLE_CLOUD_LLM=0` 启用云端（代码默认 `1`）；`CLOUD_LLM_MASK=1` 出向脱敏（已注入 docker-compose backend+celery）。
+
+## 五、Redis 配置陷阱（2026-09-19 实测修复）
+- `REDIS_PASSWORD` 若已配置但本机 Redis **未启用鉴权**，客户端 AUTH 失败 → `get_redis_pool()` 返回 None → **静默降级内存**，会话历史持久化 / JWT 黑名单全部失效。
+- 已修两处：`core/redis_pool.py` 的 `RedisPool._connect()`（自动去密码重连）与 `get_redis_client()`（LongTermMemory 等统一入口）。仅当服务端明确回 `no password is set` 才回退，密码错不降级。
+- `REDIS_AUTOSTART=1` 才会拉起内置 Redis（`backend/vendor/redis/`）。**脚本必须先 `load_dotenv` 再调 `wait_for_redis()`**，否则 `REDIS_AUTOSTART` 未生效 → 测试"依赖环境里碰巧有 Redis"，结果不可信。
+- `LongTermMemory` 曾因 `key.decode()`（而 `decode_responses=True` 返回 str）静默吞异常返回空列表；已修为 `_as_str()` + `scan_iter` 替代 `KEYS` + 按时间戳排序。
+
+## 六、工程状态（B+ 科研原型级，**绝不可称生产部署**）
 - 已落地：JWT+RBAC、审计双表、LangGraph 真闭环、HAN 真异构、多环境配置、docker-compose 全栈。
-- 缺口：TLS 待证书、真实警务数据端到端验证缺、案卷 OCR→结构化待接、止付冻结仅 Mock（backend/tools/freeze_executor.py，真实对接待警务协调）。
+- 缺口：TLS 待证书、真实警务数据端到端验证缺、案卷 OCR→结构化待接、**止付冻结仅 Mock**（`backend/tools/freeze_executor.py`，真实对接待警务协调）。
+- 9 张空表**已于 2026-09-19 填充脱敏演示数据**（`backend/seed_empty_tables.py`，幂等可复现，`SEED=20260918`）：persons 364 / accounts 545 / phones 364 / evidence_items 424 / merge_suggestions 14 / imported_fund_flows 29 / freeze_approvals 4 / freeze_receipts 3 / review_opinions 4。脱敏规范：手机 `138****8888`、卡 `6222 **** **** 8888`、身份证 `4201**********1234`、人名 `张*明`。
+- `gnn/pathb_*`、`experiment_*`、`probe_*`、`backend/test_*.py` 为实验残留，非主线。
 
-## 用户身份与两条产出线
-- 用户=韩冬，湖北警官学院信息技术系大二。
-- **A 线·论文**：CPEC2026 教学案例稿，`paper/CPEC2026_draft.tex`（22 页，XeLaTeX+BibTeX）。截 2026-08-15。教学叙事仅服务论文投递。
-- **B 线·竞赛**：中国国际大学生创新大赛(2026) 校赛，赛道=**高教主赛道·创意组·"人工智能+"**；报名 8/10 开放、9/15 17:00 截止（后不可改）、9/17 答辩。
-- **文献按产出线归位（2026-08-29 定）**：每篇参考文献先分类再决定精力——① 技术方法类（GNN/多智能体/渗透测试）→ 服务 **B 线**系统实现，深读方法；② 教育教学类（AI 赋能教学/实验案例）→ 服务 **A 线**四 Lab 设计，重点读教学设计与结论；③ 政策治理·行为类（如江海洋2025 公众防范行为问卷研究）→ 只服务绪论意义与社会价值叙事，读摘要+结论即可，**不可当技术支撑引用**。韩冬曾疑惑"行为类论文跟我系统有啥关系"，根因是未区分 A/B 线：CPEC 稿是教学案例论文（非技术论文），其论证链"教学干预→能力提升"恰需教育类证据。
+## 七、用户与产出线
+- 用户＝**韩冬**（对外称 hd），湖北警官学院信息技术系**大三**，武汉。
+- **B 线·竞赛（唯一活跃线）**：中国国际大学生创新大赛(2026)，赛道＝高教主赛道·创意组·「人工智能+」。**初赛已过（老师评价"非常好"），当前阶段＝复赛准备。**
+- **A 线·CPEC 教学案例稿已停做**（用户明确「不打算做教育类的了」）：四 Lab 教学叙事、draw.io 制图约定、图3 设计决策、教学/行为类文献均**降级为背景参考，不再投入**。
+- 署名（已锁定）：韩冬(一作) / 吴燕波(二作+通信) / 徐伟(共二)。基金：大创 S202611332001。**竞赛指导教师限 1 名＝吴燕波**；徐伟在致谢如实提，不填官方字段。占位待补：吴燕波生年、院级科研编号。
 
-## 署名与导师（已锁定）
-- 作者序：韩冬(一作)/吴燕波(二作+通信)/徐伟(共二)。基金：大创 S202611332001（徐伟、吴燕波共导）；院级科研（胡老师名义指导，不署作者，致谢提立项，编号待补）。
-- **竞赛指导教师限 1 名=吴燕波**；徐伟在致谢如实提，不填官方字段。
+## 八、用户规矩
+- 改动前先讲**改动点 + 回归风险**；代码改动记入 `docs/09`（#C 编号）。
+- 报完成前须**端到端自检**（单元 + E2E + 日志），不接受只改代码不验证。
+- **教方法 ≠ 代劳产出**：用户说"教你读"时，交付的是**可迁移的方法/关注点清单/自检技巧**，不是把内容嚼碎喂给他。
+- 参考文献只留正文 `\cite` 实引；降 AI 检测率但**诚实边界原样保留**。
 
-## paper 文件夹结构（2026-08-04 重整）
-- 用户要求删除全部 5 个 skill（fraudlens-product/paper/competition/tech/ppt），已用 Python rmtree 永久删除；多会话 skill 体系废弃，不再引用。
-- paper 只保留 3 个文件夹：
-  - `参考文献/`（参考 PDF + references.bib）
-  - `会议模板/`（CPEC 各类模板）
-  - `论文产出/`（CPEC2026教学案例稿/ 含 .tex/.pdf/审计报告/写作规划/投稿文档；技术稿fraudlens_outline/；项目管理/ 含 项目事实源/需求与完成度追踪/团队组建方案）
-- 两篇论文内容已彻底分开（教学案例稿 vs 技术稿）。
-- references.bib 已复制到两论文旁以保证独立编译。
-- 构建残留（_pandoc_figs、compiled_编译产物）因安全钩子批量删除确认阈值被拦，移出 paper 至 `E:\FraudLens\_build_trash_20260804\` 隔离，待用户确认后永久删除。
-- 项目事实源.md 已更新 §0/§8，去掉 skill 引用、路径对齐新结构。
-
-## 论文状态
-- 已完成审计修正：F-1(手写→LangGraph StateGraph 全文统一)、F-2(实验溯源脚注)、M-1~M-4、m-2、m-4。
-- 教学设计两次重构→**四 Lab 最终版**：Lab1 案情分析与研判流程 / Lab2 工具辅助串并案 / Lab3 冻卡决策与伦理权衡 / Lab4 边界认知与诚实反思。
-- 占位待补：吴燕波生年、院级科研编号（问吴老师）。
-
-## 当前状态（2026-09-18 更新：已进入复赛准备）
-- **初赛已结束，效果良好**（用户原话「老师说非常好」）。**当前阶段＝复赛准备**。
-- **2026-09-18 完成复赛前完善并推送 GitHub**（commit `29a01aa`，本地与远程一致）。内容：vision 出域门禁修复、compose 补 CLOUD_LLM_MASK、8 处裸 except、硬编码绝对路径、补入缺失的 `GangRadarChart.vue`、仓库大扫除（`_ppt_work` 2.2G→573M、`docs/` 110→36、技术稿 LaTeX 中间件清理）、`.gitignore` 大扩充。端到端验证全通过（详见 `.workbuddy/memory/2026-09-18.md`）。
-- **⚠️ git 历史分叉已处理**：远程 `origin/main` 曾被 forced update（用户用干净副本重建历史以脱敏），与本地无共同祖先。已用 `reset --soft origin/main` + 重新提交解决，**未 force push**，本地旧线保留在分支 `backup-before-resync-20260918`。若日后再遇「远程与本地无共同祖先」，照此流程处理，**先建备份分支**。
-- **B 线·竞赛**：中国国际大学生创新大赛(2026)，赛道=高教主赛道·创意组·"人工智能+"。
-- **A 线 CPEC 教学案例稿停做**：用户明确「不打算做教育类的了」。四 Lab 教学叙事、教学案例稿搁置；A 线文献（教学/行为类）降级为「仅背景参考」。
-- **遗留待办**：① `_trash_20260918/` 隔离区待用户确认后物理删除；② `backend/tools/freeze_executor.py` 止付冻结仍为 Mock（待警务对接）；③ 7 个后端文件 >800 行（`gnn/eval_framework.py` 1465、`routes/workflow.py` 1249、`agents/chat_agent.py` 1150）可考虑拆分。
-- **代码真实状态**：核心 AI 能力（LangGraph 真反思闭环 `backend/agents/orchestrator.py`、双 GNN `backend/gnn/`、9 专项 Agent、ECharts/vis-network 前端、docker 全栈）均为真实现；唯一明确虚实现是**止付冻结** `backend/tools/freeze_executor.py`（Mock，待警务对接）；`gnn/pathb_*`、`experiment_*`、`probe_*` 为实验残留，非主线，初学者应忽略。
-- **9 张空表（2026-09-18 查实，非缺陷）**：`accounts`/`persons`/`phones`/`evidence_items`/`review_opinions`/`freeze_approvals`/`freeze_receipts`/`merge_suggestions`/`imported_fund_flows` 均只有模型定义、无写入代码。根因是**案件 `description` 文本本身不含手机号/银行卡/微信号**，正则抽取器抽不出是正确行为（230 条案件中 `extracted_entities` 非空仅 1 条且内部全空）。前端已有降级占位，不会显示空白。**结论：不造假数据填充**。若复赛被问，如实答「预留接口，待真实案卷接入后激活」。
-
-## 用户规矩
-- 改动前先讲改动点+回归风险；代码改动记入 docs/09（#C 编号）。
-- 参考文献只留正文 `\cite` 实引；降 AI 检测率但诚实边界原样保留。
-- **教方法 ≠ 代劳产出（2026-08-29 用户明确纠正）**：用户说"教你读"时，要交付的是**可迁移的方法/关注点清单/自检技巧**，不是把论文内容嚼碎喂给他。已产生的成品（如文献笔记）定位为"模板 + 读后对照检验"，让用户先自己读、再对比找漏，不要让他直接抄。
-
-## 论文制图约定（2026-08-10 起：draw.io 路线，MCP 已放弃）
-- **用户拍板（2026-08-10，推翻 08-09 TikZ）**：论文科研图**统一迁到 draw.io (diagrams.net) 所见即所得**。理由：手摆坐标 + 无实时反馈 = 反复改来改去；draw.io 拖拽当场可见布局。
-- **MCP 路线已放弃（2026-08-10 深夜）**：WorkBuddy 自带的 `connector-proxy`（HTTP 聚合器，端口每次重启都变 54468/55674/…）在用户机器上 `ECONNREFUSED` 起不来，重开多次无效；无法从外部修复。故放弃 `@drawio/mcp` / `@next-ai-drawio/mcp-server` 任何 MCP 连接。
-- **现行路线（2026-08-10 凌晨定，大脑-执行器分离）**：因 Next AI Drawio 把「AI 对话生成」与「SVG 渲染」耦合同一 Electron 进程，一次生成超密图极易 UI 假死/后台长跑。用户要求分离——**Agent（大脑）用 Python 直接算坐标写出 `.drawio` XML 文件**（`gen_drawio_figs.py`），**用户在桌面版 draw.io 打开微调 + 导出 PDF**，发回 Agent 用 `\includegraphics` 嵌主稿 + XeLaTeX 重编译。彻底避开软件内 AI 生成卡顿。mcp.json 仍只留纯 stdio `drawio` 条目（不再经坏代理）。
-- **迁移范围**：`fig_arch.tex / fig_workflow.tex / fig_stages.tex / fig_mode.tex` 4 张 TikZ 图全部迁 draw.io；旧 Python 生成器 `build_fig_workflow.py`/`_verify_fig.py` 保留参考但非主路径。
-- **诚实代价**：图内字体不与 LaTeX 正文 100% 一致；缓解：draw.io 字体设论文同款（Times/思源宋体）+ 原生 LaTeX 公式(MathJax)；对 CPEC 教学案例稿可接受。
-- **调研结论（2026-08-10 联网）**：科研固定分区/工作流图，WYSIWYG 拖拽（draw.io/Inkscape/Visio）最稳；自动布局（Mermaid/D2/Graphviz）会把「固定三列+panel」摊平，不适合本类图。
-- **图2 workflow 已落地（2026-08-11 凌晨）**：用户用 Next AI Drawio 生成并导出 `about_blank.pdf`（A4 整页、未裁剪），AI 用 PyMuPDF 自动检测真实内容 bbox、裁掉 PDF 内置标题后保存为 `paper/论文产出/CPEC2026教学案例稿/fig_workflow.pdf`；主稿原 TikZ 代码块替换为 `\includegraphics[width=\textwidth]{fig_workflow.pdf}`，保留 LaTeX `\caption` 统一管理题注；XeLaTeX+BibTeX×3 编译通过，图2 正常显示在第 5 页。
-
-## 图3 设计决策（2026-08-11 读参考文献后定稿）
-- **用户诉求**：图要「一目了然」或「结构性非常好」；补「AI 赋能反诈教学 / AI 如何培养学生」的教育叙事。
-- **参考学习（已读 18 篇 PDF 并截图分析）**：
-  - 刘莞玲《人工智能技术赋能计算机实践教学创新》：中央椭圆「教学过程」+ 四角「多形式/多主体/多维度/全过程」，扁平环绕式；
-  - 谢鑫《基于智能体编程的智创编程教学模式探索》：「学生—智能体—教师」三角协同 + 底部「平台/评价」；Fig.5 更延伸为「学生/教师在顶，左右两侧 LMS/AI 平台 Agent，中央竖向流程」；
-  - 张金《基于通用大语言模型的计算机系统创新实验设计》：三栏「教师流程 / 能力目标 / 大语言模型智能体（含能力边界）」，明确写出 AI「难以达成」与「可具备辅助」；
-  - 向尕《信息安全专业综合实习》：垂直分层「实施层/资源层/平台层」实践教学框架；
-  - 李剑《网安课程思政教育》：带菱形判断门的垂直流程；
-  - 厉旭杰《集成 AI LLM 的在线编程实验平台》：横向 5 步流水线。
-- **综合定稿**：新图 3 采用 **「学生—AI 智能助教—教师」三角协同 + 中央 4-Lab 反诈实训闭环 + 底部育人目标** 的混合布局。既引用谢鑫的三角协同证明这是成熟教育框架，又用刘莞玲的中央闭环体现「AI 赋能」，再用张金的「AI 能力边界」 honesty 框点出我们的核心叙事。该图将替换旧的扁平 `fig_stages.tex`。
-- **提示词文件**：`paper/论文产出/CPEC2026教学案例稿/提示词_图3_AI赋能反诈教学实践闭环.md`。
-- **防卡顿拆分（2026-08-10 深夜定，已降级）**：原图1/图3 提示词各拆为「第1步骨架→第2步填充→第3步连线」三段（文件 `提示词_图1_架构图_拆分三步.md`、`提示词_图3_AI赋能反诈教学实践闭环_拆分三步.md`），因 Next AI Drawio 同名软件内 AI 生成易卡顿。→ **2026-08-10 凌晨已演进为「Agent 用 Python 直接生成 .drawio XML」路线**，提示词拆分文件保留作参考。
-
+## 九、回归验证入口（2026-09-19 建）
+`python backend/run_verifications.py` 一键跑 6 个脚本、汇总通过/失败（退出码 0/1）：
+`_verify_seed_consistency.py`（数据不变量 14 项）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40 项）· `_verify_merge_panel.py`（并案建议面板 37 项）· `_verify_seed_api.py`（脱敏数据可见性 18 项）· `_verify_chat_memory.py`（会话持久化 24 项）· `_e2e_chat_memory.py`（路由层 E2E 20 项）。**合计 153 项，当前全绿。**
+新增数据一致性缺陷时，先跑 `backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复。

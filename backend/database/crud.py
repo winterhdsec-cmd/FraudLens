@@ -492,6 +492,35 @@ def delete_session(session_id):
     db.session.commit()
 
 
+def _evidence_to_list(case_obj):
+    """案件证据材料 → 前端 evidence 列表。
+
+    前端 CaseDetailView「证据材料」页签依赖该字段（原先恒为空数组）。
+    每条附 icon/name/meta 三个展示字段，与前端既有渲染结构对齐。
+    """
+    try:
+        items = list(case_obj.evidence_items or [])
+    except Exception:
+        return []
+    # 类型 → 图标
+    icon_map = {
+        '通话记录': '📞', '银行流水': '🏦', '聊天记录': '💬', '转账凭证': '🧾',
+        '嫌疑人供述': '📝', '电子数据': '💾', '视频监控': '🎥', '第三方支付记录': '💳',
+    }
+    out = []
+    for ev in items:
+        out.append({
+            'type': ev.type or '其他',
+            'name': ev.type or '证据材料',
+            'icon': icon_map.get(ev.type, '📄'),
+            'content': ev.content or '',
+            'status': ev.status or '',
+            'meta': ev.status or '',
+            'created_at': ev.created_at.isoformat() if ev.created_at else None,
+        })
+    return out
+
+
 def _case_to_dict(c):
     if not c:
         return None
@@ -537,6 +566,7 @@ def _case_to_dict(c):
         'is_demo': bool(c.is_demo) if c.is_demo is not None else False,
         'radar_data': c.radar_data if c.radar_data else {},
         'department': c.department or '',
+        'evidence': _evidence_to_list(c),
         'date': date_str,
         'created_at': created_str
     }

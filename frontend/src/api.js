@@ -276,6 +276,31 @@ export async function fetchGangReviewResults(useLlm = false) {
   return response.data
 }
 
+// ========== Merges（串并案建议） ==========
+export async function fetchMergeSuggestions(status = 'pending', limit = 200, offset = 0) {
+  const response = await api.get('/api/merges', { params: { status, limit, offset } })
+  return response.data
+}
+
+export async function generateMergeSuggestions() {
+  const response = await api.post('/api/merges/suggest')
+  return response.data
+}
+
+export async function rejectMergeSuggestion(suggestionId, reason = '') {
+  const response = await api.post(`/api/merges/${suggestionId}/reject`, { reason })
+  return response.data
+}
+
+export async function confirmMergeSuggestion(caseIdA, caseIdB, gangId) {
+  const response = await api.post('/api/merges/confirm', {
+    case_id_a: caseIdA,
+    case_id_b: caseIdB,
+    gang_id: gangId,
+  })
+  return response.data
+}
+
 // ========== Sessions ==========
 export async function fetchSessions() {
   const response = await api.get('/api/sessions')
@@ -300,6 +325,12 @@ export async function generateCaseReport(caseId, format) {
 
 export async function generateGangReport(gangId) {
   const response = await api.get(`/api/reports/gang/${gangId}`)
+  return response.data
+}
+
+// ========== 资金流水导入留痕（合规审计） ==========
+export async function fetchFundFlowImportHistory(params = {}) {
+  const response = await api.get('/api/import-fund-flow/history', { params })
   return response.data
 }
 

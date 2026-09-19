@@ -11,6 +11,9 @@
       </el-select>
       <el-input v-model="flowSearchCaseId" placeholder="输入案件编号" style="width:170px" size="small" clearable @clear="loadFlowData" @keyup.enter="loadFlowData" />
       <el-button type="primary" size="small" @click="loadFlowData">查询</el-button>
+      <el-button size="small" @click="openImportHistory">
+        <el-icon><Document /></el-icon> 导入留痕
+      </el-button>
       <el-button v-if="capitalFlows.length" :type="screenshotMode ? 'success' : 'default'" size="small" @click="toggleScreenshotMode">
         <!-- 旧写法把 <el-icon> 放进了 {{ }} 插值，组件标签被当纯文本渲染出来 -->
         <el-icon><Camera /></el-icon> {{ screenshotMode ? '退出截图' : '截图模式' }}
@@ -178,13 +181,58 @@
       </div>
       </template>
   </div>
+
+  <!-- 资金流水导入留痕（合规审计）：谁在什么时候导入了哪个文件、多少条 -->
+  <el-drawer v-model="importDrawer" title="资金流水导入留痕" size="720px" direction="rtl">
+    <div class="imp-toolbar">
+      <el-input v-model="impFileFilter" placeholder="按文件名筛选" size="small" style="width:200px" clearable @clear="loadImportHistory" @keyup.enter="loadImportHistory" />
+      <el-input v-model="impOperatorFilter" placeholder="按操作人筛选" size="small" style="width:160px" clearable @clear="loadImportHistory" @keyup.enter="loadImportHistory" />
+      <el-button type="primary" size="small" @click="loadImportHistory">查询</el-button>
+      <el-button size="small" @click="loadImportHistory" :loading="impLoading"><el-icon><Refresh /></el-icon> 刷新</el-button>
+    </div>
+
+    <div v-if="impSummary" class="imp-summary">
+      <span class="imp-chip">文件 <b>{{ impSummary.fileCount }}</b> 个</span>
+      <span class="imp-chip">批次 <b>{{ impSummary.batchCount }}</b> 个</span>
+      <span class="imp-chip">流水 <b>{{ impSummary.totalRows }}</b> 条</span>
+    </div>
+
+    <h4 class="imp-title">导入批次</h4>
+    <el-table :data="impBatches" v-loading="impLoading" stripe size="small" max-height="260">
+      <el-table-column prop="source_file" label="源文件" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="operator" label="操作人" width="130" show-overflow-tooltip />
+      <el-table-column prop="tx_count" label="条数" width="70" align="center" />
+      <el-table-column label="最近导入" width="150">
+        <template #default="{ row }">{{ formatImpTime(row.last_at) }}</template>
+      </el-table-column>
+      <template #empty><el-empty description="暂无导入记录" :image-size="70" /></template>
+    </el-table>
+
+    <h4 class="imp-title">最近流水明细</h4>
+    <el-table :data="impRows" stripe size="small" max-height="300">
+      <el-table-column prop="from_account" label="转出" min-width="130" show-overflow-tooltip />
+      <el-table-column prop="to_account" label="转入" min-width="130" show-overflow-tooltip />
+      <el-table-column label="金额" width="110" align="right">
+        <template #default="{ row }">¥{{ Number(row.amount || 0).toLocaleString() }}</template>
+      </el-table-column>
+      <el-table-column prop="tx_timestamp" label="交易时间" width="150" show-overflow-tooltip />
+      <template #empty><el-empty description="暂无流水明细" :image-size="70" /></template>
+    </el-table>
+
+    <p class="imp-hint">
+      本页仅展示审计留痕（源文件 / 操作人 / 时间 / 条数），账户均以脱敏形态存储。
+    </p>
+  </el-drawer>
 </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Refresh, Document } from '@element-plus/icons-vue'
 import { useAppState } from '../composables/useAppState.js'
 import { getEcharts } from '../composables/useEcharts.js'
+import { fetchFundFlowImportHistory } from '../api.js'
 
 const state = useAppState()
 const {
@@ -442,6 +490,46 @@ watch(sankeyNodes, async (n) => {
 
 function onSankeyResize() { sankeyChart?.resize() }
 
+// ── 资金流水导入留痕（合规审计） ──
+const importDrawer = ref(false)
+const impLoading = ref(false)
+const impBatches = ref([])
+const impRows = ref([])
+const impSummary = ref(null)
+const impFileFilter = ref('')
+const impOperatorFilter = ref('')
+
+function formatImpTime(t) {
+  if (!t) return '—'
+  return String(t).replace('T', ' ').slice(0, 16)
+}
+
+async function loadImportHistory() {
+  impLoading.value = true
+  try {
+    const params = { row_limit: 50 }
+    if (impFileFilter.value) params.source_file = impFileFilter.value
+    if (impOperatorFilter.value) params.operator = impOperatorFilter.value
+    const res = await fetchFundFlowImportHistory(params)
+    if (res.success) {
+      impBatches.value = res.batches || []
+      impRows.value = res.rows || []
+      impSummary.value = res.summary || null
+    } else {
+      ElMessage.error(res.error || '导入留痕加载失败')
+    }
+  } catch (e) {
+    ElMessage.error('导入留痕加载失败：' + (e.message || e))
+  } finally {
+    impLoading.value = false
+  }
+}
+
+function openImportHistory() {
+  importDrawer.value = true
+  loadImportHistory()
+}
+
 onMounted(() => {
   if (caseList.value.length === 0) loadCases()
   window.addEventListener('resize', onSankeyResize)
@@ -650,5 +738,51 @@ onUnmounted(() => {
 @keyframes recentPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* ── 导入留痕抽屉 ── */
+.imp-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.imp-summary {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.imp-chip {
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  color: var(--text-muted, #8b9bb4);
+  background: rgba(0, 212, 255, 0.07);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+}
+
+.imp-chip b {
+  color: #00d4ff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.imp-title {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e6edf7);
+  letter-spacing: 0.5px;
+}
+
+.imp-hint {
+  margin-top: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted, #8b9bb4);
 }
 </style>

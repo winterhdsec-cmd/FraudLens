@@ -314,9 +314,10 @@
                     <span class="evidence-icon">{{ ev.icon }}</span>
                     <div class="evidence-info">
                       <div class="evidence-name">{{ ev.name }}</div>
+                      <div v-if="ev.content" class="evidence-content">{{ ev.content }}</div>
                       <div class="evidence-meta">
-                        <el-tag :type="ev.status === '已验证' ? 'success' : 'warning'" size="small">
-                          {{ ev.status }}
+                        <el-tag :type="evidenceTagType(ev.status)" size="small">
+                          {{ ev.status || '待验证' }}
                         </el-tag>
                       </div>
                     </div>
@@ -449,6 +450,14 @@ const {
 const reviewDialogVisible = ref(false)
 const reviewForm = ref({ status: '已复核', notes: '' })
 const reviewSubmitting = ref(false)
+
+// 证据状态 → Element Plus tag 类型（后端状态有：已固定/已鉴定/待鉴定/待验证）
+const evidenceTagType = (status) => {
+  const s = status || ''
+  if (s.includes('已鉴定') || s.includes('已固定') || s.includes('已验证')) return 'success'
+  if (s.includes('待')) return 'warning'
+  return 'info'
+}
 
 // 进入办案工作台（携带 case_id 以便工作台自动选中）
 const goToWorkbench = () => {
@@ -654,26 +663,36 @@ watch(() => selectedCase.value?.case_id || selectedCase.value?.id, () => {
   nextTick(() => setTimeout(() => renderCaseRadar(), 200))
 }, { deep: true })
 
+// 拉取案件完整详情（列表页传入的对象不含 evidence 等重字段，必须补拉）
+const loadCaseDetail = async (caseId) => {
+  if (!caseId) return
+  try {
+    const r = await fetchCaseById(caseId)
+    if (r?.success && r.case) {
+      selectedCase.value = r.case
+    }
+  } catch (e) {
+    console.warn('加载案件详情失败:', e)
+  }
+}
+
 onMounted(async () => {
   window.addEventListener('resize', resizeCaseRadar)
-  if (!selectedCase.value) {
-    const { default: api } = await import('../api.js')
-    const params = new URLSearchParams(window.location.search)
-    const caseId = params.get('case_id')
-    if (caseId) {
-      try {
-        const r = await api.get(`/api/cases/${caseId}`)
-        if (r.data.success && r.data.case) {
-          selectedCase.value = r.data.case
-        }
-      } catch (e) {
-        console.warn('通过API加载案件详情失败:', e)
-      }
-    }
-  }
+  // 无论 selectedCase 是否已有值都补拉一次详情：
+  // 从列表/看板跳转进来时只带摘要字段，证据材料、雷达数据等需要完整详情才有
+  const params = new URLSearchParams(window.location.search)
+  const caseId = params.get('case_id')
+    || selectedCase.value?.case_id
+    || selectedCase.value?.id
+  await loadCaseDetail(caseId)
   if (detailTab.value === 'behavior') {
     nextTick(() => setTimeout(() => renderCaseRadar(), 300))
   }
+})
+
+// 在本页内切换案件（如从关联案件跳转）时同步刷新详情
+watch(() => selectedCase.value?.case_id || selectedCase.value?.id, (id) => {
+  if (id && !(selectedCase.value?.evidence?.length)) loadCaseDetail(id)
 })
 
 onUnmounted(() => {
@@ -1319,9 +1338,19 @@ const defaultSuggestions = ['立即启动紧急止付，冻结涉案账户', '�
   transform: translateX(3px);
 }
 .evidence-icon { font-size: 20px; width: 28px; text-align: center; }
-.evidence-info { flex: 1; }
+.evidence-info { flex: 1; min-width: 0; }
 .evidence-name { font-size: 13px; color: #e2e8f0; font-weight: 500; }
-.evidence-meta { margin-top: 3px; }
+.evidence-content {
+  font-size: 12px;
+  color: rgba(226,232,240,0.6);
+  line-height: 1.5;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.evidence-meta { margin-top: 5px; }
 
 .member-list { display: flex; flex-direction: column; gap: 10px; }
 .member-item {

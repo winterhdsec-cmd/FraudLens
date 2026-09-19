@@ -76,6 +76,31 @@ def _wait_ready(host: str, port: int, deadline_s: float = 8.0) -> bool:
     return False
 
 
+def wait_for_redis(timeout_s: float = 15.0, interval: float = 0.5) -> bool:
+    """轮询等待本机 Redis 就绪（复用外部实例或拉起内置）。就绪返回 True。
+
+    比直接调用 ensure_embedded_redis() 更稳，解决两类真实竞态：
+      1. 上一次进程退出时内置 Redis 正在 SHUTDOWN SAVE，端口处于「open 但不应答」
+         状态，此时 ensure_embedded_redis() 会判为"端口被非 Redis 进程占用"而
+         放弃拉起 → 静默降级内存。轮询到旧进程退出、端口释放后即可正常拉起。
+      2. 内置进程刚 Popen、尚未完成初始化。
+
+    进程启动路径（main.py）与验证脚本都建议走本函数，避免"环境里碰巧有没有
+    Redis"导致的时通时败。
+    """
+    try:
+        port = int(os.getenv("REDIS_PORT", "6379"))
+    except ValueError:
+        port = 6379
+    end = time.time() + timeout_s
+    while time.time() < end:
+        if ping_ok("127.0.0.1", port):
+            return True
+        ensure_embedded_redis()  # 幂等；未就绪时每轮重试一次
+        time.sleep(interval)
+    return False
+
+
 def _shutdown_embedded() -> None:
     """尽力优雅退出：先发 SHUTDOWN SAVE（保留缓存跨重启，纯 redis-py，不依赖 redis-cli.exe），
     失败再 terminate 兜底。"""

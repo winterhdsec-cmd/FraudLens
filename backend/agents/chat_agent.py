@@ -108,8 +108,13 @@ class ChatAgent:
     def start_session(self, session_id: str = None):
         """开始新会话"""
         import uuid
+        # 关键：先解绑旧 session_id 再清空，否则 clear() 会把**上一个会话**的持久化
+        # 历史一并删掉（short_term_memory 仍绑着旧 ID 时，_persist_clear 删的是旧键）
+        self.short_term_memory.detach()
+
         self.session_id = session_id or f"chat_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-        self.short_term_memory.clear()
+        # 绑定会话 ID，之后每条消息都会增量落 Redis（G3 记忆持久化）
+        self.short_term_memory.bind_session(self.session_id, load=False)
         self.state = AgentState(
             agent_id="chat_agent",
             agent_type="chat",
@@ -121,6 +126,28 @@ class ChatAgent:
         # 保存初始检查点
         self._save_checkpoint("session_started")
         
+        return self.session_id
+
+    def ensure_session(self, session_id: Optional[str] = None) -> str:
+        """确保会话已就绪并**载入历史**（路由层统一入口）。
+
+        - 传入 session_id：绑定该 ID 并从 Redis 恢复历史（已绑定则幂等）
+        - 不传 session_id：新建会话（等价 start_session()）
+
+        这是「切换页面/刷新/重启服务后对话不丢」的关键开关点。
+        """
+        if not session_id:
+            return self.start_session()
+
+        if self.session_id != session_id:
+            self.session_id = session_id
+            restored = self.short_term_memory.bind_session(session_id, load=True)
+            if restored:
+                logger.info("Session history loaded from Redis",
+                            session_id=session_id,
+                            message_count=len(self.short_term_memory.messages))
+            else:
+                logger.info("Session bound (no persisted history yet)", session_id=session_id)
         return self.session_id
     
     async def chat_stream(self, user_message: str, context: Dict[str, Any] = None):
@@ -832,27 +859,46 @@ class ChatAgent:
             logger.error("Failed to save checkpoint", error=str(e), stage=stage)
     
     def restore_session(self, session_id: str) -> bool:
-        """恢复会话"""
+        """恢复会话历史。
+
+        优先从 Redis（实时、逐条写入、切页面不丢）恢复；
+        Redis 无数据时回落到 checkpoint 文件（进程重启后的兜底），
+        并把恢复出的历史回写 Redis，使后续访问走快路径。
+        """
         try:
+            self.session_id = session_id
+
+            # 路径 1：Redis 实时历史
+            if self.short_term_memory.bind_session(session_id, load=True):
+                logger.info("Session restored from Redis",
+                            session_id=session_id,
+                            message_count=len(self.short_term_memory.messages))
+                return True
+
+            # 路径 2：checkpoint 文件兜底（并回填 Redis）
             checkpoint = self.checkpoint_manager.get_latest_checkpoint(
                 agent_id=f"chat_agent_{session_id}"
             )
-            
             if not checkpoint:
-                logger.warning("No checkpoint found for session", session_id=session_id)
+                logger.warning("No persisted history for session", session_id=session_id)
                 return False
-            
+
             state = checkpoint.get("state", {})
-            self.session_id = session_id
             self.short_term_memory.clear()
-            
-            # 恢复消息历史
+            restored = 0
             for msg in state.get("messages", []):
-                self.short_term_memory.add_message(msg["role"], msg["content"])
-            
-            logger.info("Session restored", session_id=session_id, message_count=len(state.get("messages", [])))
-            return True
-            
+                role = msg.get("role")
+                content = msg.get("content")
+                if not role or content is None:
+                    continue
+                # 经 add_message 写入 → 自动回填 Redis
+                self.short_term_memory.add_message(role, content)
+                restored += 1
+
+            logger.info("Session restored from checkpoint",
+                        session_id=session_id, message_count=restored)
+            return restored > 0
+
         except Exception as e:
             logger.error("Failed to restore session", error=str(e), session_id=session_id)
             return False

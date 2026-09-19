@@ -32,6 +32,21 @@ def _parse_sentinel_hosts(raw: str) -> List[Tuple[str, int]]:
     return hosts
 
 
+def _is_server_without_password(err: Exception) -> bool:
+    """判断异常是否为「客户端发了 AUTH，但服务端根本没设密码」。
+
+    Redis 对这种情况返回 `ERR Client sent AUTH, but no password is set`。
+    这不是"密码错"，而是服务端未启用鉴权——此时应当去掉密码重连，而不是
+    让整个 Redis 能力静默降级为内存兜底（会导致对话历史持久化、JWT 黑名单
+    等全部退化为进程内存储）。
+    """
+    msg = str(err).lower()
+    if "no password is set" in msg:
+        return True
+    # 兼容不同 redis-py / 服务端版本措辞
+    return "auth" in msg and "password" in msg and "no password" in msg
+
+
 def _resp2_kw() -> Dict[str, Any]:
     """强制 RESP2 协议（redis-py>=6 默认发 HELLO 3 握手，Redis<6 服务端会直接报
     unknown command 'HELLO'，内置 vendor Redis 5.0.14 即此场景）。
@@ -112,6 +127,30 @@ def get_redis_client(
         decode_responses=decode_responses,
         **_resp2_kw(),
     )
+    # 密码配置与服务端不匹配（服务端未启用鉴权）时自动去密码重连一次。
+    # 本函数是 LongTermMemory 等模块的统一客户端入口，若不在此处兜住，这些模块
+    # 会在自己的 ping 里失败并**静默降级为内存存储**，调用方只看到一句
+    # "Redis unavailable"，极难定位。仅在配置了密码时才多一次探测，无额外开销。
+    if settings.REDIS_PASSWORD:
+        try:
+            client.ping()
+        except Exception as e:  # noqa: BLE001
+            if _is_server_without_password(e):
+                logger.warning(
+                    "Redis 服务端未启用鉴权，但配置了 REDIS_PASSWORD——"
+                    "已自动改为无密码连接（建议同步清理配置项）",
+                    host=settings.REDIS_HOST, port=settings.REDIS_PORT,
+                )
+                client = redis.Redis(
+                    host=settings.REDIS_HOST,
+                    port=settings.REDIS_PORT,
+                    db=settings.REDIS_DB,
+                    password=None,
+                    socket_timeout=socket_timeout,
+                    socket_connect_timeout=socket_connect_timeout,
+                    decode_responses=decode_responses,
+                    **_resp2_kw(),
+                )
     logger.info("Redis client in DIRECT mode", host=settings.REDIS_HOST, port=settings.REDIS_PORT, embedded=embedded)
     return client
 
@@ -228,23 +267,66 @@ class RedisPool:
                 raise
         return self._pool
     
+    def _drop_password_and_rebuild(self) -> bool:
+        """服务端未设密码时，去掉密码重建连接池。成功返回 True（仅重建一次）。"""
+        if not self.password:
+            return False
+        logger.warning(
+            "Redis 服务端未启用鉴权，但配置了 REDIS_PASSWORD——"
+            "已自动去掉密码重连（建议同步清理配置项）",
+            host=self.host, port=self.port,
+        )
+        self.password = None
+        self._pool = None
+        self._sentinel = None
+        self._client = None
+        try:
+            self._get_pool()
+            return True
+        except Exception as e:  # noqa: BLE001
+            logger.error("去掉密码后重建 Redis 连接池仍失败", error=str(e))
+            return False
+
+    def _connect(self):
+        """建立并验证一条连接。密码与服务端不匹配时自动去密码重试一次。"""
+        import redis
+        pool = self._get_pool()
+        client = redis.Redis(connection_pool=pool)
+        try:
+            client.ping()
+            return client
+        except Exception as e:
+            try:
+                client.close()
+            except Exception:  # noqa: BLE001
+                pass
+            # 密码配置与服务端不匹配（服务端未鉴权）时，自动去密码重试一次，
+            # 避免静默降级为内存存储
+            if _is_server_without_password(e) and self._drop_password_and_rebuild():
+                retry = redis.Redis(connection_pool=self._pool)
+                try:
+                    retry.ping()
+                    return retry
+                except Exception as e2:  # noqa: BLE001
+                    logger.error("Redis connection failed (after password drop)",
+                                 error=str(e2))
+                    raise
+            logger.error("Redis connection failed", error=str(e))
+            raise
+
     @contextmanager
     def get_client(self):
         """获取 Redis 客户端（上下文管理器）"""
-        pool = self._get_pool()
         client = None
         try:
-            import redis
-            client = redis.Redis(connection_pool=pool)
-            # 测试连接
-            client.ping()
+            client = self._connect()
             yield client
-        except Exception as e:
-            logger.error("Redis connection failed", error=str(e))
-            raise
         finally:
-            if client:
-                client.close()
+            if client is not None:
+                try:
+                    client.close()
+                except Exception:  # noqa: BLE001
+                    pass
     
     def set(self, key: str, value: Any, expire: int = None) -> bool:
         """

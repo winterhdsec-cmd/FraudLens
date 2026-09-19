@@ -200,16 +200,33 @@ import { store } from '../store.js';
 export default {
   name: 'ChatView',
   setup() {
+    // ---- G3 会话状态持久化 ----
+    // sessionId / 会话列表存 localStorage：刷新页面、切路由再回来、关标签页重开都能恢复
+    // 注意用 localStorage 而非 sessionStorage —— 后者关标签页即失效，达不到"关掉再回来还在"
+    const LS_SESSION_KEY = 'fraudlens_chat_session_id';
+    const LS_SESSIONS_KEY = 'fraudlens_chat_sessions';
+
+    const readStoredSessions = () => {
+      try {
+        const raw = localStorage.getItem(LS_SESSIONS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('读取本地会话列表失败，忽略:', e);
+        return [];
+      }
+    };
+
     const messages = ref([]);
     const userInput = ref('');
     const isLoading = ref(false);
-    const sessionId = ref(null);
+    const sessionId = ref(localStorage.getItem(LS_SESSION_KEY) || null);
     const error = ref(null);
     const messagesContainer = ref(null);
     const inputTextarea = ref(null);
     const showHistory = ref(false);
     const showShortcuts = ref(false);
-    const sessions = ref([]);
+    const sessions = ref(readStoredSessions());
 
     // 快捷操作
     const quickActions = [
@@ -438,7 +455,8 @@ export default {
                         ...eventData.metadata
                       };
                       if (eventData.metadata.session_id) {
-                        sessionId.value = eventData.metadata.session_id;
+                        // 首次对话时后端才分配 session_id —— 立刻落 localStorage
+                        persistSessionId(eventData.metadata.session_id);
                         updateSessionInfo(eventData.metadata.session_id, message);
                       }
                     }
@@ -489,8 +507,28 @@ export default {
       showShortcuts.value = false;
     };
 
+    // ---- 本地持久化：sessionId + 会话列表 ----
+    const persistSessionId = (id) => {
+      sessionId.value = id || null;
+      try {
+        if (id) localStorage.setItem(LS_SESSION_KEY, id);
+        else localStorage.removeItem(LS_SESSION_KEY);
+      } catch (e) {
+        console.warn('保存 sessionId 失败:', e);
+      }
+    };
+
+    const persistSessions = () => {
+      try {
+        // 最多保留 30 条本地会话索引，避免 localStorage 无限膨胀
+        localStorage.setItem(LS_SESSIONS_KEY, JSON.stringify(sessions.value.slice(0, 30)));
+      } catch (e) {
+        console.warn('保存会话列表失败:', e);
+      }
+    };
+
     const newSession = () => {
-      sessionId.value = null;
+      persistSessionId(null);
       messages.value = [];
       error.value = null;
     };
@@ -503,47 +541,97 @@ export default {
 
       if (!confirm('确定要清空当前对话吗？')) return;
 
+      const clearingId = sessionId.value;
       try {
-        await api.delete(`/api/chat/sessions/${sessionId.value}`);
-        messages.value = [];
-        sessionId.value = null;
-        error.value = null;
+        await api.delete(`/api/chat/sessions/${clearingId}`);
       } catch (err) {
         console.error('Clear session error:', err);
         error.value = '清空对话失败';
+        return;   // 后端没删成功就不要本地假清，避免刷新后"复活"
       }
+      // 同步移除本地索引项
+      sessions.value = sessions.value.filter(s => s.id !== clearingId);
+      persistSessions();
+      messages.value = [];
+      persistSessionId(null);
+      error.value = null;
     };
 
     const loadSession = async (sessionIdToLoad) => {
       try {
         const response = await api.get(`/api/chat/sessions/${sessionIdToLoad}/history`);
         const data = response.data;
-        
-        sessionId.value = sessionIdToLoad;
-        messages.value = data.messages || [];
+
+        persistSessionId(sessionIdToLoad);
+        // 后端持久化的是 {role, content, timestamp, metadata}，补齐前端渲染所需字段
+        messages.value = (data.messages || []).map(m => ({
+          ...m,
+          role: m.role || 'assistant',
+          content: m.content || '',
+          timestamp: m.timestamp || new Date().toISOString(),
+          isStreaming: false,
+          metadata: m.metadata || {}
+        }));
         showHistory.value = false;
-        scrollToBottom();
+        nextTick(scrollToBottom);
       } catch (err) {
         console.error('Load session error:', err);
         error.value = '加载会话失败';
       }
     };
 
-    const updateSessionInfo = (sessionId, firstMessage) => {
-      const existingIndex = sessions.value.findIndex(s => s.id === sessionId);
+    const updateSessionInfo = (sid, firstMessage) => {
+      const existingIndex = sessions.value.findIndex(s => s.id === sid);
       if (existingIndex >= 0) {
-        sessions.value[existingIndex].messageCount++;
-        sessions.value[existingIndex].lastActive = new Date().toISOString();
-        if (!sessions.value[existingIndex].title) {
-          sessions.value[existingIndex].title = firstMessage.substring(0, 20);
-        }
+        const item = sessions.value[existingIndex];
+        item.messageCount = (item.messageCount || 0) + 1;
+        item.lastActive = new Date().toISOString();
+        if (!item.title) item.title = (firstMessage || '').substring(0, 20);
+        // 置顶最近活跃
+        sessions.value.splice(existingIndex, 1);
+        sessions.value.unshift(item);
       } else {
         sessions.value.unshift({
-          id: sessionId,
-          title: firstMessage.substring(0, 20),
+          id: sid,
+          title: (firstMessage || '未命名对话').substring(0, 20),
           messageCount: 1,
           lastActive: new Date().toISOString()
         });
+      }
+      persistSessions();
+    };
+
+    /**
+     * 页面进入时恢复上次对话。
+     * 优先级：本地 sessionId → 后端拉历史；失败则回落到服务端会话列表里的最近一条。
+     */
+    const restoreLastConversation = async () => {
+      // 1) 先尝试本地记住的 sessionId
+      if (sessionId.value) {
+        try {
+          await loadSession(sessionId.value);
+          if (messages.value.length > 0) return;
+        } catch (e) {
+          console.warn('本地 sessionId 恢复失败，尝试服务端会话列表:', e);
+        }
+      }
+
+      // 2) 回落：查服务端持久化的会话列表（Redis），取最近一条
+      try {
+        const resp = await api.get('/api/chat/sessions');
+        const list = resp.data?.sessions || [];
+        if (list.length > 0) {
+          // 用服务端数据重建本地索引（含标题/消息数/活跃时间），刷新后列表不再丢
+          sessions.value = list.slice(0, 30);
+          persistSessions();
+          const mostRecent = list[0].id;
+          if (mostRecent !== sessionId.value) {
+            await loadSession(mostRecent);
+          }
+        }
+      } catch (e) {
+        // 无历史或接口不可用时静默降级为空对话，不打扰用户
+        console.warn('恢复服务端会话列表失败（可忽略）:', e);
       }
     };
 
@@ -553,6 +641,7 @@ export default {
 
     onMounted(() => {
       adjustTextareaHeight();
+      restoreLastConversation();
     });
 
     return {
@@ -577,7 +666,8 @@ export default {
       useShortcut,
       newSession,
       clearSession,
-      loadSession
+      loadSession,
+      restoreLastConversation
     };
   }
 };

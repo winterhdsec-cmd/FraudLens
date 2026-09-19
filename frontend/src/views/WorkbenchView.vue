@@ -198,6 +198,81 @@
             </el-table>
           </el-tab-pane>
 
+          <!-- 串并案建议 -->
+          <el-tab-pane label="并案建议" name="merge">
+            <div class="tab-toolbar">
+              <el-button type="primary" :loading="mergeLoading" @click="onGenerateMerges">
+                <el-icon><MagicStick /></el-icon> AI 重新发现
+              </el-button>
+              <el-button @click="loadMerges">
+                <el-icon><Refresh /></el-icon> 刷新
+              </el-button>
+              <el-radio-group v-model="mergeStatusFilter" size="small" @change="loadMerges">
+                <el-radio-button label="pending">待研判 {{ mergeSummary.pending || 0 }}</el-radio-button>
+                <el-radio-button label="approved">已采纳 {{ mergeSummary.approved || 0 }}</el-radio-button>
+                <el-radio-button label="rejected">已驳回 {{ mergeSummary.rejected || 0 }}</el-radio-button>
+                <el-radio-button label="all">全部 {{ mergeSummary.total || 0 }}</el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <div v-if="mergeError" class="merge-error">
+              <el-icon><WarningFilled /></el-icon> 并案建议加载失败：{{ mergeError }}
+            </div>
+
+            <el-table v-loading="mergeLoading" :data="merges" stripe size="small" style="margin-top: 12px">
+              <el-table-column label="相似度" width="96" align="center">
+                <template #default="{ row }">
+                  <span class="sim-badge" :class="simClass(row.similarity)">{{ (row.similarity * 100).toFixed(1) }}%</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="案件 A" min-width="200">
+                <template #default="{ row }">
+                  <div class="merge-case">
+                    <el-button link type="primary" size="small" @click="openCase(row.case_id_a)">{{ row.case_id_a }}</el-button>
+                    <span class="mc-title">{{ row.case_a_title || '—' }}</span>
+                    <span class="mc-sub">受害人：{{ row.case_a_victim || '—' }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="案件 B" min-width="200">
+                <template #default="{ row }">
+                  <div class="merge-case">
+                    <el-button link type="primary" size="small" @click="openCase(row.case_id_b)">{{ row.case_id_b }}</el-button>
+                    <span class="mc-title">{{ row.case_b_title || '—' }}</span>
+                    <span class="mc-sub">受害人：{{ row.case_b_victim || '—' }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="reason" label="并案依据" min-width="220" show-overflow-tooltip />
+              <el-table-column label="状态" width="90">
+                <template #default="{ row }">
+                  <el-tag :type="mergeStatusType(row.status)" size="small">{{ mergeStatusLabel(row.status) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="复核" width="150">
+                <template #default="{ row }">
+                  <span v-if="row.status === 'pending'" class="muted">待人工复核</span>
+                  <span v-else class="mc-sub">{{ formatTime(row.reviewed_at) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="150">
+                <template #default="{ row }">
+                  <template v-if="row.status === 'pending'">
+                    <el-button link size="small" type="success" @click="onAdoptMerge(row)">采纳</el-button>
+                    <el-button link size="small" type="danger" @click="onRejectMerge(row)">驳回</el-button>
+                  </template>
+                  <el-button link size="small" @click="openCase(row.case_id_a)">查看</el-button>
+                </template>
+              </el-table-column>
+              <template #empty>
+                <el-empty :description="mergeStatusFilter === 'pending' ? '暂无待研判的并案建议' : '暂无数据'" :image-size="80" />
+              </template>
+            </el-table>
+            <p class="merge-hint">
+              采纳后两起案件将建立同一团伙关联（不覆盖原案情）；驳回仅登记研判结论，可在「全部」中回溯。
+            </p>
+          </el-tab-pane>
+
           <!-- 时间线 -->
           <el-tab-pane label="办案时间线" name="timeline">
             <el-timeline v-if="timeline.length">
@@ -302,9 +377,9 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MagicStick, Plus, Delete } from '@element-plus/icons-vue'
+import { MagicStick, Plus, Delete, Refresh, WarningFilled } from '@element-plus/icons-vue'
 import {
   getCaseLifecycle, transitionCaseStatus, getCaseTimeline,
   listInvestigations, createInvestigation, downloadInvestigationReport,
@@ -312,11 +387,13 @@ import {
   downloadFreezeDoc,
   listReviews, resolveReview,
   listPendingApprovals, listApprovals, approveFlow, rejectFlow,
+  fetchMergeSuggestions, generateMergeSuggestions, rejectMergeSuggestion, confirmMergeSuggestion,
 } from '../api.js'
 import { useAppState } from '../composables/useAppState.js'
 
 const appState = useAppState()
 const route = useRoute()
+const router = useRouter()
 
 // ── 案件选择 ──
 const selectedCaseId = ref('')
@@ -368,6 +445,13 @@ const currentFlowId = ref('')
 // ── 时间线 ──
 const timeline = ref([])
 
+// ── 并案建议 ──
+const merges = ref([])
+const mergeLoading = ref(false)
+const mergeError = ref('')
+const mergeStatusFilter = ref('pending')
+const mergeSummary = reactive({ pending: 0, approved: 0, rejected: 0, total: 0 })
+
 // ── 方法 ──
 function onCaseChange(caseId) {
   if (!caseId) return
@@ -378,6 +462,112 @@ function onCaseChange(caseId) {
   freezeOrders.value = []
   reviews.value = []
   approvals.value = []
+}
+
+function simClass(sim) {
+  if (sim >= 0.9) return 'sim-high'
+  if (sim >= 0.8) return 'sim-mid'
+  return 'sim-low'
+}
+
+function mergeStatusType(status) {
+  return { pending: 'warning', approved: 'success', rejected: 'info' }[status] || 'info'
+}
+
+function mergeStatusLabel(status) {
+  return { pending: '待研判', approved: '已采纳', rejected: '已驳回' }[status] || status
+}
+
+async function loadMerges() {
+  mergeLoading.value = true
+  mergeError.value = ''
+  try {
+    const res = await fetchMergeSuggestions(mergeStatusFilter.value)
+    if (res.success) {
+      merges.value = res.suggestions || []
+      if (res.summary) Object.assign(mergeSummary, res.summary)
+    } else {
+      mergeError.value = res.error || '未知错误'
+    }
+  } catch (e) {
+    mergeError.value = e.message || String(e)
+  } finally {
+    mergeLoading.value = false
+  }
+}
+
+async function onGenerateMerges() {
+  mergeLoading.value = true
+  try {
+    const res = await generateMergeSuggestions()
+    if (res.success) {
+      ElMessage.success(res.total ? `发现 ${res.total} 条新的并案线索` : '未发现新的并案线索')
+      await loadMerges()
+    } else {
+      ElMessage.error(res.error || '并案发现失败')
+    }
+  } catch (e) {
+    ElMessage.error('并案发现失败：' + (e.message || e))
+  } finally {
+    mergeLoading.value = false
+  }
+}
+
+async function onAdoptMerge(row) {
+  let gangId
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `确认将 ${row.case_id_a} 与 ${row.case_id_b} 并入同一团伙？\n请输入目标团伙编号，可在「团伙画像」页查看现有编号。`,
+      '采纳并案建议',
+      { inputPlaceholder: '如 G0001', inputPattern: /\S+/, inputErrorMessage: '团伙编号不能为空' }
+    )
+    gangId = (value || '').trim()
+  } catch (e) {
+    return // 用户取消
+  }
+  try {
+    const res = await confirmMergeSuggestion(row.case_id_a, row.case_id_b, gangId)
+    if (res.success) {
+      ElMessage.success('已并入团伙 ' + gangId)
+      await loadMerges()
+      await loadTimeline(selectedCaseId.value)
+    } else {
+      ElMessage.error(res.error || '并案失败')
+    }
+  } catch (e) {
+    const msg = e?.response?.data?.error || e.message || e
+    ElMessage.error('并案失败：' + msg)
+  }
+}
+
+async function onRejectMerge(row) {
+  let reason
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `驳回 ${row.case_id_a} 与 ${row.case_id_b} 的并案建议？`,
+      '驳回并案建议',
+      { inputPlaceholder: '驳回理由（可选，如：两名受害人无资金往来）', inputType: 'textarea' }
+    )
+    reason = value || ''
+  } catch (e) {
+    return
+  }
+  try {
+    const res = await rejectMergeSuggestion(row.id, reason)
+    if (res.success) {
+      ElMessage.success('已驳回该并案建议')
+      await loadMerges()
+    } else {
+      ElMessage.error(res.error || '驳回失败')
+    }
+  } catch (e) {
+    const msg = e?.response?.data?.error || e.message || e
+    ElMessage.error('驳回失败：' + msg)
+  }
+}
+
+function openCase(caseId) {
+  router.push({ name: 'case-detail', query: { case_id: caseId } })
 }
 
 async function loadLifecycle(caseId) {
@@ -431,6 +621,7 @@ function onTabChange(tab) {
   else if (tab === 'freeze' && !freezeOrders.value.length) loadFreezeOrders()
   else if (tab === 'review' && !reviews.value.length) loadReviews()
   else if (tab === 'approval' && !approvals.value.length) loadPendingApprovals()
+  else if (tab === 'merge' && !merges.value.length) loadMerges()
 }
 
 async function loadInvestigations() {
@@ -1048,5 +1239,70 @@ function trySelectCase(cid) {
 
 :deep(.el-select .el-input.is-focus .el-input__wrapper) {
   box-shadow: 0 0 0 1px var(--accent-cyan) inset, 0 0 12px rgba(0, 212, 255, 0.15);
+}
+
+/* ── 并案建议面板 ── */
+.sim-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-high {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+  border: 1px solid rgba(255, 77, 79, 0.35);
+}
+
+.sim-mid {
+  background: rgba(250, 173, 20, 0.15);
+  color: #ffc53d;
+  border: 1px solid rgba(250, 173, 20, 0.35);
+}
+
+.sim-low {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.merge-case {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.4;
+}
+
+.merge-case .mc-title {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.merge-case .mc-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.merge-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(255, 77, 79, 0.08);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+  color: #ff7875;
+  font-size: 13px;
+}
+
+.merge-hint {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 </style>

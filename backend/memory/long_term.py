@@ -9,6 +9,17 @@ import json
 from core.logger import logger
 
 
+def _as_str(key) -> str:
+    """Redis key 归一化为 str。
+
+    `get_redis_client()` 默认 `decode_responses=True`，返回的 key 已经是 str；
+    但若调用方传入自定义 client（decode_responses=False）则为 bytes。
+    历史实现直接 `key.decode()`，在默认配置下必然抛 AttributeError，
+    且被外层兜底 except 吞掉 → 静默返回空列表，极难定位。
+    """
+    return key if isinstance(key, str) else key.decode()
+
+
 class LongTermMemory:
     """
     长期记忆
@@ -79,24 +90,33 @@ class LongTermMemory:
         return json.loads(data) if data else None
 
     def list_summaries(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """列出最近的摘要"""
-        summaries = []
+        """列出最近的摘要（按存储时间倒序）。
 
+        两处历史缺陷在此修正：
+          1. `key.decode()` 在 decode_responses=True（本项目默认）下必然抛
+             AttributeError，被兜底 except 吞掉后静默返回空列表 → 改用 _as_str。
+          2. `redis.keys()[-limit:]` 依赖 key 无序结果，无法兑现"最近"语义；
+             且 KEYS 在大 keyspace 下会阻塞 Redis 单线程 → 改用 scan_iter 并
+             按写入时间戳排序。
+        """
         if self.redis:
             try:
+                found: List[Dict[str, Any]] = []
                 pattern = f"{self.namespace}:*"
-                keys = self.redis.keys(pattern)
-                for key in keys[-limit:]:
+                for key in self.redis.scan_iter(match=pattern, count=200):
                     data = self.redis.get(key)
-                    if data:
-                        summary_data = json.loads(data)
-                        summary_data["session_id"] = key.decode().split(":")[-1]
-                        summaries.append(summary_data)
-                return summaries
+                    if not data:
+                        continue
+                    summary_data = json.loads(data)
+                    summary_data["session_id"] = _as_str(key).split(":")[-1]
+                    found.append(summary_data)
+                found.sort(key=lambda s: s.get("timestamp") or "", reverse=True)
+                return found[:limit]
             except Exception as e:
                 logger.warning("LongTermMemory: Redis list failed, using memory fallback", error=str(e))
 
         # 内存降级
+        summaries: List[Dict[str, Any]] = []
         for key, data in list(self._memory_store.items())[-limit:]:
             summary_data = json.loads(data)
             summary_data["session_id"] = key.split(":")[-1]
@@ -145,9 +165,16 @@ class LongTermMemory:
         if self.redis:
             try:
                 pattern = f"{self.namespace}:*"
-                keys = self.redis.keys(pattern)
-                if keys:
-                    self.redis.delete(*keys)
+                # scan_iter 替代 KEYS：后者在大 keyspace 下阻塞 Redis 单线程。
+                # 分批 delete，避免一次性构造超大参数列表。
+                batch: List[str] = []
+                for key in self.redis.scan_iter(match=pattern, count=200):
+                    batch.append(key)
+                    if len(batch) >= 200:
+                        self.redis.delete(*batch)
+                        batch = []
+                if batch:
+                    self.redis.delete(*batch)
                 return
             except Exception as e:
                 logger.warning("LongTermMemory: Redis clear failed", error=str(e))

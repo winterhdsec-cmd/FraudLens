@@ -120,10 +120,21 @@ def confirm_merge(case_id_a, case_id_b, gang_id, user_id):
     return {'gang_id': gang_id, 'case_ids': [case_id_a, case_id_b]}
 
 
-def get_pending_merges():
-    suggestions = MergeSuggestion.query.filter_by(status='pending').order_by(
-        MergeSuggestion.similarity.desc()
-    ).all()
+def get_merges(status=None, limit=200, offset=0):
+    """并案建议列表。
+
+    status: None / 'all' 表示全部；否则按该状态过滤（pending/approved/rejected）。
+    返回 (items, total)。每条附带两侧案件的标题、受害人、类型，便于前端直接渲染。
+    """
+    query = MergeSuggestion.query
+    if status and status != 'all':
+        query = query.filter(MergeSuggestion.status == status)
+
+    total = query.count()
+    suggestions = query.order_by(
+        MergeSuggestion.similarity.desc(), MergeSuggestion.id.desc()
+    ).offset(offset).limit(limit).all()
+
     result = []
     for s in suggestions:
         case_a = Case.query.filter_by(case_id=s.case_id_a).first()
@@ -139,6 +150,49 @@ def get_pending_merges():
             'case_b_title': case_b.title if case_b else '',
             'case_a_victim': case_a.victim_name if case_a else '',
             'case_b_victim': case_b.victim_name if case_b else '',
+            'case_a_risk': case_a.risk_type if case_a else '',
+            'case_b_risk': case_b.risk_type if case_b else '',
+            'reviewed_by': s.reviewed_by,
+            'reviewed_at': s.reviewed_at.isoformat() if s.reviewed_at else None,
             'created_at': s.created_at.isoformat() if s.created_at else None
         })
-    return result
+    return result, total
+
+
+def get_pending_merges():
+    items, _ = get_merges(status='pending')
+    return items
+
+
+def reject_merge(suggestion_id, user_id, reason=''):
+    """人工驳回一条并案建议（不建立团伙关联）。"""
+    suggestion = MergeSuggestion.query.filter_by(id=suggestion_id).first()
+    if not suggestion:
+        raise ValueError(f'MergeSuggestion {suggestion_id} not found')
+    if suggestion.status != 'pending':
+        raise ValueError(f'建议 #{suggestion_id} 当前状态为 {suggestion.status}，仅 pending 可驳回')
+
+    suggestion.status = 'rejected'
+    suggestion.reviewed_by = user_id
+    suggestion.reviewed_at = datetime.utcnow()
+    if reason:
+        # reason 列上限 200，超出截断，保留原始匹配理由作为前缀
+        suffix = f'；驳回理由：{reason}'
+        base = suggestion.reason or ''
+        suggestion.reason = (base[:max(0, 200 - len(suffix))] + suffix)[:200]
+
+    db.session.commit()
+    return {'id': suggestion_id, 'status': 'rejected'}
+
+
+def get_merge_status_summary():
+    """各状态计数，供前端顶部统计条使用。"""
+    from sqlalchemy import func
+    rows = db.session.query(
+        MergeSuggestion.status, func.count(MergeSuggestion.id)
+    ).group_by(MergeSuggestion.status).all()
+    summary = {'pending': 0, 'approved': 0, 'rejected': 0}
+    for status, count in rows:
+        summary[status or 'unknown'] = count
+    summary['total'] = sum(v for k, v in summary.items() if k != 'total')
+    return summary

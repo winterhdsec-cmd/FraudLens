@@ -61,6 +61,77 @@ def get_chat_agent(session_id: Optional[str] = None) -> ChatAgent:
         return _chat_agents[session_id]
 
 
+def get_persisted_history(session_id: str, limit: int = 200) -> List[Dict[str, Any]]:
+    """直接从 Redis 读取会话历史（不依赖 ChatAgent 实例是否存在）。
+
+    前端刷新/切页面/服务重启后都能取回完整对话，是记忆持久化的读路径。
+    Redis 不可用时返回空列表，由前端降级为「无历史」。
+    """
+    try:
+        from memory.short_term import ShortTermMemory
+        memory = ShortTermMemory(session_id=session_id)
+        memory.load()
+        return memory.get_messages(limit=limit)
+    except Exception as e:
+        logger.warning("读取持久化历史失败", session_id=session_id, error=str(e))
+        return []
+
+
+def list_persisted_sessions(limit: int = 50) -> List[Dict[str, Any]]:
+    """枚举 Redis 中已有历史的会话，供前端重建会话列表。
+
+    返回按最近活跃时间倒序的 [{id, title, messageCount, lastActive}]。
+    """
+    try:
+        from core.redis_pool import get_redis_pool
+        from memory.short_term import HISTORY_KEY_PREFIX
+
+        pool = get_redis_pool()
+        if pool is None:
+            return []
+
+        sessions: List[Dict[str, Any]] = []
+        with pool.get_client() as client:
+            for raw_key in client.scan_iter(match=f"{HISTORY_KEY_PREFIX}*", count=100):
+                key = raw_key if isinstance(raw_key, str) else raw_key.decode()
+                sid = key[len(HISTORY_KEY_PREFIX):]
+                try:
+                    count = int(client.llen(key))
+                    tail = client.lrange(key, -1, -1)
+                except Exception:
+                    continue
+                if not tail:
+                    continue
+                last = {}
+                try:
+                    last = json.loads(tail[0])
+                except (ValueError, TypeError):
+                    pass
+                # 首条 user 消息作为标题
+                title = ""
+                try:
+                    head = client.lrange(key, 0, 1)
+                    for item in head:
+                        msg = json.loads(item)
+                        if msg.get("role") == "user":
+                            title = (msg.get("content") or "")[:20]
+                            break
+                except Exception:
+                    pass
+                sessions.append({
+                    "id": sid,
+                    "title": title or "未命名对话",
+                    "messageCount": count,
+                    "lastActive": last.get("timestamp") or "",
+                })
+
+        sessions.sort(key=lambda s: s["lastActive"], reverse=True)
+        return sessions[:limit]
+    except Exception as e:
+        logger.warning("枚举持久化会话失败", error=str(e))
+        return []
+
+
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     request: ChatRequest,
@@ -109,11 +180,8 @@ async def send_message(
         # 注入当前登录用户（工具做部门级数据隔离用；身份来自鉴权层，不信任 LLM）
         chat_agent.user = current_user
         
-        # 设置会话
-        if request.session_id:
-            chat_agent.session_id = request.session_id
-        else:
-            chat_agent.start_session()
+        # 确保会话就绪并**载入历史**（G3：切页面/重启后对话不丢）
+        chat_agent.ensure_session(request.session_id)
         
         # 处理消息
         result = await chat_agent.chat(
@@ -182,11 +250,8 @@ async def send_message_stream(
         # 注入当前登录用户（工具做部门级数据隔离用；身份来自鉴权层，不信任 LLM）
         chat_agent.user = current_user
         
-        # 设置会话
-        if request.session_id:
-            chat_agent.session_id = request.session_id
-        else:
-            chat_agent.start_session()
+        # 确保会话就绪并**载入历史**（G3：切页面/重启后对话不丢）
+        chat_agent.ensure_session(request.session_id)
         
         # 流式生成响应
         async def event_generator():
@@ -225,18 +290,21 @@ async def send_message_stream(
 @router.get("/sessions/{session_id}/history")
 async def get_chat_history(
     session_id: str,
-    chat_agent: ChatAgent = Depends(get_chat_agent),
     current_user: dict = Depends(get_current_user)
 ):
-    """获取对话历史"""
+    """获取对话历史
+
+    直接从 Redis 读取（不经过 ChatAgent 实例），因此即使：
+    - 服务刚重启、会话池为空
+    - 该会话的 Agent 实例已被 LRU 淘汰
+    依然能取回完整历史。这是前端刷新/切换页面后恢复对话的数据源。
+    """
     try:
-        chat_agent.session_id = session_id
-        history = chat_agent.get_history()
-        
+        messages = get_persisted_history(session_id)
         return {
             "session_id": session_id,
-            "messages": history,
-            "count": len(history)
+            "messages": messages,
+            "count": len(messages)
         }
     except Exception as e:
         logger.error("Get history error", error=str(e))
@@ -246,14 +314,27 @@ async def get_chat_history(
 @router.delete("/sessions/{session_id}")
 async def clear_session(
     session_id: str,
-    chat_agent: ChatAgent = Depends(get_chat_agent),
     current_user: dict = Depends(get_current_user)
 ):
-    """清空会话历史"""
+    """清空会话历史（内存 + Redis 一并删除）"""
     try:
-        chat_agent.session_id = session_id
-        chat_agent.clear_history()
-        
+        # 1) 清 Runtime 实例内的内存副本
+        agent = get_chat_agent(session_id)
+        agent.ensure_session(session_id)
+        agent.clear_history()
+
+        # 2) 兜底清 Redis（避免实例不存在时残留）
+        try:
+            from memory.short_term import ShortTermMemory
+            memory = ShortTermMemory(session_id=session_id)
+            memory.clear()
+        except Exception as e:
+            logger.warning("Redis history purge skipped", session_id=session_id, error=str(e))
+
+        # 3) 会话池中移除，下次访问重新建实例
+        with _chat_agents_lock:
+            _chat_agents.pop(session_id, None)
+
         return {
             "message": "会话已清空",
             "session_id": session_id
@@ -261,6 +342,22 @@ async def clear_session(
     except Exception as e:
         logger.error("Clear session error", error=str(e))
         raise HTTPException(status_code=500, detail=f"清空会话失败: {str(e)}")
+
+
+@router.get("/sessions")
+async def list_sessions(
+    current_user: dict = Depends(get_current_user)
+):
+    """列出当前服务端持有的活跃会话（含消息数、最近活跃时间）
+
+    用于前端「历史会话」面板在刷新后重建列表（原先该列表只存在内存里）。
+    """
+    try:
+        items = list_persisted_sessions()
+        return {"sessions": items, "count": len(items)}
+    except Exception as e:
+        logger.error("List sessions error", error=str(e))
+        raise HTTPException(status_code=500, detail=f"获取会话列表失败: {str(e)}")
 
 
 @router.get("/intents")

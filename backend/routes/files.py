@@ -396,6 +396,86 @@ async def api_vision_analyze(
 # ──────────────────────────────────────────────
 #  端点5: 资金流水批量导入（真实材料接入 Phase4）
 # ──────────────────────────────────────────────
+@router.get('/import-fund-flow/history')
+async def api_import_fund_flow_history(
+    source_file: str = Query(None, description='按文件名模糊筛选'),
+    operator: str = Query(None, description='按操作人筛选'),
+    limit: int = Query(50, ge=1, le=500, description='批次返回上限'),
+    row_limit: int = Query(50, ge=0, le=500, description='明细返回上限，0 表示只要批次汇总'),
+    current_user: dict = Depends(get_current_user),
+):
+    """资金流水导入留痕查询（合规审计）。
+
+    `/import-fund-flow` 是 best-effort 落库 `imported_fund_flows`（合规留痕），
+    但此前**没有任何读取入口**，导入了什么、谁导入的、多少条都无从查证。
+    本接口把它补上：先给「按文件+操作人聚合的批次汇总」，再给「最近明细」。
+
+    与 CapitalFlow 的区别：ImportedFundFlow 是"用户上传的原始批量流水"审计
+    记录，不绑定案件；CapitalFlow 是按案件归属的派生态。
+    """
+    from database.models import ImportedFundFlow
+    from database import db
+    from sqlalchemy import func
+    try:
+        ImportedFundFlow.__table__.create(bind=db.engine, checkfirst=True)
+
+        base = db.session.query(ImportedFundFlow)
+        if source_file:
+            base = base.filter(ImportedFundFlow.source_file.like(f'%{source_file}%'))
+        if operator:
+            base = base.filter(ImportedFundFlow.operator == operator)
+
+        # 批次汇总：同一文件可能被多人/多次导入，故按 (文件, 操作人) 聚合
+        batch_q = db.session.query(
+            ImportedFundFlow.source_file,
+            ImportedFundFlow.operator,
+            func.count(ImportedFundFlow.id).label('tx_count'),
+            func.min(ImportedFundFlow.created_at).label('first_at'),
+            func.max(ImportedFundFlow.created_at).label('last_at'),
+        )
+        if source_file:
+            batch_q = batch_q.filter(ImportedFundFlow.source_file.like(f'%{source_file}%'))
+        if operator:
+            batch_q = batch_q.filter(ImportedFundFlow.operator == operator)
+        batch_rows = batch_q.group_by(
+            ImportedFundFlow.source_file, ImportedFundFlow.operator
+        ).order_by(func.max(ImportedFundFlow.created_at).desc()).limit(limit).all()
+
+        batches = [{
+            'source_file': r[0] or '(未命名)',
+            'operator': r[1] or '(未知)',
+            'tx_count': r[2],
+            'first_at': r[3].isoformat() if r[3] else None,
+            'last_at': r[4].isoformat() if r[4] else None,
+        } for r in batch_rows]
+
+        rows = []
+        if row_limit:
+            recent = base.order_by(ImportedFundFlow.created_at.desc(),
+                                   ImportedFundFlow.id.desc()).limit(row_limit).all()
+            rows = [r.to_dict() for r in recent]
+
+        total = base.count()
+        files_total = db.session.query(
+            func.count(func.distinct(ImportedFundFlow.source_file))
+        ).scalar() or 0
+
+        return {
+            'success': True,
+            'batches': batches,
+            'rows': rows,
+            'total': total,
+            'fileCount': files_total,
+            'summary': {
+                'totalRows': total,
+                'batchCount': len(batches),
+                'fileCount': files_total,
+            },
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
 @router.post('/import-fund-flow')
 async def api_import_fund_flow(
     file: UploadFile = File(...),

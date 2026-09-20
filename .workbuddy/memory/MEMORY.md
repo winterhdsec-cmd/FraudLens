@@ -74,12 +74,41 @@
 - **N+1**：列表接口逐条查关联表会放大耗时（`merge.py` 曾 14 条建议打 28 次库 → 101ms；改一次 `IN` 批量取回后 20ms）。
 - **演示文案**：测试脚本写入演示库的「E2E 测试」「测试账户A」等字样会出现在界面上，答辩观感差；`fix_seed_consistency.py` 已纳入审计（V11–V13）。
 
-## 十二、【P0】Redis 密码配置不一致 → 单次调用 2–25 秒，且阻塞整个界面（2026-09-20 实测）
-- **现象**：`/api/metrics/prometheus` **6.6–8.1 秒**（全站中位 7ms）；`get_redis_client()` 单次 3.9/8.5/17/24/25 秒；`redis.ping()` 1.8–9.8 秒并回 `AuthenticationError: Client sent AUTH, but no password is set`。
-- **根因三层**：① `.env` / `key.env` 配了 `REDIS_PASSWORD` 但内置 Redis **未启用鉴权**；② `core/redis_pool.py::get_redis_client()` 在 `if settings.REDIS_PASSWORD:` 分支里**每次调用都同步 ping**（2026-09-19 加的兜底），失败后重建无密码客户端 → **每次调用都吃一次注定失败的往返**；③ `main.py::db_session_middleware` 用 **全局锁 `_db_lock`** 包住所有 `/api/` 请求 → 那个 8 秒请求**把整个界面一起堵住**。
-- **`embedded_redis_active()` 只看进程内布尔标记**，秒回 True，与端口实际状态无关（Redis 日志显示它反复「启动→请求关闭→退出」）。
-- **修法**：① 清掉不一致的 `REDIS_PASSWORD`（`.env` + `key.env` **两处都改**）；② 把密码探测结果**进程级缓存**，别每次 ping；③ 让指标端点不占全局锁。
-- 内置 Redis 位于 `backend/vendor/redis/`，日志 `vendor/redis/runtime/redis-embedded.log`。
+## 十二、【P0】Redis 密码配置不一致 → 单次调用 2–25 秒 ⚠️ **已复核推翻（2026-09-20 晚）**
+- **原结论作废**：真实运行（本地直跑只读 `key.env` → `REDIS_PASSWORD=None`；容器 redis 与 backend
+  **同源 `--requirepass`**）下 `get_redis_client()` 实测 **2ms**，问题**不存在**。
+- **假象来源**：验证脚本写了 `load_dotenv(.env)` → `load_dotenv(key.env)`，而 python-dotenv
+  默认 **`override=False`（先加载者胜出）** → `.env` 的 `REDIS_PASSWORD` 生效，而内置 Redis 未鉴权
+  → 造出「配置不一致」这个**只存在于脚本里**的组合。另：`core/config.py` 的 pydantic
+  `env_file=".env"` 是**按 cwd 解析**，从 `backend/` 启动读不到。
+- **保留下来的加固仍有价值**（防御性）：探测结果进程级缓存 + `Retry(NoBackoff(), 0)`
+  → 失败路径 13932ms → 2034ms，正常 2–3ms。
+- 已修：**全部 12 个验证/维护脚本统一为「只加载 key.env」**（与 `main.py` 逐字一致）。
+  **铁律：验证脚本的配置加载方式必须与被测程序逐字一致，否则测的是脚本环境。**
+
+## 十二.2【新】Redis 关闭阻塞 44.6 秒（每进程退出都付）—— 已修
+- `core/redis_embedded.py::_shutdown_embedded()` 调 `shutdown(save=True)`，服务端**主动断连**，
+  redis-py 把连接错误当「可重试」做指数退避 → **实测阻塞 44.6s**，拖慢所有脚本/CLI
+  （11 脚本回归 9分01秒）。加 `Retry(NoBackoff(), 0)` 后 **0.2s**，回归降到 **3分04秒**。
+- **这是同一模式的漏网点**：`redis_pool.py` 已修，`redis_embedded.py` 漏了。
+  **见到 redis-py 客户端就要问一句：这里失败会不会被当"可重试"而退避重试？**
+- `RedisPool._connect()` 的 ping **保留**重试（哨兵场景刻意设计），未改。
+
+## 十二.3【待办·需用户决定】`JWT_SECRET_KEY` 两份配置取值不同
+`.env=frau****24` / `key.env=frau****od` → 换部署方式会让**所有已签发 token 失效**（用户被登出）。
+密钥类操作，未动。`python backend/check_config.py` 会报 ERROR，统一后应变绿。
+
+## 十二.4【新能力】演示数据一键复位
+`POST /api/system/demo-reset`（admin + `confirm:"RESET"`）→ 管理页「演示数据」页签。
+实现＝subprocess 重跑 `seed_empty_tables.py --force` + `fix_seed_consistency.py`
+（子进程隔离：种子在模块级 `random.seed()`，同进程二次调用不可复现；且避免跨进程读到旧快照）。
+护栏 `_verify_demo_reset.py`（18 项，含幂等）。
+
+## 十二.5【已修】401 刷新链路静默失效
+原先**两个 401 拦截器**，第一个直接 `logout()` 并清空 `refreshToken`，导致后一个带 refresh 的
+拦截器**永远拿不到 token** —— 自动续期从未生效。已统一：先静默 refresh 重试，失败才登出，
+并发 401 共用 refreshPromise。后端 `/api/auth/refresh` 契约已核对一致。
+
 
 ## 十三、其他待修（2026-09-20 新测）
 - **2 处原始 JSON 弹窗未改**：`WorkbenchView.vue:905`（研判任务）、`:1274`（审批流）——同一模式**已复发 4 次**。

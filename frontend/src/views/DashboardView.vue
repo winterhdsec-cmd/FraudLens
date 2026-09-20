@@ -33,7 +33,7 @@
             </div>
           </div>
 
-          <div class="stats-overview">
+          <div class="stats-overview" v-loading="dashboardLoading" element-loading-text="正在加载看板数据…">
             <div class="stat-card stat-danger">
               <div class="stat-icon-wrapper danger">
                 <el-icon class="stat-icon"><Files /></el-icon>
@@ -88,7 +88,7 @@
             </div>
           </div>
 
-          <div class="overview-charts">
+          <div class="overview-charts" v-loading="dashboardLoading" element-loading-text="正在加载图表…">
             <div class="chart-card">
               <div class="chart-header">
                 <span class="chart-title">风险等级分布</span>
@@ -103,7 +103,7 @@
             </div>
           </div>
 
-          <div class="overview-charts">
+          <div class="overview-charts" v-loading="dashboardLoading" element-loading-text="正在加载图表…">
             <div class="chart-card">
               <div class="chart-header">
                 <span class="chart-title">诈骗类型排行</span>
@@ -118,7 +118,7 @@
             </div>
           </div>
 
-          <div class="overview-charts" v-show="gangRadarData.length">
+          <div class="overview-charts" v-show="gangRadarData.length" v-loading="dashboardLoading" element-loading-text="正在加载图表…">
             <div class="chart-card chart-card-wide">
               <div class="chart-header">
                 <span class="chart-title">团伙能力画像</span>

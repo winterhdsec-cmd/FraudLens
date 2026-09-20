@@ -6,8 +6,8 @@
               <p class="section-desc">前科人员 / 高危人员管理，研判时自动碰撞比对</p>
             </div>
             <div class="header-actions">
-              <el-input v-model="personSearch" placeholder="姓名/电话/身份证" style="width:200px" size="small" clearable @clear="loadKeyPersons" @keyup.enter="loadKeyPersons" />
-              <el-select v-model="personTypeFilter" placeholder="人员类型" size="small" style="width:120px" @change="loadKeyPersons">
+              <el-input v-model="personSearch" placeholder="姓名/电话/身份证" style="width:200px" size="small" clearable @clear="reloadPersons" @keyup.enter="reloadPersons" />
+              <el-select v-model="personTypeFilter" placeholder="人员类型" size="small" style="width:120px" @change="reloadPersons">
                 <el-option label="全部" value="" />
                 <el-option label="前科人员" value="前科人员" />
                 <el-option label="高危人员" value="高危人员" />
@@ -16,7 +16,7 @@
               <el-button type="primary" size="small" @click="showCreatePerson = true">新增人员</el-button>
             </div>
           </div>
-          <div class="persons-container">
+          <div class="persons-container" v-loading="personsLoading" element-loading-text="正在加载人员数据…">
             <el-table :data="keyPersons" stripe size="small" max-height="500">
               <el-table-column prop="name" label="姓名" width="100" />
               <el-table-column prop="id_number" label="身份证号" width="180" />
@@ -36,7 +36,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <div v-if="!keyPersons.length && !personSearch" class="empty-state">
+          <div v-if="!keyPersons.length && !personSearch && !personsLoading" class="empty-state">
             <div class="empty-content">
               <div class="empty-icon"><el-icon><User /></el-icon></div>
               <h3 class="empty-title">暂无重点人员</h3>
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
@@ -55,5 +55,16 @@ const {
   deleteKeyPerson
 } = state
 
-onMounted(() => loadKeyPersons())
+// 人员列表加载态：数据未回来时给遮罩，避免空白页让人以为界面坏了
+const personsLoading = ref(false)
+async function reloadPersons() {
+  personsLoading.value = true
+  try {
+    await loadKeyPersons()
+  } finally {
+    personsLoading.value = false
+  }
+}
+
+onMounted(() => reloadPersons())
 </script>

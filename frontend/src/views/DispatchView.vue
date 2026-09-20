@@ -6,7 +6,7 @@
               <p class="section-desc">预警生成 → 派单到辖区 → 签收 → 处置反馈</p>
             </div>
             <div class="header-actions">
-              <el-select v-model="dispatchStatusFilter" placeholder="按状态" size="small" style="width:120px" @change="loadDispatchOrders">
+              <el-select v-model="dispatchStatusFilter" placeholder="按状态" size="small" style="width:120px" @change="reloadDispatch">
                 <el-option label="全部" value="" />
                 <el-option label="待签收" value="pending" />
                 <el-option label="已签收" value="signed" />
@@ -15,7 +15,7 @@
               <el-button type="primary" size="small" @click="showCreateDispatch = true">新建派单</el-button>
             </div>
           </div>
-          <div class="dispatch-list">
+          <div class="dispatch-list" v-loading="dispatchLoading" element-loading-text="正在加载派单记录…">
             <el-table :data="dispatchOrders" stripe size="small" max-height="500">
               <el-table-column prop="alert_id" label="预警编号" width="120" />
               <el-table-column prop="assigned_dept" label="派往单位" width="150" />
@@ -40,7 +40,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <div v-if="!dispatchOrders.length && !dispatchStatusFilter" class="empty-state">
+          <div v-if="!dispatchOrders.length && !dispatchStatusFilter && !dispatchLoading" class="empty-state">
             <div class="empty-content">
               <div class="empty-icon"><el-icon><Files /></el-icon></div>
               <h3 class="empty-title">暂无派单记录</h3>
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
 const state = useAppState()
 const {
@@ -75,7 +75,18 @@ const {
   signDispatch, showCompleteDispatch, showFeedbackDialog, feedbackForm, submitFeedback
 } = state
 
-onMounted(() => loadDispatchOrders())
+// 派单列表加载态：数据未回来时给遮罩，避免用户看到空白以为页面坏了
+const dispatchLoading = ref(false)
+async function reloadDispatch() {
+  dispatchLoading.value = true
+  try {
+    await loadDispatchOrders()
+  } finally {
+    dispatchLoading.value = false
+  }
+}
+
+onMounted(() => reloadDispatch())
 </script>
 
 <style scoped>

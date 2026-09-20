@@ -307,6 +307,7 @@ def audit_demo_text():
                     v12.append((order_id, nm))
     for tbl, col, key in [("review_opinions", "comment", "id"),
                           ("freeze_approvals", "comment", "id"),
+                          ("approval_nodes", "comment", "id"),
                           ("merge_suggestions", "reason", "id")]:
         for row in db.session.execute(T(
             f"SELECT {key}, {col} FROM {tbl} WHERE {col} LIKE '%测试%' OR {col} LIKE '%E2E%'"
@@ -365,6 +366,24 @@ def fix_demo_text(dry_run):
                 "UPDATE freeze_orders SET reason=:r, target_accounts=:a WHERE id=:i"
             ), {"r": new_reason, "a": json.dumps(new_accs, ensure_ascii=False), "i": rid})
             print(f"    {order_id}: 已替换演示文案")
+            changed += 1
+
+    # V13：审批链节点 / 冻结审批 / 复核意见的批语里带"测试/E2E"字样
+    # （界面上会直接显示在"批语"列，答辩观感差）
+    demo_comments = {
+        "approval_nodes": "情况属实，同意按程序办理。",
+        "freeze_approvals": "涉案资金流向清晰，同意冻结。",
+        "review_opinions": "已核对证据链，结论维持原研判。",
+    }
+    for tbl, cmt in demo_comments.items():
+        rows = db.session.execute(T(
+            f"SELECT id, comment FROM {tbl} "
+            "WHERE comment LIKE '%测试%' OR comment LIKE '%E2E%' OR comment LIKE '%e2e%'"
+        )).fetchall()
+        for rid, old_c in rows:
+            db.session.execute(T(f"UPDATE {tbl} SET comment=:c WHERE id=:i"),
+                               {"c": cmt, "i": rid})
+            print(f"    {tbl}#{rid}: 批语 {str(old_c)[:24]!r} → 已替换")
             changed += 1
 
     db.session.commit()

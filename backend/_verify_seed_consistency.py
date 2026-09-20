@@ -205,6 +205,17 @@ for order_id, accounts in db.session.execute(T(
                 v19.append((order_id, nm))
 check("I19 账户户名不含「测试」字样", v19, str(v19[:3]))
 
+# I20：审批链节点批语 / 冻结审批批语 / 复核意见批语里的测试残留
+# （这些会直接显示在界面的"批语"列，答辩时一眼可见）
+v20 = []
+for tbl in ("approval_nodes", "freeze_approvals", "review_opinions"):
+    for row in db.session.execute(T(
+        f"SELECT id, comment FROM {tbl} "
+        "WHERE comment LIKE '%测试%' OR comment LIKE '%E2E%' OR comment LIKE '%e2e%'"
+    )).fetchall():
+        v20.append((tbl, row[0], str(row[1])[:40]))
+check("I20 审批/复核批语不含「测试/E2E」字样", v20, str(v20[:3]))
+
 # ────────────────────────── 汇总 ──────────────────────────
 print("\n" + "=" * 74)
 print(f"结果：{len(PASS)} 通过 / {len(FAIL)} 失败")

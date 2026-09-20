@@ -300,6 +300,137 @@
     </div>
 
     <!-- 冻结工单详情：基本信息 + 审批链 + 执行回执 -->
+    <!-- 研判任务详情：状态 + 模型信息 + 研判输出 + 输入快照 -->
+    <el-dialog v-model="showInvDetail"
+               :title="`研判任务详情 · ${invDetail.task?.task_id || ''}`" width="780px" top="7vh">
+      <div v-loading="invDetailLoading">
+        <template v-if="invDetail.task">
+          <div class="fd-status-bar">
+            <el-tag :type="invStatusType(invDetail.task.status)" size="large">
+              {{ invStatusLabel(invDetail.task.status) }}
+            </el-tag>
+            <span v-if="invDetail.task.confidence != null" class="fd-amount">
+              置信度 {{ (invDetail.task.confidence * 100).toFixed(1) }}%
+            </span>
+            <span class="fd-dept">{{ invDetail.task.gate_decision || '—' }}</span>
+          </div>
+
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="案件编号">{{ invDetail.task.case_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="关联团伙">{{ invDetail.task.gang_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="操作人">{{ invDetail.task.operator_name || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="部门">{{ invDetail.task.department || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatTime(invDetail.task.created_at) }}</el-descriptions-item>
+            <el-descriptions-item label="完成时间">{{ formatTime(invDetail.task.completed_at) }}</el-descriptions-item>
+            <el-descriptions-item label="处理耗时">
+              {{ invDetail.task.processing_time != null ? Number(invDetail.task.processing_time).toFixed(2) + ' 秒' : '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="质量分">
+              {{ invDetail.task.quality_score != null ? Number(invDetail.task.quality_score).toFixed(3) : '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="模型版本">{{ invDetail.task.model_version || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="随机种子">{{ invDetail.task.random_seed ?? '—' }}</el-descriptions-item>
+            <el-descriptions-item label="图神经网络">
+              <el-tag size="small" :type="invDetail.task.use_gnn ? 'success' : 'info'">
+                {{ invDetail.task.use_gnn ? '启用' : '未启用' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="大模型">
+              <el-tag size="small" :type="invDetail.task.use_llm ? 'success' : 'info'">
+                {{ invDetail.task.use_llm ? '启用' : '未启用' }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-alert v-if="invDetail.task.error_message" type="error" :closable="false"
+                    :title="'执行错误：' + invDetail.task.error_message" style="margin-top:12px" />
+
+          <h4 class="rd-title">研判输出</h4>
+          <pre class="rd-snapshot">{{ prettyJson(invDetail.task.output_result) }}</pre>
+
+          <el-collapse style="margin-top:12px">
+            <el-collapse-item title="输入快照（提交研判时的原始输入）">
+              <pre class="rd-snapshot">{{ prettyJson(invDetail.task.input_snapshot, 1200) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="showInvDetail = false">关闭</el-button>
+        <el-button type="primary" @click="downloadReport(invDetail.task?.task_id)">
+          <el-icon><Download /></el-icon> 下载研判报告
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 审批流详情：审批链 + 表决记录 -->
+    <el-dialog v-model="showApprovalDetail"
+               :title="`审批流详情 · ${approvalDetail.flow?.flow_id || ''}`" width="780px" top="7vh">
+      <div v-loading="approvalDetailLoading">
+        <template v-if="approvalDetail.flow">
+          <div class="fd-status-bar">
+            <el-tag :type="approvalStatusType(approvalDetail.flow.status)" size="large">
+              {{ approvalStatusLabel(approvalDetail.flow.status) }}
+            </el-tag>
+            <span class="fd-amount">{{ businessTypeLabel(approvalDetail.flow.business_type) }}</span>
+            <span class="fd-dept">
+              当前层级 {{ approvalDetail.flow.current_level ?? '—' }} / {{ (approvalDetail.flow.approval_chain || []).length }}
+            </span>
+          </div>
+
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="业务编号">{{ approvalDetail.flow.business_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ approvalDetail.flow.applicant_name || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="申请部门">{{ approvalDetail.flow.department || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="发起时间">{{ formatTime(approvalDetail.flow.created_at) }}</el-descriptions-item>
+            <el-descriptions-item label="完成时间">{{ formatTime(approvalDetail.flow.completed_at) }}</el-descriptions-item>
+            <el-descriptions-item label="状态">{{ approvalStatusLabel(approvalDetail.flow.status) }}</el-descriptions-item>
+            <el-descriptions-item label="摘要" :span="2">{{ approvalDetail.flow.summary || '—' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <h4 class="rd-title">
+            审批链
+            <span class="rd-count">{{ (approvalDetail.flow.approval_chain || []).length }} 级</span>
+          </h4>
+          <div v-if="(approvalDetail.flow.approval_chain || []).length" class="fd-chain">
+            <div v-for="n in approvalDetail.flow.approval_chain" :key="n.level"
+                 class="fd-node" :class="{ done: approvalDetail.flow.status === 'approved' }">
+              <span class="fd-node-lv">{{ n.level }}</span>
+              <span class="fd-node-role">{{ n.role }}</span>
+              <span class="fd-node-user">{{ n.user_name }}</span>
+            </div>
+          </div>
+          <el-empty v-else description="无审批链信息" :image-size="56" />
+
+          <h4 class="rd-title">
+            表决记录
+            <span class="rd-count">{{ (approvalDetail.nodes || []).length }} 条</span>
+          </h4>
+          <el-table v-if="(approvalDetail.nodes || []).length" :data="approvalDetail.nodes"
+                    size="small" border>
+            <el-table-column prop="level" label="层级" width="60" align="center" />
+            <el-table-column prop="approver_role" label="角色" width="130" />
+            <el-table-column prop="approver_name" label="审批人" width="110">
+              <template #default="{ row }">{{ row.approver_name || '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="decision" label="结论" width="100">
+              <template #default="{ row }">
+                {{ row.decision === 'approved' ? '同意' : row.decision === 'rejected' ? '驳回' : (row.decision || '—') }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="comment" label="批语" min-width="180" show-overflow-tooltip />
+            <el-table-column label="时间" width="140">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-else description="尚无表决记录" :image-size="56" />
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="showApprovalDetail = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="showFreezeDetail" :title="`冻结工单详情 · ${freezeDetail.order?.order_id || ''}`" width="860px" top="6vh">
       <div v-loading="freezeDetailLoading">
         <template v-if="freezeDetail.order">
@@ -598,6 +729,7 @@ import {
   listFreezeOrders, createFreezeOrder, submitFreezeOrder, cancelFreezeOrder,
   downloadFreezeDoc,
   listReviews, resolveReview, getReviewTask, assignReview, addReviewOpinion,
+  getInvestigation, getApprovalFlow,
   listPendingApprovals, listApprovals, approveFlow, rejectFlow,
   fetchMergeSuggestions, generateMergeSuggestions, rejectMergeSuggestion, confirmMergeSuggestion,
   fetchFreezeOrderDetail, executeFreezeOrder,
@@ -677,6 +809,16 @@ const reviewDetailLoading = ref(false)
 const reviewDetail = reactive({ review: null })
 const reviewOpinionDraft = ref('')
 const reviewOpinionSaving = ref(false)
+
+// 研判任务详情
+const showInvDetail = ref(false)
+const invDetailLoading = ref(false)
+const invDetail = reactive({ task: null })
+
+// 审批流详情
+const showApprovalDetail = ref(false)
+const approvalDetailLoading = ref(false)
+const approvalDetail = reactive({ flow: null, nodes: [] })
 const reviewForm = reactive({ review_result: '', comment: '', trigger_reanalysis: false })
 const currentReviewId = ref('')
 
@@ -902,7 +1044,39 @@ async function onRunInvestigation() {
 }
 
 function viewInvestigation(row) {
-  ElMessageBox.alert(JSON.stringify(row, null, 2), `研判任务 ${row.task_id}`, { customClass: 'json-dialog' })
+  // 拉完整详情渲染，不再把原始 JSON 弹窗
+  invDetail.task = row
+  showInvDetail.value = true
+  loadInvDetail(row.task_id)
+}
+
+const invStatusLabel = (s) => ({
+  pending: '排队中', processing: '研判中', running: '研判中',
+  completed: '已完成', failed: '失败', cancelled: '已取消',
+}[s] || s || '—')
+
+async function loadInvDetail(taskId) {
+  invDetailLoading.value = true
+  try {
+    const res = await getInvestigation(taskId)
+    const t = res.task || res
+    if (t && t.task_id) invDetail.task = t
+  } catch (e) {
+    ElMessage.error('研判任务详情加载失败：' + (e.message || e))
+  } finally {
+    invDetailLoading.value = false
+  }
+}
+
+/** 任意 JSON 值排版成可读文本（过长截断，避免撑爆对话框） */
+function prettyJson(v, limit = 2000) {
+  if (v == null || (typeof v === 'object' && !Object.keys(v).length)) return '（无）'
+  try {
+    const s = typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+    return s.length > limit ? s.slice(0, limit) + '\n…（内容过长已截断）' : s
+  } catch (e) {
+    return String(v)
+  }
 }
 
 async function downloadReport(taskId) {
@@ -1271,7 +1445,36 @@ async function onConfirmApproval() {
 }
 
 function viewApproval(row) {
-  ElMessageBox.alert(JSON.stringify(row, null, 2), `审批流 ${row.flow_id}`, { customClass: 'json-dialog' })
+  // 拉完整详情渲染（含审批链与表决记录），不再把原始 JSON 弹窗
+  approvalDetail.flow = row
+  approvalDetail.nodes = []
+  showApprovalDetail.value = true
+  loadApprovalDetail(row.flow_id)
+}
+
+const approvalStatusLabel = (s) => ({
+  pending: '待审批', approved: '已通过', rejected: '已驳回',
+  cancelled: '已撤销',
+}[s] || s || '—')
+
+const businessTypeLabel = (t) => ({
+  freeze_order: '止付冻结工单', case_close: '案件结案', cooperation: '协查协作',
+}[t] || t || '—')
+
+async function loadApprovalDetail(flowId) {
+  approvalDetailLoading.value = true
+  try {
+    const res = await getApprovalFlow(flowId)
+    const f = res.flow || res
+    if (f && f.flow_id) {
+      approvalDetail.flow = f
+      approvalDetail.nodes = f.nodes || []
+    }
+  } catch (e) {
+    ElMessage.error('审批流详情加载失败：' + (e.message || e))
+  } finally {
+    approvalDetailLoading.value = false
+  }
 }
 
 // ── 工具函数 ──

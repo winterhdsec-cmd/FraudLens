@@ -32,7 +32,8 @@
             <span class="user-count">共 {{ filteredUsers.length }} 人</span>
           </div>
         </div>
-        <el-table :data="pagedUsers" style="width:100%" stripe>
+        <el-table :data="pagedUsers" style="width:100%" stripe
+                  v-loading="adminLoading" element-loading-text="正在加载用户…">
           <el-table-column prop="id" label="ID" width="60" />
           <el-table-column prop="username" label="用户名" width="140" show-overflow-tooltip />
           <el-table-column prop="display_name" label="姓名" width="120" show-overflow-tooltip />
@@ -133,7 +134,8 @@
       </el-dialog>
 
       <el-tab-pane label="操作日志" name="logs">
-        <el-table :data="logList" style="width:100%" stripe>
+        <el-table :data="logList" style="width:100%" stripe
+                  v-loading="adminLoading" element-loading-text="正在加载日志…">
           <el-table-column prop="id" label="#" width="50" />
           <el-table-column prop="username" label="用户" width="100" />
           <el-table-column prop="action" label="操作" width="120" />
@@ -251,7 +253,15 @@ const roleLabel = (r) => ({ admin: '管理员', analyst: '民警/分析师', pol
 const roleTagType = (r) => (r === 'admin' ? 'danger' : 'info')
 const formatTime = (t) => (t ? String(t).replace('T', ' ').slice(0, 19) : '')
 
+// 表格加载态。用计数器而不是布尔值：onMounted 会同时触发 loadUsers/loadLogs，
+// 布尔值会被先完成的那一个提前置回 false，遮罩闪烁。
+// 状态设在 load 函数内部（try/finally），这样 6 处调用点全都自动带上加载态，
+// 不必逐个改调用方。
+const adminLoadingCount = ref(0)
+const adminLoading = computed(() => adminLoadingCount.value > 0)
+
 async function loadUsers() {
+  adminLoadingCount.value += 1
   try {
     const { default: api } = await import('../api.js')
     const r = await api.get('/api/auth/users')
@@ -263,15 +273,20 @@ async function loadUsers() {
   } catch (e) {
     console.warn('用户列表API不可用:', e)
     adminError.value = '获取用户列表失败: ' + (e.response?.data?.error || e.message || '网络错误')
+  } finally {
+    adminLoadingCount.value -= 1
   }
 }
 
 async function loadLogs() {
+  adminLoadingCount.value += 1
   try {
     const data = await getOperationLogs()
     logList.value = data.logs || []
   } catch (e) {
     console.warn('操作日志API不可用')
+  } finally {
+    adminLoadingCount.value -= 1
   }
 }
 

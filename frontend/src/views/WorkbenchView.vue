@@ -161,10 +161,13 @@
               </el-table-column>
               <el-table-column prop="assigned_to_name" label="复核人" width="120" />
               <el-table-column prop="review_result" label="结论" width="160" />
-              <el-table-column label="操作" width="160">
+              <el-table-column label="操作" width="210">
                 <template #default="{ row }">
                   <el-button link size="small" @click="viewReview(row)">详情</el-button>
-                  <el-button v-if="row.status !== 'resolved'" link size="small" type="primary" @click="onResolveReview(row)">处理</el-button>
+                  <el-button v-if="row.status !== 'resolved' && row.status !== 'rejected'"
+                             link size="small" type="warning" @click="onAssignReview(row)">分派</el-button>
+                  <el-button v-if="row.status !== 'resolved' && row.status !== 'rejected'"
+                             link size="small" type="primary" @click="onResolveReview(row)">处理</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -475,6 +478,89 @@
     </el-dialog>
 
     <!-- 复核处理对话框 -->
+    <!-- 复核任务详情：研判快照 + 分派信息 + 复核意见留痕（append-only） -->
+    <el-dialog v-model="showReviewDetail"
+               :title="`复核详情 · ${reviewDetail.review?.review_id || ''}`" width="760px" top="7vh">
+      <div v-loading="reviewDetailLoading">
+        <template v-if="reviewDetail.review">
+          <div class="rd-status-bar">
+            <el-tag :type="reviewStatusType(reviewDetail.review.status)" size="large">
+              {{ reviewStatusLabel(reviewDetail.review.status) }}
+            </el-tag>
+            <span v-if="reviewDetail.review.confidence != null" class="rd-conf">
+              置信度 {{ (reviewDetail.review.confidence * 100).toFixed(1) }}%
+            </span>
+            <span class="rd-gate">{{ reviewDetail.review.original_gate_decision || '—' }}</span>
+          </div>
+
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="案件编号">{{ reviewDetail.review.case_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="关联团伙">{{ reviewDetail.review.gang_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="复核人">
+              {{ reviewDetail.review.assigned_to_name || '未分派' }}
+              <span v-if="reviewDetail.review.assigned_department" class="rd-sub">
+                （{{ reviewDetail.review.assigned_department }}）
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="分派时间">{{ formatTime(reviewDetail.review.assigned_at) }}</el-descriptions-item>
+            <el-descriptions-item label="复核结论">{{ reviewResultLabel(reviewDetail.review.review_result) }}</el-descriptions-item>
+            <el-descriptions-item label="完成时间">{{ formatTime(reviewDetail.review.resolved_at) }}</el-descriptions-item>
+            <el-descriptions-item label="触发再分析" :span="2">
+              <el-tag size="small" :type="reviewDetail.review.triggered_reanalysis ? 'warning' : 'info'">
+                {{ reviewDetail.review.triggered_reanalysis ? '已触发' : '未触发' }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <h4 class="rd-title">
+            研判快照
+            <span class="rd-count">提交复核时系统的判断依据</span>
+          </h4>
+          <pre class="rd-snapshot">{{ prettySnapshot(reviewDetail.review.review_snapshot) }}</pre>
+
+          <h4 class="rd-title">
+            复核意见留痕
+            <span class="rd-count">{{ (reviewDetail.review.opinions || []).length }} 条 · 追加式不可修改</span>
+          </h4>
+          <el-table v-if="(reviewDetail.review.opinions || []).length"
+                    :data="reviewDetail.review.opinions" size="small" border>
+            <el-table-column label="时间" width="140">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column prop="reviewer_name" label="复核人" width="110" />
+            <el-table-column prop="opinion_type" label="类型" width="150">
+              <template #default="{ row }">{{ reviewResultLabel(row.opinion_type) }}</template>
+            </el-table-column>
+            <el-table-column prop="comment" label="意见" min-width="200" show-overflow-tooltip />
+          </el-table>
+          <el-empty v-else description="尚无复核意见" :image-size="56" />
+
+          <!-- 补充意见：任务未终态时才允许继续追加 -->
+          <template v-if="reviewDetail.review.status !== 'resolved' && reviewDetail.review.status !== 'rejected'">
+            <div class="rd-add">
+              <el-input v-model="reviewOpinionDraft" type="textarea" :rows="2"
+                        placeholder="补充一条复核意见（追加式留痕，不影响已有记录）" />
+              <el-button type="primary" :loading="reviewOpinionSaving"
+                         :disabled="!reviewOpinionDraft.trim()" @click="onAddReviewOpinion">
+                追加意见
+              </el-button>
+            </div>
+          </template>
+          <p v-else class="rd-sub" style="margin-top:10px">
+            该任务已定论，结论与意见均已留痕，不可再修改。
+          </p>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="showReviewDetail = false">关闭</el-button>
+        <el-button v-if="reviewDetail.review && reviewDetail.review.status !== 'resolved'
+                        && reviewDetail.review.status !== 'rejected'"
+                   type="primary" @click="showReviewDetail = false; onResolveReview(reviewDetail.review)">
+          处理（出结论）
+        </el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="showReviewDialog" title="处理复核任务" width="560px">
       <el-form :model="reviewForm" label-width="100px">
         <el-form-item label="结论">
@@ -511,7 +597,7 @@ import {
   listInvestigations, createInvestigation, downloadInvestigationReport,
   listFreezeOrders, createFreezeOrder, submitFreezeOrder, cancelFreezeOrder,
   downloadFreezeDoc,
-  listReviews, resolveReview,
+  listReviews, resolveReview, getReviewTask, assignReview, addReviewOpinion,
   listPendingApprovals, listApprovals, approveFlow, rejectFlow,
   fetchMergeSuggestions, generateMergeSuggestions, rejectMergeSuggestion, confirmMergeSuggestion,
   fetchFreezeOrderDetail, executeFreezeOrder,
@@ -585,6 +671,12 @@ const freezeForm = reactive({
 const reviews = ref([])
 const reviewStatusFilter = ref('')
 const showReviewDialog = ref(false)
+// 复核任务详情（研判快照 / 分派信息 / 意见留痕）
+const showReviewDetail = ref(false)
+const reviewDetailLoading = ref(false)
+const reviewDetail = reactive({ review: null })
+const reviewOpinionDraft = ref('')
+const reviewOpinionSaving = ref(false)
 const reviewForm = reactive({ review_result: '', comment: '', trigger_reanalysis: false })
 const currentReviewId = ref('')
 
@@ -1032,7 +1124,102 @@ async function onConfirmReview() {
 }
 
 function viewReview(row) {
-  ElMessageBox.alert(JSON.stringify(row, null, 2), `复核 ${row.review_id}`, { customClass: 'json-dialog' })
+  // 拉取完整详情渲染（研判快照 / 分派信息 / 意见留痕），而非把原始 JSON 直接弹窗
+  reviewDetail.review = row
+  showReviewDetail.value = true
+  reviewOpinionDraft.value = ''
+  loadReviewDetail(row.review_id)
+}
+
+const reviewStatusLabel = (s) => ({
+  pending: '待分派', assigned: '已分派', in_review: '复核中',
+  resolved: '已完成', rejected: '已驳回',
+}[s] || s || '—')
+
+const reviewResultLabel = (r) => ({
+  confirmed_merge: '确认合并', split_gang: '拆分团伙', corrected_type: '修正诈骗类型',
+  supplemented_entity: '补充实体', false_positive: '标记误报', confirm: '确认', comment: '意见',
+}[r] || r || '—')
+
+/** 研判快照可能是任意 JSON，尽量排版得能看（过长则截断，避免撑爆对话框） */
+function prettySnapshot(snap) {
+  if (snap == null || (typeof snap === 'object' && !Object.keys(snap).length)) return '（无快照内容）'
+  try {
+    const s = JSON.stringify(snap, null, 2)
+    return s.length > 1600 ? s.slice(0, 1600) + '\n…（内容过长已截断）' : s
+  } catch (e) {
+    return String(snap)
+  }
+}
+
+async function loadReviewDetail(reviewId) {
+  reviewDetailLoading.value = true
+  try {
+    const res = await getReviewTask(reviewId)
+    const r = res.review || res
+    if (r && r.review_id) reviewDetail.review = r
+    else ElMessage.error(res.error || '复核详情加载失败')
+  } catch (e) {
+    ElMessage.error('复核详情加载失败：' + (e.message || e))
+  } finally {
+    reviewDetailLoading.value = false
+  }
+}
+
+async function onAssignReview(row) {
+  let who
+  try {
+    const r = await ElMessageBox.prompt('复核人姓名', '分派复核任务', {
+      inputPlaceholder: '如：张三',
+      inputValidator: (v) => (v && v.trim() ? true : '请填写复核人姓名'),
+    })
+    who = r.value.trim()
+  } catch (e) {
+    return // 用户取消
+  }
+  try {
+    const res = await assignReview(row.review_id, {
+      assigned_to_name: who,
+      assigned_department: row.assigned_department || '',
+    })
+    if (res.success) {
+      ElMessage.success(`已分派给 ${who}`)
+      await loadReviews()
+      if (showReviewDetail.value && reviewDetail.review?.review_id === row.review_id) {
+        await loadReviewDetail(row.review_id)
+      }
+    } else {
+      ElMessage.error(res.error || '分派失败')
+    }
+  } catch (e) {
+    const msg = e?.response?.data?.detail || e?.response?.data?.error || e.message || e
+    ElMessage.error('分派失败：' + msg)
+  }
+}
+
+async function onAddReviewOpinion() {
+  const text = reviewOpinionDraft.value.trim()
+  if (!text) return
+  reviewOpinionSaving.value = true
+  try {
+    const res = await addReviewOpinion(reviewDetail.review.review_id, {
+      opinion_type: 'comment',
+      comment: text,
+    })
+    if (res.success) {
+      ElMessage.success('意见已追加')
+      reviewOpinionDraft.value = ''
+      await loadReviewDetail(reviewDetail.review.review_id)
+      await loadReviews()
+    } else {
+      ElMessage.error(res.error || '追加意见失败')
+    }
+  } catch (e) {
+    const msg = e?.response?.data?.detail || e?.response?.data?.error || e.message || e
+    ElMessage.error('追加意见失败：' + msg)
+  } finally {
+    reviewOpinionSaving.value = false
+  }
 }
 
 async function loadPendingApprovals() {
@@ -1642,5 +1829,77 @@ function trySelectCase(cid) {
 .fd-node-user {
   color: inherit;
   opacity: 0.75;
+}
+
+/* ── 复核任务详情 ── */
+.rd-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.rd-conf {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffc53d;
+  font-variant-numeric: tabular-nums;
+}
+
+.rd-gate {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rd-title {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rd-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.rd-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rd-snapshot {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rd-add {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+
+.rd-add .el-textarea {
+  flex: 1;
 }
 </style>

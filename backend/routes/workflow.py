@@ -191,6 +191,18 @@ def _check_rbac(current_user: Dict[str, Any], item_department: str) -> bool:
     return (item_department or '') in ('', user_dept)
 
 
+# ── HITL 复核任务：终态与中文名 ──
+# resolved/rejected 为终态，一旦到达即不可再分派或再次定论，
+# 否则复核结论会被静默覆盖，留痕失效。
+REVIEW_TERMINAL_STATUS = ('resolved', 'rejected')
+_REVIEW_STATUS_CN = {'pending': '待复核', 'assigned': '已分派', 'in_review': '复核中',
+                     'resolved': '完成复核', 'rejected': '已驳回'}
+
+
+def _review_status_cn(status: str) -> str:
+    return _REVIEW_STATUS_CN.get(status, status or '')
+
+
 def _content_disposition(filename: str) -> str:
     """构造支持中文文件名的 Content-Disposition（RFC 5987）。
 
@@ -1007,11 +1019,20 @@ async def api_assign_review(review_id: str, request: Request,
     """分派复核任务。
 
     Body: {assigned_to_id?, assigned_to_name?, assigned_department?}
+
+    状态门控：已定论（resolved/rejected）的复核任务不可再分派。
+    原先无此限制，导致已完成的复核能被重新指派回 assigned，
+    而 review_result 仍留在记录里 —— 出现「已分派却已有结论」的自相矛盾状态。
     """
     try:
         task = db.session.query(ReviewTask).filter_by(review_id=review_id).first()
         if not task:
             return JSONResponse(status_code=404, content={"success": False, "error": "复核任务不存在"})
+        if task.status in REVIEW_TERMINAL_STATUS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"复核任务已{_review_status_cn(task.status)}，不可重新分派"
+                       f"（如需重启流程请新建复核任务，保留原结论留痕）")
         body = await request.json()
         task.assigned_to_id = body.get('assigned_to_id')
         task.assigned_to_name = body.get('assigned_to_name', '')
@@ -1025,6 +1046,8 @@ async def api_assign_review(review_id: str, request: Request,
                       'assign_review', 'review', review_id,
                       {'assigned_to': task.assigned_to_name}, ip_address=ip)
         return {"success": True, "review": task.to_dict()}
+    except HTTPException:
+        raise
     except Exception as e:
         db.session.rollback()
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
@@ -1080,6 +1103,13 @@ async def api_resolve_review(review_id: str, request: Request,
         task = db.session.query(ReviewTask).filter_by(review_id=review_id).first()
         if not task:
             return JSONResponse(status_code=404, content={"success": False, "error": "复核任务不存在"})
+        # 状态门控：已定论不可再次定论。原先可反复 resolve，**后一次结论会静默覆盖
+        # 前一次**（review_result 被改写），复核留痕等于失效。
+        if task.status in REVIEW_TERMINAL_STATUS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"复核任务已{_review_status_cn(task.status)}，不可重复定论"
+                       f"（原结论：{task.review_result or '—'}）")
         body = await request.json()
         review_result = body.get('review_result', '')
         if not review_result:

@@ -175,6 +175,36 @@ check("I15 failed 工单不得存在 success/pending 回执", v15)
 check("I16 executed 工单不得存在非 success 回执", v16)
 check("I17 有回执则须有 executed_at，且不得早于 approved_at", v17)
 
+# ────────────────────── 演示文案不得含测试残留措辞 ──────────────────────
+# 测试脚本曾把数据直接写进演示库，点开工单详情就看到"E2E 测试：…"，
+# 答辩演示时很不专业。此处长期守护。
+print("\n[演示文案]")
+v18 = db.session.execute(T(
+    "SELECT order_id, reason FROM freeze_orders "
+    "WHERE reason LIKE '%测试%' OR reason LIKE '%E2E%' OR reason LIKE '%e2e%'"
+)).fetchall()
+check("I18 工单事由不含「测试/E2E」字样", v18, f"违规 {len(v18)} 条")
+
+v19 = []
+for order_id, accounts in db.session.execute(T(
+    "SELECT order_id, target_accounts FROM freeze_orders"
+)).fetchall():
+    accs = accounts
+    if isinstance(accs, str) and accs.strip().startswith("["):
+        try:
+            import json as _json
+            accs = _json.loads(accs)
+        except Exception:
+            accs = []
+    if not isinstance(accs, list):
+        accs = []
+    for a in accs:
+        if isinstance(a, dict):
+            nm = str(a.get("account_name") or "")
+            if "测试" in nm or "E2E" in nm:
+                v19.append((order_id, nm))
+check("I19 账户户名不含「测试」字样", v19, str(v19[:3]))
+
 # ────────────────────────── 汇总 ──────────────────────────
 print("\n" + "=" * 74)
 print(f"结果：{len(PASS)} 通过 / {len(FAIL)} 失败")

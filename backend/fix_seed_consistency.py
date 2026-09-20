@@ -19,6 +19,7 @@
     python fix_seed_consistency.py             # 执行修复
 """
 import argparse
+import json
 import os
 import random
 import sys
@@ -267,6 +268,110 @@ def fix_orders(dry_run):
     return changed
 
 
+def _as_list(raw):
+    """把 JSON 列值归一化成 list。
+
+    注意：用 `db.session.execute(text(...))` 读 MySQL JSON 列时，SQLAlchemy
+    不会套用列类型，pymysql 直接返回**字符串**。若直接 `isinstance(x, list)`
+    判断会永远为 False → 静默漏检（本次 V12 就因此漏了 3 条）。
+    """
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str) and raw.strip().startswith("["):
+        try:
+            v = json.loads(raw)
+            return v if isinstance(v, list) else []
+        except Exception:
+            return []
+    return []
+
+
+def audit_demo_text():
+    """演示库中的「测试残留措辞」审计。
+
+    V11 冻结工单 reason 含「测试」/「E2E」——测试脚本曾把数据直接写进演示库，
+        点开工单详情就会看到"E2E 测试：…"，答辩演示时很不专业。
+    V12 冻结工单 target_accounts 的 account_name 含「测试」。
+    V13 审批/复核批语含「测试」/「E2E」。
+    """
+    v11, v12, v13 = [], [], []
+    for order_id, reason, accounts in db.session.execute(T(
+        "SELECT order_id, reason, target_accounts FROM freeze_orders"
+    )).fetchall():
+        if reason and ("测试" in reason or "E2E" in reason or "e2e" in reason):
+            v11.append((order_id, reason))
+        for a in _as_list(accounts):
+            if isinstance(a, dict):
+                nm = str(a.get("account_name") or "")
+                if "测试" in nm or "E2E" in nm:
+                    v12.append((order_id, nm))
+    for tbl, col, key in [("review_opinions", "comment", "id"),
+                          ("freeze_approvals", "comment", "id"),
+                          ("merge_suggestions", "reason", "id")]:
+        for row in db.session.execute(T(
+            f"SELECT {key}, {col} FROM {tbl} WHERE {col} LIKE '%测试%' OR {col} LIKE '%E2E%'"
+        )).fetchall():
+            v13.append((tbl, row[0], str(row[1])[:60]))
+    return {"v11": v11, "v12": v12, "v13": v13}
+
+
+# 演示级替换词：脱敏人名（与 seed 规范一致：姓 + * + 名末字）
+_DEMO_HOLDERS = ["张*明", "李*华", "王*强", "刘*军", "陈*芳"]
+_DEMO_REASONS = [
+    "涉案资金仍在快速流转，为防止被害人资金被进一步转移，申请紧急冻结。",
+    "受害人资金已转入该账户，账户资金尚未转出，具备紧急止付条件。",
+    "该账户与多起同类型诈骗案件存在资金往来，申请冻结以固定证据。",
+]
+
+
+def fix_demo_text(dry_run):
+    a = audit_demo_text()
+    print(f"\n[演示文案] 测试残留措辞")
+    print(f"  V11 工单事由含测试字样 : {len(a['v11'])} 条")
+    for oid, r in a["v11"]:
+        print(f"        {oid}: {r}")
+    print(f"  V12 账户户名含测试字样 : {len(a['v12'])} 条 {[x[1] for x in a['v12']]}")
+    print(f"  V13 批语含测试字样     : {len(a['v13'])} 条 {a['v13']}")
+
+    if dry_run:
+        print("  （dry-run，未修改）")
+        return 0
+
+    changed = 0
+    # V11：换成专业化事由（按 id 顺序轮换，保持三条不完全相同）
+    rows = db.session.execute(T(
+        "SELECT id, order_id, reason, target_accounts FROM freeze_orders ORDER BY id"
+    )).fetchall()
+    for idx, (rid, order_id, reason, accounts) in enumerate(rows):
+        new_reason = reason
+        if reason and ("测试" in reason or "E2E" in reason or "e2e" in reason):
+            new_reason = _DEMO_REASONS[idx % len(_DEMO_REASONS)]
+
+        # V12：户名换成脱敏人名
+        accs = _as_list(accounts)
+        new_accs = []
+        touched = False
+        for i, x in enumerate(accs):
+            if isinstance(x, dict):
+                nm = str(x.get("account_name") or "")
+                if "测试" in nm or "E2E" in nm:
+                    x = dict(x)
+                    x["account_name"] = _DEMO_HOLDERS[(idx + i) % len(_DEMO_HOLDERS)]
+                    touched = True
+            new_accs.append(x)
+
+        if new_reason != reason or touched:
+            db.session.execute(T(
+                "UPDATE freeze_orders SET reason=:r, target_accounts=:a WHERE id=:i"
+            ), {"r": new_reason, "a": json.dumps(new_accs, ensure_ascii=False), "i": rid})
+            print(f"    {order_id}: 已替换演示文案")
+            changed += 1
+
+    db.session.commit()
+    print(f"  → 已修正 {changed} 条")
+    return changed
+
+
 def main():
     ap = argparse.ArgumentParser(description="修复种子数据逻辑一致性缺陷")
     ap.add_argument("--dry-run", action="store_true", help="只报告，不修改")
@@ -285,24 +390,29 @@ def main():
     n1 = fix_merges(args.dry_run)
     n2 = fix_approvals(args.dry_run)
     n3 = fix_orders(args.dry_run)
+    n4 = fix_demo_text(args.dry_run)
 
     print("\n" + "=" * 60)
     if args.dry_run:
         print("审计完成。去掉 --dry-run 即可执行修复。")
         return 0
 
-    print(f"修复完成：merge_suggestions {n1} 处、freeze_approvals {n2} 处、freeze_orders {n3} 处")
+    print(f"修复完成：merge_suggestions {n1} 处、freeze_approvals {n2} 处、"
+          f"freeze_orders {n3} 处、演示文案 {n4} 处")
     print("\n复检：")
     a1 = audit_merges()
     a2 = audit_approvals()
     a3 = audit_orders()
+    a4 = audit_demo_text()
     bad1 = len(a1["v1"]) + len(a1["v2"]) + len(a1["v3"]) + len(a1["v4"])
     bad2 = len(a2["v5"]) + len(a2["v6"]) + len(a2["v7"])
     bad3 = len(a3["v8"]) + len(a3["v9"]) + len(a3["v10"])
+    bad4 = len(a4["v11"]) + len(a4["v12"]) + len(a4["v13"])
     print(f"  merge_suggestions 残留违规：{bad1}")
     print(f"  freeze_approvals  残留违规：{bad2}")
     print(f"  freeze_orders     残留违规：{bad3}")
-    total_bad = bad1 + bad2 + bad3
+    print(f"  演示文案          残留违规：{bad4}")
+    total_bad = bad1 + bad2 + bad3 + bad4
     print("  " + ("全部干净 ✓" if total_bad == 0 else f"仍有 {total_bad} 项违规，请检查 ✗"))
     return 0 if total_bad == 0 else 1
 

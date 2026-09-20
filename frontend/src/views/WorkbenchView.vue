@@ -524,7 +524,30 @@ const router = useRouter()
 
 // ── 案件选择 ──
 const selectedCaseId = ref('')
-const caseList = computed(() => appState.cases || [])
+/**
+ * 从 appState 安全取出数组型状态。
+ *
+ * ⚠️ 这里曾是一个**渲染期崩溃**的根因：`useFraudLens()` 返回的是**普通对象**
+ * （内部字段是 ref），未经 `reactive()` 包裹，因此 `appState.cases` 拿到的是
+ * **Ref 本身而不是数组**。原代码写 `computed(() => appState.cases || [])`
+ * 漏了 `.value`，于是 `caseList.value.find(...)` 抛
+ * "caseList.value.find is not a function"。
+ *
+ * 该异常发生在 `caseInfo` 求值时，而 `caseInfo` 只在「已选中案件」的 v-else
+ * 分支里被渲染 —— 所以**只有带 `?case_id=` 进入工作台才会崩**（例如从案件详情页
+ * 点「进入工作台」），不带参数进入则完全正常，极难复现。
+ *
+ * 其他视图的既定写法是 `cases.value`（如 CapitalFlowView）。此处兼容两种形态，
+ * 既修掉当前缺陷，也不会在将来 appState 改为 reactive 后再次踩坑。
+ */
+function asArray(maybeRef) {
+  const v = (maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef)
+    ? maybeRef.value
+    : maybeRef
+  return Array.isArray(v) ? v : []
+}
+
+const caseList = computed(() => asArray(appState.cases))
 const caseInfo = computed(() => caseList.value.find(c => c.case_id === selectedCaseId.value) || null)
 
 // ── 生命周期 ──

@@ -69,6 +69,26 @@ def _resp2_kw() -> Dict[str, Any]:
 _RESP2_KW: Optional[Dict[str, Any]] = None
 
 
+# ── 密码探测结果缓存（2026-09-20 性能修复） ──
+# 背景：`.env` 配了 REDIS_PASSWORD 而内置 Redis 未启用鉴权时，`get_redis_client()`
+# 里那次探测 ping 会抛 AuthenticationError；redis-py 把它**当作连接错误并按退避重试**，
+# 实测单次 **10–14 秒**才返回（`socket_timeout` 只约束单次 IO，管不到重试次数）。
+# 原来每次调用都探一遍 → 所有 Redis 调用（含 /api/metrics/prometheus）被拖慢十倍以上。
+# 两道修法：① 探测客户端禁用重试；② 结果进程级缓存，只探一次。
+# key = (host, port, db) → True 表示"已确认服务端无鉴权"
+_PASSWORD_PROBE_RESULT: Dict[Tuple[str, int, int], bool] = {}
+
+
+def _probe_no_retry_kwargs() -> Dict[str, Any]:
+    """给"探测用"客户端禁用重试：错就是错，立刻返回，不要退避重试。"""
+    try:
+        from redis.backoff import NoBackoff
+        from redis.retry import Retry
+        return {"retry": Retry(NoBackoff(), 0)}
+    except Exception:
+        return {}
+
+
 def get_redis_client(
     decode_responses: bool = True,
     socket_timeout: float = 2.0,
@@ -117,40 +137,50 @@ def get_redis_client(
     if embedded and not (settings.REDIS_SENTINEL_HOSTS or ""):
         socket_connect_timeout = 0.5
         socket_timeout = min(socket_timeout, 1.0)
-    client = redis.Redis(
-        host=settings.REDIS_HOST,
-        port=settings.REDIS_PORT,
-        db=settings.REDIS_DB,
-        password=settings.REDIS_PASSWORD or None,
-        socket_timeout=socket_timeout,
-        socket_connect_timeout=socket_connect_timeout,
-        decode_responses=decode_responses,
-        **_resp2_kw(),
-    )
+
+    probe_key = (settings.REDIS_HOST, settings.REDIS_PORT, settings.REDIS_DB)
+
+    def _build(pwd, extra: Optional[Dict[str, Any]] = None):
+        return redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=settings.REDIS_DB,
+            password=pwd,
+            socket_timeout=socket_timeout,
+            socket_connect_timeout=socket_connect_timeout,
+            decode_responses=decode_responses,
+            **_resp2_kw(),
+            **(extra or {}),
+        )
+
+    # 已探明"服务端未启用鉴权" → 直接无密码连接，不再重复探测
+    if settings.REDIS_PASSWORD and _PASSWORD_PROBE_RESULT.get(probe_key):
+        client = _build(None)
+    else:
+        client = _build(settings.REDIS_PASSWORD or None)
+
     # 密码配置与服务端不匹配（服务端未启用鉴权）时自动去密码重连一次。
     # 本函数是 LongTermMemory 等模块的统一客户端入口，若不在此处兜住，这些模块
     # 会在自己的 ping 里失败并**静默降级为内存存储**，调用方只看到一句
-    # "Redis unavailable"，极难定位。仅在配置了密码时才多一次探测，无额外开销。
-    if settings.REDIS_PASSWORD:
+    # "Redis unavailable"，极难定位。
+    #
+    # ⚠️ 性能：探测**只在尚未探明时做一次**（进程级缓存），且探测客户端禁用重试。
+    #    原来每次调用都探、且带退避重试，单次实测 10–14 秒；缓存后除首次外为 0 开销。
+    if settings.REDIS_PASSWORD and probe_key not in _PASSWORD_PROBE_RESULT:
+        probe = _build(settings.REDIS_PASSWORD, _probe_no_retry_kwargs())
         try:
-            client.ping()
+            probe.ping()
+            _PASSWORD_PROBE_RESULT[probe_key] = False       # 密码正确，服务端要求鉴权
         except Exception as e:  # noqa: BLE001
             if _is_server_without_password(e):
+                _PASSWORD_PROBE_RESULT[probe_key] = True    # 服务端无鉴权，记住它
                 logger.warning(
                     "Redis 服务端未启用鉴权，但配置了 REDIS_PASSWORD——"
                     "已自动改为无密码连接（建议同步清理配置项）",
                     host=settings.REDIS_HOST, port=settings.REDIS_PORT,
                 )
-                client = redis.Redis(
-                    host=settings.REDIS_HOST,
-                    port=settings.REDIS_PORT,
-                    db=settings.REDIS_DB,
-                    password=None,
-                    socket_timeout=socket_timeout,
-                    socket_connect_timeout=socket_connect_timeout,
-                    decode_responses=decode_responses,
-                    **_resp2_kw(),
-                )
+                client = _build(None)
+            # 其他异常（服务端暂不可达等）不写缓存，留待下次重新探测
     logger.info("Redis client in DIRECT mode", host=settings.REDIS_HOST, port=settings.REDIS_PORT, embedded=embedded)
     return client
 

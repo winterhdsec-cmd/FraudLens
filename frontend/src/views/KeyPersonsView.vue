@@ -31,7 +31,7 @@
               <el-table-column prop="source" label="来源" width="100" />
               <el-table-column label="操作" width="120" fixed="right">
                 <template #default="{row}">
-                  <el-button size="small" type="danger" @click="deleteKeyPerson(row.id)">移除</el-button>
+                  <el-button size="small" type="danger" @click="onRemovePerson(row)">移除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -41,6 +41,10 @@
               <div class="empty-icon"><el-icon><User /></el-icon></div>
               <h3 class="empty-title">暂无重点人员</h3>
               <p class="empty-desc">研判分析中碰撞到的人员会自动添加到重点人员库</p>
+              <!-- 空态给一个可以立刻做的动作，而不是只告诉用户"为什么是空的" -->
+              <div style="margin-top: 14px">
+                <el-button type="primary" @click="showCreatePerson = true">手动新增人员</el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -49,6 +53,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
+import { confirmDanger } from '../utils/confirm.js'
 const state = useAppState()
 const {
   activeMenu, keyPersons, loadKeyPersons, personSearch, personTypeFilter, showCreatePerson,
@@ -64,6 +69,23 @@ async function reloadPersons() {
   } finally {
     personsLoading.value = false
   }
+}
+
+/**
+ * 移除重点人员。
+ *
+ * 原先按钮直接绑 deleteKeyPerson —— 点了就删、没有任何确认，而这是不可逆的数据删除。
+ * 统一走 confirmDanger（确认文案固定为「做什么 + 什么后果」）。
+ */
+async function onRemovePerson(row) {
+  const ok = await confirmDanger({
+    title: '移除重点人员',
+    action: `将「${row?.name || '该人员'}」移出重点人员库`,
+    detail: '该记录会从重点人员列表删除，后续人员碰撞比对不再纳入此人。此操作不可撤销。',
+    confirmText: '确认移除'
+  })
+  if (!ok) return
+  await deleteKeyPerson(row.id)
 }
 
 onMounted(() => reloadPersons())

@@ -33,7 +33,7 @@
               <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{row}">
                   <div style="display:flex;gap:8px">
-                    <el-button v-if="row.status==='pending'" size="small" type="primary" @click="signDispatch(row.id)">签收</el-button>
+                    <el-button v-if="row.status==='pending'" size="small" type="primary" @click="onSignDispatch(row)">签收</el-button>
                     <el-button v-if="row.status==='signed'" size="small" type="success" @click="showCompleteDispatch(row)">完成反馈</el-button>
                   </div>
                 </template>
@@ -45,6 +45,10 @@
               <div class="empty-icon"><el-icon><Files /></el-icon></div>
               <h3 class="empty-title">暂无派单记录</h3>
               <p class="empty-desc">预警生成后，系统将自动创建派单并分配到辖区</p>
+              <!-- 空态给一个可以立刻做的动作，而不是只告诉用户"为什么是空的" -->
+              <div style="margin-top: 14px">
+                <el-button type="primary" @click="showCreateDispatch = true">手动新建派单</el-button>
+              </div>
             </div>
           </div>
 
@@ -69,6 +73,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useAppState } from '../composables/useAppState.js'
+import { confirmDanger } from '../utils/confirm.js'
 const state = useAppState()
 const {
   activeMenu, dispatchOrders, dispatchStatusFilter, loadDispatchOrders, showCreateDispatch,
@@ -84,6 +89,25 @@ async function reloadDispatch() {
   } finally {
     dispatchLoading.value = false
   }
+}
+
+/**
+ * 签收派单。
+ *
+ * 原先按钮直接绑 signDispatch —— 点了就签收、没有任何确认，而签收意味着
+ * 本单位承接该预警的处置责任（且后端 status 进到 signed 后不可回退）。
+ */
+async function onSignDispatch(row) {
+  const ok = await confirmDanger({
+    title: '签收派单',
+    action: `签收派单${row?.alert_id ? ' ' + row.alert_id : ''}`,
+    detail: `签收后该预警的处置责任转由「${row?.assigned_dept || '本单位'}」承担，`
+      + '状态进入「已签收」，需在规定时限内回填处置反馈。',
+    confirmText: '确认签收',
+    type: 'info'
+  })
+  if (!ok) return
+  await signDispatch(row.id)
 }
 
 onMounted(() => reloadDispatch())

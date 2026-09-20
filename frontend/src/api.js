@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 import { store } from './store.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5003'
@@ -11,23 +12,106 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+// ========== 请求反馈与错误归一化 ==========
+// ① 慢请求提示：超过 1.5s 仍未返回时给一条**轻提示**（不是遮罩，不挡操作），
+//    避免用户以为卡死而反复点击。用请求计数而非单次计时——页面常并发发多个请求。
+// ② 错误归一化：把 axios 的英文 message 与后端的 `str(e)` 换成用户能看懂的中文，
+//    原始信息保留在 error.rawMessage / error.serverDetail，排查时仍拿得到。
+let inflightCount = 0
+let slowTimer = null
+let slowTipInstance = null
+const SLOW_THRESHOLD_MS = 1500
+
+function trackRequestStart() {
+  inflightCount += 1
+  if (slowTimer || inflightCount !== 1) return
+  slowTimer = setTimeout(() => {
+    slowTimer = null
+    if (inflightCount > 0 && !slowTipInstance) {
+      slowTipInstance = ElMessage({
+        message: '服务器响应较慢，正在处理…',
+        type: 'info',
+        duration: 0,
+        customClass: 'fl-slow-tip'
+      })
+    }
+  }, SLOW_THRESHOLD_MS)
+}
+
+function trackRequestEnd() {
+  inflightCount = Math.max(0, inflightCount - 1)
+  if (inflightCount > 0) return
+  if (slowTimer) {
+    clearTimeout(slowTimer)
+    slowTimer = null
+  }
+  if (slowTipInstance) {
+    slowTipInstance.close()
+    slowTipInstance = null
+  }
+}
+
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/demo-login']
+
+function isAuthEndpoint(url = '') {
+  return AUTH_ENDPOINTS.some((p) => String(url).includes(p))
+}
+
+function normalizeError(error) {
+  if (!error || typeof error !== 'object') return error
+  error.rawMessage = error.message
+
+  const status = error.response?.status
+  const raw = error.response?.data?.detail ?? error.response?.data?.error
+  const serverMsg = typeof raw === 'string' ? raw.trim() : ''
+  const readable = serverMsg && serverMsg.length <= 160
+  if (serverMsg) error.serverDetail = serverMsg
+
+  if (error.code === 'ECONNABORTED' || /timeout/i.test(error.rawMessage || '')) {
+    error.message = '请求超时，请稍后重试'
+  } else if (!error.response) {
+    error.message = '无法连接服务器，请确认后端服务已启动'
+  } else if (status === 401) {
+    error.message = '登录状态已过期，请重新登录'
+  } else if (status === 429) {
+    error.message = '操作过于频繁，请稍后再试'
+  } else if (status >= 500) {
+    // 不把后端的 str(e) 直接展示给用户（可能暴露内部实现细节）
+    error.message = '服务器处理失败，请稍后重试'
+  } else if (readable) {
+    // 4xx 的 detail 是写给用户看的业务提示（如「仅管理员可执行演示数据复位」），优先用
+    error.message = serverMsg
+  } else if (Array.isArray(error.response?.data?.detail)) {
+    error.message = '提交的内容格式不正确'
+  } else if (status === 403) {
+    error.message = '当前账号没有执行该操作的权限'
+  } else if (status === 404) {
+    error.message = '请求的资源不存在'
+  } else {
+    error.message = '操作失败，请重试'
+  }
+  return error
+}
+
 api.interceptors.request.use((config) => {
   if (store.isLoggedIn && store.token) {
     config.headers.Authorization = `Bearer ${store.token}`
   }
+  trackRequestStart()
   return config
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    trackRequestEnd()
+    return response
+  },
   (error) => {
-    if (error.response?.status === 401 && store.isLoggedIn) {
-      const url = error.config?.url || ''
-      if (!url.includes('/auth/login') && !url.includes('/auth/register') && !url.includes('/auth/demo-login')) {
-        store.logout()
-        window.location.href = '/'
-      }
-    }
+    trackRequestEnd()
+    normalizeError(error)
+    // 401 的实际处置（先用 refresh_token 换新令牌，失败才登出）统一放在下面
+    // 第二个响应拦截器里。原先这里直接 store.logout()，会把 refreshToken 一并
+    // 清空，导致刷新分支永远拿不到 token —— 刷新机制静默失效。
     return Promise.reject(error)
   }
 )
@@ -171,27 +255,64 @@ export async function fetchGangById(gangId) {
   return response.data
 }
 
-// Add 401 interceptor for auto refresh
+// 401 统一处置：先用 refresh_token 静默换新令牌并重试原请求，换不到才登出。
+// 并发 401 只刷新一次（共享同一个 promise），避免"刷新风暴"。
+let refreshPromise = null
+
+function forceLogout() {
+  store.logout()
+  // 已在登录页就不必再跳转（否则可能形成整页刷新循环）
+  if (window.location.pathname !== '/') {
+    window.location.href = '/'
+  }
+}
+
+async function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(API_BASE + '/api/auth/refresh', { refresh_token: store.refreshToken })
+      .then((res) => {
+        const token = res.data?.access_token
+        if (!res.data?.success || !token) throw new Error('refresh rejected')
+        store.token = token
+        sessionStorage.setItem('fraudlens_token', token)
+        return token
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && store.refreshToken) {
-      try {
-        const res = await axios.post(API_BASE + '/api/auth/refresh', { refresh_token: store.refreshToken })
-        if (res.data?.success && res.data?.access_token) {
-          store.token = res.data.access_token
-          error.config.headers.Authorization = 'Bearer ' + res.data.access_token
-          return api(error.config)
-        }
-      } catch {
-        store.logout()
-      }
+    const status = error.response?.status
+    const url = error.config?.url || ''
+
+    if (status !== 401 || isAuthEndpoint(url)) {
       return Promise.reject(error)
     }
-    if (error.response?.status === 401) {
-      store.logout()
+    if (error.config?.__retried) {
+      // 换过令牌重试后仍然 401 → 令牌确实失效
+      forceLogout()
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+    if (!store.refreshToken) {
+      forceLogout()
+      return Promise.reject(error)
+    }
+
+    try {
+      const token = await refreshAccessToken()
+      error.config.__retried = true
+      error.config.headers = { ...(error.config.headers || {}), Authorization: `Bearer ${token}` }
+      return api(error.config)
+    } catch {
+      forceLogout()
+      return Promise.reject(error)
+    }
   }
 )
 
@@ -433,6 +554,22 @@ export async function getAiConfig() {
 
 export async function saveAiConfig(data) {
   return api.put('/api/settings/api-key', data)
+}
+
+// ========== 演示数据 ==========
+/**
+ * 把演示数据复位到初始状态（仅 admin）。
+ *
+ * 后端会重跑两个幂等脚本重建 9 张演示表并清除测试残留措辞，耗时约 2–5 秒，
+ * 故单独放宽超时；confirmText 必须是 "RESET"，否则后端返回 400（防误触）。
+ */
+export async function resetDemoData(confirmText = 'RESET') {
+  const response = await api.post(
+    '/api/system/demo-reset',
+    { confirm: confirmText },
+    { timeout: 600000 }
+  )
+  return response.data
 }
 
 // ========== Reviews ==========

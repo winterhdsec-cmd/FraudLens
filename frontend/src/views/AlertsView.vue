@@ -74,7 +74,7 @@
             size="small"
             type="primary"
             :loading="resolvingAlert === alert.id"
-            @click="handleResolveAlert(alert.id)"
+            @click="onResolveAlert(alert)"
             :disabled="alert.resolved"
           >处置</el-button>
           <el-button
@@ -152,12 +152,32 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppState } from '../composables/useAppState.js'
+import { confirmDanger } from '../utils/confirm.js'
 const router = useRouter()
 const state = useAppState()
 const {
   activeMenu, alerts, alertsLoading, cases, getAlertType, getConfidenceColor, handleResolveAlert,
   loadAlerts, loading, resolvingAlert
 } = state
+
+/**
+ * 处置预警。
+ *
+ * 原先按钮直接绑 handleResolveAlert —— 点了就处置，处置后记录立刻从列表消失，
+ * 视觉上不可撤销（后端已加终态门控，处置时间不可覆盖），故补二次确认。
+ */
+async function onResolveAlert(alert) {
+  const ok = await confirmDanger({
+    title: '处置预警',
+    action: `将预警标记为已处置`,
+    detail: `编号 ${alert?.case_id || '—'} 的预警处置后会从「待处置」列表移除，`
+      + '并记录处置时间（留痕不可改写）。请确认已完成核查。',
+    confirmText: '确认处置',
+    type: 'warning'
+  })
+  if (!ok) return
+  await handleResolveAlert(alert.id)
+}
 
 // 紧凑模式：点击卡片展开/折叠详情
 const expandedAlerts = ref(new Set())

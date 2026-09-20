@@ -204,6 +204,72 @@
           </div>
         </div>
       </el-tab-pane>
+
+      <el-tab-pane label="演示数据" name="demo">
+        <div class="admin-info-grid">
+          <div class="info-card" style="grid-column: 1 / -1">
+            <div class="info-card-title">
+              演示数据复位
+              <el-tag size="small" type="warning" effect="dark" style="margin-left:8px">破坏性操作</el-tag>
+            </div>
+            <p class="demo-desc">
+              把演示数据恢复到初始状态：重建 9 张演示表（人员 / 账户 / 电话 / 证据 /
+              冻结审批与回执 / 导入流水 / 并案建议 / 复核意见），并清除测试脚本留下的
+              「测试 / E2E」字样与状态字段的逻辑矛盾。
+            </p>
+            <el-alert
+              type="warning"
+              :closable="false"
+              show-icon
+              title="会覆盖现有数据，且不可撤销"
+              description="复位使用固定随机种子，每次结果一致；但你在界面上手工新增或修改过的演示数据会一并丢失。答辩演示前数据被改乱时，按这里恢复即可。"
+              style="margin-bottom: 14px"
+            />
+            <div class="demo-actions">
+              <el-button type="danger" :loading="demoResetting" @click="onResetDemo">
+                {{ demoResetting ? '正在复位…' : '复位演示数据' }}
+              </el-button>
+              <span class="demo-hint">点击后需输入 RESET 二次确认；执行约 2–5 秒，请勿关闭页面</span>
+            </div>
+          </div>
+
+          <div v-if="demoResult" class="info-card" style="grid-column: 1 / -1">
+            <div class="info-card-title">复位结果</div>
+            <el-descriptions :column="3" size="small" border style="margin-top: 8px">
+              <el-descriptions-item label="状态">
+                <el-tag :type="demoResult.success ? 'success' : 'danger'" size="small">
+                  {{ demoResult.success ? '已复位' : '中断' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="总耗时">{{ demoResult.elapsed_ms }} ms</el-descriptions-item>
+              <el-descriptions-item label="受影响表">{{ (demoResult.tables || []).length }} 张</el-descriptions-item>
+            </el-descriptions>
+
+            <el-table :data="demoCounts" size="small" border style="margin-top: 10px">
+              <el-table-column prop="table" label="数据表" />
+              <el-table-column prop="rows" label="复位后行数" width="120" align="right" />
+            </el-table>
+
+            <el-collapse v-if="(demoResult.steps || []).length" style="margin-top: 10px">
+              <el-collapse-item
+                v-for="(s, i) in demoResult.steps"
+                :key="i"
+                :name="String(i)"
+              >
+                <template #title>
+                  <span class="demo-step-title">
+                    <el-tag :type="s.ok ? 'success' : 'danger'" size="small">{{ s.ok ? '成功' : '失败' }}</el-tag>
+                    <code>{{ s.script }}</code>
+                    <span class="demo-step-desc">{{ s.desc }}</span>
+                    <span class="demo-step-ms">{{ s.elapsed_ms }} ms</span>
+                  </span>
+                </template>
+                <pre class="demo-log">{{ s.log_tail }}</pre>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -211,8 +277,9 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { changePassword, updateUser, deleteUser, createUser, getOperationLogs, getAiConfig, saveAiConfig } from '../api.js'
+import { changePassword, updateUser, deleteUser, createUser, getOperationLogs, getAiConfig, saveAiConfig, resetDemoData } from '../api.js'
 import { useAppState } from '../composables/useAppState.js'
+import { confirmDanger } from '../utils/confirm.js'
 
 const state = useAppState()
 const { activeMenu } = state
@@ -228,6 +295,50 @@ const aiConfig = ref({ api_key: '', base_url: 'https://api.deepseek.com/v1', mod
 const aiConfigured = ref(false)
 const keyPreview = ref('')
 const aiConfigLoading = ref(false)
+
+// ===== 演示数据复位（答辩现场的「撤销键」）=====
+const demoResetting = ref(false)
+const demoResult = ref(null)
+const demoCounts = computed(() => {
+  const c = demoResult.value?.counts || {}
+  return Object.entries(c).map(([table, rows]) => ({ table, rows }))
+})
+
+async function onResetDemo() {
+  try {
+    await ElMessageBox.prompt(
+      '此操作会清空并重建 9 张演示数据表，界面上手工新增/修改的数据将一并丢失，且不可撤销。请输入 RESET 确认。',
+      '确认复位演示数据',
+      {
+        confirmButtonText: '执行复位',
+        cancelButtonText: '取消',
+        type: 'warning',
+        inputPattern: /^\s*RESET\s*$/i,
+        inputErrorMessage: '请输入 RESET（不区分大小写）',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+  } catch {
+    return // 用户取消
+  }
+
+  demoResetting.value = true
+  try {
+    const r = await resetDemoData('RESET')
+    demoResult.value = r
+    if (r.success) {
+      ElMessage.success(`演示数据已复位（${r.elapsed_ms} ms）`)
+    } else {
+      ElMessage.error(r.message || '复位中断，请展开日志查看失败原因')
+    }
+  } catch (e) {
+    // 后端 400/403 会带 detail；优先展示人话文案
+    const msg = e?.response?.data?.detail || e?.userMessage || e?.message || '复位失败'
+    ElMessage.error(msg)
+  } finally {
+    demoResetting.value = false
+  }
+}
 
 // ===== 用户管理：搜索 + 分页 =====
 const userSearch = ref('')
@@ -380,8 +491,17 @@ async function handleDeleteUser(user) {
     ElMessage.warning('管理员账户不能删除')
     return
   }
+  // 统一走 confirmDanger：文案结构固定为「做什么 + 什么后果」
+  const ok = await confirmDanger({
+    title: '删除用户',
+    action: `删除用户「${user.username}」`,
+    detail: '该账号将无法再登录系统；其历史操作日志仍会保留（留痕不可删除）。此操作不可撤销。',
+    confirmText: '确认删除',
+    type: 'error'
+  })
+  if (!ok) return
+
   try {
-    await ElMessageBox.confirm('确认删除用户 ' + user.username + '？', '警告', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
     const res = await deleteUser(user.id)
     if (res.success) {
       ElMessage.success('已删除')
@@ -390,7 +510,8 @@ async function handleDeleteUser(user) {
       ElMessage.error(res.error || '删除失败')
     }
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败')
+    // e.message 已在 axios 拦截器里归一化为人话
+    ElMessage.error(e.message || '删除失败')
   }
 }
 
@@ -760,5 +881,55 @@ onMounted(() => {
   background: rgba(239,68,68,0.2);
   border-color: rgba(239,68,68,0.4);
   box-shadow: 0 0 12px rgba(239,68,68,0.15);
+}
+
+/* ===== 演示数据复位 ===== */
+.demo-desc {
+  color: rgba(255,255,255,0.72);
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 10px 0 14px;
+}
+.demo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.demo-hint {
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
+}
+.demo-step-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.demo-step-title code {
+  color: #00E5FF;
+  background: rgba(0,229,255,0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.demo-step-desc {
+  color: rgba(255,255,255,0.55);
+}
+.demo-step-ms {
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+}
+.demo-log {
+  max-height: 260px;
+  overflow: auto;
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.78);
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 10px 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
 }
 </style>

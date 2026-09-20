@@ -315,7 +315,8 @@ async function onResetDemo() {
         type: 'warning',
         inputPattern: /^\s*RESET\s*$/i,
         inputErrorMessage: '请输入 RESET（不区分大小写）',
-        confirmButtonClass: 'el-button--danger'
+        // 破坏性操作：确认按钮用危险色（Element Plus 2.x 的 confirmButtonClass 不生效）
+        customClass: 'fl-danger-confirm'
       }
     )
   } catch {

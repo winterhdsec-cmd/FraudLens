@@ -38,7 +38,10 @@ export async function confirmDanger({
       closeOnClickModal: false,
       distinguishCancelAndClose: true,
       // action/detail 里可能带用户名等动态值，esc() 已转义
-      dangerouslyUseHTMLString: true
+      dangerouslyUseHTMLString: true,
+      // 破坏性操作：确认按钮用危险色（样式在 src/style.css，ElMessageBox 挂 body 上，
+      // scoped 样式够不着）。Element Plus 2.x 的 confirmButtonClass 不生效，故用 customClass。
+      customClass: (type === 'warning' || type === 'error') ? 'fl-danger-confirm' : ''
     })
     return true
   } catch {

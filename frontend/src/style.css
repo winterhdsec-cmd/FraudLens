@@ -2735,3 +2735,34 @@ html.dark ::selection {
   animation: liveDotPulse 1.6s ease-in-out infinite;
 }
 @keyframes liveDotPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+
+/* ===== 危险操作确认框（frontend/src/utils/confirm.js）=====
+   ElMessageBox 挂载在 body 上，视图里的 scoped 样式够不着，只能放全局。
+   目的：破坏性操作的确认按钮用危险色，让人在肌肉记忆层面停一下，
+   而不是和其它普通确认框一样是蓝色 —— 演示时误点代价是数据没了。
+
+   ⚠️ 踩坑记录（2026-09-20）：本项目全局主题给 `.el-button--primary` 加了
+   **蓝色渐变 `background-image`**。只改 `background-color` 时：
+     · getComputedStyle().backgroundColor 读出来**已经是红色**（断言会通过）
+     · 但渲染时 background-image 盖在 background-color 之上 → **视觉仍是蓝色**
+   所以必须同时 `background-image: none`，且 hover/focus/active 各态都要盖，
+   否则鼠标一移上去又会变回蓝色渐变。 */
+.fl-danger-confirm .el-message-box__btns .el-button--primary {
+  background-color: #ef4444;
+  background-image: none;
+  border-color: #ef4444;
+  color: #fff;
+}
+.fl-danger-confirm .el-message-box__btns .el-button--primary:hover,
+.fl-danger-confirm .el-message-box__btns .el-button--primary:focus {
+  background-color: #dc2626;
+  background-image: none;
+  border-color: #dc2626;
+  color: #fff;
+}
+.fl-danger-confirm .el-message-box__btns .el-button--primary:active {
+  background-color: #b91c1c;
+  background-image: none;
+  border-color: #b91c1c;
+  color: #fff;
+}

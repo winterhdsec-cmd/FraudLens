@@ -27,9 +27,16 @@ async def api_resolve_alert(alert_id: int, current_user: dict = Depends(get_curr
     try:
         from database.alert import alert_engine
         result = alert_engine.resolve_alert(alert_id)
-        if result:
-            return {"success": True, "message": "警报已解决"}
-        return JSONResponse(status_code=404, content={"success": False, "error": "警报不存在"})
+        if result is None:
+            return JSONResponse(status_code=404, content={"success": False, "error": "警报不存在"})
+        if result.get('already_resolved'):
+            # 终态不可逆：处置时间一旦写入就不再改写（留痕性质）
+            return JSONResponse(status_code=400, content={
+                "success": False,
+                "error": "该预警已处置完成，处置时间不可覆盖",
+                "resolved_at": result.get('resolved_at'),
+            })
+        return {"success": True, "message": "警报已解决"}
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 

@@ -42,8 +42,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dotenv import load_dotenv
 
-load_dotenv(".env")
-load_dotenv("key.env")
+# 只加载 backend/key.env —— 与 main.py 的加载方式一致；根目录 .env 仅供
+# docker-compose 做 ${VAR:-default} 插值，不由本脚本读取（避免两套配置互相干扰）。
+load_dotenv(Path(__file__).resolve().parent / "key.env")
 
 from sqlalchemy import text  # noqa: E402
 

@@ -2,9 +2,13 @@
 System routes: health, logs, network-data, agent-analyze, tasks, WebSocket.
 """
 import os
+import re
+import sys
 import json
+import time
 import uuid
 import asyncio
+import subprocess
 import traceback
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request, Depends
@@ -711,5 +715,187 @@ async def api_get_system_status(current_user: dict = Depends(get_current_user)):
             }
         }
     except Exception as e:
-        logger.error("Get system status error", error=str(e))
+        logger.error(f"Get system status error: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# ====================================================================
+# 演示数据复位（答辩现场的「撤销键」）
+# ====================================================================
+
+# 复位时重跑的幂等脚本（**子进程隔离执行**）
+# 为什么用子进程而不是 import 后直接调用：
+#   ① `seed_empty_tables.py` 在**模块级**执行 `random.seed(SEED)`；同进程内二次调用
+#      时 random 状态已推进，生成结果与首次不一致（不可复现）。子进程每次都重新
+#      seed，结果确定。
+#   ② 该脚本用 `db.engine.begin()` 直接写库；子进程与当前进程的连接池天然隔离，
+#      不会让当前请求的 `db.session` 读到写入前的旧快照（MySQL REPEATABLE READ）。
+_DEMO_RESET_STEPS = [
+    ("seed_empty_tables.py", ["--force"],
+     "重建演示数据：清空并重新生成 9 张表（固定随机种子，结果可复现）"),
+    ("fix_seed_consistency.py", [],
+     "就地修正状态类字段的逻辑矛盾，并清除测试脚本留下的「测试/E2E」字样"),
+]
+
+# 与 seed_empty_tables.MANAGED_TABLES 保持一致（此处仅用于解析输出与展示）
+_DEMO_RESET_TABLES = (
+    "persons", "accounts", "phones", "evidence_items",
+    "freeze_approvals", "freeze_receipts", "imported_fund_flows",
+    "merge_suggestions", "review_opinions",
+)
+
+
+def _parse_table_counts(stdout: str) -> dict:
+    """从种子脚本输出里解析 `[复核 · 现值]` 段落的表行数。
+
+    解析失败返回 {}（前端会优雅降级为只显示日志），不抛异常。
+    """
+    counts: dict = {}
+    started = False
+    for line in stdout.splitlines():
+        if "[复核" in line:
+            started = True
+            continue
+        if not started:
+            continue
+        m = re.match(r"^\s{2}([a-z_]+)\s+(\d+)\s*$", line)
+        if m:
+            counts[m.group(1)] = int(m.group(2))
+    return counts
+
+
+def _run_demo_script(script: str, extra_args: list, timeout: int = 300) -> dict:
+    """在 backend 目录下跑一个维护脚本，返回结构化结果（不抛异常）。"""
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    script_path = os.path.join(backend_dir, script)
+    if not os.path.exists(script_path):
+        return {"ok": False, "returncode": -1, "stdout": "", "stderr": f"脚本不存在: {script_path}",
+                "elapsed_ms": 0}
+
+    # 强制子进程以 UTF-8 输出：Windows 默认 cp936，直接按 utf-8 解会乱码
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
+    started = time.perf_counter()
+    try:
+        proc = subprocess.run(
+            [sys.executable, script_path, *extra_args],
+            cwd=backend_dir, capture_output=True, timeout=timeout, env=env,
+        )
+        stdout = (proc.stdout or b"").decode("utf-8", "replace")
+        stderr = (proc.stderr or b"").decode("utf-8", "replace")
+        return {
+            "ok": proc.returncode == 0,
+            "returncode": proc.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "elapsed_ms": int((time.perf_counter() - started) * 1000),
+        }
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "returncode": -2, "stdout": "", "stderr": f"执行超时（>{timeout}s）",
+                "elapsed_ms": int((time.perf_counter() - started) * 1000)}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "returncode": -3, "stdout": "", "stderr": f"{type(e).__name__}: {e}",
+                "elapsed_ms": int((time.perf_counter() - started) * 1000)}
+
+
+@router.post('/api/system/demo-reset')
+async def api_demo_reset(request: Request, current_user: dict = Depends(get_current_user)):
+    """把演示数据复位到初始状态。
+
+    答辩现场的「撤销键」——误操作把演示数据改乱后，一键恢复到初始状态。
+
+    实现：按顺序重跑两个**已验证的幂等脚本**（子进程隔离，见上方注释），
+    任一步失败即中断，并回传每步的日志尾部供排查。
+
+    Body: ``{"confirm": "RESET"}`` —— 必须显式确认串，防误触。
+    权限：仅 admin。
+    """
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail='仅管理员可执行演示数据复位')
+
+    try:
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            body = {}
+
+        if str((body or {}).get('confirm', '')).strip().upper() != 'RESET':
+            raise HTTPException(
+                status_code=400,
+                detail='缺少确认串：请在请求体 confirm 字段填入 RESET',
+            )
+
+        steps, counts, all_ok = [], {}, True
+        total_started = time.perf_counter()
+
+        for script, extra, desc in _DEMO_RESET_STEPS:
+            r = _run_demo_script(script, extra)
+            ok = bool(r["ok"])
+            all_ok = all_ok and ok
+
+            combined = r["stdout"]
+            if r["stderr"].strip():
+                combined += "\n--- stderr ---\n" + r["stderr"]
+            log_tail = "\n".join(combined.splitlines()[-45:])
+
+            steps.append({
+                "script": script,
+                "desc": desc,
+                "ok": ok,
+                "returncode": r["returncode"],
+                "elapsed_ms": r["elapsed_ms"],
+                "log_tail": log_tail,
+            })
+
+            if script == "seed_empty_tables.py" and ok:
+                counts = _parse_table_counts(r["stdout"])
+
+            if not ok:
+                logger.error(f"演示数据复位失败: {script} rc={r['returncode']}")
+                break
+
+        elapsed_ms = int((time.perf_counter() - total_started) * 1000)
+
+        # 审计留痕：复位是破坏性操作，必须记录谁在什么时候按了这个键
+        try:
+            log_operation(
+                user_id=current_user.get('id'),
+                username=current_user.get('username', ''),
+                action='demo_reset',
+                target_type='demo_data',
+                # target_id 是短标识列，装不下 9 个表名拼接，表清单放 detail
+                target_id='9_tables',
+                detail={
+                    "ok": all_ok,
+                    "elapsed_ms": elapsed_ms,
+                    "counts": counts,
+                    "tables": list(_DEMO_RESET_TABLES),
+                    "failed_step": next((s["script"] for s in steps if not s["ok"]), None),
+                },
+                ip_address=request.client.host if request.client else '',
+            )
+        except Exception as log_err:  # noqa: BLE001
+            # 留痕失败不应让复位本身"看起来失败"，但必须回滚，
+            # 否则脏 session 会污染本请求后续（以及复用的连接）的查询
+            try:
+                db.session.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            logger.warning(f"演示数据复位留痕失败（复位结果不受影响）: {log_err}")
+
+        return {
+            "success": all_ok,
+            "message": "演示数据已复位到初始状态" if all_ok else "复位中断：有步骤执行失败，请查看日志",
+            "elapsed_ms": elapsed_ms,
+            "steps": steps,
+            "counts": counts,
+            "tables": list(_DEMO_RESET_TABLES),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"演示数据复位异常: {type(e).__name__}: {e}")
+        return JSONResponse(status_code=500,
+                            content={"success": False, "error": f"复位失败：{type(e).__name__}"})

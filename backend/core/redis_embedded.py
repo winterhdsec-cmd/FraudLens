@@ -112,7 +112,19 @@ def _shutdown_embedded() -> None:
     try:
         port = int(os.getenv("REDIS_PORT", "6379"))
         import redis as _redis
-        _redis.Redis(host="127.0.0.1", port=port, protocol=2, socket_timeout=1.0).shutdown(save=True)
+        try:
+            from redis.backoff import NoBackoff
+            from redis.retry import Retry
+            _retry_kw = {"retry": Retry(NoBackoff(), 0)}
+        except Exception:  # noqa: BLE001  老版本 redis-py 没有 Retry，退化即可
+            _retry_kw = {}
+        # ★ 必须禁用重试：SHUTDOWN 会让服务端**主动断连**，而 redis-py 默认把连接错误
+        #   当作「可重试」并做指数退避 —— 实测本函数因此阻塞 **44.6 秒**（进程退出阶段
+        #   每次都要等），直接拖慢全部验证脚本/CLI（11 个脚本 ≈ 多花 7 分钟）。
+        #   服务端已经收到 SHUTDOWN 指令，客户端不需要等它的响应。
+        #   （同类缺陷此前在 core/redis_pool.py 已修，这里是同一模式的漏网处）
+        _redis.Redis(host="127.0.0.1", port=port, protocol=2,
+                     socket_timeout=1.0, **_retry_kw).shutdown(save=True)
     except Exception:
         # shutdown 会主动断连，client 侧常抛 ConnectionError，属正常
         pass

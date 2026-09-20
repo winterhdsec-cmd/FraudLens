@@ -34,8 +34,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv  # noqa: E402
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(_ROOT, ".env"))
-load_dotenv(os.path.join(_ROOT, "backend", "key.env"))
+# 只加载 key.env —— 与 main.py 保持一致（main.py 只 load_dotenv('backend/key.env')）。
+# 此前这里还加载了根目录 .env，而 python-dotenv 默认 override=False：**先加载者胜出**，
+# 于是 .env 里的 REDIS_PASSWORD 等值会盖过 key.env，造出与生产不一致的配置环境
+# （曾据此把「Redis 密码不一致 → 单次调用 10 秒」误判为线上缺陷；实际那是脚本特有环境，
+#   真实启动实测 2ms。教训：验证脚本的配置加载方式必须与被测程序一致）。
+load_dotenv(os.path.join(_ROOT, 'backend', 'key.env'))
 
 from database import db  # noqa: E402
 from database.models import MergeSuggestion  # noqa: E402

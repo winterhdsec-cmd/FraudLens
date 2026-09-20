@@ -20,7 +20,9 @@ os.environ.setdefault("JWT_SECRET_KEY", "e2e-script-only-secret")
 # 内置 Redis。若不加载，脚本会退化为"依赖环境里碰巧有 Redis"，测试结果不可信。
 from dotenv import load_dotenv  # noqa: E402
 
-load_dotenv(_ROOT / ".env")
+# 只加载 key.env —— 与 main.py 保持一致（main.py 只 load_dotenv('backend/key.env')）。
+# 不加载根目录 .env：python-dotenv 默认 override=False（先加载者胜出），
+# 会把 .env 的 REDIS_PASSWORD 等值带进来，造出与生产不一致的配置环境。
 load_dotenv(_BACKEND / "key.env")
 
 from fastapi import FastAPI  # noqa: E402

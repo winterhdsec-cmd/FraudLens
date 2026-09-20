@@ -27,6 +27,8 @@ SUITE = [
     ("_verify_persons_collision.py", "重点人员碰撞比对（含停用排除反断言）", False),
     ("_verify_freeze_executor.py", "止付冻结执行器字段兼容+审批门控+端到端", True),
     ("_verify_review_flow.py", "HITL 复核流程+状态门控（防结论被覆盖）", True),
+    ("_verify_alert_flow.py", "预警处置状态门控（防处置时间被覆盖）", False),
+    ("_verify_demo_reset.py", "演示数据一键复位（权限/确认串/幂等）", False),
     ("_verify_merge_panel.py", "并案建议面板（列表/过滤/驳回/鉴权）", True),
     ("_verify_seed_api.py", "脱敏数据 API 可见性与覆盖率", False),
     ("_verify_chat_memory.py", "会话记忆持久化（Redis 真实路径）", True),

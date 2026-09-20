@@ -111,9 +111,21 @@ class AlertEngine:
         return [a for a in _memory_alerts if not a.get('resolved')]
 
     def resolve_alert(self, alert_id):
+        """处置预警。
+
+        **已处置的预警不允许再次处置**：`resolved_at` 是处置留痕，重复调用会把它
+        静默覆盖成新时间（同类缺陷参见冻结工单 / HITL 复核的终态门控）。
+        命中终态时不改库，返回带 `already_resolved` 标记的 dict，由路由层转成 400。
+        """
         try:
             record = db.session.get(AlertRecord, alert_id)
             if record:
+                if record.resolved:
+                    return {
+                        'already_resolved': True,
+                        'id': record.id,
+                        'resolved_at': record.resolved_at.isoformat() if record.resolved_at else None,
+                    }
                 record.resolved = True
                 record.resolved_at = datetime.utcnow()
                 db.session.commit()
@@ -126,6 +138,12 @@ class AlertEngine:
             global _memory_alerts
             for alert in _memory_alerts:
                 if alert.get('id') == alert_id:
+                    if alert.get('resolved'):
+                        return {
+                            'already_resolved': True,
+                            'id': alert_id,
+                            'resolved_at': alert.get('resolved_at'),
+                        }
                     alert['resolved'] = True
                     alert['resolved_at'] = datetime.utcnow().isoformat()
                     return alert

@@ -71,3 +71,16 @@
 - **JSON 列经 `text()` 查询返回字符串**：`isinstance(x, list)` 恒为假 → 静默漏检，需先 `json.loads`。
 - **N+1**：列表接口逐条查关联表会放大耗时（`merge.py` 曾 14 条建议打 28 次库 → 101ms；改一次 `IN` 批量取回后 20ms）。
 - **演示文案**：测试脚本写入演示库的「E2E 测试」「测试账户A」等字样会出现在界面上，答辩观感差；`fix_seed_consistency.py` 已纳入审计（V11–V13）。
+
+## 十二、【P0】Redis 密码配置不一致 → 单次调用 2–25 秒，且阻塞整个界面（2026-09-20 实测）
+- **现象**：`/api/metrics/prometheus` **6.6–8.1 秒**（全站中位 7ms）；`get_redis_client()` 单次 3.9/8.5/17/24/25 秒；`redis.ping()` 1.8–9.8 秒并回 `AuthenticationError: Client sent AUTH, but no password is set`。
+- **根因三层**：① `.env` / `key.env` 配了 `REDIS_PASSWORD` 但内置 Redis **未启用鉴权**；② `core/redis_pool.py::get_redis_client()` 在 `if settings.REDIS_PASSWORD:` 分支里**每次调用都同步 ping**（2026-09-19 加的兜底），失败后重建无密码客户端 → **每次调用都吃一次注定失败的往返**；③ `main.py::db_session_middleware` 用 **全局锁 `_db_lock`** 包住所有 `/api/` 请求 → 那个 8 秒请求**把整个界面一起堵住**。
+- **`embedded_redis_active()` 只看进程内布尔标记**，秒回 True，与端口实际状态无关（Redis 日志显示它反复「启动→请求关闭→退出」）。
+- **修法**：① 清掉不一致的 `REDIS_PASSWORD`（`.env` + `key.env` **两处都改**）；② 把密码探测结果**进程级缓存**，别每次 ping；③ 让指标端点不占全局锁。
+- 内置 Redis 位于 `backend/vendor/redis/`，日志 `vendor/redis/runtime/redis-embedded.log`。
+
+## 十三、其他待修（2026-09-20 新测）
+- **2 处原始 JSON 弹窗未改**：`WorkbenchView.vue:905`（研判任务）、`:1274`（审批流）——同一模式**已复发 4 次**。
+- **5 个视图有表格但零 loading**：AdminView(35 表格)/DashboardView(14)/DispatchView(14)/KeyPersonsView(12)/OverviewView(12) → 加载时一片空白像坏了。
+- **全局串行锁**：所有 `/api/` 请求排队，并发即全体等待（修法风险高，建议赛后）。
+- 详见 `docs/系统缺陷与体验优化清单_0920.md`。

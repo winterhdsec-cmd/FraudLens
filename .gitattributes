@@ -6,6 +6,9 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
+# 本文件自身钉住 LF（仓库内 core.autocrlf=true，否则它的工作区副本会被转成 CRLF）
+.gitattributes text eol=lf
+
 # 源码与配置统一 LF，避免跨平台 diff 噪声
 *.py   text eol=lf
 *.js   text eol=lf

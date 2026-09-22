@@ -23,6 +23,7 @@ PYTHON = sys.executable or "python"
 # 注：会拉起 Redis/BGE 的脚本耗时长（30~90s），已按"轻→重"排序。
 SUITE = [
     ("_verify_seed_consistency.py", "种子数据逻辑一致性不变量", False),
+    ("_verify_db_isolation.py", "数据库隔离级别与事务卫生（防启动锁库/陈旧读）", False),
     ("_smoke_frontend_api.py", "前端全部 GET 接口巡检", False),
     ("_verify_persons_collision.py", "重点人员碰撞比对（含停用排除反断言）", False),
     ("_verify_freeze_executor.py", "止付冻结执行器字段兼容+审批门控+端到端", True),

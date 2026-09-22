@@ -80,17 +80,29 @@ class _Database:
         if self._engine is not None:
             return
         connect_args = {'charset': 'utf8mb4', 'connect_timeout': 3} if 'mysql' in settings.DATABASE_URI else {}
-        # 故障切换管理器：默认候选仅主库（单引擎，行为同改造前）；
-        # 配置 DB_REPLICA_URIS 后按序启用自动切换。on_switch 用于切换后重绑 session。
-        self._failover = FailoverEngine(
-            settings.DATABASE_CANDIDATE_URIS,
-            on_switch=self._rebind_session,
+        engine_kwargs = dict(
             pool_size=10,
             max_overflow=20,
             pool_timeout=30,
             pool_recycle=1800,
             echo=settings.DEBUG,
             connect_args=connect_args,
+        )
+        # MySQL 默认隔离级别是 REPEATABLE READ：事务一旦开始，之后的查询都读**同一个快照**。
+        # 而本项目的 db.session 是 thread-local、且中间件不负责清理，同一工作线程复用时
+        # 事务会一直延续 —— 实测后果有两个（都已复现）：
+        #   ① 别的请求刚 INSERT 并提交的数据，本接口**读不到**（GET /api/alerts 看不到新预警）；
+        #   ② 未提交的写会长期持有行锁，把后续写同一张表的请求卡到 lock wait timeout（50s）→ 500。
+        # 改用 READ COMMITTED：每条语句都读最新已提交数据，且不加间隙锁（顺带减少锁冲突）。
+        # 对只读接口与"每请求一个逻辑操作"的写法无影响。
+        if 'mysql' in settings.DATABASE_URI:
+            engine_kwargs['isolation_level'] = 'READ COMMITTED'
+        # 故障切换管理器：默认候选仅主库（单引擎，行为同改造前）；
+        # 配置 DB_REPLICA_URIS 后按序启用自动切换。on_switch 用于切换后重绑 session。
+        self._failover = FailoverEngine(
+            settings.DATABASE_CANDIDATE_URIS,
+            on_switch=self._rebind_session,
+            **engine_kwargs,
         )
         self._engine = self._failover.get_engine()
         self._session_factory = sessionmaker(

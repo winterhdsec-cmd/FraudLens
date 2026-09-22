@@ -166,11 +166,20 @@ def _do_alert_data():
             or_(AlertRecord.confidence > 1.0,
                 AlertRecord.case_id == AlertRecord.matched_case_id)
         ).delete(synchronize_session=False)
+        # ★ 无论删没删到行，都必须结束这个事务。
+        #   `.delete()` 即使删除 0 行，InnoDB 也会在 alert_records 上留下
+        #   表级意向锁（IX）；而本函数跑在**启动时的 daemon 后台线程**里、跑完即闲置，
+        #   于是那个 thread-local session 就变成"永久持锁者"——之后任何写 alert_records
+        #   的请求（处置预警、注入、测试）都会 Lock wait timeout（默认 50s）→ 500。
+        #   实测：后端启动后立刻试写该表就被卡 3 秒超时（把超时调小验证过）。
         if dirty:
             db.session.commit()
             logger.info(f"清理历史脏预警记录 {dirty} 条")
+        else:
+            db.session.rollback()
         if AlertRecord.query.count() > 0:
             logger.info(f"预警数据已存在({AlertRecord.query.count()}条)，跳过注入")
+            db.session.rollback()  # 结束上面 count 那条只读事务，不留快照占连接
             return
         # 按团伙分组取案件对（同团伙内两两案件构成"串并预警"素材）
         rels = GangCaseRelation.query.order_by(GangCaseRelation.gang_id,

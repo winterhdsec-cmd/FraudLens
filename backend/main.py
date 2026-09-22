@@ -290,11 +290,29 @@ async def lifespan(app: FastAPI):
             _do_seed_data, _do_p1_data, _do_gang_data, _do_radar_background,
             _do_alert_data
         )
-        _do_seed_data()
-        _do_p1_data()
-        _do_gang_data()
-        _do_alert_data()
-        _do_radar_background()
+        try:
+            _do_seed_data()
+            _do_p1_data()
+            _do_gang_data()
+            _do_alert_data()
+            _do_radar_background()
+        finally:
+            # ★ 统一兜底：这个线程是 daemon、跑完即闲置，而 db.session 是 thread-local 的。
+            #   只要初始化过程中有一条写语句没被提交/回滚，该连接就会**永久持有行锁**，
+            #   把之后所有写同一张表的请求卡到 innodb_lock_wait_timeout（默认 50s）后 500。
+            #   实测 _do_alert_data 的「写后提前 return」路径正是这样埋的雷（启动即锁库）。
+            #   无论成败，都在线程退出前结束事务并把连接还给池。
+            try:
+                db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+            try:
+                db.session.remove()
+            except Exception:
+                pass
 
     threading.Thread(target=_background_init, daemon=True).start()
     logger.info("数据初始化已在后台启动")

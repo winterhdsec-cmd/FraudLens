@@ -49,9 +49,15 @@
 - **教方法 ≠ 代劳产出**：用户说"教你读"时，交付的是**可迁移的方法/关注点清单/自检技巧**，不是把内容嚼碎喂给他。
 - 参考文献只留正文 `\cite` 实引；降 AI 检测率但**诚实边界原样保留**。
 
-## 九、回归验证入口（2026-09-19 建，8 脚本 / 217 项）
+## 九、回归验证入口（**12 脚本，当前全绿，整套约 60s**）
 `python backend/run_verifications.py` 一键跑全部并汇总（退出码 0/1），也可传关键词只跑部分：
-`_verify_seed_consistency.py`（数据不变量 17）· `_smoke_frontend_api.py`（前端 GET 全量巡检 40）· `_verify_persons_collision.py`（重点人员碰撞比对 19）· `_verify_freeze_executor.py`（冻结执行器字段兼容+门控+**详情接口字段契约**+端到端 39）· `_verify_merge_panel.py`（并案建议面板 37）· `_verify_seed_api.py`（脱敏数据可见性 18）· `_verify_chat_memory.py`（会话持久化 24）· `_e2e_chat_memory.py`（路由层 E2E + 侧边栏契约 26）。**当前全绿。**
+`_verify_seed_consistency.py`（数据不变量 20）· **`_verify_db_isolation.py`**（隔离级别+事务卫生 4）·
+`_smoke_frontend_api.py`（前端 GET 全量巡检）· `_verify_persons_collision.py`（碰撞比对 19）·
+`_verify_freeze_executor.py`（冻结执行器字段兼容+门控+详情契约+端到端）·
+`_verify_review_flow.py`（HITL 复核 27，含防结论被覆盖）· `_verify_alert_flow.py`（预警处置门控 13）·
+`_verify_demo_reset.py`（演示数据复位 18，含幂等）· `_verify_merge_panel.py`（并案面板）·
+`_verify_seed_api.py`（脱敏可见性 18）· `_verify_chat_memory.py`（会话持久化 24）·
+`_e2e_chat_memory.py`（路由层 E2E + 侧边栏契约 26）。
 - 新增数据一致性缺陷 → 先 `python backend/fix_seed_consistency.py --dry-run` 审计，去掉 `--dry-run` 修复（覆盖 merge_suggestions / freeze_approvals / freeze_orders / 演示文案 四类）。
 - 验证脚本必须 `load_dotenv` 并 `wait_for_redis()` 自举依赖，否则会"依赖环境碰巧有 Redis"而假通过。
 - **断言落库结果必须用独立连接读**（`with db.engine.connect() as conn`）：`db.session` 是 thread-local 的，TestClient 在另一线程提交事务，主线程 session 会读到**旧快照** → 表现为"接口 200 但断言读不到"的**假失败**。先怀疑读法，别急着改产品代码。
@@ -110,8 +116,31 @@
 并发 401 共用 refreshPromise。后端 `/api/auth/refresh` 契约已核对一致。
 
 
-## 十三、其他待修（2026-09-20 新测）
-- **2 处原始 JSON 弹窗未改**：`WorkbenchView.vue:905`（研判任务）、`:1274`（审批流）——同一模式**已复发 4 次**。
-- **5 个视图有表格但零 loading**：AdminView(35 表格)/DashboardView(14)/DispatchView(14)/KeyPersonsView(12)/OverviewView(12) → 加载时一片空白像坏了。
-- **全局串行锁**：所有 `/api/` 请求排队，并发即全体等待（修法风险高，建议赛后）。
+## 十三、其他待修（2026-09-20 首测 / 09-22 更新）
+- ✅ **已消灭**：2 处原始 JSON 弹窗（研判任务 / 审批流详情）· 5 个视图的加载态 ·
+  危险操作二次确认（`utils/confirm.js`）· 前端错误归一化 + 慢请求提示 ·
+  演示数据一键复位 · 预警处置终态门控 · 401 自动续期链路。
+- ⏸ **仍待办**：**全局串行锁** —— `main.py::db_session_middleware` 让所有 `/api/` 请求排队，
+  并发即全体等待。属架构类，用户明确要求赛后再动。
+- ⏸ **待用户决定**：`JWT_SECRET_KEY` 两份配置不一致（见十二.3）。
 - 详见 `docs/系统缺陷与体验优化清单_0920.md`。
+
+## 十四、数据库事务卫生（2026-09-22 实测，两个同源缺陷已修）
+**根源一句话**：`db.session` 是 **thread-local 且从不被中间件清理** —— 工作线程被复用，
+事务就一直延续。由此产生两个后果：①未提交的写**永久持锁**；②REPEATABLE READ 下**读旧快照**。
+- **铁律 1：daemon 后台线程写库必须显式收尾。**
+  `main.py::_background_init` 每次启动都在 daemon 线程跑数据初始化；
+  `database/seed.py::_do_alert_data()` 的 `.delete()` **在 0 行命中时也会留表级意向锁**，
+  紧接着 `if count>0: return` 不结束事务 → `alert_records` 被**永久锁死**，
+  之后任何写该表的操作 Lock wait timeout（50s）→ 500（**每次启动埋一颗雷**）。
+  已修：seed 补 rollback + `_background_init` 加 **try/finally 兜底**（commit→rollback→remove）。
+- **铁律 2**：`.delete()` / `.update()` 即使 **0 行命中也可能加锁**，不能因"没删到东西"就不结束事务。
+- **铁律 3：MySQL 引擎已设 `isolation_level='READ COMMITTED'`**（`database/__init__.py`，仅 mysql）。
+  此前默认 REPEATABLE READ + session 复用 → 别的请求刚提交的数据本接口**读不到**
+  （实测 `GET /api/alerts` 写后仍返回旧 87 条）。改后**立即可见**、且不加间隙锁。
+- **诊断数据库锁的顺序**：`information_schema.innodb_trx`（谁挂着）→
+  `performance_schema.data_locks`（持了什么锁）→ `SHOW PROCESSLIST`（哪个连接）→
+  **停服对照**（确认归属）。本项目正是靠"停服后 trx 归零"把嫌疑锁定到后端进程。
+- **判据要盯"有害性"而非"存在性"**：护栏 I4 最初断言"无 >30s 的挂起事务"→ 恒失败；
+  实则那些是 `trx_rows_locked=0`、`data_locks` 为空的**空闲只读事务**（READ COMMITTED 下无害）。
+  改判为"无 >30s 的**持锁**事务"。

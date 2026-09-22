@@ -1,0 +1,18 @@
+# 批处理与命令脚本必须是 CRLF 行尾 —— cmd.exe 对 LF-only 的 .bat/.cmd
+# 在解析标签（:label）、goto/call 时不可靠，会出现「脚本跑一半就退出」的现象。
+# 教训：2026-09-22 本项目的「启动演示.bat」曾被以 LF 写入，git 提示
+# "LF will be replaced by CRLF" —— 若不固化，clone/checkout 后行为不确定。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 源码与配置统一 LF，避免跨平台 diff 噪声
+*.py   text eol=lf
+*.js   text eol=lf
+*.ts   text eol=lf
+*.vue  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.sh   text eol=lf
